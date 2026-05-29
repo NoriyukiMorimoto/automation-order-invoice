@@ -10,12 +10,32 @@
 ~$*.xlsx
 ~$*.xls
 
-# OS系
+# OS系・SharePoint系
 Thumbs.db
 desktop.ini
+.849C9593-D756-4E56-8D6E-42412F2A707B
+*.tmp
 
-# 業務データフォルダ
-元データ/
-参考データ/
+# ログファイル
 *.log
 logs/
+
+# ワークスペースファイル
+*.code-workspace
+
+# PowerShellスクリプト
+*.ps1
+
+# Wordファイル
+*.docx
+
+# テキストファイル
+*.txt
+
+# 旧VBAエクスポートフォルダ
+VBA_Export_*/
+search.exclude/
+注文書元コード/
+
+# その他
+AGENTS.md
