@@ -102,36 +102,54 @@ Public Sub CreateUnitPriceLists()
         frmProgress.ShowProgress totalProjectCount
     End If
 
-    If conventionalBranches.Count > 0 Then
-        For Each projectName In conventionalProjectNames
-            mProgName = CStr(projectName)
-            frmProgress.UpdateProgress mProgDone, mProgName
-            Set targetBooks = CreateObject("Scripting.Dictionary")
-            ProcessProjectAllBranches CStr(projectName), conventionalBranches, targetBooks
-            If targetBooks.Count > 0 Then
-                frmProgress.UpdateProgress mProgDone, "保存処理中: " & mProgName
-                SaveTargetBooks targetBooks
-            End If
-            Set targetBooks = Nothing
-            mProgDone = mProgDone + 1
-            frmProgress.UpdateProgress mProgDone, mProgName
-        Next projectName
-    End If
+    FlushLog
 
     If shinkansenRoots.Count > 0 Then
+        WriteLog "新幹線処理開始"
+        FlushLog
         For Each projectName In shinkansenProjectNames
             mProgName = CStr(projectName)
+            WriteLog "新幹線工事件名処理開始: " & mProgName
+            FlushLog
             frmProgress.UpdateProgress mProgDone, mProgName
             Set targetBooks = CreateObject("Scripting.Dictionary")
-            ProcessShinkansenProject CStr(projectName), shinkansenRoots, targetBooks
+            ProcessShinkansenProject mProgName, shinkansenRoots, targetBooks
             If targetBooks.Count > 0 Then
                 frmProgress.UpdateProgress mProgDone, "保存処理中: " & mProgName
                 SaveTargetBooks targetBooks
             End If
+            WriteLog "新幹線工事件名処理終了: " & mProgName & " / 作成候補 " & CStr(targetBooks.Count)
+            FlushLog
             Set targetBooks = Nothing
             mProgDone = mProgDone + 1
             frmProgress.UpdateProgress mProgDone, mProgName
         Next projectName
+        WriteLog "新幹線処理終了"
+        FlushLog
+    End If
+
+    If conventionalBranches.Count > 0 Then
+        WriteLog "在来線処理開始"
+        FlushLog
+        For Each projectName In conventionalProjectNames
+            mProgName = CStr(projectName)
+            WriteLog "在来線工事件名処理開始: " & mProgName
+            FlushLog
+            frmProgress.UpdateProgress mProgDone, mProgName
+            Set targetBooks = CreateObject("Scripting.Dictionary")
+            ProcessProjectAllBranches mProgName, conventionalBranches, targetBooks
+            If targetBooks.Count > 0 Then
+                frmProgress.UpdateProgress mProgDone, "保存処理中: " & mProgName
+                SaveTargetBooks targetBooks
+            End If
+            WriteLog "在来線工事件名処理終了: " & mProgName & " / 作成候補 " & CStr(targetBooks.Count)
+            FlushLog
+            Set targetBooks = Nothing
+            mProgDone = mProgDone + 1
+            frmProgress.UpdateProgress mProgDone, mProgName
+        Next projectName
+        WriteLog "在来線処理終了"
+        FlushLog
     End If
 
     frmProgress.CloseProgress
@@ -1913,8 +1931,6 @@ End Function
 Private Function GetYearFromSourceFolderName(ByVal folderName As String) As String
     Dim candidate As String
 
-    If InStr(folderName, "年度") = 0 Then Exit Function
-
     candidate = FindYearTextFromLeft(folderName)
     If Len(candidate) > 0 Then
         GetYearFromSourceFolderName = candidate
@@ -1998,6 +2014,7 @@ Private Function FindYearTextFromLeft(ByVal text As String) As String
     Dim i As Long
     Dim candidate As String
 
+    text = StrConv(text, vbNarrow)
     For i = 1 To Len(text) - 3
         candidate = Mid$(text, i, 4)
         If candidate Like "####" Then
@@ -2011,6 +2028,7 @@ Private Function FindYearTextFromRight(ByVal text As String) As String
     Dim i As Long
     Dim candidate As String
 
+    text = StrConv(text, vbNarrow)
     For i = Len(text) - 3 To 1 Step -1
         candidate = Mid$(text, i, 4)
         If candidate Like "####" Then
