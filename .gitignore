@@ -1,0 +1,19 @@
+# Excelファイル
+*.xlsm
+*.xlsx
+*.xls
+*.zip
+*.docx
+
+# 一時ファイル
+~$*.xlsm
+~$*.xlsx
+~$*.xls
+
+# OS系
+Thumbs.db
+desktop.ini
+
+# 業務データフォルダ
+元データ/
+参考データ/
