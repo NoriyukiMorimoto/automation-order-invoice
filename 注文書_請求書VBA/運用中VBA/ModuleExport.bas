@@ -17,8 +17,8 @@ Public Sub Export_All_VBA_Components(Optional ByVal targetBook As Workbook)
     Dim wb As Workbook
     Dim vbc As Object
     Dim currentComponentName As String
-    Dim latestRoot As String
-    Dim backupRoot As String
+    Dim baseRoot As String
+    Dim exportRoot As String
     Dim timeStamp As String
     Dim ext As String
     Dim fileName As String
@@ -34,37 +34,35 @@ Public Sub Export_All_VBA_Components(Optional ByVal targetBook As Workbook)
         Set wb = targetBook
     End If
 
-    latestRoot = GetExportRoot(wb)
-    If Len(latestRoot) = 0 Then
+    baseRoot = GetExportRoot(wb)
+    If Len(baseRoot) = 0 Then
         Err.Raise vbObjectError + 513, , "Please save the workbook to a local folder before exporting VBA code."
     End If
 
     timeStamp = Format(Now, "yyyymmdd_hhmmss")
-    backupRoot = fso.BuildPath(latestRoot, "VBA_Export_" & timeStamp)
+    exportRoot = fso.BuildPath(baseRoot, "VBA_Export_" & timeStamp)
 
-    EnsureFolderExists fso, latestRoot
-    EnsureFolderExists fso, backupRoot
+    EnsureFolderExists fso, baseRoot
+    EnsureFolderExists fso, exportRoot
 
     For Each vbc In wb.VBProject.VBComponents
         currentComponentName = CStr(vbc.Name)
         ext = GetComponentExtension(vbc)
         If Len(ext) > 0 Then
             fileName = GetSafeFileName(currentComponentName) & ext
-            ExportComponent fso, vbc, fso.BuildPath(latestRoot, fileName)
-            ExportComponent fso, vbc, fso.BuildPath(backupRoot, fileName)
+            ExportComponent fso, vbc, fso.BuildPath(exportRoot, fileName)
         End If
     Next vbc
 
     MsgBox "VBA export completed." & vbCrLf & _
-           "Latest: " & latestRoot & vbCrLf & _
-           "Backup: " & backupRoot, vbInformation
+           "Export: " & exportRoot, vbInformation
     GoTo FinallyExit
 
 EH:
     MsgBox "VBA export failed." & vbCrLf & _
            "Err " & Err.Number & ": " & Err.Description & vbCrLf & _
            "BookPath: " & GetWorkbookPathForMessage(wb) & vbCrLf & _
-           "ExportRoot: " & latestRoot & vbCrLf & _
+           "ExportRoot: " & exportRoot & vbCrLf & _
            "Component: " & currentComponentName, vbCritical
 
 FinallyExit:
