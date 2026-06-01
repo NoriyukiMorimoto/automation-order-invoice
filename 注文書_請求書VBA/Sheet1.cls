@@ -13,7 +13,7 @@ ExitHandler:
 End Sub
 
 Private Sub Worksheet_Change(ByVal Target As Range)
-    If Intersect(Target, Me.Range("B4,B6,C6,C9,C14:C15,F9,C25")) Is Nothing Then Exit Sub
+    If Intersect(Target, Me.Range("B4,B6,C6,C9,C14:C15,F9,C25,C27")) Is Nothing Then Exit Sub
 
     On Error GoTo ExitHandler
     Application.EnableEvents = False

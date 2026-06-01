@@ -28,11 +28,11 @@ Public Sub CreateUnitPriceLists()
 
     Dim sourcePath As String
     Dim targetBooks As Object
-    Dim branches As Collection
-    Dim conventionalBranches As Collection
-    Dim shinkansenRoots As Collection
-    Dim conventionalProjectNames As Collection
-    Dim shinkansenProjectNames As Collection
+    Dim branches As collection
+    Dim conventionalBranches As collection
+    Dim shinkansenRoots As collection
+    Dim conventionalProjectNames As collection
+    Dim shinkansenProjectNames As collection
     Dim totalProjectCount As Long
     Dim branchResolveError As String
     Dim savedErrNumber As Long
@@ -71,7 +71,7 @@ Public Sub CreateUnitPriceLists()
     branchResolveError = Err.Description
     Err.Clear
     On Error GoTo FatalError
-    If branches Is Nothing Then Set branches = New Collection
+    If branches Is Nothing Then Set branches = New collection
 
     Set conventionalBranches = FilterBranchesByLine(branches, OUTPUT_CONVENTIONAL_LINE_DIR)
     Set shinkansenRoots = ResolveShinkansenSourceRoots(sourcePath)
@@ -204,7 +204,7 @@ End Sub
 Private Function ResolveRootPath() As String
     Dim candidate As String
 
-    candidate = ThisWorkbook.Path
+    candidate = ThisWorkbook.path
     If IsValidRootPath(candidate) Then
         ResolveRootPath = candidate
         Exit Function
@@ -261,7 +261,7 @@ Private Function OpenReadOnlyWorkbook(ByVal path As String, Optional ByRef opene
 
     On Error Resume Next
     Set book = Workbooks.Open( _
-        Filename:=path, _
+        fileName:=path, _
         UpdateLinks:=0, _
         ReadOnly:=True, _
         IgnoreReadOnlyRecommended:=True, _
@@ -310,7 +310,7 @@ Private Function FindOpenWorkbook(ByVal path As String, ByVal allowNameMatch As 
 
     If Not allowNameMatch Then Exit Function
     For Each book In Application.Workbooks
-        If StrComp(book.Name, targetName, vbTextCompare) = 0 Then
+        If StrComp(book.name, targetName, vbTextCompare) = 0 Then
             Set FindOpenWorkbook = book
             Exit Function
         End If
@@ -368,7 +368,7 @@ Private Sub FlushLog()
     mLogBuffer = vbNullString
 End Sub
 
-Private Sub WriteErrorLog(ByVal context As String, ByVal errObject As ErrObject)
+Private Sub WriteErrorLog(ByVal context As String, ByVal errObject As errObject)
     WriteErrorLogValues context, errObject.Number, errObject.Source, errObject.Description
 End Sub
 
@@ -379,12 +379,12 @@ Private Sub WriteErrorLogValues(ByVal context As String, ByVal errNumber As Long
     WriteLog "  Message: " & errDescription
 End Sub
 
-Private Function ResolveBranches(ByVal selectedPath As String) As Collection
-    Dim result As Collection
+Private Function ResolveBranches(ByVal selectedPath As String) As collection
+    Dim result As collection
     Dim seen As Object
     Dim outputLineDir As String
 
-    Set result = New Collection
+    Set result = New collection
     Set seen = CreateObject("Scripting.Dictionary")
     selectedPath = TrimTrailingSlash(selectedPath)
     If Not FolderExists(selectedPath) Then Err.Raise vbObjectError + 2, , "参照フォルダが存在しません: " & selectedPath
@@ -405,7 +405,7 @@ Private Function ResolveBranches(ByVal selectedPath As String) As Collection
     Set ResolveBranches = result
 End Function
 
-Private Function AddBranchesFromLineRoots(ByVal sourcePath As String, ByVal result As Collection, ByVal seen As Object) As Boolean
+Private Function AddBranchesFromLineRoots(ByVal sourcePath As String, ByVal result As collection, ByVal seen As Object) As Boolean
     Dim found As Boolean
 
     found = AddBranchesFromLineRoot(sourcePath, OUTPUT_CONVENTIONAL_LINE_DIR, result, seen)
@@ -413,7 +413,7 @@ Private Function AddBranchesFromLineRoots(ByVal sourcePath As String, ByVal resu
     AddBranchesFromLineRoots = found
 End Function
 
-Private Function AddBranchesFromLineRoot(ByVal sourcePath As String, ByVal outputLineDir As String, ByVal result As Collection, ByVal seen As Object) As Boolean
+Private Function AddBranchesFromLineRoot(ByVal sourcePath As String, ByVal outputLineDir As String, ByVal result As collection, ByVal seen As Object) As Boolean
     Dim linePath As String
     Dim beforeCount As Long
 
@@ -437,7 +437,7 @@ Private Function ResolveOutputLineDir(ByVal sourcePath As String) As String
     End If
 End Function
 
-Private Function AddBranchesFromSourceRoot(ByVal sourcePath As String, ByVal result As Collection, ByVal seen As Object, ByVal outputLineDir As String) As Boolean
+Private Function AddBranchesFromSourceRoot(ByVal sourcePath As String, ByVal result As collection, ByVal seen As Object, ByVal outputLineDir As String) As Boolean
     Dim leaf As String
     Dim kinkiPath As String
     Dim kanazawaPath As String
@@ -482,7 +482,7 @@ Private Function AddBranchesFromSourceRoot(ByVal sourcePath As String, ByVal res
     End If
 End Function
 
-Private Sub AddBranchInfo(ByVal result As Collection, ByVal seen As Object, ByVal branchName As String, ByVal branchPath As String, ByVal outputLineDir As String)
+Private Sub AddBranchInfo(ByVal result As collection, ByVal seen As Object, ByVal branchName As String, ByVal branchPath As String, ByVal outputLineDir As String)
     Dim key As String
     Dim detectedLineDir As String
 
@@ -497,11 +497,11 @@ Private Sub AddBranchInfo(ByVal result As Collection, ByVal seen As Object, ByVa
     result.Add Array(branchName, branchPath, outputLineDir)
 End Sub
 
-Private Function FilterBranchesByLine(ByVal branches As Collection, ByVal outputLineDir As String) As Collection
-    Dim result As Collection
+Private Function FilterBranchesByLine(ByVal branches As collection, ByVal outputLineDir As String) As collection
+    Dim result As collection
     Dim branchInfo As Variant
 
-    Set result = New Collection
+    Set result = New collection
     If branches Is Nothing Then
         Set FilterBranchesByLine = result
         Exit Function
@@ -548,12 +548,12 @@ Private Function GetShinkansenMasterDir() As String
     GetShinkansenMasterDir = CombinePath(CombinePath(mRootPath, PROJECT_MASTER_DIR), ShinkansenLineName())
 End Function
 
-Private Function ResolveShinkansenSourceRoots(ByVal selectedPath As String) As Collection
-    Dim result As Collection
+Private Function ResolveShinkansenSourceRoots(ByVal selectedPath As String) As collection
+    Dim result As collection
     Dim seen As Object
     Dim linePath As String
 
-    Set result = New Collection
+    Set result = New collection
     Set seen = CreateObject("Scripting.Dictionary")
     selectedPath = TrimTrailingSlash(selectedPath)
     If Not FolderExists(selectedPath) Then
@@ -578,7 +578,7 @@ Private Function ResolveShinkansenSourceRoots(ByVal selectedPath As String) As C
     Set ResolveShinkansenSourceRoots = result
 End Function
 
-Private Sub ScanShinkansenLineRoots(ByVal parentPath As String, ByVal depth As Long, ByVal result As Collection, ByVal seen As Object)
+Private Sub ScanShinkansenLineRoots(ByVal parentPath As String, ByVal depth As Long, ByVal result As collection, ByVal seen As Object)
     Dim childPath As Variant
 
     If depth > SOURCE_SEARCH_MAX_DEPTH Then Exit Sub
@@ -592,7 +592,7 @@ Private Sub ScanShinkansenLineRoots(ByVal parentPath As String, ByVal depth As L
     Next childPath
 End Sub
 
-Private Sub AddUniquePath(ByVal result As Collection, ByVal seen As Object, ByVal path As String)
+Private Sub AddUniquePath(ByVal result As collection, ByVal seen As Object, ByVal path As String)
     Dim key As String
 
     path = TrimTrailingSlash(path)
@@ -601,8 +601,8 @@ Private Sub AddUniquePath(ByVal result As Collection, ByVal seen As Object, ByVa
     seen.Add key, True
     result.Add path
 End Sub
-Private Sub ScanSourceRoots(ByVal parentPath As String, ByVal depth As Long, ByVal result As Collection, ByVal seen As Object, ByVal outputLineDir As String)
-    Dim childFolders As Collection
+Private Sub ScanSourceRoots(ByVal parentPath As String, ByVal depth As Long, ByVal result As collection, ByVal seen As Object, ByVal outputLineDir As String)
+    Dim childFolders As collection
     Dim childPath As Variant
 
     If depth > SOURCE_SEARCH_MAX_DEPTH Then Exit Sub
@@ -613,18 +613,18 @@ Private Sub ScanSourceRoots(ByVal parentPath As String, ByVal depth As Long, ByV
         ScanSourceRoots CStr(childPath), depth + 1, result, seen, outputLineDir
     Next childPath
 End Sub
-Private Function ListChildFolderPaths(ByVal parentPath As String) As Collection
-    Dim result As Collection
+Private Function ListChildFolderPaths(ByVal parentPath As String) As collection
+    Dim result As collection
     Dim fso As Object
     Dim folder As Object
     Dim childFolder As Object
 
-    Set result = New Collection
+    Set result = New collection
     On Error GoTo Done
     Set fso = CreateObject("Scripting.FileSystemObject")
     Set folder = fso.GetFolder(parentPath)
     For Each childFolder In folder.SubFolders
-        result.Add CStr(childFolder.Path)
+        result.Add CStr(childFolder.path)
     Next childFolder
 
 Done:
@@ -658,7 +658,7 @@ Private Function HasProjectFolders(ByVal areaPath As String) As Boolean
 End Function
 
 Private Function GetRowProjectCode(ByVal sheet As Worksheet, ByVal rowIndex As Long, ByVal fallbackCode As String) As String
-    GetRowProjectCode = NormalizeProjectCode(sheet.Cells(rowIndex, 2).Value)
+    GetRowProjectCode = NormalizeProjectCode(sheet.Cells(rowIndex, 2).value)
     If Len(GetRowProjectCode) = 0 Then GetRowProjectCode = fallbackCode
 End Function
 
@@ -724,7 +724,7 @@ Private Function ResolveConventionalMasterPath(ByVal projectName As String) As S
     End If
 End Function
 
-Private Sub ProcessProjectAllBranches(ByVal projectName As String, ByVal branches As Collection, ByVal targetBooks As Object)
+Private Sub ProcessProjectAllBranches(ByVal projectName As String, ByVal branches As collection, ByVal targetBooks As Object)
     On Error GoTo ProjectError
 
     Dim projectCode As String
@@ -802,10 +802,10 @@ ProjectError:
     Err.Raise savedErrNumber, savedErrSource, savedErrDescription
 End Sub
 
-Private Function ReadProjectNames(ByVal sheetName As String) As Collection
+Private Function ReadProjectNames(ByVal sheetName As String) As collection
     On Error GoTo ReadError
 
-    Dim result As Collection
+    Dim result As collection
     Dim book As Workbook
     Dim sheet As Worksheet
     Dim rowIndex As Long
@@ -816,13 +816,13 @@ Private Function ReadProjectNames(ByVal sheetName As String) As Collection
     Dim savedErrDescription As String
     Dim bookOpenedByTool As Boolean
 
-    Set result = New Collection
+    Set result = New collection
     Set book = OpenReadOnlyWorkbook(GetProjectListPath(mRootPath), bookOpenedByTool)
     Set sheet = book.Worksheets(sheetName)
     lastRow = sheet.Cells(sheet.Rows.Count, 1).End(xlUp).Row
 
     For rowIndex = 2 To lastRow
-        value = Trim$(CStr(sheet.Cells(rowIndex, 1).Value))
+        value = Trim$(CStr(sheet.Cells(rowIndex, 1).value))
         If Len(value) > 0 Then AddUnique result, RemoveExtension(value)
     Next rowIndex
 
@@ -842,7 +842,7 @@ ReadError:
     Err.Raise savedErrNumber, savedErrSource, savedErrDescription
 End Function
 
-Private Sub ProcessShinkansenProject(ByVal projectName As String, ByVal sourceRoots As Collection, ByVal targetBooks As Object)
+Private Sub ProcessShinkansenProject(ByVal projectName As String, ByVal sourceRoots As collection, ByVal targetBooks As Object)
     On Error GoTo ProjectError
 
     Dim masterPath As String
@@ -850,7 +850,7 @@ Private Sub ProcessShinkansenProject(ByVal projectName As String, ByVal sourceRo
     Dim masterOpenedByTool As Boolean
     Dim masterBaseName As String
     Dim sourceRoot As Variant
-    Dim projectDirs As Collection
+    Dim projectDirs As collection
     Dim projectDir As Variant
     Dim processedDirs As Object
     Dim dirKey As String
@@ -960,7 +960,7 @@ Private Function ShinkansenMasterContainsProjectName(ByVal masterPath As String,
     For Each ws In book.Worksheets
         lastRow = ws.Cells(ws.Rows.Count, 3).End(xlUp).Row
         For rowIndex = 2 To lastRow
-            If TextMatches(CStr(ws.Cells(rowIndex, 3).Value), projectName) Then
+            If TextMatches(CStr(ws.Cells(rowIndex, 3).value), projectName) Then
                 ShinkansenMasterContainsProjectName = True
                 GoTo Done
             End If
@@ -975,13 +975,13 @@ Done:
     On Error GoTo 0
 End Function
 
-Private Function FindShinkansenProjectFolders(ByVal rootPath As String, ByVal projectName As String, ByVal alternateName As String) As Collection
-    Dim result As Collection
-    Dim names As Collection
+Private Function FindShinkansenProjectFolders(ByVal rootPath As String, ByVal projectName As String, ByVal alternateName As String) As collection
+    Dim result As collection
+    Dim names As collection
     Dim seen As Object
 
-    Set result = New Collection
-    Set names = New Collection
+    Set result = New collection
+    Set names = New collection
     Set seen = CreateObject("Scripting.Dictionary")
     AddUnique names, projectName
     If Len(alternateName) > 0 Then AddUnique names, alternateName
@@ -990,7 +990,7 @@ Private Function FindShinkansenProjectFolders(ByVal rootPath As String, ByVal pr
     Set FindShinkansenProjectFolders = result
 End Function
 
-Private Sub ScanShinkansenProjectFolders(ByVal parentPath As String, ByVal names As Collection, ByVal depth As Long, ByVal result As Collection, ByVal seen As Object)
+Private Sub ScanShinkansenProjectFolders(ByVal parentPath As String, ByVal names As collection, ByVal depth As Long, ByVal result As collection, ByVal seen As Object)
     Dim childPath As Variant
 
     If depth > SOURCE_SEARCH_MAX_DEPTH Then Exit Sub
@@ -1004,7 +1004,7 @@ Private Sub ScanShinkansenProjectFolders(ByVal parentPath As String, ByVal names
     Next childPath
 End Sub
 
-Private Function FolderNameMatches(ByVal folderName As String, ByVal names As Collection) As Boolean
+Private Function FolderNameMatches(ByVal folderName As String, ByVal names As collection) As Boolean
     Dim item As Variant
 
     For Each item In names
@@ -1087,7 +1087,7 @@ Private Sub CopyShinkansenSourceToTarget(ByVal sourcePath As String, ByVal sourc
         createdTargetBook = True
         sourceSheet.Copy After:=targetBook.Worksheets(1)
         Set copiedSheet = targetBook.Worksheets(targetBook.Worksheets.Count)
-        copiedSheet.Name = SafeSheetName(sheetName)
+        copiedSheet.name = SafeSheetName(sheetName)
         If isPurchaseProject Then FormatShinkansenPurchaseUnitPriceSheet copiedSheet, sourceFileName, isChange, areaName, yearText
         Application.DisplayAlerts = False
         targetBook.Worksheets(1).Delete
@@ -1096,7 +1096,7 @@ Private Sub CopyShinkansenSourceToTarget(ByVal sourcePath As String, ByVal sourc
         Set targetBook = targetBooks(targetPath)
         sourceSheet.Copy After:=targetBook.Worksheets(targetBook.Worksheets.Count)
         Set copiedSheet = targetBook.Worksheets(targetBook.Worksheets.Count)
-        copiedSheet.Name = UniqueSheetName(targetBook, sheetName)
+        copiedSheet.name = UniqueSheetName(targetBook, sheetName)
         If isPurchaseProject Then FormatShinkansenPurchaseUnitPriceSheet copiedSheet, sourceFileName, isChange, areaName, yearText
     End If
 
@@ -1149,17 +1149,17 @@ Private Function ResolveShinkansenMasterRow(ByVal masterBook As Workbook, ByVal 
         sourceLineName = vbNullString
         If Len(sourceProjectTitle) = 0 Then Exit Function
     Else
-        sourceProjectTitle = Trim$(CStr(sourceSheet.Range("B3").Value))
-        sourceLineName = Trim$(CStr(sourceSheet.Range("B4").Value))
+        sourceProjectTitle = Trim$(CStr(sourceSheet.Range("B3").value))
+        sourceLineName = Trim$(CStr(sourceSheet.Range("B4").value))
         If Len(sourceProjectTitle) = 0 Then Exit Function
     End If
 
     For Each ws In masterBook.Worksheets
         lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
         For rowIndex = 2 To lastRow
-            rowProjectTitle = Trim$(CStr(ws.Cells(rowIndex, 3).Value))
-            rowLineName = Trim$(CStr(ws.Cells(rowIndex, 5).Value))
-            rowShortName = Trim$(CStr(ws.Cells(rowIndex, 4).Value))
+            rowProjectTitle = Trim$(CStr(ws.Cells(rowIndex, 3).value))
+            rowLineName = Trim$(CStr(ws.Cells(rowIndex, 5).value))
+            rowShortName = Trim$(CStr(ws.Cells(rowIndex, 4).value))
             If isPurchaseProject Then
                 If TextMatches(rowShortName, purchaseKey) Then
                     ResolveShinkansenMasterRow = ApplyShinkansenMasterRow(ws, rowIndex, branchName, areaName, projectTitle, lineName)
@@ -1176,10 +1176,10 @@ Private Function ResolveShinkansenMasterRow(ByVal masterBook As Workbook, ByVal 
 End Function
 
 Private Function ApplyShinkansenMasterRow(ByVal ws As Worksheet, ByVal rowIndex As Long, ByRef branchName As String, ByRef areaName As String, ByRef projectTitle As String, ByRef lineName As String) As Boolean
-    branchName = ws.Name
-    areaName = Trim$(CStr(ws.Cells(rowIndex, 1).Value))
-    projectTitle = Trim$(CStr(ws.Cells(rowIndex, 3).Value))
-    lineName = Trim$(CStr(ws.Cells(rowIndex, 5).Value))
+    branchName = ws.name
+    areaName = Trim$(CStr(ws.Cells(rowIndex, 1).value))
+    projectTitle = Trim$(CStr(ws.Cells(rowIndex, 3).value))
+    lineName = Trim$(CStr(ws.Cells(rowIndex, 5).value))
     ApplyShinkansenMasterRow = (Len(branchName) > 0 And Len(areaName) > 0 And Len(projectTitle) > 0)
 End Function
 
@@ -1187,7 +1187,7 @@ Private Function IsShinkansenPurchaseSource(ByVal sourceSheet As Worksheet, ByVa
     If InStr(projectName, PurchaseProjectKeyword()) > 0 Then
         IsShinkansenPurchaseSource = True
     Else
-        IsShinkansenPurchaseSource = (InStr(CStr(sourceSheet.Range("A1").Value), PurchaseProjectKeyword()) > 0)
+        IsShinkansenPurchaseSource = (InStr(CStr(sourceSheet.Range("A1").value), PurchaseProjectKeyword()) > 0)
     End If
 End Function
 
@@ -1211,7 +1211,7 @@ Private Function GetShinkansenInspectionProjectTitle(ByVal sourceSheet As Worksh
         lastCol = sourceSheet.Cells(rowIndex, sourceSheet.Columns.Count).End(xlToLeft).Column
         rowText = vbNullString
         For colIndex = 1 To lastCol
-            value = Trim$(CStr(sourceSheet.Cells(rowIndex, colIndex).Value))
+            value = Trim$(CStr(sourceSheet.Cells(rowIndex, colIndex).value))
             If Len(value) > 0 Then rowText = rowText & value
         Next colIndex
 
@@ -1245,7 +1245,7 @@ Private Function GetShinkansenPurchaseOfficeKey(ByVal sourceSheet As Worksheet) 
     Dim value As String
 
     For Each address In Array("H2", "H3", "H1", "H4")
-        value = Trim$(CStr(sourceSheet.Range(CStr(address)).Value))
+        value = Trim$(CStr(sourceSheet.Range(CStr(address)).value))
         If Len(value) > 0 And Not IsNumeric(value) And InStr(value, "単価") = 0 And InStr(value, "円") = 0 Then
             GetShinkansenPurchaseOfficeKey = value
             Exit Function
@@ -1305,20 +1305,20 @@ Private Sub FormatShinkansenPurchaseUnitPriceSheet(ByVal ws As Worksheet, ByVal 
 
     ws.Range("A:A").NumberFormat = "@"
     For rowIndex = SOURCE_FIRST_ROW To lastRow
-        If IsNumeric(ws.Cells(rowIndex, "A").Value) And Trim$(CStr(ws.Cells(rowIndex, "A").Value)) <> "" Then
-            a4 = Format$(CLng(CDbl(ws.Cells(rowIndex, "A").Value)) + 1000, "0000")
+        If IsNumeric(ws.Cells(rowIndex, "A").value) And Trim$(CStr(ws.Cells(rowIndex, "A").value)) <> "" Then
+            a4 = Format$(CLng(CDbl(ws.Cells(rowIndex, "A").value)) + 1000, "0000")
         Else
             a4 = "0000"
         End If
-        c2 = PadZeroText(OnlyDigitsNarrow(CStr(ws.Cells(rowIndex, "C").Value)), 2)
-        e5 = PadZeroText(OnlyDigitsNarrow(CStr(ws.Cells(rowIndex, "E").Value)), 5)
+        c2 = PadZeroText(OnlyDigitsNarrow(CStr(ws.Cells(rowIndex, "C").value)), 2)
+        e5 = PadZeroText(OnlyDigitsNarrow(CStr(ws.Cells(rowIndex, "E").value)), 5)
         code11 = a4 & c2 & e5
-        ws.Cells(rowIndex, "A").Value = code11
+        ws.Cells(rowIndex, "A").value = code11
     Next rowIndex
 
     ws.Range("A:A").NumberFormat = "0"
     For rowIndex = SOURCE_FIRST_ROW To lastRow
-        If Len(Trim$(CStr(ws.Cells(rowIndex, "A").Value))) > 0 Then ws.Cells(rowIndex, "A").Value = CDec(ws.Cells(rowIndex, "A").Value)
+        If Len(Trim$(CStr(ws.Cells(rowIndex, "A").value))) > 0 Then ws.Cells(rowIndex, "A").value = CDec(ws.Cells(rowIndex, "A").value)
     Next rowIndex
 
     ws.Columns("J").Delete Shift:=xlShiftToLeft
@@ -1326,9 +1326,9 @@ Private Sub FormatShinkansenPurchaseUnitPriceSheet(ByVal ws As Worksheet, ByVal 
     ws.Columns("E").Delete Shift:=xlShiftToLeft
     ws.Columns("C").Delete Shift:=xlShiftToLeft
 
-    ws.Cells(SOURCE_HEADER_ROW, "G").Value = "保線区名"
+    ws.Cells(SOURCE_HEADER_ROW, "G").value = "保線区名"
     For rowIndex = SOURCE_FIRST_ROW To lastRow
-        ws.Cells(rowIndex, "G").Value = areaText
+        ws.Cells(rowIndex, "G").value = areaText
     Next rowIndex
 
     ws.Rows("1:2").UnMerge
@@ -1345,7 +1345,7 @@ Private Sub FormatShinkansenPurchaseUnitPriceSheet(ByVal ws As Worksheet, ByVal 
     Next lo
 
     Set tbl = ws.ListObjects.Add(SourceType:=xlSrcRange, Source:=tableRange, XlListObjectHasHeaders:=xlYes)
-    tbl.Name = UniqueListObjectName(ws.Parent, tableName)
+    tbl.name = UniqueListObjectName(ws.Parent, tableName)
     tbl.TableStyle = "TableStyleMedium7"
 
     ws.Rows("1:4").Insert Shift:=xlDown
@@ -1354,8 +1354,8 @@ Private Sub FormatShinkansenPurchaseUnitPriceSheet(ByVal ws As Worksheet, ByVal 
     ws.Columns("E").HorizontalAlignment = xlHAlignCenter
     ws.Columns("G").HorizontalAlignment = xlHAlignCenter
     ws.Columns("F").NumberFormat = "#,##0"
-    ws.Cells(5, "E").Value = "単位"
-    ws.Cells(5, "F").Value = "単価"
+    ws.Cells(5, "E").value = "単位"
+    ws.Cells(5, "F").value = "単価"
 
     yearText = sourceYearText
     If Len(yearText) = 0 Then yearText = GetYearFromFileName(RemoveExtension(sourceFileName))
@@ -1373,14 +1373,14 @@ Private Sub FormatShinkansenPurchaseUnitPriceSheet(ByVal ws As Worksheet, ByVal 
     Set titleRange = ws.Range("A1:G1")
     With titleRange
         .Merge
-        .Value = titleText
+        .value = titleText
         .HorizontalAlignment = xlHAlignCenter
         .VerticalAlignment = xlVAlignCenter
-        .Font.Name = "BIZ UDGothic"
+        .Font.name = "BIZ UDGothic"
         .Font.Size = 14
     End With
 
-    ws.Cells.Font.Name = "BIZ UDGothic"
+    ws.Cells.Font.name = "BIZ UDGothic"
     On Error Resume Next
     ws.Cells.Font.NameFarEast = "BIZ UDGothic"
     On Error GoTo 0
@@ -1404,17 +1404,17 @@ Private Sub ProcessMasterRow(ByVal sheet As Worksheet, ByVal rowIndex As Long, B
     Dim projectWasCached As Boolean
     Dim isPurchaseProject As Boolean
 
-    areaName = Trim$(CStr(sheet.Cells(rowIndex, 1).Value))
-    areaCode = FormatCode(sheet.Cells(rowIndex, 3).Value, 4)
-    lineName = Trim$(CStr(sheet.Cells(rowIndex, 6).Value))
+    areaName = Trim$(CStr(sheet.Cells(rowIndex, 1).value))
+    areaCode = FormatCode(sheet.Cells(rowIndex, 3).value, 4)
+    lineName = Trim$(CStr(sheet.Cells(rowIndex, 6).value))
     isPurchaseProject = IsPurchaseProjectName(projectName, projectCode)
 
     If isPurchaseProject Then
-        lineCode = NormalizePurchaseBranchSuffix(sheet.Cells(rowIndex, 4).Value)
+        lineCode = NormalizePurchaseBranchSuffix(sheet.Cells(rowIndex, 4).value)
         rowProjectCode = projectCode
         If Len(areaCode) = 0 Or Len(rowProjectCode) = 0 Then Exit Sub
     Else
-        lineCode = FormatCode(sheet.Cells(rowIndex, 4).Value, 2)
+        lineCode = FormatCode(sheet.Cells(rowIndex, 4).value, 2)
         rowProjectCode = GetRowProjectCode(sheet, rowIndex, projectCode)
         If Len(areaCode) = 0 Or Len(lineCode) = 0 Or Len(rowProjectCode) = 0 Then Exit Sub
     End If
@@ -1534,7 +1534,7 @@ Private Sub CopySourceToTarget(ByVal sourcePath As String, ByVal sourceFileName 
     If isPurchaseProject Then
         sheetName = filePrefix
     Else
-        sheetName = Trim$(CStr(sourceSheet.Range("B4").Value))
+        sheetName = Trim$(CStr(sourceSheet.Range("B4").value))
         If Len(sheetName) = 0 Then
             If Len(lineName) > 0 Then
                 sheetName = lineName
@@ -1548,8 +1548,9 @@ Private Sub CopySourceToTarget(ByVal sourcePath As String, ByVal sourceFileName 
         createdTargetBook = True
         sourceSheet.Copy After:=targetBook.Worksheets(1)
         Set copiedSheet = targetBook.Worksheets(targetBook.Worksheets.Count)
-        copiedSheet.Name = SafeSheetName(sheetName)
+        copiedSheet.name = SafeSheetName(sheetName)
         If isPurchaseProject Then FormatPurchaseUnitPriceSheet copiedSheet, sourceFileName, isChange
+        If Not isPurchaseProject Then ApplyConventionalUnitPriceTitle copiedSheet, isChange
         Application.DisplayAlerts = False
         targetBook.Worksheets(1).Delete
         targetBooks.Add targetPath, targetBook
@@ -1557,8 +1558,9 @@ Private Sub CopySourceToTarget(ByVal sourcePath As String, ByVal sourceFileName 
         Set targetBook = targetBooks(targetPath)
         sourceSheet.Copy After:=targetBook.Worksheets(targetBook.Worksheets.Count)
         Set copiedSheet = targetBook.Worksheets(targetBook.Worksheets.Count)
-        copiedSheet.Name = UniqueSheetName(targetBook, sheetName)
+        copiedSheet.name = UniqueSheetName(targetBook, sheetName)
         If isPurchaseProject Then FormatPurchaseUnitPriceSheet copiedSheet, sourceFileName, isChange
+        If Not isPurchaseProject Then ApplyConventionalUnitPriceTitle copiedSheet, isChange
     End If
 
     WriteLog "  追加: " & sourceFileName & " -> " & targetPath
@@ -1591,6 +1593,18 @@ CopyError:
     Err.Raise savedErrNumber, savedErrSource, savedErrDescription
 End Sub
 
+Private Sub ApplyConventionalUnitPriceTitle(ByVal ws As Worksheet, ByVal isChange As Boolean)
+    ws.Range("A1").value = ConventionalUnitPriceTitle(isChange)
+End Sub
+
+Private Function ConventionalUnitPriceTitle(ByVal isChange As Boolean) As String
+    If isChange Then
+        ConventionalUnitPriceTitle = "積算線区別　　単価一覧表（設計変更）"
+    Else
+        ConventionalUnitPriceTitle = "積算線区別　　単価一覧表（年初単価）"
+    End If
+End Function
+
 Private Sub FormatPurchaseUnitPriceSheet(ByVal ws As Worksheet, ByVal sourceFileName As String, ByVal isChange As Boolean)
     Const FIRST_ROW As Long = 2
     Const HEADER_ROW As Long = 1
@@ -1614,7 +1628,7 @@ Private Sub FormatPurchaseUnitPriceSheet(ByVal ws As Worksheet, ByVal sourceFile
     Dim prefixText As String
     Dim areaText As String
 
-    tableName = CleanListObjectName(CStr(ws.Cells(2, "C").Value))
+    tableName = CleanListObjectName(CStr(ws.Cells(2, "C").value))
     If Len(tableName) = 0 Then tableName = "品目コードTable"
 
     lastRow = ws.Cells(ws.Rows.Count, "D").End(xlUp).Row
@@ -1622,20 +1636,20 @@ Private Sub FormatPurchaseUnitPriceSheet(ByVal ws As Worksheet, ByVal sourceFile
 
     ws.Range("A:A").NumberFormat = "@"
     For rowIndex = FIRST_ROW To lastRow
-        If IsNumeric(ws.Cells(rowIndex, "D").Value) And Trim$(CStr(ws.Cells(rowIndex, "D").Value)) <> "" Then
-            d4 = Format$(CLng(CDbl(ws.Cells(rowIndex, "D").Value)) + 1000, "0000")
+        If IsNumeric(ws.Cells(rowIndex, "D").value) And Trim$(CStr(ws.Cells(rowIndex, "D").value)) <> "" Then
+            d4 = Format$(CLng(CDbl(ws.Cells(rowIndex, "D").value)) + 1000, "0000")
         Else
             d4 = "0000"
         End If
-        f2 = PadZeroText(OnlyDigitsNarrow(CStr(ws.Cells(rowIndex, "F").Value)), 2)
-        h5 = PadZeroText(OnlyDigitsNarrow(CStr(ws.Cells(rowIndex, "H").Value)), 5)
+        f2 = PadZeroText(OnlyDigitsNarrow(CStr(ws.Cells(rowIndex, "F").value)), 2)
+        h5 = PadZeroText(OnlyDigitsNarrow(CStr(ws.Cells(rowIndex, "H").value)), 5)
         code11 = d4 & f2 & h5
-        ws.Cells(rowIndex, "A").Value = code11
+        ws.Cells(rowIndex, "A").value = code11
     Next rowIndex
 
     ws.Range("A:A").NumberFormat = "0"
     For rowIndex = FIRST_ROW To lastRow
-        If Len(Trim$(CStr(ws.Cells(rowIndex, "A").Value))) > 0 Then ws.Cells(rowIndex, "A").Value = CDec(ws.Cells(rowIndex, "A").Value)
+        If Len(Trim$(CStr(ws.Cells(rowIndex, "A").value))) > 0 Then ws.Cells(rowIndex, "A").value = CDec(ws.Cells(rowIndex, "A").value)
     Next rowIndex
 
     lastCol = ws.Cells(FIRST_ROW, ws.Columns.Count).End(xlToLeft).Column
@@ -1664,7 +1678,7 @@ Private Sub FormatPurchaseUnitPriceSheet(ByVal ws As Worksheet, ByVal sourceFile
     Next lo
 
     Set tbl = ws.ListObjects.Add(SourceType:=xlSrcRange, Source:=tableRange, XlListObjectHasHeaders:=xlYes)
-    tbl.Name = UniqueListObjectName(ws.Parent, tableName)
+    tbl.name = UniqueListObjectName(ws.Parent, tableName)
     tbl.TableStyle = "TableStyleMedium7"
 
     ws.Rows("1:4").Insert Shift:=xlDown
@@ -1674,8 +1688,8 @@ Private Sub FormatPurchaseUnitPriceSheet(ByVal ws As Worksheet, ByVal sourceFile
     ws.Columns("G").HorizontalAlignment = xlHAlignCenter
     ws.Columns("H").HorizontalAlignment = xlHAlignCenter
     ws.Columns("F").NumberFormat = "#,##0"
-    ws.Cells(5, "E").Value = "単位"
-    ws.Cells(5, "F").Value = "単価"
+    ws.Cells(5, "E").value = "単位"
+    ws.Cells(5, "F").value = "単価"
 
     yearText = GetYearFromFileName(RemoveExtension(sourceFileName))
     If Len(yearText) = 0 Then
@@ -1683,20 +1697,20 @@ Private Sub FormatPurchaseUnitPriceSheet(ByVal ws As Worksheet, ByVal sourceFile
         If Len(yearText) >= 4 Then yearText = Left$(yearText, 4)
     End If
     prefixText = PurchaseTitlePrefix(sourceFileName, isChange)
-    areaText = CStr(ws.Cells(6, "G").Value)
+    areaText = CStr(ws.Cells(6, "G").value)
     titleText = yearText & "年度_購入充当単価表_" & prefixText & "_" & areaText
 
     Set titleRange = ws.Range("A1:G1")
     With titleRange
         .Merge
-        .Value = titleText
+        .value = titleText
         .HorizontalAlignment = xlHAlignCenter
         .VerticalAlignment = xlVAlignCenter
-        .Font.Name = "BIZ UDGothic"
+        .Font.name = "BIZ UDGothic"
         .Font.Size = 14
     End With
 
-    ws.Cells.Font.Name = "BIZ UDGothic"
+    ws.Cells.Font.name = "BIZ UDGothic"
     On Error Resume Next
     ws.Cells.Font.NameFarEast = "BIZ UDGothic"
     On Error GoTo 0
@@ -1815,7 +1829,7 @@ Private Function ListObjectNameExists(ByVal book As Workbook, ByVal tableName As
     Dim lo As ListObject
     For Each ws In book.Worksheets
         For Each lo In ws.ListObjects
-            If StrComp(lo.Name, tableName, vbTextCompare) = 0 Then
+            If StrComp(lo.name, tableName, vbTextCompare) = 0 Then
                 ListObjectNameExists = True
                 Exit Function
             End If
@@ -1861,7 +1875,7 @@ Private Sub SaveOneBook(ByVal book As Workbook, ByVal targetPath As String)
     ApplyWorkbookFont book, "BIZ UDゴシック"
     WriteLog "一時保存開始: " & tempPath
     FlushLog
-    book.SaveAs Filename:=tempPath, FileFormat:=xlOpenXMLWorkbook
+    book.SaveAs fileName:=tempPath, FileFormat:=xlOpenXMLWorkbook
     book.Close SaveChanges:=False
     Set book = Nothing
 
@@ -1934,7 +1948,7 @@ Private Sub ApplyWorkbookFont(ByVal book As Workbook, ByVal fontName As String)
     Dim sheet As Worksheet
 
     For Each sheet In book.Worksheets
-        sheet.UsedRange.Font.Name = fontName
+        sheet.UsedRange.Font.name = fontName
         On Error Resume Next
         sheet.UsedRange.Font.NameFarEast = fontName
         On Error GoTo 0
@@ -2197,7 +2211,7 @@ End Function
 Private Function SheetExists(ByVal book As Workbook, ByVal sheetName As String) As Boolean
     Dim sheet As Worksheet
     For Each sheet In book.Worksheets
-        If sheet.Name = sheetName Then
+        If sheet.name = sheetName Then
             SheetExists = True
             Exit Function
         End If
@@ -2235,7 +2249,7 @@ Private Function SafeFileName(ByVal value As String) As String
 End Function
 
 
-Private Sub AddUnique(ByVal collection As Collection, ByVal value As String)
+Private Sub AddUnique(ByVal collection As collection, ByVal value As String)
     Dim item As Variant
     For Each item In collection
         If CStr(item) = value Then Exit Sub
