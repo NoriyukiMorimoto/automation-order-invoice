@@ -2,7 +2,7 @@ Option Explicit
 
 Private Const DEFAULT_SOURCE_ROOT As String = "\\dt-ims\公開フォルダ\090_線路本部\008_単価契約関係\2026年度 R8年度単価契約工事"
 Private Const PROJECT_LIST_BOOK As String = "出張所別_単価適用線区.xlsx"
-Private Const PROJECT_LIST_DIR As String = "参照データ"
+Private Const PROJECT_LIST_DIR As String = "工事件名別マスタ"
 Private Const PROJECT_LIST_SHEET As String = "単価適用工事件名マスタ"
 Private Const PROJECT_MASTER_DIR As String = "工事件名別マスタ"
 Private Const OUTPUT_DATA_DIR As String = "単価データ"
@@ -230,7 +230,7 @@ Private Function ResolveRootPath() As String
 
     Err.Raise vbObjectError + 1, , "単価マスタフォルダを自動検出できませんでした。SharePointをローカル同期し、次のファイルが存在することを確認してください。" & vbCrLf & _
         CombinePath(PROJECT_LIST_DIR, PROJECT_LIST_BOOK) & vbCrLf & _
-        PROJECT_MASTER_DIR
+        CombinePath(PROJECT_MASTER_DIR, ConventionalLineName())
 End Function
 
 Private Function GetProjectListPath(ByVal rootPath As String) As String
@@ -242,7 +242,7 @@ Private Function IsValidRootPath(ByVal candidate As String) As Boolean
     If Left$(LCase$(candidate), 4) = "http" Then Exit Function
 
     candidate = TrimTrailingSlash(candidate)
-    IsValidRootPath = FileExists(GetProjectListPath(candidate)) And FolderExists(CombinePath(candidate, PROJECT_MASTER_DIR))
+    IsValidRootPath = FileExists(GetProjectListPath(candidate)) And FolderExists(CombinePath(CombinePath(candidate, PROJECT_MASTER_DIR), ConventionalLineName()))
 End Function
 
 Private Function OpenReadOnlyWorkbook(ByVal path As String, Optional ByRef openedByTool As Boolean = True) As Workbook
@@ -514,6 +514,21 @@ Private Function FilterBranchesByLine(ByVal branches As Collection, ByVal output
     Set FilterBranchesByLine = result
 End Function
 
+Private Function ConventionalLineName() As String
+    Dim pos As Long
+
+    pos = InStr(OUTPUT_CONVENTIONAL_LINE_DIR, "_")
+    If pos > 0 Then
+        ConventionalLineName = Mid$(OUTPUT_CONVENTIONAL_LINE_DIR, pos + 1)
+    Else
+        ConventionalLineName = OUTPUT_CONVENTIONAL_LINE_DIR
+    End If
+End Function
+
+Private Function GetConventionalMasterDir() As String
+    GetConventionalMasterDir = CombinePath(CombinePath(mRootPath, PROJECT_MASTER_DIR), ConventionalLineName())
+End Function
+
 Private Function ShinkansenLineName() As String
     Dim pos As Long
 
@@ -690,6 +705,25 @@ Private Function FindProjectFolder(ByVal areaDir As String, ByVal projectName As
         name = Dir$()
     Loop
 End Function
+
+Private Function ResolveConventionalMasterPath(ByVal projectName As String) As String
+    Dim primaryPath As String
+    Dim legacyPath As String
+
+    primaryPath = CombinePath(GetConventionalMasterDir(), projectName & ".xlsx")
+    If FileExists(primaryPath) Then
+        ResolveConventionalMasterPath = primaryPath
+        Exit Function
+    End If
+
+    legacyPath = CombinePath(CombinePath(mRootPath, PROJECT_MASTER_DIR), projectName & ".xlsx")
+    If FileExists(legacyPath) Then
+        ResolveConventionalMasterPath = legacyPath
+    Else
+        ResolveConventionalMasterPath = primaryPath
+    End If
+End Function
+
 Private Sub ProcessProjectAllBranches(ByVal projectName As String, ByVal branches As Collection, ByVal targetBooks As Object)
     On Error GoTo ProjectError
 
@@ -716,7 +750,7 @@ Private Sub ProcessProjectAllBranches(ByVal projectName As String, ByVal branche
         Exit Sub
     End If
 
-    masterPath = CombinePath(CombinePath(mRootPath, PROJECT_MASTER_DIR), projectName & ".xlsx")
+    masterPath = ResolveConventionalMasterPath(projectName)
     If Not FileExists(masterPath) Then
         WriteLog "スキップ: 工事件名別マスタが見つかりません: " & masterPath
         Exit Sub
@@ -1110,6 +1144,10 @@ Private Function ResolveShinkansenMasterRow(ByVal masterBook As Workbook, ByVal 
     If isPurchaseProject Then
         purchaseKey = GetShinkansenPurchaseOfficeKey(sourceSheet)
         If Len(purchaseKey) = 0 Then Exit Function
+    ElseIf IsShinkansenInspectionProject(projectName) Then
+        sourceProjectTitle = GetShinkansenInspectionProjectTitle(sourceSheet)
+        sourceLineName = vbNullString
+        If Len(sourceProjectTitle) = 0 Then Exit Function
     Else
         sourceProjectTitle = Trim$(CStr(sourceSheet.Range("B3").Value))
         sourceLineName = Trim$(CStr(sourceSheet.Range("B4").Value))
@@ -1155,6 +1193,51 @@ End Function
 
 Private Function PurchaseProjectKeyword() As String
     PurchaseProjectKeyword = "購入充当"
+End Function
+
+Private Function IsShinkansenInspectionProject(ByVal projectName As String) As Boolean
+    IsShinkansenInspectionProject = (InStr(projectName, "検査") > 0)
+End Function
+
+Private Function GetShinkansenInspectionProjectTitle(ByVal sourceSheet As Worksheet) As String
+    Dim rowIndex As Long
+    Dim colIndex As Long
+    Dim lastCol As Long
+    Dim value As String
+    Dim rowText As String
+    Dim extractedTitle As String
+
+    For rowIndex = 1 To 12
+        lastCol = sourceSheet.Cells(rowIndex, sourceSheet.Columns.Count).End(xlToLeft).Column
+        rowText = vbNullString
+        For colIndex = 1 To lastCol
+            value = Trim$(CStr(sourceSheet.Cells(rowIndex, colIndex).Value))
+            If Len(value) > 0 Then rowText = rowText & value
+        Next colIndex
+
+        extractedTitle = ExtractShinkansenInspectionProjectTitle(rowText)
+        If Len(extractedTitle) > 0 Then
+            GetShinkansenInspectionProjectTitle = extractedTitle
+            Exit Function
+        End If
+    Next rowIndex
+End Function
+
+Private Function ExtractShinkansenInspectionProjectTitle(ByVal text As String) As String
+    Dim normalizedText As String
+    Dim pos As Long
+    Dim result As String
+
+    normalizedText = NormalizeCompareText(text)
+    pos = InStr(normalizedText, "件名")
+    If pos = 0 Then Exit Function
+
+    result = Mid$(normalizedText, pos + Len("件名"))
+    Do While Len(result) > 0 And (Left$(result, 1) = ":" Or Left$(result, 1) = "：" Or Left$(result, 1) = "・")
+        result = Mid$(result, 2)
+    Loop
+
+    ExtractShinkansenInspectionProjectTitle = result
 End Function
 
 Private Function GetShinkansenPurchaseOfficeKey(ByVal sourceSheet As Worksheet) As String
