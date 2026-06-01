@@ -134,6 +134,7 @@ Public Sub ClearBasicInfo()
     Application.EnableEvents = False
 
     HideOfficeComboBoxForUpdate wsInfo
+    mod_MaterialPriceImport.ConfirmAndClearUnitPriceForBasicInfo wsInfo
     wsInfo.Range(BASIC_INFO_CLEAR_RANGES).ClearContents
 
     GoTo FinallyExit

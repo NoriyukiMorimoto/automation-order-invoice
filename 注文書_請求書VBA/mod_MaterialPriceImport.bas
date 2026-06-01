@@ -1,17 +1,17 @@
 Option Explicit
 
 '==========================================================================
-'  å·¥äº‹å˜ä¾¡ã‚¤ãƒ³ãƒãƒ¼ãƒˆãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«ï¼ˆè³¼å…¥å……å½“æ–¹å¼ï¼‰
-'    åŸºæœ¬æƒ…å ± B4/B6/C6/C25/B27 ã‹ã‚‰æ¡ä»¶ã‚’èª­ã¿å–ã‚Šã€
-'    å˜ä¾¡ãƒã‚¹ã‚¿é…ä¸‹ã®ãƒ•ã‚©ãƒ«ãƒ€éšå±¤ã‚’ãŸã©ã£ã¦å¯¾è±¡ã®å˜ä¾¡è¡¨ãƒ–ãƒƒã‚¯
-'    ï¼ˆãƒ•ã‚¡ã‚¤ãƒ«åã«ã€Œè»Œé“ææ–™è³¼å…¥å……å½“ã€ã‚’å«ã‚€ã‚‚ã®ï¼‰ã‚’ç‰¹å®šã™ã‚‹ã€‚
-'    å¯¾è±¡ãƒ–ãƒƒã‚¯ã®ã‚·ãƒ¼ãƒˆåã‚’ SelectLineName ãƒ•ã‚©ãƒ¼ãƒ ã¸è¡¨ç¤ºã—ã€
-'    é¸æŠã•ã‚ŒãŸç©ç®—ç·šåŒºã‚·ãƒ¼ãƒˆã‚’ã€Œ<å˜ä¾¡é©ç”¨ä¿ç·šåŒºå>_è³¼å…¥å……å½“å˜ä¾¡ã€
-'    ã¨ã„ã†1æšã®ã‚·ãƒ¼ãƒˆã«ãƒãƒ¼ã‚¸ã—ã¦ã“ã®ãƒ–ãƒƒã‚¯ã¸å–ã‚Šè¾¼ã‚€ã€‚
-'      - 1æšç›®ï¼šãã®ã¾ã¾ã‚³ãƒ”ãƒ¼ï¼ˆæ›¸å¼ãƒ»åˆ—å¹…å«ã‚€ï¼‰
-'      - 2æšç›®ä»¥é™ï¼šãƒ˜ãƒƒãƒ€ãƒ¼è¡Œ(1è¡Œç›®)ã‚’é™¤ãã€æœ€çµ‚è¡Œã®ä¸‹ã¸è¿½è¨˜
-'    æ–°ã‚·ãƒ¼ãƒˆã®ã‚¿ãƒ–è‰²ã¯ #FFCC99 (RGB 255,204,153)ã€‚
-'    å–ã‚Šè¾¼ã¿å®Œäº†å¾Œã€é¸æŠã•ã‚ŒãŸç·šåŒºåã‚’åŸºæœ¬æƒ…å ±ã‚·ãƒ¼ãƒˆ C28 ã«æ›¸ãè¾¼ã‚€ã€‚
+'  H–’P‰¿ƒCƒ“ƒ|[ƒgƒ‚ƒWƒ…[ƒ‹iw“ü[“–•û®j
+'    Šî–{î•ñ B4/B6/C6/C25/B27 ‚©‚çğŒ‚ğ“Ç‚İæ‚èA
+'    ’P‰¿ƒ}ƒXƒ^”z‰º‚ÌƒtƒHƒ‹ƒ_ŠK‘w‚ğ‚½‚Ç‚Á‚Ä‘ÎÛ‚Ì’P‰¿•\ƒuƒbƒN
+'    iƒtƒ@ƒCƒ‹–¼‚Éu‹O“¹Ş—¿w“ü[“–v‚ğŠÜ‚Ş‚à‚Ìj‚ğ“Á’è‚·‚éB
+'    ‘ÎÛƒuƒbƒN‚ÌƒV[ƒg–¼‚ğ SelectLineName ƒtƒH[ƒ€‚Ö•\¦‚µA
+'    ‘I‘ğ‚³‚ê‚½ÏZü‹æƒV[ƒg‚ğu<’P‰¿“K—p•Ûü‹æ–¼>_w“ü[“–’P‰¿v
+'    ‚Æ‚¢‚¤1–‡‚ÌƒV[ƒg‚Éƒ}[ƒW‚µ‚Ä‚±‚ÌƒuƒbƒN‚Öæ‚è‚ŞB
+'      - 1–‡–ÚF‚»‚Ì‚Ü‚ÜƒRƒs[i‘®E—ñ•ŠÜ‚Şj
+'      - 2–‡–ÚˆÈ~Fƒwƒbƒ_[s(1s–Ú)‚ğœ‚«AÅIs‚Ì‰º‚Ö’Ç‹L
+'    VƒV[ƒg‚Ìƒ^ƒuF‚Í #FFCC99 (RGB 255,204,153)B
+'    æ‚è‚İŠ®—¹ŒãA‘I‘ğ‚³‚ê‚½ü‹æ–¼‚ğŠî–{î•ñƒV[ƒg C28 ‚É‘‚«‚ŞB
 '==========================================================================
 
 Public SharedMasterData As Variant
@@ -32,17 +32,17 @@ Private Type UnitPriceMasterRow
     UnitPriceSectionName As String
 End Type
 
-Private Const MASTER_SHEET_NAME As String = "å˜ä¾¡é©ç”¨ç·šåŒº"
-Private Const PROJECT_MASTER_SHEET_NAME As String = "å˜ä¾¡é©ç”¨å·¥äº‹ä»¶åãƒã‚¹ã‚¿"
-Private Const UNIT_PRICE_DATA_FOLDER As String = "å˜ä¾¡ãƒ‡ãƒ¼ã‚¿"
-Private Const UNIT_PRICE_REFERENCE_FOLDER As String = "å·¥äº‹ä»¶ååˆ¥ãƒã‚¹ã‚¿"
-Private Const UNIT_PRICE_MASTER_FILE As String = "å‡ºå¼µæ‰€åˆ¥_å˜ä¾¡é©ç”¨ç·šåŒº.xlsx"
+Private Const MASTER_SHEET_NAME As String = "’P‰¿“K—pü‹æ"
+Private Const PROJECT_MASTER_SHEET_NAME As String = "’P‰¿“K—pH–Œ–¼ƒ}ƒXƒ^"
+Private Const UNIT_PRICE_DATA_FOLDER As String = "’P‰¿ƒf[ƒ^"
+Private Const UNIT_PRICE_REFERENCE_FOLDER As String = "H–Œ–¼•Êƒ}ƒXƒ^"
+Private Const UNIT_PRICE_MASTER_FILE As String = "o’£Š•Ê_’P‰¿“K—pü‹æ.xlsx"
 
-Private Const ZAIRAISEN_NAME As String = "åœ¨æ¥ç·š"
-Private Const SHINKANSEN_NAME As String = "æ–°å¹¹ç·š"
-Private Const INITIAL_PRICE_NAME As String = "å¹´åˆå˜ä¾¡"
-Private Const DESIGN_CHANGE_PRICE_NAME As String = "è¨­è¨ˆå¤‰æ›´å˜ä¾¡"
-Private Const NORMAL_PRICE_FOLDER As String = "é€šå¸¸å˜ä¾¡"
+Private Const ZAIRAISEN_NAME As String = "İ—ˆü"
+Private Const SHINKANSEN_NAME As String = "VŠ²ü"
+Private Const INITIAL_PRICE_NAME As String = "”N‰’P‰¿"
+Private Const DESIGN_CHANGE_PRICE_NAME As String = "İŒv•ÏX’P‰¿"
+Private Const NORMAL_PRICE_FOLDER As String = "’Êí’P‰¿"
 
 Private Const BASIC_INFO_YEAR_CELL As String = "B4"
 Private Const BASIC_INFO_BRANCH_CELL As String = "B6"
@@ -60,15 +60,15 @@ Private Const PROJECT_NAME_MASTER_START_ROW As Long = 2
 Private Const PROJECT_NAME_MASTER_LAST_ROW As Long = 1048576
 Private Const IMPORTED_SHEET_PROPERTY As String = "UnitPriceImported"
 
-' å˜ä¾¡è¡¨ãƒ–ãƒƒã‚¯ã‚’ç‰¹å®šã™ã‚‹ãŸã‚ã®ãƒ•ã‚¡ã‚¤ãƒ«åã‚­ãƒ¼ãƒ¯ãƒ¼ãƒ‰
-Private Const UNIT_PRICE_FILE_KEYWORD As String = "è»Œé“ææ–™è³¼å…¥å……å½“"
-' å–è¾¼å…ˆã‚·ãƒ¼ãƒˆåã®ã‚µãƒ•ã‚£ãƒƒã‚¯ã‚¹
-Private Const PURCHASE_SHEET_NAME_SUFFIX As String = "_è³¼å…¥å……å½“å˜ä¾¡"
-' å–è¾¼å…ˆã‚·ãƒ¼ãƒˆã®ã‚¿ãƒ–è‰² #FFCC99
+' ’P‰¿•\ƒuƒbƒN‚ğ“Á’è‚·‚é‚½‚ß‚Ìƒtƒ@ƒCƒ‹–¼ƒL[ƒ[ƒh
+Private Const UNIT_PRICE_FILE_KEYWORD As String = "‹O“¹Ş—¿w“ü[“–"
+' ææƒV[ƒg–¼‚ÌƒTƒtƒBƒbƒNƒX
+Private Const PURCHASE_SHEET_NAME_SUFFIX As String = "_w“ü[“–’P‰¿"
+' ææƒV[ƒg‚Ìƒ^ƒuF #FFCC99
 Private Const PURCHASE_SHEET_TAB_R As Long = 255
 Private Const PURCHASE_SHEET_TAB_G As Long = 204
 Private Const PURCHASE_SHEET_TAB_B As Long = 153
-' å–è¾¼å…ƒã‚·ãƒ¼ãƒˆã®ãƒ˜ãƒƒãƒ€ãƒ¼è¡Œï¼ˆè¿½è¨˜æ™‚ã«ã‚¹ã‚­ãƒƒãƒ—ã™ã‚‹è¡Œï¼‰
+' æŒ³ƒV[ƒg‚Ìƒwƒbƒ_[si’Ç‹L‚ÉƒXƒLƒbƒv‚·‚ésj
 Private Const SOURCE_HEADER_ROW As Long = 1
 
 Public Function GetMasterFilePath() As String
@@ -137,7 +137,7 @@ Public Sub ImportConstructionUnitPriceForBasicInfo()
     Dim wsInfo As Worksheet
     Set wsInfo = CommonGetBasicInfoWorksheet()
     If wsInfo Is Nothing Then
-        MsgBox "åŸºæœ¬æƒ…å ±ã‚·ãƒ¼ãƒˆãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚", vbExclamation
+        MsgBox "Šî–{î•ñƒV[ƒg‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB", vbExclamation
         Exit Sub
     End If
 
@@ -163,11 +163,11 @@ Private Sub ImportUnitPriceData(ByVal wsInfo As Worksheet)
     Dim sheetNames As Collection
     Set sheetNames = LoadWorksheetNamesFromWorkbook(sourceFilePath)
     If sheetNames Is Nothing Then
-        MsgBox "å˜ä¾¡è¡¨ãƒ–ãƒƒã‚¯ã«å–ã‚Šè¾¼ã¿å¯èƒ½ãªã‚·ãƒ¼ãƒˆãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã§ã—ãŸã€‚" & vbCrLf & sourceFilePath, vbExclamation
+        MsgBox "’P‰¿•\ƒuƒbƒN‚Éæ‚è‚İ‰Â”\‚ÈƒV[ƒg‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñ‚Å‚µ‚½B" & vbCrLf & sourceFilePath, vbExclamation
         Exit Sub
     End If
     If sheetNames.Count = 0 Then
-        MsgBox "å˜ä¾¡è¡¨ãƒ–ãƒƒã‚¯ã«å–ã‚Šè¾¼ã¿å¯èƒ½ãªã‚·ãƒ¼ãƒˆãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã§ã—ãŸã€‚" & vbCrLf & sourceFilePath, vbExclamation
+        MsgBox "’P‰¿•\ƒuƒbƒN‚Éæ‚è‚İ‰Â”\‚ÈƒV[ƒg‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñ‚Å‚µ‚½B" & vbCrLf & sourceFilePath, vbExclamation
         Exit Sub
     End If
 
@@ -179,14 +179,14 @@ Private Sub ImportUnitPriceData(ByVal wsInfo As Worksheet)
     Dim newSheetName As String
     newSheetName = BuildPurchaseSheetName(masterRow.UnitPriceSectionName)
     If newSheetName = "" Then
-        MsgBox "å–è¾¼å…ˆã‚·ãƒ¼ãƒˆåã‚’ç”Ÿæˆã§ãã¾ã›ã‚“ã§ã—ãŸã€‚" & vbCrLf & _
-               "å˜ä¾¡é©ç”¨ä¿ç·šåŒºåï¼š" & masterRow.UnitPriceSectionName, vbExclamation
+        MsgBox "ææƒV[ƒg–¼‚ğ¶¬‚Å‚«‚Ü‚¹‚ñ‚Å‚µ‚½B" & vbCrLf & _
+               "’P‰¿“K—p•Ûü‹æ–¼F" & masterRow.UnitPriceSectionName, vbExclamation
         Exit Sub
     End If
 
     If Not ImportAndMergeUnitPriceSheets(sourceFilePath, selectedSheetNames, wsInfo.Parent, newSheetName) Then Exit Sub
     WriteSelectedLineNames wsInfo, selectedSheetNames
-    MsgBox BuildImportCompleteMessage(selectedSheetNames, sourceFilePath, newSheetName), vbInformation, "å®Œäº†"
+    MsgBox BuildImportCompleteMessage(selectedSheetNames, sourceFilePath, newSheetName), vbInformation, "Š®—¹"
 End Sub
 
 Private Function TryReadUnitPriceRequest(ByVal wsInfo As Worksheet, ByRef request As UnitPriceRequest) As Boolean
@@ -201,19 +201,19 @@ Private Function TryReadUnitPriceRequest(ByVal wsInfo As Worksheet, ByRef reques
     End If
 
     If request.Nendo = "" Then
-        MsgBox "åŸºæœ¬æƒ…å ±ã‚·ãƒ¼ãƒˆ B4 ã«4æ¡ã®å¹´åº¦ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚", vbExclamation
+        MsgBox "Šî–{î•ñƒV[ƒg B4 ‚É4Œ…‚Ì”N“x‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB", vbExclamation
         Exit Function
     End If
     If request.BranchName = "" Or request.OfficeName = "" Then
-        MsgBox "åŸºæœ¬æƒ…å ±ã‚·ãƒ¼ãƒˆ B6 ã¾ãŸã¯ C6 ãŒç©ºã§ã™ã€‚æ”¯åº—åãƒ»å‡ºå¼µæ‰€åã‚’ç¢ºèªã—ã¦ãã ã•ã„ã€‚", vbExclamation
+        MsgBox "Šî–{î•ñƒV[ƒg B6 ‚Ü‚½‚Í C6 ‚ª‹ó‚Å‚·Bx“X–¼Eo’£Š–¼‚ğŠm”F‚µ‚Ä‚­‚¾‚³‚¢B", vbExclamation
         Exit Function
     End If
     If request.LineType = "" Then
-        MsgBox "åŸºæœ¬æƒ…å ±ã‚·ãƒ¼ãƒˆ C25 ã®ç·šåŒºåŒºåˆ†ã‚’é¸æŠã—ã¦ãã ã•ã„ã€‚", vbExclamation
+        MsgBox "Šî–{î•ñƒV[ƒg C25 ‚Ìü‹æ‹æ•ª‚ğ‘I‘ğ‚µ‚Ä‚­‚¾‚³‚¢B", vbExclamation
         Exit Function
     End If
     If request.UnitPriceKind = "" Then
-        MsgBox "åŸºæœ¬æƒ…å ±ã‚·ãƒ¼ãƒˆ B27ï¼ˆã¾ãŸã¯ C27ï¼‰ã®å˜ä¾¡åŒºåˆ†ã‚’é¸æŠã—ã¦ãã ã•ã„ã€‚", vbExclamation
+        MsgBox "Šî–{î•ñƒV[ƒg B27i‚Ü‚½‚Í C27j‚Ì’P‰¿‹æ•ª‚ğ‘I‘ğ‚µ‚Ä‚­‚¾‚³‚¢B", vbExclamation
         Exit Function
     End If
 
@@ -225,7 +225,7 @@ Private Function TryLoadUnitPriceMasterRow(ByRef request As UnitPriceRequest, _
     Dim sourceFilePath As String
     sourceFilePath = GetMasterFilePath()
     If sourceFilePath = "" Then
-        MsgBox "å‡ºå¼µæ‰€åˆ¥_å˜ä¾¡é©ç”¨ç·šåŒº.xlsx ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚", vbExclamation
+        MsgBox "o’£Š•Ê_’P‰¿“K—pü‹æ.xlsx ‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB", vbExclamation
         Exit Function
     End If
 
@@ -235,7 +235,7 @@ Private Function TryLoadUnitPriceMasterRow(ByRef request As UnitPriceRequest, _
 
     Set cn = CommonOpenExcelAdoConnection(sourceFilePath)
     If cn Is Nothing Then
-        MsgBox "å‡ºå¼µæ‰€åˆ¥_å˜ä¾¡é©ç”¨ç·šåŒº.xlsx ã‚’å‚ç…§ã§ãã¾ã›ã‚“ã§ã—ãŸã€‚" & vbCrLf & sourceFilePath, vbExclamation
+        MsgBox "o’£Š•Ê_’P‰¿“K—pü‹æ.xlsx ‚ğQÆ‚Å‚«‚Ü‚¹‚ñ‚Å‚µ‚½B" & vbCrLf & sourceFilePath, vbExclamation
         Exit Function
     End If
 
@@ -258,9 +258,9 @@ Private Function TryLoadUnitPriceMasterRow(ByRef request As UnitPriceRequest, _
         rs.MoveNext
     Loop
 
-    MsgBox "å˜ä¾¡é©ç”¨ç·šåŒºã‚·ãƒ¼ãƒˆã«è©²å½“ã™ã‚‹æ”¯åº—ãƒ»å‡ºå¼µæ‰€ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã§ã—ãŸã€‚" & vbCrLf & _
-           "æ”¯åº—ï¼š" & request.BranchName & vbCrLf & _
-           "å‡ºå¼µæ‰€ï¼š" & request.OfficeName, vbExclamation
+    MsgBox "’P‰¿“K—pü‹æƒV[ƒg‚ÉŠY“–‚·‚éx“XEo’£Š‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñ‚Å‚µ‚½B" & vbCrLf & _
+           "x“XF" & request.BranchName & vbCrLf & _
+           "o’£ŠF" & request.OfficeName, vbExclamation
 
 Cleanup:
     CommonCloseAdoRecordset rs
@@ -268,7 +268,7 @@ Cleanup:
     Exit Function
 
 ErrorHandler:
-    MsgBox "å˜ä¾¡é©ç”¨ç·šåŒºãƒ‡ãƒ¼ã‚¿ã®èª­ã¿è¾¼ã¿ã«å¤±æ•—ã—ã¾ã—ãŸã€‚" & vbCrLf & Err.Description, vbExclamation
+    MsgBox "’P‰¿“K—pü‹æƒf[ƒ^‚Ì“Ç‚İ‚İ‚É¸”s‚µ‚Ü‚µ‚½B" & vbCrLf & Err.Description, vbExclamation
     Resume Cleanup
 End Function
 
@@ -277,19 +277,19 @@ Private Function ResolveUnitPriceSourceFilePath(ByRef request As UnitPriceReques
     Dim dataRoot As String
     dataRoot = GetUnitPriceDataRootPath()
     If dataRoot = "" Then
-        MsgBox "å˜ä¾¡ãƒ‡ãƒ¼ã‚¿ãƒ•ã‚©ãƒ«ãƒ€ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚" & vbCrLf & dataRoot, vbExclamation
+        MsgBox "’P‰¿ƒf[ƒ^ƒtƒHƒ‹ƒ_‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB" & vbCrLf & dataRoot, vbExclamation
         Exit Function
     End If
     If Dir(dataRoot, vbDirectory) = "" Then
-        MsgBox "å˜ä¾¡ãƒ‡ãƒ¼ã‚¿ãƒ•ã‚©ãƒ«ãƒ€ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚" & vbCrLf & dataRoot, vbExclamation
+        MsgBox "’P‰¿ƒf[ƒ^ƒtƒHƒ‹ƒ_‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB" & vbCrLf & dataRoot, vbExclamation
         Exit Function
     End If
 
     Dim lineFolder As String
     lineFolder = FindChildFolderByKey(dataRoot, request.LineType, True)
     If lineFolder = "" Then
-        MsgBox "ç·šåŒºåŒºåˆ†ãƒ•ã‚©ãƒ«ãƒ€ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚" & vbCrLf & _
-               "ç·šåŒºåŒºåˆ†ï¼š" & request.LineType & vbCrLf & _
+        MsgBox "ü‹æ‹æ•ªƒtƒHƒ‹ƒ_‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB" & vbCrLf & _
+               "ü‹æ‹æ•ªF" & request.LineType & vbCrLf & _
                dataRoot, vbExclamation
         Exit Function
     End If
@@ -297,8 +297,8 @@ Private Function ResolveUnitPriceSourceFilePath(ByRef request As UnitPriceReques
     Dim branchGroupFolder As String
     branchGroupFolder = FindChildFolderByKey(lineFolder, masterRow.BranchGroupName, False)
     If branchGroupFolder = "" Then
-        MsgBox "æ”¯ç¤¾ãƒ•ã‚©ãƒ«ãƒ€ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚" & vbCrLf & _
-               "æ”¯ç¤¾ï¼š" & masterRow.BranchGroupName & vbCrLf & _
+        MsgBox "xĞƒtƒHƒ‹ƒ_‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB" & vbCrLf & _
+               "xĞF" & masterRow.BranchGroupName & vbCrLf & _
                lineFolder, vbExclamation
         Exit Function
     End If
@@ -306,8 +306,8 @@ Private Function ResolveUnitPriceSourceFilePath(ByRef request As UnitPriceReques
     Dim sectionFolder As String
     sectionFolder = FindChildFolderByKey(branchGroupFolder, masterRow.UnitPriceSectionName, True)
     If sectionFolder = "" Then
-        MsgBox "å˜ä¾¡é©ç”¨ä¿ç·šåŒºãƒ•ã‚©ãƒ«ãƒ€ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚" & vbCrLf & _
-               "å˜ä¾¡é©ç”¨ä¿ç·šåŒºï¼š" & masterRow.UnitPriceSectionName & vbCrLf & _
+        MsgBox "’P‰¿“K—p•Ûü‹æƒtƒHƒ‹ƒ_‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB" & vbCrLf & _
+               "’P‰¿“K—p•Ûü‹æF" & masterRow.UnitPriceSectionName & vbCrLf & _
                branchGroupFolder, vbExclamation
         Exit Function
     End If
@@ -315,20 +315,20 @@ Private Function ResolveUnitPriceSourceFilePath(ByRef request As UnitPriceReques
     Dim yearFolder As String
     yearFolder = sectionFolder & "\" & request.Nendo
     If Dir(yearFolder, vbDirectory) = "" Then
-        MsgBox "å¹´åº¦ãƒ•ã‚©ãƒ«ãƒ€ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚" & vbCrLf & yearFolder, vbExclamation
+        MsgBox "”N“xƒtƒHƒ‹ƒ_‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB" & vbCrLf & yearFolder, vbExclamation
         Exit Function
     End If
 
     Dim priceFolder As String
     priceFolder = yearFolder & "\" & ResolveUnitPriceFolderName(request.UnitPriceKind)
     If Dir(priceFolder, vbDirectory) = "" Then
-        MsgBox "å˜ä¾¡åŒºåˆ†ãƒ•ã‚©ãƒ«ãƒ€ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚" & vbCrLf & priceFolder, vbExclamation
+        MsgBox "’P‰¿‹æ•ªƒtƒHƒ‹ƒ_‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB" & vbCrLf & priceFolder, vbExclamation
         Exit Function
     End If
 
     ResolveUnitPriceSourceFilePath = FindUnitPriceWorkbook(priceFolder)
     If ResolveUnitPriceSourceFilePath = "" Then
-        MsgBox "ã€Œ" & UNIT_PRICE_FILE_KEYWORD & "ã€ã‚’å«ã‚€å˜ä¾¡è¡¨ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚" & vbCrLf & priceFolder, vbExclamation
+        MsgBox "u" & UNIT_PRICE_FILE_KEYWORD & "v‚ğŠÜ‚Ş’P‰¿•\‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB" & vbCrLf & priceFolder, vbExclamation
     End If
 End Function
 
@@ -372,7 +372,7 @@ Cleanup:
 
 ErrorHandler:
     Set LoadWorksheetNamesFromWorkbook = Nothing
-    MsgBox "å˜ä¾¡è¡¨ãƒ–ãƒƒã‚¯ã‚’é–‹ã‘ã¾ã›ã‚“ã§ã—ãŸã€‚" & vbCrLf & sourceFilePath & vbCrLf & Err.Description, vbExclamation
+    MsgBox "’P‰¿•\ƒuƒbƒN‚ğŠJ‚¯‚Ü‚¹‚ñ‚Å‚µ‚½B" & vbCrLf & sourceFilePath & vbCrLf & Err.Description, vbExclamation
     Resume Cleanup
 End Function
 
@@ -393,17 +393,17 @@ Cleanup:
     Exit Function
 
 ErrorHandler:
-    MsgBox "ç©ç®—ç·šåŒºé¸æŠãƒ•ã‚©ãƒ¼ãƒ ã‚’è¡¨ç¤ºã§ãã¾ã›ã‚“ã§ã—ãŸã€‚" & vbCrLf & Err.Description, vbExclamation
+    MsgBox "ÏZü‹æ‘I‘ğƒtƒH[ƒ€‚ğ•\¦‚Å‚«‚Ü‚¹‚ñ‚Å‚µ‚½B" & vbCrLf & Err.Description, vbExclamation
     Resume Cleanup
 End Function
 
 '--------------------------------------------------------------------------
 '  ImportAndMergeUnitPriceSheets
-'    é¸æŠã•ã‚ŒãŸç©ç®—ç·šåŒºã‚·ãƒ¼ãƒˆã‚’1æšã®ã€Œ<ä¿ç·šåŒºå>_è³¼å…¥å……å½“å˜ä¾¡ã€ã‚·ãƒ¼ãƒˆã«
-'    ãƒãƒ¼ã‚¸ã—ã¦ã‚¿ãƒ¼ã‚²ãƒƒãƒˆãƒ–ãƒƒã‚¯ã¸å–ã‚Šè¾¼ã‚€ã€‚
-'      1æšç›®ï¼šã‚·ãƒ¼ãƒˆã‚’ãã®ã¾ã¾ã‚³ãƒ”ãƒ¼ï¼ˆæ›¸å¼ãƒ»åˆ—å¹…ãƒ»å›³å½¢å«ã‚€ï¼‰
-'      2æšç›®ä»¥é™ï¼š1è¡Œç›®ã®ãƒ˜ãƒƒãƒ€ãƒ¼ã‚’é™¤ãã€æœ€çµ‚è¡Œã®ä¸‹ã«è¿½è¨˜
-'    æ–°ã‚·ãƒ¼ãƒˆã®ã‚¿ãƒ–è‰²ã‚’ #FFCC99 ã«è¨­å®šã€‚
+'    ‘I‘ğ‚³‚ê‚½ÏZü‹æƒV[ƒg‚ğ1–‡‚Ìu<•Ûü‹æ–¼>_w“ü[“–’P‰¿vƒV[ƒg‚É
+'    ƒ}[ƒW‚µ‚Äƒ^[ƒQƒbƒgƒuƒbƒN‚Öæ‚è‚ŞB
+'      1–‡–ÚFƒV[ƒg‚ğ‚»‚Ì‚Ü‚ÜƒRƒs[i‘®E—ñ•E}Œ`ŠÜ‚Şj
+'      2–‡–ÚˆÈ~F1s–Ú‚Ìƒwƒbƒ_[‚ğœ‚«AÅIs‚Ì‰º‚É’Ç‹L
+'    VƒV[ƒg‚Ìƒ^ƒuF‚ğ #FFCC99 ‚Éİ’èB
 '--------------------------------------------------------------------------
 Private Function ImportAndMergeUnitPriceSheets(ByVal sourceFilePath As String, _
                                                ByVal selectedSheetNames As Collection, _
@@ -466,14 +466,14 @@ Cleanup:
     Exit Function
 
 ErrorHandler:
-    MsgBox "å˜ä¾¡è¡¨ã®å–ã‚Šè¾¼ã¿ã«å¤±æ•—ã—ã¾ã—ãŸã€‚" & vbCrLf & Err.Description, vbExclamation
+    MsgBox "’P‰¿•\‚Ìæ‚è‚İ‚É¸”s‚µ‚Ü‚µ‚½B" & vbCrLf & Err.Description, vbExclamation
     Resume Cleanup
 End Function
 
 '--------------------------------------------------------------------------
 '  AppendSheetDataExcludingHeader
-'    srcSheet ã®2è¡Œç›®ä»¥é™ï¼ˆãƒ˜ãƒƒãƒ€ãƒ¼1è¡Œã‚’é™¤ã„ãŸç¯„å›²ï¼‰ã‚’ destSheet ã®
-'    æœ€çµ‚è¡Œã®ä¸‹ã«ã‚³ãƒ”ãƒ¼ã™ã‚‹ã€‚æ›¸å¼ã‚‚ä¿æŒã™ã‚‹ xlPasteAll ã‚’ä½¿ç”¨ã€‚
+'    srcSheet ‚Ì2s–ÚˆÈ~iƒwƒbƒ_[1s‚ğœ‚¢‚½”ÍˆÍj‚ğ destSheet ‚Ì
+'    ÅIs‚Ì‰º‚ÉƒRƒs[‚·‚éB‘®‚à•Û‚·‚é xlPasteAll ‚ğg—pB
 '--------------------------------------------------------------------------
 Private Sub AppendSheetDataExcludingHeader(ByVal srcSheet As Worksheet, ByVal destSheet As Worksheet)
     Dim srcUsed As Range
@@ -515,9 +515,9 @@ End Function
 
 '--------------------------------------------------------------------------
 '  BuildPurchaseSheetName
-'    å˜ä¾¡é©ç”¨ä¿ç·šåŒºåã‹ã‚‰å–è¾¼å…ˆã‚·ãƒ¼ãƒˆåã€Œ<ä¿ç·šåŒºå>_è³¼å…¥å……å½“å˜ä¾¡ã€ã‚’ç”Ÿæˆã€‚
-'    ä¿ç·šåŒºåã®å…ˆé ­ã«ã‚ã‚‹åŠè§’ãƒ»å…¨è§’ã®æ•°å­—ã¯é™¤å»ã™ã‚‹ã€‚
-'      ä¾‹ï¼šã€Œ0501ç¦çŸ¥å±±ä¿ç·šåŒºã€â†’ã€Œç¦çŸ¥å±±ä¿ç·šåŒº_è³¼å…¥å……å½“å˜ä¾¡ã€
+'    ’P‰¿“K—p•Ûü‹æ–¼‚©‚çææƒV[ƒg–¼u<•Ûü‹æ–¼>_w“ü[“–’P‰¿v‚ğ¶¬B
+'    •Ûü‹æ–¼‚Ìæ“ª‚É‚ ‚é”¼ŠpE‘SŠp‚Ì”š‚Íœ‹‚·‚éB
+'      —áFu0501•Ÿ’mR•Ûü‹æv¨u•Ÿ’mR•Ûü‹æ_w“ü[“–’P‰¿v
 '--------------------------------------------------------------------------
 Private Function BuildPurchaseSheetName(ByVal rawSectionName As String) As String
     Dim trimmed As String
@@ -561,9 +561,43 @@ Private Function JapaneseCommaText() As String
     JapaneseCommaText = ChrW$(&H3001)
 End Function
 
+Public Sub ConfirmAndClearUnitPriceForBasicInfo(ByVal wsInfo As Worksheet)
+    If wsInfo Is Nothing Then Exit Sub
+
+    Dim response As VbMsgBoxResult
+    response = MsgBox("’P‰¿î•ñ‚ğƒNƒŠƒA‚µ‚Ü‚·‚©H" & vbCrLf & _
+                      "‚Í‚¢FC28‚Ì‘I‘ğ“à—e‚ÆAì¬Ï‚İ‚Ì’P‰¿ƒV[ƒg‚ğíœ‚µ‚Ü‚·B" & vbCrLf & _
+                      "‚¢‚¢‚¦F’P‰¿î•ñ‚ğc‚µ‚Ü‚·B", _
+                      vbQuestion + vbYesNo, "’P‰¿î•ñƒNƒŠƒA")
+    If response <> vbYes Then Exit Sub
+
+    ClearUnitPriceSheets wsInfo.Parent
+    wsInfo.Range(BASIC_INFO_IMPORTED_LINE_NAMES_CELL).ClearContents
+End Sub
+
 Public Sub ClearUnitPriceSheets(Optional ByVal targetBook As Workbook)
+    Dim previousDisplayAlerts As Boolean
+    Dim savedErrNumber As Long
+    Dim savedErrSource As String
+    Dim savedErrDescription As String
+
     If targetBook Is Nothing Then Set targetBook = ThisWorkbook
+
+    previousDisplayAlerts = Application.DisplayAlerts
+    On Error GoTo ErrorHandler
+    Application.DisplayAlerts = False
     DeleteImportedUnitPriceSheets targetBook
+
+Cleanup:
+    Application.DisplayAlerts = previousDisplayAlerts
+    If savedErrNumber <> 0 Then Err.Raise savedErrNumber, savedErrSource, savedErrDescription
+    Exit Sub
+
+ErrorHandler:
+    savedErrNumber = Err.Number
+    savedErrSource = Err.Source
+    savedErrDescription = Err.Description
+    Resume Cleanup
 End Sub
 
 Private Sub DeleteImportedUnitPriceSheets(ByVal targetBook As Workbook)
@@ -608,7 +642,7 @@ Private Function MakeUniqueWorksheetName(ByVal targetBook As Workbook, _
                                          ByVal currentName As String) As String
     Dim baseName As String
     baseName = Left$(MakeSafeWorksheetName(requestedName), 31)
-    If baseName = "" Then baseName = "å˜ä¾¡è¡¨"
+    If baseName = "" Then baseName = "’P‰¿•\"
 
     If StrComp(baseName, currentName, vbTextCompare) = 0 Then
         MakeUniqueWorksheetName = currentName
@@ -818,9 +852,9 @@ End Function
 
 '--------------------------------------------------------------------------
 '  FindUnitPriceWorkbook
-'    æŒ‡å®šãƒ•ã‚©ãƒ«ãƒ€ç›´ä¸‹ã‹ã‚‰ã€ãƒ•ã‚¡ã‚¤ãƒ«åã«ã€Œè»Œé“ææ–™è³¼å…¥å……å½“ã€ã‚’å«ã‚€ãƒ–ãƒƒã‚¯ã‚’
-'    .xlsx/.xlsm/.xls ã®é †ã§æ¤œç´¢ã—ã€æœ€åˆã«è¦‹ã¤ã‹ã£ãŸãƒ•ãƒ«ãƒ‘ã‚¹ã‚’è¿”ã™ã€‚
-'    ã€Œ~$ã€ã§å§‹ã¾ã‚‹ä¸€æ™‚ãƒ•ã‚¡ã‚¤ãƒ«ã¯ã‚¹ã‚­ãƒƒãƒ—ã€‚
+'    w’èƒtƒHƒ‹ƒ_’¼‰º‚©‚çAƒtƒ@ƒCƒ‹–¼‚Éu‹O“¹Ş—¿w“ü[“–v‚ğŠÜ‚ŞƒuƒbƒN‚ğ
+'    .xlsx/.xlsm/.xls ‚Ì‡‚ÅŒŸõ‚µAÅ‰‚ÉŒ©‚Â‚©‚Á‚½ƒtƒ‹ƒpƒX‚ğ•Ô‚·B
+'    u~$v‚Ån‚Ü‚éˆêƒtƒ@ƒCƒ‹‚ÍƒXƒLƒbƒvB
 '--------------------------------------------------------------------------
 Private Function FindUnitPriceWorkbook(ByVal folderPath As String) As String
     Dim extensions As Variant
@@ -925,10 +959,10 @@ End Function
 
 '--------------------------------------------------------------------------
 '  FirstExistingFilePath
-'    å€™è£œãƒ‘ã‚¹ã‚’é †ã«æ¤œç´¢ã—ã€æœ€åˆã«å­˜åœ¨ã™ã‚‹ãƒ•ã‚¡ã‚¤ãƒ«ãƒ‘ã‚¹ã‚’è¿”ã™ã€‚
-'    SharePointåŒæœŸãƒ•ã‚©ãƒ«ãƒ€æœªåŒæœŸæ™‚ãªã©ã€ThisWorkbook.Path ãŒ
-'    https:// å½¢å¼ã«ãªã‚‹ç’°å¢ƒã§ã¯ Dir() ãŒã‚¨ãƒ©ãƒ¼52ã‚’è¿”ã™ãŸã‚ã€
-'    On Error Resume Next ã§ã‚¹ã‚­ãƒƒãƒ—ã—ã¦æ¬¡ã®å€™è£œã¸é€²ã‚€ã€‚
+'    Œó•âƒpƒX‚ğ‡‚ÉŒŸõ‚µAÅ‰‚É‘¶İ‚·‚éƒtƒ@ƒCƒ‹ƒpƒX‚ğ•Ô‚·B
+'    SharePoint“¯ŠúƒtƒHƒ‹ƒ_–¢“¯Šú‚È‚ÇAThisWorkbook.Path ‚ª
+'    https:// Œ`®‚É‚È‚éŠÂ‹«‚Å‚Í Dir() ‚ªƒGƒ‰[52‚ğ•Ô‚·‚½‚ßA
+'    On Error Resume Next ‚ÅƒXƒLƒbƒv‚µ‚ÄŸ‚ÌŒó•â‚Öi‚ŞB
 '--------------------------------------------------------------------------
 Private Function FirstExistingFilePath(ByVal candidates As Collection) As String
     Dim candidate As Variant
@@ -949,20 +983,20 @@ End Function
 Private Function BuildImportCompleteMessage(ByVal selectedSheetNames As Collection, _
                                             ByVal sourceFilePath As String, _
                                             ByVal newSheetName As String) As String
-    BuildImportCompleteMessage = CStr(selectedSheetNames.Count) & "ä»¶ã®ç©ç®—ç·šåŒºå˜ä¾¡è¡¨ã‚’ã€Œ" & newSheetName & _
-                                 "ã€ã‚·ãƒ¼ãƒˆã«å–ã‚Šè¾¼ã¿ã¾ã—ãŸã€‚" & vbCrLf & sourceFilePath
+    BuildImportCompleteMessage = CStr(selectedSheetNames.Count) & "Œ‚ÌÏZü‹æ’P‰¿•\‚ğu" & newSheetName & _
+                                 "vƒV[ƒg‚Éæ‚è‚İ‚Ü‚µ‚½B" & vbCrLf & sourceFilePath
 End Function
 
 Private Function OrderInvoiceDocumentFolderText() As String
     Static cached As String
     If cached = "" Then
-        cached = "ç·šè·¯å‡ºå¼µæ‰€ç”¨_æ³¨æ–‡æ›¸_è«‹æ±‚æ›¸ã‚¢ã‚¯ã‚»ã‚¹ã‚µã‚¤ãƒˆ - ãƒ‰ã‚­ãƒ¥ãƒ¡ãƒ³ãƒˆ"
+        cached = "ü˜Ho’£Š—p_’•¶‘_¿‹‘ƒAƒNƒZƒXƒTƒCƒg - ƒhƒLƒ…ƒƒ“ƒg"
     End If
     OrderInvoiceDocumentFolderText = cached
 End Function
 
 Private Function UnitPriceMasterFolderText() As String
     Static cached As String
-    If cached = "" Then cached = "å˜ä¾¡ãƒã‚¹ã‚¿"
+    If cached = "" Then cached = "’P‰¿ƒ}ƒXƒ^"
     UnitPriceMasterFolderText = cached
 End Function
