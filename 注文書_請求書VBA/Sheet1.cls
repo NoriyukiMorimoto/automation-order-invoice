@@ -53,6 +53,13 @@ ExitHandler:
 End Sub
 
 Private Sub Worksheet_BeforeDoubleClick(ByVal Target As Range, Cancel As Boolean)
+    ' C28 ダブルクリック → 積算線区単価取込
+    If Not Intersect(Target, Me.Range("C28")) Is Nothing Then
+        Cancel = True
+        mod_MaterialPriceImport.ImportConstructionUnitPriceForBasicInfo
+        Exit Sub
+    End If
+
     If Not Intersect(Target, Me.Range("F9")) Is Nothing Then
         Cancel = True
         mod_VendorMaster.CancelScheduledVendorListDropdown
@@ -106,5 +113,3 @@ End Sub
 Private Sub btnClearBasicInfo_Click()
     mod_BasicInfoUpdate.ClearBasicInfo
 End Sub
-
-
