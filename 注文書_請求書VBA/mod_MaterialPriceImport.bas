@@ -1,19 +1,14 @@
 Option Explicit
 
 '==========================================================================
-'  工事単価インポートモジュール（購入充当方式）
-'    基本情報 B4/B6/C6/C25/B27 から条件を読み取り、
-'    単価マスタ配下のフォルダ階層をたどって対象の単価表ブック
-'    （ファイル名に「軌道材料購入充当」を含むもの）を特定する。
-'    対象ブックのシート名を SelectLineName フォームへ表示し、
-'    選択された積算線区シートを「<単価適用保線区名>_購入充当単価」
-'    という1枚のシートにマージしてこのブックへ取り込む。
-'      - 1枚目：そのままコピー（書式・列幅含む）
-'      - 2枚目以降：ヘッダー行(1行目)を除き、最終行の下へ追記
-'    新シートのタブ色は #FFCC99 (RGB 255,204,153)。
-'    取り込み完了後、選択された線区名を基本情報シート C28 に書き込む。
+'  工事単価インポートモジュール
+'    基本情報 B4/B6/C6/C25/C26/C27 から条件を読み取り、
+'    単価マスタ配下の通常単価/設計変更単価ブックを探す。
+'    対象ブックの積算線区シート名を SelectLineName フォームへ表示し、
+'    選択された積算線区シートを同名シートとしてこのブックへコピーする。
+'    取り込み完了後、選択線区名を C28 に書き込み、参照キーから
+'    ⑩軌道材料購入充当の単価シートを別ロジックで自動作成する。
 '==========================================================================
-
 Public SharedMasterData As Variant
 
 Private Type UnitPriceRequest
@@ -49,8 +44,8 @@ Private Const BASIC_INFO_BRANCH_CELL As String = "B6"
 Private Const BASIC_INFO_OFFICE_CELL As String = "C6"
 Private Const BASIC_INFO_LINE_TYPE_CELL As String = "C25"
 Private Const BASIC_INFO_PROJECT_NAME_CELL As String = "C26"
-Private Const BASIC_INFO_PRICE_KIND_CELL As String = "B27"
-Private Const BASIC_INFO_PRICE_KIND_FALLBACK_CELL As String = "C27"
+Private Const BASIC_INFO_PRICE_KIND_CELL As String = "C27"
+Private Const BASIC_INFO_PRICE_KIND_FALLBACK_CELL As String = "B27"
 Private Const BASIC_INFO_IMPORTED_LINE_NAMES_CELL As String = "C28"
 Private Const PROJECT_NAME_LIST_COL As String = "AE"
 Private Const LINE_TYPE_LIST_COL As String = "AF"
@@ -156,8 +151,10 @@ Private Sub ImportUnitPriceData(ByVal wsInfo As Worksheet)
     Dim masterRow As UnitPriceMasterRow
     If Not TryLoadUnitPriceMasterRow(request, masterRow) Then Exit Sub
 
+    Dim priceFolderPath As String
+    Dim sectionFolderPath As String
     Dim sourceFilePath As String
-    sourceFilePath = ResolveUnitPriceSourceFilePath(request, masterRow)
+    sourceFilePath = ResolveUnitPriceSourceFilePath(request, masterRow, priceFolderPath, sectionFolderPath)
     If sourceFilePath = "" Then Exit Sub
 
     Dim sheetNames As Collection
@@ -176,19 +173,14 @@ Private Sub ImportUnitPriceData(ByVal wsInfo As Worksheet)
     If selectedSheetNames Is Nothing Then Exit Sub
     If selectedSheetNames.Count = 0 Then Exit Sub
 
-    Dim newSheetName As String
-    newSheetName = BuildPurchaseSheetName(masterRow.UnitPriceSectionName)
-    If newSheetName = "" Then
-        MsgBox "取込先シート名を生成できませんでした。" & vbCrLf & _
-               "単価適用保線区名：" & masterRow.UnitPriceSectionName, vbExclamation
-        Exit Sub
-    End If
-
-    If Not ImportAndMergeUnitPriceSheets(sourceFilePath, selectedSheetNames, wsInfo.Parent, newSheetName) Then Exit Sub
+    If Not ImportSelectedUnitPriceSheets(sourceFilePath, selectedSheetNames, wsInfo.Parent) Then Exit Sub
     WriteSelectedLineNames wsInfo, selectedSheetNames
-    MsgBox BuildImportCompleteMessage(selectedSheetNames, sourceFilePath, newSheetName), vbInformation, "完了"
-End Sub
 
+    Dim purchaseSheetName As String
+    Call ImportPurchaseUnitPriceSheetsByReference(request, masterRow, priceFolderPath, sectionFolderPath, wsInfo.Parent, purchaseSheetName)
+
+    MsgBox BuildImportCompleteMessage(selectedSheetNames, sourceFilePath, purchaseSheetName), vbInformation, "完了"
+End Sub
 Private Function TryReadUnitPriceRequest(ByVal wsInfo As Worksheet, ByRef request As UnitPriceRequest) As Boolean
     request.Nendo = CommonExtractYear4Digits(CStr(wsInfo.Range(BASIC_INFO_YEAR_CELL).Value))
     request.BranchName = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_BRANCH_CELL).Value))
@@ -198,6 +190,9 @@ Private Function TryReadUnitPriceRequest(ByVal wsInfo As Worksheet, ByRef reques
     request.UnitPriceKind = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_PRICE_KIND_CELL).Value))
     If request.UnitPriceKind = "" Then
         request.UnitPriceKind = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_PRICE_KIND_FALLBACK_CELL).Value))
+    End If
+    If InStr(1, NormalizeMatchText(request.UnitPriceKind), NormalizeMatchText("単価適用区分"), vbTextCompare) > 0 Then
+        request.UnitPriceKind = ""
     End If
 
     If request.Nendo = "" Then
@@ -212,8 +207,17 @@ Private Function TryReadUnitPriceRequest(ByVal wsInfo As Worksheet, ByRef reques
         MsgBox "基本情報シート C25 の線区区分を選択してください。", vbExclamation
         Exit Function
     End If
+    If request.ProjectName = "" Then
+        MsgBox "基本情報シート C26 の単価適用工事件名を選択してください。", vbExclamation
+        Exit Function
+    End If
+    If IsPurchaseUnitPriceProjectName(request.ProjectName) Then
+        MsgBox "基本情報シート C26 は軌道材料購入充当以外の単価適用工事件名を選択してください。" & vbCrLf & _
+               "購入充当単価は C28 確定後に自動作成します。", vbExclamation
+        Exit Function
+    End If
     If request.UnitPriceKind = "" Then
-        MsgBox "基本情報シート B27（または C27）の単価区分を選択してください。", vbExclamation
+        MsgBox "基本情報シート C27 の単価区分を選択してください。", vbExclamation
         Exit Function
     End If
 
@@ -273,7 +277,23 @@ ErrorHandler:
 End Function
 
 Private Function ResolveUnitPriceSourceFilePath(ByRef request As UnitPriceRequest, _
-                                                ByRef masterRow As UnitPriceMasterRow) As String
+                                                ByRef masterRow As UnitPriceMasterRow, _
+                                                ByRef priceFolderPath As String, _
+                                                ByRef sectionFolderPath As String) As String
+    priceFolderPath = ResolveUnitPricePriceFolderPath(request, masterRow, sectionFolderPath)
+    If priceFolderPath = "" Then Exit Function
+
+    ResolveUnitPriceSourceFilePath = FindUnitPriceWorkbook(priceFolderPath, request.ProjectName)
+    If ResolveUnitPriceSourceFilePath = "" Then
+        MsgBox "工事件名に一致する単価表が見つかりません。" & vbCrLf & _
+               "工事件名：" & request.ProjectName & vbCrLf & _
+               priceFolderPath, vbExclamation
+    End If
+End Function
+
+Private Function ResolveUnitPricePriceFolderPath(ByRef request As UnitPriceRequest, _
+                                                 ByRef masterRow As UnitPriceMasterRow, _
+                                                 ByRef sectionFolderPath As String) As String
     Dim dataRoot As String
     dataRoot = GetUnitPriceDataRootPath()
     If dataRoot = "" Then
@@ -326,12 +346,9 @@ Private Function ResolveUnitPriceSourceFilePath(ByRef request As UnitPriceReques
         Exit Function
     End If
 
-    ResolveUnitPriceSourceFilePath = FindUnitPriceWorkbook(priceFolder)
-    If ResolveUnitPriceSourceFilePath = "" Then
-        MsgBox "「" & UNIT_PRICE_FILE_KEYWORD & "」を含む単価表が見つかりません。" & vbCrLf & priceFolder, vbExclamation
-    End If
+    sectionFolderPath = sectionFolder
+    ResolveUnitPricePriceFolderPath = priceFolder
 End Function
-
 Private Function ResolveUnitPriceFolderName(ByVal priceKind As String) As String
     Dim normalizedKind As String
     normalizedKind = NormalizeMatchText(priceKind)
@@ -398,17 +415,60 @@ ErrorHandler:
 End Function
 
 '--------------------------------------------------------------------------
-'  ImportAndMergeUnitPriceSheets
-'    選択された積算線区シートを1枚の「<保線区名>_購入充当単価」シートに
-'    マージしてターゲットブックへ取り込む。
-'      1枚目：シートをそのままコピー（書式・列幅・図形含む）
-'      2枚目以降：1行目のヘッダーを除き、最終行の下に追記
-'    新シートのタブ色を #FFCC99 に設定。
+'  ImportSelectedUnitPriceSheets
+'    選択された積算線区シートを、同じシート名でターゲットブックへコピーする。
 '--------------------------------------------------------------------------
-Private Function ImportAndMergeUnitPriceSheets(ByVal sourceFilePath As String, _
+Private Function ImportSelectedUnitPriceSheets(ByVal sourceFilePath As String, _
                                                ByVal selectedSheetNames As Collection, _
-                                               ByVal targetBook As Workbook, _
-                                               ByVal newSheetName As String) As Boolean
+                                               ByVal targetBook As Workbook) As Boolean
+    Dim sourceBook As Workbook
+    Dim previousDisplayAlerts As Boolean
+    Dim previousScreenUpdating As Boolean
+
+    On Error GoTo ErrorHandler
+    previousDisplayAlerts = Application.DisplayAlerts
+    previousScreenUpdating = Application.ScreenUpdating
+    Application.DisplayAlerts = False
+    Application.ScreenUpdating = False
+
+    Set sourceBook = Workbooks.Open(FileName:=sourceFilePath, ReadOnly:=True, UpdateLinks:=False, AddToMru:=False)
+    DeleteImportedUnitPriceSheets targetBook
+
+    Dim sheetName As Variant
+    For Each sheetName In selectedSheetNames
+        DeleteWorksheetIfExists targetBook, CStr(sheetName)
+        sourceBook.Worksheets(CStr(sheetName)).Copy After:=targetBook.Worksheets(targetBook.Worksheets.Count)
+        With targetBook.Worksheets(targetBook.Worksheets.Count)
+            .Name = MakeUniqueWorksheetName(targetBook, CStr(sheetName), .Name)
+            .Tab.Color = RGB(221, 235, 247)
+            MarkImportedUnitPriceSheet targetBook.Worksheets(.Name)
+        End With
+    Next sheetName
+
+    ImportSelectedUnitPriceSheets = True
+
+Cleanup:
+    On Error Resume Next
+    If Not sourceBook Is Nothing Then sourceBook.Close SaveChanges:=False
+    Application.DisplayAlerts = previousDisplayAlerts
+    Application.ScreenUpdating = previousScreenUpdating
+    CommonGetBasicInfoWorksheet(targetBook).Activate
+    On Error GoTo 0
+    Exit Function
+
+ErrorHandler:
+    MsgBox "単価表の取り込みに失敗しました。" & vbCrLf & Err.Description, vbExclamation
+    Resume Cleanup
+End Function
+
+'--------------------------------------------------------------------------
+'  ImportAndMergePurchaseUnitPriceSheets
+'    参照キーに一致した購入充当シートを1枚の購入充当単価シートへマージする。
+'--------------------------------------------------------------------------
+Private Function ImportAndMergePurchaseUnitPriceSheets(ByVal sourceFilePath As String, _
+                                                       ByVal selectedSheetNames As Collection, _
+                                                       ByVal targetBook As Workbook, _
+                                                       ByVal newSheetName As String) As Boolean
     Dim sourceBook As Workbook
     Dim newSheet As Worksheet
     Dim previousDisplayAlerts As Boolean
@@ -423,7 +483,6 @@ Private Function ImportAndMergeUnitPriceSheets(ByVal sourceFilePath As String, _
     Application.ScreenUpdating = False
     Application.Calculation = xlCalculationManual
 
-    DeleteImportedUnitPriceSheets targetBook
     DeleteWorksheetIfExists targetBook, newSheetName
 
     Set sourceBook = Workbooks.Open(FileName:=sourceFilePath, ReadOnly:=True, UpdateLinks:=False, AddToMru:=False)
@@ -449,11 +508,9 @@ Private Function ImportAndMergeUnitPriceSheets(ByVal sourceFilePath As String, _
     If Not newSheet Is Nothing Then
         newSheet.Tab.Color = RGB(PURCHASE_SHEET_TAB_R, PURCHASE_SHEET_TAB_G, PURCHASE_SHEET_TAB_B)
         MarkImportedUnitPriceSheet newSheet
-        newSheet.Activate
-        newSheet.Range("A1").Select
     End If
 
-    ImportAndMergeUnitPriceSheets = True
+    ImportAndMergePurchaseUnitPriceSheets = True
 
 Cleanup:
     On Error Resume Next
@@ -466,10 +523,9 @@ Cleanup:
     Exit Function
 
 ErrorHandler:
-    MsgBox "単価表の取り込みに失敗しました。" & vbCrLf & Err.Description, vbExclamation
+    MsgBox "購入充当単価表の取り込みに失敗しました。" & vbCrLf & Err.Description, vbExclamation
     Resume Cleanup
 End Function
-
 '--------------------------------------------------------------------------
 '  AppendSheetDataExcludingHeader
 '    srcSheet の2行目以降（ヘッダー1行を除いた範囲）を destSheet の
@@ -513,6 +569,107 @@ Private Function FindLastUsedRow(ByVal targetSheet As Worksheet) As Long
     End If
 End Function
 
+Private Function ImportPurchaseUnitPriceSheetsByReference(ByRef request As UnitPriceRequest, _
+                                                          ByRef masterRow As UnitPriceMasterRow, _
+                                                          ByVal priceFolderPath As String, _
+                                                          ByVal sectionFolderPath As String, _
+                                                          ByVal targetBook As Workbook, _
+                                                          ByRef createdSheetName As String) As Boolean
+    createdSheetName = ""
+
+    Dim purchaseFilePath As String
+    purchaseFilePath = FindPurchaseUnitPriceWorkbook(priceFolderPath)
+    If purchaseFilePath = "" Then Exit Function
+
+    Dim referenceKey As String
+    referenceKey = BuildPurchaseReferenceKey(sectionFolderPath)
+    If referenceKey = "" Then
+        MsgBox "購入充当単価表の参照キーを取得できませんでした。" & vbCrLf & sectionFolderPath, vbExclamation
+        Exit Function
+    End If
+
+    Dim purchaseSheetNames As Collection
+    Set purchaseSheetNames = LoadPurchaseSheetNamesByReference(purchaseFilePath, referenceKey)
+    If purchaseSheetNames Is Nothing Then Exit Function
+    If purchaseSheetNames.Count = 0 Then
+        MsgBox "購入充当単価表に参照キー「" & referenceKey & "」に一致するシートが見つかりません。" & vbCrLf & purchaseFilePath, vbExclamation
+        Exit Function
+    End If
+
+    Dim newSheetName As String
+    newSheetName = BuildPurchaseSheetName(GetPathBaseName(sectionFolderPath))
+    If newSheetName = "" Then newSheetName = BuildPurchaseSheetName(masterRow.UnitPriceSectionName)
+    If newSheetName = "" Then
+        MsgBox "購入充当単価表の取込先シート名を生成できませんでした。", vbExclamation
+        Exit Function
+    End If
+
+    If Not ImportAndMergePurchaseUnitPriceSheets(purchaseFilePath, purchaseSheetNames, targetBook, newSheetName) Then Exit Function
+
+    createdSheetName = newSheetName
+    ImportPurchaseUnitPriceSheetsByReference = True
+End Function
+
+Private Function LoadPurchaseSheetNamesByReference(ByVal sourceFilePath As String, ByVal referenceKey As String) As Collection
+    Dim sheetNames As Collection
+    Set sheetNames = LoadWorksheetNamesFromWorkbook(sourceFilePath)
+    If sheetNames Is Nothing Then Exit Function
+
+    Dim result As Collection
+    Set result = New Collection
+
+    Dim sheetName As Variant
+    For Each sheetName In sheetNames
+        If PurchaseSheetNameMatchesReferenceKey(CStr(sheetName), referenceKey) Then
+            result.Add CStr(sheetName)
+        End If
+    Next sheetName
+
+    Set LoadPurchaseSheetNamesByReference = result
+End Function
+
+Private Function PurchaseSheetNameMatchesReferenceKey(ByVal sheetName As String, ByVal referenceKey As String) As Boolean
+    Dim normalizedSheetName As String
+    Dim normalizedReferenceKey As String
+    normalizedSheetName = NormalizeMatchText(sheetName)
+    normalizedReferenceKey = NormalizeMatchText(referenceKey)
+    If normalizedSheetName = "" Or normalizedReferenceKey = "" Then Exit Function
+
+    PurchaseSheetNameMatchesReferenceKey = (normalizedSheetName = normalizedReferenceKey Or _
+                                            Left$(normalizedSheetName, Len(normalizedReferenceKey) + 1) = normalizedReferenceKey & "-" Or _
+                                            Left$(normalizedSheetName, Len(normalizedReferenceKey) + 1) = normalizedReferenceKey & "_")
+End Function
+
+Private Function BuildPurchaseReferenceKey(ByVal sectionFolderPath As String) As String
+    BuildPurchaseReferenceKey = ExtractLeadingDigits(GetPathBaseName(sectionFolderPath))
+End Function
+
+Private Function ExtractLeadingDigits(ByVal value As String) As String
+    Dim result As String
+    Dim i As Long
+    Dim ch As String
+
+    For i = 1 To Len(value)
+        ch = Mid$(value, i, 1)
+        If ch Like "[0-9]" Then
+            result = result & ch
+        ElseIf Len(result) > 0 Then
+            Exit For
+        End If
+    Next i
+
+    ExtractLeadingDigits = result
+End Function
+
+Private Function GetPathBaseName(ByVal sourcePath As String) As String
+    Dim pos As Long
+    pos = InStrRev(sourcePath, "\")
+    If pos > 0 Then
+        GetPathBaseName = Mid$(sourcePath, pos + 1)
+    Else
+        GetPathBaseName = sourcePath
+    End If
+End Function
 '--------------------------------------------------------------------------
 '  BuildPurchaseSheetName
 '    単価適用保線区名から取込先シート名「<保線区名>_購入充当単価」を生成。
@@ -734,7 +891,7 @@ Private Function LoadUnitPriceProjectNamesByAdo(ByVal sourceFilePath As String, 
     Do Until rs.EOF
         Dim itemText As String
         itemText = Trim$(CommonNzText(CommonGetAdoFieldValue(rs, 0)))
-        If itemText <> "" Then result.Add itemText
+        If itemText <> "" And Not IsPurchaseUnitPriceProjectName(itemText) Then result.Add itemText
         rs.MoveNext
     Loop
 
@@ -782,7 +939,6 @@ Private Sub WriteUnitPriceKindValidation(ByVal wsInfo As Worksheet)
     listRange.Cells(2, 1).Value = DESIGN_CHANGE_PRICE_NAME
 
     ResetUnitPriceProjectNameValidation wsInfo.Range(BASIC_INFO_PRICE_KIND_CELL), listRange
-    ResetUnitPriceProjectNameValidation wsInfo.Range(BASIC_INFO_PRICE_KIND_FALLBACK_CELL), listRange
     wsInfo.Columns(PRICE_KIND_LIST_COL & ":" & PRICE_KIND_LIST_COL).Hidden = True
 End Sub
 
@@ -852,11 +1008,36 @@ End Function
 
 '--------------------------------------------------------------------------
 '  FindUnitPriceWorkbook
-'    指定フォルダ直下から、ファイル名に「軌道材料購入充当」を含むブックを
-'    .xlsx/.xlsm/.xls の順で検索し、最初に見つかったフルパスを返す。
-'    「~$」で始まる一時ファイルはスキップ。
+'    指定フォルダ直下から、工事件名に一致する通常の単価表ブックを返す。
+'    購入充当ファイルと「~$」で始まる一時ファイルはスキップ。
 '--------------------------------------------------------------------------
-Private Function FindUnitPriceWorkbook(ByVal folderPath As String) As String
+Private Function FindUnitPriceWorkbook(ByVal folderPath As String, ByVal projectName As String) As String
+    Dim extensions As Variant
+    extensions = Array("*.xlsx", "*.xlsm", "*.xls")
+
+    Dim normalizedProjectName As String
+    normalizedProjectName = NormalizeMatchText(projectName)
+    If normalizedProjectName = "" Then Exit Function
+
+    Dim ext As Variant
+    For Each ext In extensions
+        Dim fileName As String
+        fileName = Dir(folderPath & "\" & CStr(ext), vbNormal)
+        Do While fileName <> ""
+            If Left$(fileName, 2) <> "~$" Then
+                If InStr(1, fileName, UNIT_PRICE_FILE_KEYWORD, vbTextCompare) = 0 Then
+                    If InStr(1, NormalizeMatchText(RemoveFileExtension(fileName)), normalizedProjectName, vbTextCompare) > 0 Then
+                        FindUnitPriceWorkbook = folderPath & "\" & fileName
+                        Exit Function
+                    End If
+                End If
+            End If
+            fileName = Dir()
+        Loop
+    Next ext
+End Function
+
+Private Function FindPurchaseUnitPriceWorkbook(ByVal folderPath As String) As String
     Dim extensions As Variant
     extensions = Array("*.xlsx", "*.xlsm", "*.xls")
 
@@ -867,7 +1048,7 @@ Private Function FindUnitPriceWorkbook(ByVal folderPath As String) As String
         Do While fileName <> ""
             If Left$(fileName, 2) <> "~$" Then
                 If InStr(1, fileName, UNIT_PRICE_FILE_KEYWORD, vbTextCompare) > 0 Then
-                    FindUnitPriceWorkbook = folderPath & "\" & fileName
+                    FindPurchaseUnitPriceWorkbook = folderPath & "\" & fileName
                     Exit Function
                 End If
             End If
@@ -876,6 +1057,20 @@ Private Function FindUnitPriceWorkbook(ByVal folderPath As String) As String
     Next ext
 End Function
 
+Private Function RemoveFileExtension(ByVal fileName As String) As String
+    Dim pos As Long
+    pos = InStrRev(fileName, ".")
+    If pos > 0 Then
+        RemoveFileExtension = Left$(fileName, pos - 1)
+    Else
+        RemoveFileExtension = fileName
+    End If
+End Function
+
+Private Function IsPurchaseUnitPriceProjectName(ByVal projectName As String) As Boolean
+    IsPurchaseUnitPriceProjectName = (InStr(1, NormalizeMatchText(projectName), NormalizeMatchText(UNIT_PRICE_FILE_KEYWORD), vbTextCompare) > 0 Or _
+                                      InStr(1, NormalizeMatchText(projectName), NormalizeMatchText("購入充当"), vbTextCompare) > 0)
+End Function
 Private Function FindChildFolderByKey(ByVal parentFolder As String, _
                                       ByVal keyText As String, _
                                       ByVal ignoreLeadingNumbers As Boolean) As String
@@ -982,11 +1177,15 @@ End Function
 
 Private Function BuildImportCompleteMessage(ByVal selectedSheetNames As Collection, _
                                             ByVal sourceFilePath As String, _
-                                            ByVal newSheetName As String) As String
-    BuildImportCompleteMessage = CStr(selectedSheetNames.Count) & "件の積算線区単価表を「" & newSheetName & _
-                                 "」シートに取り込みました。" & vbCrLf & sourceFilePath
-End Function
+                                            ByVal purchaseSheetName As String) As String
+    BuildImportCompleteMessage = CStr(selectedSheetNames.Count) & "件の積算線区単価表を取り込みました。" & vbCrLf & _
+                                 sourceFilePath
 
+    If Len(purchaseSheetName) > 0 Then
+        BuildImportCompleteMessage = BuildImportCompleteMessage & vbCrLf & _
+                                     "購入充当単価表を「" & purchaseSheetName & "」シートに作成しました。"
+    End If
+End Function
 Private Function OrderInvoiceDocumentFolderText() As String
     Static cached As String
     If cached = "" Then
