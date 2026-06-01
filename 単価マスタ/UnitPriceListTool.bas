@@ -1606,6 +1606,7 @@ End Function
 Private Sub FormatPurchaseUnitPriceSheet(ByVal ws As Worksheet, ByVal sourceFileName As String, ByVal isChange As Boolean)
     Const FIRST_ROW As Long = 2
     Const HEADER_ROW As Long = 1
+    Const ITEM_CODE_COLUMN_WIDTH As Double = 14
 
     Dim lastRow As Long
     Dim rowIndex As Long
@@ -1666,6 +1667,7 @@ Private Sub FormatPurchaseUnitPriceSheet(ByVal ws As Worksheet, ByVal sourceFile
     ws.Columns("B").Delete Shift:=xlShiftToLeft
 
     ws.Cells.VerticalAlignment = xlVAlignCenter
+    ws.Cells(HEADER_ROW, "A").value = "品目コード"
 
     newLastCol = ws.Cells(HEADER_ROW, ws.Columns.Count).End(xlToLeft).Column
     newLastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
@@ -1679,15 +1681,16 @@ Private Sub FormatPurchaseUnitPriceSheet(ByVal ws As Worksheet, ByVal sourceFile
     tbl.name = UniqueListObjectName(ws.Parent, tableName)
     tbl.TableStyle = "TableStyleMedium7"
 
-    ws.Rows("1:4").Insert Shift:=xlDown
-    ws.Rows(5).HorizontalAlignment = xlHAlignCenter
+    ws.Rows(1).Insert Shift:=xlDown
+    ws.Rows(2).HorizontalAlignment = xlHAlignCenter
     ws.Columns("A").HorizontalAlignment = xlHAlignCenter
     ws.Columns("E").HorizontalAlignment = xlHAlignCenter
     ws.Columns("G").HorizontalAlignment = xlHAlignCenter
     ws.Columns("H").HorizontalAlignment = xlHAlignCenter
     ws.Columns("F").NumberFormat = "#,##0"
-    ws.Cells(5, "E").value = "単位"
-    ws.Cells(5, "F").value = "単価"
+    ws.Cells(2, "A").value = "品目コード"
+    ws.Cells(2, "E").value = "単位"
+    ws.Cells(2, "F").value = "単価"
 
     yearText = GetYearFromFileName(RemoveExtension(sourceFileName))
     If Len(yearText) = 0 Then
@@ -1695,7 +1698,7 @@ Private Sub FormatPurchaseUnitPriceSheet(ByVal ws As Worksheet, ByVal sourceFile
         If Len(yearText) >= 4 Then yearText = Left$(yearText, 4)
     End If
     prefixText = PurchaseTitlePrefix(sourceFileName, isChange)
-    areaText = CStr(ws.Cells(6, "G").value)
+    areaText = CStr(ws.Cells(3, "G").value)
     titleText = yearText & "年度_購入充当単価表_" & prefixText & "_" & areaText
 
     Set titleRange = ws.Range("A1:G1")
@@ -1714,6 +1717,9 @@ Private Sub FormatPurchaseUnitPriceSheet(ByVal ws As Worksheet, ByVal sourceFile
     On Error GoTo 0
     ws.Range("A1").Font.Size = 14
     ws.Cells.EntireColumn.AutoFit
+    If ws.Columns("A").ColumnWidth < ITEM_CODE_COLUMN_WIDTH Then
+        ws.Columns("A").ColumnWidth = ITEM_CODE_COLUMN_WIDTH
+    End If
 End Sub
 
 Private Function PurchaseTitlePrefix(ByVal sourceFileName As String, ByVal isChange As Boolean) As String
