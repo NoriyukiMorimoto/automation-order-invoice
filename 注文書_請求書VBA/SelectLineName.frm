@@ -21,7 +21,7 @@ Public Sub InitLineNames(ByVal lineNames As Collection)
     If mLineCount = 0 Then Exit Sub
 
     Dim itemHeight As Single
-    itemHeight = 22
+    itemHeight = 26
 
     Dim i As Long
     Dim chk As MSForms.CheckBox
@@ -29,10 +29,11 @@ Public Sub InitLineNames(ByVal lineNames As Collection)
         Set chk = GetOrCreateLineCheckBox(frame, i)
         With chk
             .Caption = CStr(lineNames(i))
+            .Font.Size = 12
             .Left = 10
             .Top = 14 + (i - 1) * itemHeight
             .Width = Application.Max(120, frame.Width - 28)
-            .Height = 18
+            .Height = 20
             .Tag = CStr(i)
             .value = False
             .Visible = True
@@ -92,7 +93,7 @@ Private Sub cmdOK_Click()
     Next ctrl
 
     If mSelectedLineNames.Count = 0 Then
-        MsgBox "ÏZü‹æ–¼‚ğ1‚ÂˆÈã‘I‘ğ‚µ‚Ä‚­‚¾‚³‚¢B", vbExclamation
+        MsgBox "ç©ç®—ç·šåŒºåã‚’1ã¤ä»¥ä¸Šé¸æŠã—ã¦ãã ã•ã„ã€‚", vbExclamation
         Exit Sub
     End If
 
@@ -114,13 +115,13 @@ Private Sub cmdClearAll_Click()
 End Sub
 
 Private Sub ConfigureStaticCaptions(ByVal frame As Object)
-    Me.Caption = "‘Î‰ÏZü‹æ‘I‘ğ"
-    frame.Caption = "ÏZü‹æ–¼‚ğ‘I‘ğ‚µ‚Ä‚­‚¾‚³‚¢B"
+    Me.Caption = "å¯¾å¿œç©ç®—ç·šåŒºé¸æŠ"
+    frame.Caption = "ç©ç®—ç·šåŒºåã‚’é¸æŠã—ã¦ãã ã•ã„ã€‚"
 
-    SetButtonCaption "cmdSelectAll", "‘S‘I‘ğ"
-    SetButtonCaption "cmdClearAll", "‘S‰ğœ"
+    SetButtonCaption "cmdSelectAll", "å…¨é¸æŠ"
+    SetButtonCaption "cmdClearAll", "å…¨è§£é™¤"
     SetButtonCaption "cmdOK", "OK"
-    SetButtonCaption "cmdCancel", "ƒLƒƒƒ“ƒZƒ‹"
+    SetButtonCaption "cmdCancel", "ã‚­ãƒ£ãƒ³ã‚»ãƒ«"
 End Sub
 
 Private Sub SetButtonCaption(ByVal buttonName As String, ByVal captionText As String)
