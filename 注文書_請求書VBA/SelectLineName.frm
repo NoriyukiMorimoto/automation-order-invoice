@@ -1,3 +1,13 @@
+VERSION 5.00
+Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} SelectLineName 
+   Caption         =   "対応積算線区選択"
+   ClientHeight    =   6300
+   ClientLeft      =   120
+   ClientTop       =   465
+   ClientWidth     =   6360
+   OleObjectBlob   =   "SelectLineName.frx":0000
+   StartUpPosition =   1  'オーナー フォームの中央
+End
 Option Explicit
 
 Private mSelectedLineNames As Collection
@@ -43,7 +53,7 @@ Public Sub InitLineNames(ByVal lineNames As Collection)
             .Width = Application.Max(120, frame.Width - 28)
             .Height = 24
             .Tag = CStr(i)
-            .Value = False
+            .value = False
             .Visible = True
             ApplyControlFont chk, True
         End With
@@ -95,7 +105,7 @@ Private Sub cmdOK_Click()
     Dim ctrl As Control
     For Each ctrl In frame.Controls
         If TypeName(ctrl) = "CheckBox" Then
-            If ctrl.Visible And ctrl.Value = True Then
+            If ctrl.Visible And ctrl.value = True Then
                 mSelectedLineNames.Add CStr(ctrl.Caption)
             End If
         End If
@@ -146,8 +156,8 @@ Private Sub LayoutStaticControls(ByVal frame As Object)
 
     Dim insideWidth As Single
     Dim insideHeight As Single
-    insideWidth = Me.InsideWidth
-    insideHeight = Me.InsideHeight
+    insideWidth = Me.insideWidth
+    insideHeight = Me.insideHeight
     If insideWidth <= 0 Then insideWidth = Me.Width
     If insideHeight <= 0 Then insideHeight = Me.Height
 
@@ -236,7 +246,7 @@ Private Sub SetLineCheckBoxesValue(ByVal checkedValue As Boolean)
     Dim ctrl As Control
     For Each ctrl In frame.Controls
         If TypeName(ctrl) = "CheckBox" Then
-            If ctrl.Visible Then ctrl.Value = checkedValue
+            If ctrl.Visible Then ctrl.value = checkedValue
         End If
     Next ctrl
 End Sub
@@ -312,3 +322,5 @@ Private Function CancelButtonText() As String
     End If
     CancelButtonText = cached
 End Function
+
+

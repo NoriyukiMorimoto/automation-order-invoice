@@ -1,3 +1,13 @@
+VERSION 5.00
+Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} Project_Number_Selection 
+   Caption         =   "工事番号選択（最新順）"
+   ClientHeight    =   13110
+   ClientLeft      =   120
+   ClientTop       =   465
+   ClientWidth     =   10635
+   OleObjectBlob   =   "Project_Number_Selection.frx":0000
+   StartUpPosition =   1  'オーナー フォームの中央
+End
 Option Explicit
 
 Public SelectionConfirmed As Boolean
@@ -149,33 +159,33 @@ ErrorHandler:
     GetProjectSourceValue = ""
 End Function
 
-Private Function GetProjectSelectionBranchNameForSearch(ByVal branchName As String) As String
-    branchName = RemoveProjectSelectionSpaces(branchName)
-    If branchName = "" Then Exit Function
+Private Function GetProjectSelectionBranchNameForSearch(ByVal BranchName As String) As String
+    BranchName = RemoveProjectSelectionSpaces(BranchName)
+    If BranchName = "" Then Exit Function
 
-    If Right$(branchName, 2) = BranchSuffixText() Then
-        GetProjectSelectionBranchNameForSearch = branchName
+    If Right$(BranchName, 2) = BranchSuffixText() Then
+        GetProjectSelectionBranchNameForSearch = BranchName
     Else
-        GetProjectSelectionBranchNameForSearch = branchName & BranchSuffixText()
+        GetProjectSelectionBranchNameForSearch = BranchName & BranchSuffixText()
     End If
 End Function
 
-Private Function GetProjectSelectionBranchNameForFile(ByVal branchName As String) As String
-    branchName = RemoveProjectSelectionSpaces(branchName)
-    If branchName = "" Then Exit Function
+Private Function GetProjectSelectionBranchNameForFile(ByVal BranchName As String) As String
+    BranchName = RemoveProjectSelectionSpaces(BranchName)
+    If BranchName = "" Then Exit Function
 
-    If Right$(branchName, 2) = BranchSuffixText() Then
-        GetProjectSelectionBranchNameForFile = branchName
+    If Right$(BranchName, 2) = BranchSuffixText() Then
+        GetProjectSelectionBranchNameForFile = BranchName
     Else
-        GetProjectSelectionBranchNameForFile = branchName & BranchSuffixText()
+        GetProjectSelectionBranchNameForFile = BranchName & BranchSuffixText()
     End If
 End Function
-Private Function GetProjectSelectionBranchOfficeSearchKey(ByVal branchName As String, ByVal officeName As String) As String
+Private Function GetProjectSelectionBranchOfficeSearchKey(ByVal BranchName As String, ByVal OfficeName As String) As String
     Dim normalizedBranch As String
     Dim normalizedOffice As String
 
-    normalizedBranch = GetProjectSelectionBranchNameForSearch(branchName)
-    normalizedOffice = RemoveProjectSelectionSpaces(officeName)
+    normalizedBranch = GetProjectSelectionBranchNameForSearch(BranchName)
+    normalizedOffice = RemoveProjectSelectionSpaces(OfficeName)
 
     If StrComp(normalizedBranch, KobeBranchText(), vbTextCompare) = 0 And _
        StrComp(normalizedOffice, SanyoShinkansenTrackMaintenanceOfficeText(), vbTextCompare) = 0 Then
@@ -397,3 +407,5 @@ Private Sub SetSelectedValue()
                                  Me.ListView1.SelectedItem.SubItems(3), _
                                  Me.ListView1.SelectedItem.SubItems(4)
 End Sub
+
+

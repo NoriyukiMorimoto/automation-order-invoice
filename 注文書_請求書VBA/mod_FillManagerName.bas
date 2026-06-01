@@ -30,10 +30,10 @@ Public Sub FillManagerNameToBasicInfo()
         Exit Sub
     End If
 
-    Dim branchName As String, officeName As String
-    branchName = CommonNormalizeText(CStr(wsInfo.Range("B6").value))
-    officeName = CommonNormalizeText(CStr(wsInfo.Range("C6").value))
-    If branchName = "" Or officeName = "" Then
+    Dim BranchName As String, OfficeName As String
+    BranchName = CommonNormalizeText(CStr(wsInfo.Range("B6").value))
+    OfficeName = CommonNormalizeText(CStr(wsInfo.Range("C6").value))
+    If BranchName = "" Or OfficeName = "" Then
         MsgBox "基本情報シート B6 または C6 が空です。支店名・出張所名を確認してください。", vbExclamation
         Exit Sub
     End If
@@ -52,8 +52,8 @@ Public Sub FillManagerNameToBasicInfo()
     Dim foundName As String
     Dim rowData As Variant
     For Each rowData In rows
-        If StrComp(CommonNormalizeText(CStr(rowData(0))), branchName, vbTextCompare) = 0 And _
-           StrComp(CommonNormalizeText(CStr(rowData(1))), officeName, vbTextCompare) = 0 Then
+        If StrComp(CommonNormalizeText(CStr(rowData(0))), BranchName, vbTextCompare) = 0 And _
+           StrComp(CommonNormalizeText(CStr(rowData(1))), OfficeName, vbTextCompare) = 0 Then
             foundName = Trim$(CStr(rowData(2)))
             Exit For
         End If
@@ -61,8 +61,8 @@ Public Sub FillManagerNameToBasicInfo()
 
     If foundName = "" Then
         MsgBox "該当する支店名・出張所名が見つかりませんでした。" & vbCrLf & _
-               "支店名：" & branchName & vbCrLf & _
-               "出張所名：" & officeName, vbExclamation
+               "支店名：" & BranchName & vbCrLf & _
+               "出張所名：" & OfficeName, vbExclamation
     Else
         wsInfo.Range("F6").value = foundName
     End If
@@ -103,16 +103,16 @@ Public Sub RefreshBranchOfficeValidation(Optional ByVal keepOffice As Boolean = 
     Dim selectedBranch As String
     selectedBranch = CommonNormalizeText(CStr(wsInfo.Range("B6").value))
 
-    Dim rowData As Variant, branchName As String, officeName As String
+    Dim rowData As Variant, BranchName As String, OfficeName As String
     For Each rowData In rows
-        branchName = CommonNormalizeText(CStr(rowData(0)))
-        officeName = CommonNormalizeText(CStr(rowData(1)))
-        If IsManagerListDataRow(branchName, officeName) Then
-            If StrComp(branchName, HeadOfficeText(), vbTextCompare) <> 0 Then
-                If Not branchList.exists(branchName) Then branchList.Add branchName, branchName
+        BranchName = CommonNormalizeText(CStr(rowData(0)))
+        OfficeName = CommonNormalizeText(CStr(rowData(1)))
+        If IsManagerListDataRow(BranchName, OfficeName) Then
+            If StrComp(BranchName, HeadOfficeText(), vbTextCompare) <> 0 Then
+                If Not branchList.Exists(BranchName) Then branchList.Add BranchName, BranchName
                 If selectedBranch <> "" Then
-                    If StrComp(branchName, selectedBranch, vbTextCompare) = 0 Then
-                        If Not officeList.exists(officeName) Then officeList.Add officeName, officeName
+                    If StrComp(BranchName, selectedBranch, vbTextCompare) = 0 Then
+                        If Not officeList.Exists(OfficeName) Then officeList.Add OfficeName, OfficeName
                     End If
                 End If
             End If
@@ -150,7 +150,7 @@ Private Sub WriteValidationLists(ByVal wsInfo As Worksheet, _
 
     Dim currentOffice As String
     currentOffice = CommonNormalizeText(CStr(wsInfo.Range("C6").value))
-    If Not keepOffice Or currentOffice = "" Or Not officeList.exists(currentOffice) Then
+    If Not keepOffice Or currentOffice = "" Or Not officeList.Exists(currentOffice) Then
         wsInfo.Range("C6").ClearContents
     End If
 
@@ -381,11 +381,11 @@ Private Function GetFirstWorksheetTableName(ByVal cn As Object) As String
     GetFirstWorksheetTableName = CStr(sheetNames(1)) & "$"
 End Function
 
-Private Function IsManagerListDataRow(ByVal branchName As String, ByVal officeName As String) As Boolean
-    If branchName = "" Or officeName = "" Then Exit Function
-    If StrComp(branchName, BranchHeaderText(), vbTextCompare) = 0 Then Exit Function
-    If StrComp(officeName, OfficeHeaderText(), vbTextCompare) = 0 Then Exit Function
-    If StrComp(officeName, OfficeBranchHeaderText(), vbTextCompare) = 0 Then Exit Function
+Private Function IsManagerListDataRow(ByVal BranchName As String, ByVal OfficeName As String) As Boolean
+    If BranchName = "" Or OfficeName = "" Then Exit Function
+    If StrComp(BranchName, BranchHeaderText(), vbTextCompare) = 0 Then Exit Function
+    If StrComp(OfficeName, OfficeHeaderText(), vbTextCompare) = 0 Then Exit Function
+    If StrComp(OfficeName, OfficeBranchHeaderText(), vbTextCompare) = 0 Then Exit Function
     IsManagerListDataRow = True
 End Function
 

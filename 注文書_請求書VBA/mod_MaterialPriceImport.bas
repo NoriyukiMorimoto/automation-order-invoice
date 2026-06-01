@@ -15,8 +15,8 @@ Private Type UnitPriceRequest
     Nendo As String
     BranchName As String
     OfficeName As String
-    LineType As String
-    ProjectName As String
+    lineType As String
+    projectName As String
     UnitPriceKind As String
 End Type
 
@@ -103,7 +103,7 @@ Public Sub RefreshUnitPriceProjectNameValidation(Optional ByVal wsInfo As Worksh
     WriteUnitPriceKindValidation wsInfo
 
     Dim lineType As String
-    lineType = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_LINE_TYPE_CELL).Value))
+    lineType = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_LINE_TYPE_CELL).value))
     If lineType = "" Then
         ClearUnitPriceProjectNameValidation wsInfo, Not keepProjectName
         Exit Sub
@@ -182,14 +182,14 @@ Private Sub ImportUnitPriceData(ByVal wsInfo As Worksheet)
     MsgBox BuildImportCompleteMessage(selectedSheetNames, sourceFilePath, purchaseSheetName), vbInformation, "完了"
 End Sub
 Private Function TryReadUnitPriceRequest(ByVal wsInfo As Worksheet, ByRef request As UnitPriceRequest) As Boolean
-    request.Nendo = CommonExtractYear4Digits(CStr(wsInfo.Range(BASIC_INFO_YEAR_CELL).Value))
-    request.BranchName = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_BRANCH_CELL).Value))
-    request.OfficeName = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_OFFICE_CELL).Value))
-    request.LineType = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_LINE_TYPE_CELL).Value))
-    request.ProjectName = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_PROJECT_NAME_CELL).Value))
-    request.UnitPriceKind = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_PRICE_KIND_CELL).Value))
+    request.Nendo = CommonExtractYear4Digits(CStr(wsInfo.Range(BASIC_INFO_YEAR_CELL).value))
+    request.BranchName = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_BRANCH_CELL).value))
+    request.OfficeName = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_OFFICE_CELL).value))
+    request.lineType = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_LINE_TYPE_CELL).value))
+    request.projectName = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_PROJECT_NAME_CELL).value))
+    request.UnitPriceKind = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_PRICE_KIND_CELL).value))
     If request.UnitPriceKind = "" Then
-        request.UnitPriceKind = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_PRICE_KIND_FALLBACK_CELL).Value))
+        request.UnitPriceKind = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_PRICE_KIND_FALLBACK_CELL).value))
     End If
     If InStr(1, NormalizeMatchText(request.UnitPriceKind), NormalizeMatchText("単価適用区分"), vbTextCompare) > 0 Then
         request.UnitPriceKind = ""
@@ -203,15 +203,15 @@ Private Function TryReadUnitPriceRequest(ByVal wsInfo As Worksheet, ByRef reques
         MsgBox "基本情報シート B6 または C6 が空です。支店名・出張所名を確認してください。", vbExclamation
         Exit Function
     End If
-    If request.LineType = "" Then
+    If request.lineType = "" Then
         MsgBox "基本情報シート C25 の線区区分を選択してください。", vbExclamation
         Exit Function
     End If
-    If request.ProjectName = "" Then
+    If request.projectName = "" Then
         MsgBox "基本情報シート C26 の単価適用工事件名を選択してください。", vbExclamation
         Exit Function
     End If
-    If IsPurchaseUnitPriceProjectName(request.ProjectName) Then
+    If IsPurchaseUnitPriceProjectName(request.projectName) Then
         MsgBox "基本情報シート C26 は軌道材料購入充当以外の単価適用工事件名を選択してください。" & vbCrLf & _
                "購入充当単価は C28 確定後に自動作成します。", vbExclamation
         Exit Function
@@ -283,10 +283,10 @@ Private Function ResolveUnitPriceSourceFilePath(ByRef request As UnitPriceReques
     priceFolderPath = ResolveUnitPricePriceFolderPath(request, masterRow, sectionFolderPath)
     If priceFolderPath = "" Then Exit Function
 
-    ResolveUnitPriceSourceFilePath = FindUnitPriceWorkbook(priceFolderPath, request.ProjectName)
+    ResolveUnitPriceSourceFilePath = FindUnitPriceWorkbook(priceFolderPath, request.projectName)
     If ResolveUnitPriceSourceFilePath = "" Then
         MsgBox "工事件名に一致する単価表が見つかりません。" & vbCrLf & _
-               "工事件名：" & request.ProjectName & vbCrLf & _
+               "工事件名：" & request.projectName & vbCrLf & _
                priceFolderPath, vbExclamation
     End If
 End Function
@@ -306,10 +306,10 @@ Private Function ResolveUnitPricePriceFolderPath(ByRef request As UnitPriceReque
     End If
 
     Dim lineFolder As String
-    lineFolder = FindChildFolderByKey(dataRoot, request.LineType, True)
+    lineFolder = FindChildFolderByKey(dataRoot, request.lineType, True)
     If lineFolder = "" Then
         MsgBox "線区区分フォルダが見つかりません。" & vbCrLf & _
-               "線区区分：" & request.LineType & vbCrLf & _
+               "線区区分：" & request.lineType & vbCrLf & _
                dataRoot, vbExclamation
         Exit Function
     End If
@@ -373,7 +373,7 @@ Private Function LoadWorksheetNamesFromWorkbook(ByVal sourceFilePath As String) 
     previousScreenUpdating = Application.ScreenUpdating
     Application.ScreenUpdating = False
 
-    Set sourceBook = Workbooks.Open(FileName:=sourceFilePath, ReadOnly:=True, UpdateLinks:=False, AddToMru:=False)
+    Set sourceBook = Workbooks.Open(fileName:=sourceFilePath, ReadOnly:=True, UpdateLinks:=False, AddToMru:=False)
     Set result = New Collection
     For Each sourceSheet In sourceBook.Worksheets
         result.Add sourceSheet.Name
@@ -431,7 +431,7 @@ Private Function ImportSelectedUnitPriceSheets(ByVal sourceFilePath As String, _
     Application.DisplayAlerts = False
     Application.ScreenUpdating = False
 
-    Set sourceBook = Workbooks.Open(FileName:=sourceFilePath, ReadOnly:=True, UpdateLinks:=False, AddToMru:=False)
+    Set sourceBook = Workbooks.Open(fileName:=sourceFilePath, ReadOnly:=True, UpdateLinks:=False, AddToMru:=False)
     DeleteImportedUnitPriceSheets targetBook
 
     Dim sheetName As Variant
@@ -485,7 +485,7 @@ Private Function ImportAndMergePurchaseUnitPriceSheets(ByVal sourceFilePath As S
 
     DeleteWorksheetIfExists targetBook, newSheetName
 
-    Set sourceBook = Workbooks.Open(FileName:=sourceFilePath, ReadOnly:=True, UpdateLinks:=False, AddToMru:=False)
+    Set sourceBook = Workbooks.Open(fileName:=sourceFilePath, ReadOnly:=True, UpdateLinks:=False, AddToMru:=False)
 
     Dim isFirst As Boolean
     isFirst = True
@@ -538,7 +538,7 @@ Private Sub AppendSheetDataExcludingHeader(ByVal srcSheet As Worksheet, ByVal de
 
     Dim srcLastRow As Long
     Dim srcLastCol As Long
-    srcLastRow = srcUsed.Row + srcUsed.Rows.Count - 1
+    srcLastRow = srcUsed.Row + srcUsed.rows.Count - 1
     srcLastCol = srcUsed.Column + srcUsed.Columns.Count - 1
 
     If srcLastRow <= SOURCE_HEADER_ROW Then Exit Sub
@@ -698,7 +698,7 @@ End Function
 
 Private Sub WriteSelectedLineNames(ByVal wsInfo As Worksheet, ByVal selectedSheetNames As Collection)
     If wsInfo Is Nothing Then Exit Sub
-    wsInfo.Range(BASIC_INFO_IMPORTED_LINE_NAMES_CELL).Value = JoinCollectionText(selectedSheetNames, JapaneseCommaText())
+    wsInfo.Range(BASIC_INFO_IMPORTED_LINE_NAMES_CELL).value = JoinCollectionText(selectedSheetNames, JapaneseCommaText())
 End Sub
 
 Private Function JoinCollectionText(ByVal values As Collection, ByVal delimiter As String) As String
@@ -781,7 +781,7 @@ Private Function IsImportedUnitPriceSheet(ByVal targetSheet As Worksheet) As Boo
     Dim prop As Object
     For Each prop In targetSheet.CustomProperties
         If StrComp(prop.Name, IMPORTED_SHEET_PROPERTY, vbTextCompare) = 0 Then
-            IsImportedUnitPriceSheet = (CStr(prop.Value) = "1")
+            IsImportedUnitPriceSheet = (CStr(prop.value) = "1")
             Exit Function
         End If
     Next prop
@@ -790,7 +790,7 @@ End Function
 
 Private Sub MarkImportedUnitPriceSheet(ByVal targetSheet As Worksheet)
     On Error Resume Next
-    targetSheet.CustomProperties.Add Name:=IMPORTED_SHEET_PROPERTY, Value:="1"
+    targetSheet.CustomProperties.Add Name:=IMPORTED_SHEET_PROPERTY, value:="1"
     On Error GoTo 0
 End Sub
 
@@ -922,8 +922,8 @@ Private Sub WriteUnitPriceLineTypeValidation(ByVal wsInfo As Worksheet)
 
     wsInfo.Columns(LINE_TYPE_LIST_COL & ":" & LINE_TYPE_LIST_COL).Hidden = False
     listRange.ClearContents
-    listRange.Cells(1, 1).Value = ZAIRAISEN_NAME
-    listRange.Cells(2, 1).Value = SHINKANSEN_NAME
+    listRange.Cells(1, 1).value = ZAIRAISEN_NAME
+    listRange.Cells(2, 1).value = SHINKANSEN_NAME
 
     ResetUnitPriceProjectNameValidation wsInfo.Range(BASIC_INFO_LINE_TYPE_CELL), listRange
     wsInfo.Columns(LINE_TYPE_LIST_COL & ":" & LINE_TYPE_LIST_COL).Hidden = True
@@ -935,8 +935,8 @@ Private Sub WriteUnitPriceKindValidation(ByVal wsInfo As Worksheet)
 
     wsInfo.Columns(PRICE_KIND_LIST_COL & ":" & PRICE_KIND_LIST_COL).Hidden = False
     listRange.ClearContents
-    listRange.Cells(1, 1).Value = INITIAL_PRICE_NAME
-    listRange.Cells(2, 1).Value = DESIGN_CHANGE_PRICE_NAME
+    listRange.Cells(1, 1).value = INITIAL_PRICE_NAME
+    listRange.Cells(2, 1).value = DESIGN_CHANGE_PRICE_NAME
 
     ResetUnitPriceProjectNameValidation wsInfo.Range(BASIC_INFO_PRICE_KIND_CELL), listRange
     wsInfo.Columns(PRICE_KIND_LIST_COL & ":" & PRICE_KIND_LIST_COL).Hidden = True
@@ -952,14 +952,14 @@ Private Sub WriteUnitPriceProjectNameValidation(ByVal wsInfo As Worksheet, _
     Set listRange = wsInfo.Range(PROJECT_NAME_LIST_COL & LIST_START_ROW).Resize(maxProjectRows, 1)
 
     Dim currentProjectName As String
-    currentProjectName = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_PROJECT_NAME_CELL).Value))
+    currentProjectName = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_PROJECT_NAME_CELL).value))
 
     wsInfo.Columns(PROJECT_NAME_LIST_COL & ":" & PROJECT_NAME_LIST_COL).Hidden = False
     wsInfo.Range(PROJECT_NAME_LIST_COL & ":" & PROJECT_NAME_LIST_COL).ClearContents
 
     Dim i As Long
     For i = 1 To projectNames.Count
-        listRange.Cells(i, 1).Value = projectNames(i)
+        listRange.Cells(i, 1).value = projectNames(i)
     Next i
 
     ResetUnitPriceProjectNameValidation wsInfo.Range(BASIC_INFO_PROJECT_NAME_CELL), _
@@ -1199,3 +1199,5 @@ Private Function UnitPriceMasterFolderText() As String
     If cached = "" Then cached = "単価マスタ"
     UnitPriceMasterFolderText = cached
 End Function
+
+

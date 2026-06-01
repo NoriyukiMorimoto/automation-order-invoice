@@ -92,12 +92,7 @@ Public Sub HandleBasicInfoSelectionChange(ByVal Target As Range)
 
     Dim calendarTarget As Range
     Set calendarTarget = ws.Range(targetAddress)
-
-    Dim calendarArea As Range
-    Set calendarArea = GetSafeMergeArea(calendarTarget)
-    If calendarArea Is Nothing Then Exit Sub
-
-    If SafeIntersect(Target, calendarArea) Is Nothing Then
+    If Intersect(Target, calendarTarget.MergeArea) Is Nothing Then
         DeleteBasicInfoCalendar ws
     End If
 End Sub
@@ -196,14 +191,12 @@ End Sub
 Private Sub DrawBasicInfoCalendar(ByVal ws As Worksheet, ByVal targetCell As Range, ByVal displayMonth As Date, ByVal baseDate As Date)
     Dim previousScreenUpdating As Boolean
     previousScreenUpdating = Application.ScreenUpdating
-    On Error GoTo ExitHandler
     Application.ScreenUpdating = False
 
     DeleteBasicInfoCalendar ws
 
     Dim anchor As Range
-    Set anchor = GetSafeMergeArea(targetCell)
-    If anchor Is Nothing Then GoTo ExitHandler
+    Set anchor = targetCell.MergeArea
 
     Dim leftPos As Double, topPos As Double
     leftPos = anchor.Left
@@ -277,7 +270,6 @@ Private Sub DrawBasicInfoCalendar(ByVal ws As Worksheet, ByVal targetCell As Ran
     AddCalendarShape ws, "Footer", msoShapeRectangle, leftPos + 8, topPos + footerTop, calendarW - 48, 22, _
                      "Šî€“ú " & Format$(fiscalToday, "yyyy”NmŒŽd“ú"), RGB(248, 250, 252), RGB(248, 250, 252), 0
 
-ExitHandler:
     Application.ScreenUpdating = previousScreenUpdating
 End Sub
 
@@ -333,59 +325,26 @@ Private Function IsCalendarShapeName(ByVal shapeName As String) As Boolean
                           (Left$(shapeName, Len(LEGACY_CALENDAR_PREFIX)) = LEGACY_CALENDAR_PREFIX)
 End Function
 
-Private Function SafeIntersect(ByVal range1 As Range, ByVal range2 As Range) As Range
-    If range1 Is Nothing Then Exit Function
-    If range2 Is Nothing Then Exit Function
-
-    On Error Resume Next
-    Set SafeIntersect = Intersect(range1, range2)
-    On Error GoTo 0
-End Function
-
-Private Function GetSafeMergeArea(ByVal targetRange As Range) As Range
-    On Error GoTo Fallback
-
-    If targetRange Is Nothing Then Exit Function
-    If targetRange.Cells.CountLarge > 1 Then Set targetRange = targetRange.Cells(1, 1)
-
-    Set GetSafeMergeArea = targetRange.MergeArea
-    Exit Function
-
-Fallback:
-    On Error Resume Next
-    If Not targetRange Is Nothing Then Set GetSafeMergeArea = targetRange.Cells(1, 1)
-    On Error GoTo 0
-End Function
-
-Private Function GetSafeMergeTopLeftCell(ByVal targetRange As Range) As Range
-    Dim mergeArea As Range
-    Set mergeArea = GetSafeMergeArea(targetRange)
-    If mergeArea Is Nothing Then Exit Function
-
-    Set GetSafeMergeTopLeftCell = mergeArea.Cells(1, 1)
-End Function
-
 Private Function GetBasicInfoProjectNameTargetCell(ByVal Target As Range) As Range
     Dim ws As Worksheet
     Set ws = Target.Worksheet
 
     Dim candidate As Range
-    Set candidate = SafeIntersect(GetSafeMergeTopLeftCell(Target), ws.Range("C19"))
+    Set candidate = Intersect(Target.MergeArea.Cells(1, 1), ws.Range("C19"))
     If Not candidate Is Nothing Then
         Set GetBasicInfoProjectNameTargetCell = candidate.Cells(1, 1)
         Exit Function
     End If
 
-    Set candidate = SafeIntersect(Target, ws.Range("C19"))
+    Set candidate = Intersect(Target, ws.Range("C19"))
     If Not candidate Is Nothing Then Set GetBasicInfoProjectNameTargetCell = candidate.Cells(1, 1)
 End Function
 
-
-Private Function NormalizeProjectSelectionOfficeName(ByVal officeName As String) As String
-    If StrComp(officeName, FukuchiyamaOfficeFullNameText(), vbTextCompare) = 0 Then
+Private Function NormalizeProjectSelectionOfficeName(ByVal OfficeName As String) As String
+    If StrComp(OfficeName, FukuchiyamaOfficeFullNameText(), vbTextCompare) = 0 Then
         NormalizeProjectSelectionOfficeName = FukuchiyamaOfficeSearchNameText()
     Else
-        NormalizeProjectSelectionOfficeName = officeName
+        NormalizeProjectSelectionOfficeName = OfficeName
     End If
 End Function
 
@@ -410,13 +369,13 @@ Private Function GetDateTargetCell(ByVal Target As Range) As Range
     Set ws = Target.Worksheet
 
     Dim candidate As Range
-    Set candidate = SafeIntersect(GetSafeMergeTopLeftCell(Target), ws.Range(BASIC_INFO_DATE_CELLS))
+    Set candidate = Intersect(Target.MergeArea.Cells(1, 1), ws.Range(BASIC_INFO_DATE_CELLS))
     If Not candidate Is Nothing Then
         Set GetDateTargetCell = candidate.Cells(1, 1)
         Exit Function
     End If
 
-    Set candidate = SafeIntersect(Target, ws.Range(BASIC_INFO_DATE_CELLS))
+    Set candidate = Intersect(Target, ws.Range(BASIC_INFO_DATE_CELLS))
     If Not candidate Is Nothing Then Set GetDateTargetCell = candidate.Cells(1, 1)
 End Function
 
@@ -531,15 +490,15 @@ End Function
 
 Private Sub SetStoredText(ByVal nameText As String, ByVal valueText As String)
     On Error Resume Next
-    ThisWorkbook.Names(nameText).Delete
+    ThisWorkbook.names(nameText).Delete
     On Error GoTo 0
 
-    ThisWorkbook.Names.Add Name:=nameText, RefersTo:="=""" & Replace$(valueText, """", """""") & """", Visible:=False
+    ThisWorkbook.names.Add Name:=nameText, RefersTo:="=""" & Replace$(valueText, """", """""") & """", Visible:=False
 End Sub
 
 Private Function GetStoredText(ByVal nameText As String) As String
     On Error GoTo ErrorHandler
-    GetStoredText = CStr(Application.Evaluate(ThisWorkbook.Names(nameText).RefersTo))
+    GetStoredText = CStr(Application.Evaluate(ThisWorkbook.names(nameText).RefersTo))
     Exit Function
 
 ErrorHandler:
@@ -555,3 +514,5 @@ Private Function GetStoredCalendarWorksheet() As Worksheet
     End If
     On Error GoTo 0
 End Function
+
+

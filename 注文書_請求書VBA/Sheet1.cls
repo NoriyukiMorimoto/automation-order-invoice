@@ -1,3 +1,7 @@
+VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1  'True
+END
 Option Explicit
 
 Private Sub Worksheet_Activate()
@@ -53,7 +57,7 @@ ExitHandler:
 End Sub
 
 Private Sub Worksheet_BeforeDoubleClick(ByVal Target As Range, Cancel As Boolean)
-    ' C28 ãƒ€ãƒ–ãƒ«ã‚¯ãƒªãƒƒã‚¯ â†’ ç©ç®—ç·šåŒºå˜ä¾¡å–è¾¼
+    ' C28 ƒ_ƒuƒ‹ƒNƒŠƒbƒN ¨ ÏZü‹æ’P‰¿æ
     If Not Intersect(Target, Me.Range("C28")) Is Nothing Then
         Cancel = True
         mod_MaterialPriceImport.ImportConstructionUnitPriceForBasicInfo
@@ -113,3 +117,4 @@ End Sub
 Private Sub btnClearBasicInfo_Click()
     mod_BasicInfoUpdate.ClearBasicInfo
 End Sub
+

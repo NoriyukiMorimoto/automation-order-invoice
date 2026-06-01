@@ -17,7 +17,7 @@ Private Const BASIC_INFO_WORK_START_DATE_CELL As String = "C14"
 Private Const BASIC_INFO_WORK_END_DATE_CELL As String = "C15"
 Private Const BASIC_INFO_WORK_DAYS_CELL As String = "C16"
 Private Const OFFICE_COMBO_NAME As String = "ComboBox1"
-Private Const BASIC_INFO_CLEAR_RANGES As String = "C9:C11,C14:C16,C18:C21,F9:F14,F16:F21"
+Private Const BASIC_INFO_CLEAR_RANGES As String = "C9:C11,C14:C16,C18:C21,C25:C27,F9:F14,F16:F21"
 
 Public Sub UpdateBasicInfoPeriod()
     Dim wsInfo As Worksheet
@@ -177,3 +177,5 @@ End Function
 Private Sub ApplyJapaneseDateFormat(ByVal targetCell As Range)
     targetCell.NumberFormatLocal = "yyyy" & ChrW$(&H5E74) & "m" & ChrW$(&H6708) & "d" & ChrW$(&H65E5)
 End Sub
+
+

@@ -26,15 +26,15 @@ Public Sub RefreshVendorListForBasicInfo(Optional ByVal wsInfo As Worksheet)
     On Error GoTo ErrorHandler
     DeleteVendorComboBox wsInfo
 
-    Dim branchName As String
-    branchName = CommonNormalizeText(CStr(wsInfo.Range("B6").value))
-    If branchName = "" Then
+    Dim BranchName As String
+    BranchName = CommonNormalizeText(CStr(wsInfo.Range("B6").value))
+    If BranchName = "" Then
         ClearVendorList wsInfo
         Exit Sub
     End If
 
     Dim vendorRows As Collection
-    Set vendorRows = LoadVendorRows(branchName)
+    Set vendorRows = LoadVendorRows(BranchName)
     If Not HasVendorRows(vendorRows) Then
         ClearVendorList wsInfo
         Exit Sub
@@ -53,14 +53,14 @@ Public Sub FillVendorInfoToBasicInfo(Optional ByVal wsInfo As Worksheet)
 
     On Error GoTo ErrorHandler
 
-    Dim branchName As String
-    branchName = CommonNormalizeText(CStr(wsInfo.Range("B6").value))
+    Dim BranchName As String
+    BranchName = CommonNormalizeText(CStr(wsInfo.Range("B6").value))
 
     Dim selectedVendorName As String
     selectedVendorName = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_VENDOR_NAME_CELL).value))
-    If branchName = "" Or selectedVendorName = "" Then Exit Sub
+    If BranchName = "" Or selectedVendorName = "" Then Exit Sub
 
-    ApplyVendorSelection branchName, selectedVendorName, wsInfo
+    ApplyVendorSelection BranchName, selectedVendorName, wsInfo
     Exit Sub
 
 ErrorHandler:
@@ -75,28 +75,28 @@ Public Sub ShowAllVendorSelection(Optional ByVal wsInfo As Worksheet)
     AllVenderSelection.Show vbModal
 End Sub
 
-Public Sub ApplyVendorSelection(ByVal branchName As String, ByVal vendorName As String, Optional ByVal wsInfo As Worksheet)
+Public Sub ApplyVendorSelection(ByVal BranchName As String, ByVal vendorName As String, Optional ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet()
     If wsInfo Is Nothing Then Exit Sub
 
-    branchName = CommonNormalizeText(branchName)
+    BranchName = CommonNormalizeText(BranchName)
     vendorName = CommonNormalizeText(vendorName)
-    If branchName = "" Or vendorName = "" Then Exit Sub
+    If BranchName = "" Or vendorName = "" Then Exit Sub
 
     Dim vendorRows As Collection
-    Set vendorRows = LoadVendorRows(branchName)
+    Set vendorRows = LoadVendorRows(BranchName)
     If Not HasVendorRows(vendorRows) Then Exit Sub
 
     Dim rowData As Variant
     For Each rowData In vendorRows
         If StrComp(CommonNormalizeText(CStr(rowData(0))), vendorName, vbTextCompare) = 0 Then
-            ApplyVendorRowSelection wsInfo, branchName, rowData
+            ApplyVendorRowSelection wsInfo, BranchName, rowData
             Exit Sub
         End If
     Next rowData
 End Sub
 
-Private Sub ApplyVendorRowSelection(ByVal wsInfo As Worksheet, ByVal branchName As String, ByVal rowData As Variant)
+Private Sub ApplyVendorRowSelection(ByVal wsInfo As Worksheet, ByVal BranchName As String, ByVal rowData As Variant)
     Dim previousEnableEvents As Boolean
     previousEnableEvents = Application.EnableEvents
 
@@ -312,7 +312,7 @@ Private Sub WriteVendorValidationList(ByVal wsInfo As Worksheet, ByVal vendorRow
     For Each rowData In vendorRows
         vendorName = CommonNormalizeText(CStr(rowData(0)))
         If vendorName <> "" Then
-            If Not vendorList.exists(vendorName) Then vendorList.Add vendorName, vendorName
+            If Not vendorList.Exists(vendorName) Then vendorList.Add vendorName, vendorName
         End If
     Next rowData
 
@@ -379,7 +379,7 @@ Private Sub ApplyVendorRowToBasicInfo(ByVal wsInfo As Worksheet, ByVal rowData A
     wsInfo.Range("F21").value = rowData(9)
 End Sub
 
-Private Function LoadVendorRows(ByVal branchName As String) As Collection
+Private Function LoadVendorRows(ByVal BranchName As String) As Collection
     Dim sourceFilePath As String
     sourceFilePath = GetVendorMasterFilePath()
     If sourceFilePath = "" Then Exit Function
@@ -391,7 +391,7 @@ Private Function LoadVendorRows(ByVal branchName As String) As Collection
     On Error GoTo Cleanup
 
     Dim sheetName As String
-    sheetName = GetAdoWorksheetName(connection, branchName)
+    sheetName = GetAdoWorksheetName(connection, BranchName)
     If sheetName = "" Then GoTo Cleanup
 
     Set LoadVendorRows = LoadVendorRowsFromAdoSheet(connection, sheetName)
@@ -582,3 +582,5 @@ Private Function VendorInfoFillErrorText() As String
     End If
     VendorInfoFillErrorText = cached
 End Function
+
+
