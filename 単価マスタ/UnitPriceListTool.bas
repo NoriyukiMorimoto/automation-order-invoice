@@ -1481,8 +1481,6 @@ Private Function ShouldUsePurchaseSourceFile(ByVal fileName As String, ByVal fil
     Dim nextChar As String
 
     If Left$(fileName, 2) = "~$" Then Exit Function
-    If InStr(fileName, "¼½ÃÑ") > 0 Or InStr(fileName, "ƒVƒXƒeƒ€") > 0 Then Exit Function
-
     baseName = RemoveExtension(fileName)
     If Left$(baseName, Len(filePrefix)) <> filePrefix Then Exit Function
     If Len(baseName) = Len(filePrefix) Then
