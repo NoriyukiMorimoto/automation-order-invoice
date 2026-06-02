@@ -1,0 +1,16 @@
+Private Sub ResetUnitPriceValidation(ByVal targetCell As Range, ByVal listRange As Range)
+    ' セル結合されている場合、結合範囲の左上セル（MergeAreaの先頭）に対して
+    ' Validation を設定する。結合非表示列を参照先に持つ場合、xlValidAlertStop では
+    ' Excel がリスト内の値を「リスト外」と誤判定して入力をブロックするため
+    ' xlValidAlertInformation を使用する。
+    Dim targetTopLeft As Range
+    Set targetTopLeft = targetCell.MergeArea.Cells(1, 1)
+    With targetTopLeft.Validation
+        .Delete
+        .Add Type:=xlValidateList, AlertStyle:=xlValidAlertInformation, Operator:=xlBetween, _
+             Formula1:="=" & listRange.Address(True, True)
+        .IgnoreBlank = True
+        .InCellDropdown = True
+        .ShowError = False
+    End With
+End Sub
