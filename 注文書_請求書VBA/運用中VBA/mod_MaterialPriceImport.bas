@@ -11,6 +11,10 @@ Option Explicit
 '    改修内容（#11）：
 '      - SilentClearUnitPriceForBasicInfo を追加。
 '        確認メッセージなしで単価シートと C23 をクリア。
+'    改修内容（#12）：
+'      - C21 入力規則の取得範囲を線区別に固定化。
+'          在来線：単価適用工事件名マスタシート A2～A10
+'          新幹線：新幹線_単価適用工事件名マスタシート A2～A6
 '==========================================================================
 Public SharedMasterData As Variant
 
@@ -68,6 +72,11 @@ Private Const PURCHASE_SHEET_TAB_G As Long = 204
 Private Const PURCHASE_SHEET_TAB_B As Long = 153
 ' 取込元シートのヘッダー行（追記時にスキップする行）
 Private Const SOURCE_HEADER_ROW As Long = 1
+
+' 線区別工事件名マスタの取得終了行（固定値）
+' 在来線：A2～A10／新幹線：A2～A6
+Private Const ZAIRAISEN_PROJECT_NAME_END_ROW As Long = 10
+Private Const SHINKANSEN_PROJECT_NAME_END_ROW As Long = 6
 
 Public Function GetMasterFilePath() As String
     Dim fso As Object
@@ -179,6 +188,7 @@ Private Sub ImportUnitPriceData(ByVal wsInfo As Worksheet)
 
     MsgBox BuildImportCompleteMessage(selectedSheetNames, sourceFilePath, purchaseSheetName), vbInformation, "完了"
 End Sub
+
 Private Function TryReadUnitPriceRequest(ByVal wsInfo As Worksheet, ByRef request As UnitPriceRequest) As Boolean
     request.Nendo = CommonExtractYear4Digits(CStr(wsInfo.Range(BASIC_INFO_YEAR_CELL).Value))
     request.BranchName = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_BRANCH_CELL).Value))
@@ -347,6 +357,7 @@ Private Function ResolveUnitPricePriceFolderPath(ByRef request As UnitPriceReque
     sectionFolderPath = sectionFolder
     ResolveUnitPricePriceFolderPath = priceFolder
 End Function
+
 Private Function ResolveUnitPriceFolderName(ByVal priceKind As String) As String
     Dim normalizedKind As String
     normalizedKind = NormalizeMatchText(priceKind)
@@ -524,10 +535,9 @@ ErrorHandler:
     MsgBox "購入充当単価表の取り込みに失敗しました。" & vbCrLf & Err.Description, vbExclamation
     Resume Cleanup
 End Function
+
 '--------------------------------------------------------------------------
 '  AppendSheetDataExcludingHeader
-'    srcSheet の2行目以降（ヘッダー1行を除いた範囲）を destSheet の
-'    最終行の下にコピーする。書式も保持する xlPasteAll を使用。
 '--------------------------------------------------------------------------
 Private Sub AppendSheetDataExcludingHeader(ByVal srcSheet As Worksheet, ByVal destSheet As Worksheet)
     Dim srcUsed As Range
@@ -668,11 +678,9 @@ Private Function GetPathBaseName(ByVal sourcePath As String) As String
         GetPathBaseName = sourcePath
     End If
 End Function
+
 '--------------------------------------------------------------------------
 '  BuildPurchaseSheetName
-'    単価適用保線区名から取込先シート名「<保線区名>_購入充当単価」を生成。
-'    保線区名の先頭にある半角・全角の数字は除去する。
-'      例：「0501福知山保線区」→「福知山保線区_購入充当単価」
 '--------------------------------------------------------------------------
 Private Function BuildPurchaseSheetName(ByVal rawSectionName As String) As String
     Dim trimmed As String
@@ -737,7 +745,6 @@ End Sub
 '--------------------------------------------------------------------------
 '  SilentClearUnitPriceForBasicInfo
 '    B6/C6 変更時の自動クリア用。確認メッセージなし。
-'    単価シートと C23 を無条件で削除する。
 '--------------------------------------------------------------------------
 Public Sub SilentClearUnitPriceForBasicInfo(ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Exit Sub
@@ -860,20 +867,30 @@ Private Function WorksheetExists(ByVal targetBook As Workbook, ByVal sheetName A
     On Error GoTo 0
 End Function
 
+'--------------------------------------------------------------------------
+'  LoadUnitPriceProjectNamesForBasicInfo
+'    線区区分に応じた工事件名リストを取得する。
+'    在来線：単価適用工事件名マスタ  A2～A10
+'    新幹線：新幹線_単価適用工事件名マスタ  A2～A6
+'    線区区分未選択時：両方をマージして返す。
+'--------------------------------------------------------------------------
 Private Function LoadUnitPriceProjectNamesForBasicInfo(ByVal sourceFilePath As String, _
                                                        ByVal lineType As String) As Collection
-    If CommonNormalizeText(lineType) <> "" Then
-        Set LoadUnitPriceProjectNamesForBasicInfo = LoadUnitPriceProjectNames(sourceFilePath, lineType)
-        Exit Function
-    End If
-
-    Dim result As Collection
-    Set result = New Collection
-
-    AddUnitPriceProjectNames result, LoadUnitPriceProjectNames(sourceFilePath, ZAIRAISEN_NAME)
-    AddUnitPriceProjectNames result, LoadUnitPriceProjectNames(sourceFilePath, SHINKANSEN_NAME)
-
-    Set LoadUnitPriceProjectNamesForBasicInfo = result
+    Select Case CommonNormalizeText(lineType)
+        Case ZAIRAISEN_NAME
+            Set LoadUnitPriceProjectNamesForBasicInfo = _
+                LoadUnitPriceProjectNames(sourceFilePath, ZAIRAISEN_NAME)
+        Case SHINKANSEN_NAME
+            Set LoadUnitPriceProjectNamesForBasicInfo = _
+                LoadUnitPriceProjectNames(sourceFilePath, SHINKANSEN_NAME)
+        Case Else
+            ' 線区未選択時：両方をマージ
+            Dim result As Collection
+            Set result = New Collection
+            AddUnitPriceProjectNames result, LoadUnitPriceProjectNames(sourceFilePath, ZAIRAISEN_NAME)
+            AddUnitPriceProjectNames result, LoadUnitPriceProjectNames(sourceFilePath, SHINKANSEN_NAME)
+            Set LoadUnitPriceProjectNamesForBasicInfo = result
+    End Select
 End Function
 
 Private Sub AddUnitPriceProjectNames(ByVal target As Collection, ByVal source As Collection)
@@ -884,32 +901,57 @@ Private Sub AddUnitPriceProjectNames(ByVal target As Collection, ByVal source As
         If Not CollectionContainsText(target, CStr(item)) Then target.Add CStr(item)
     Next item
 End Sub
+
+'--------------------------------------------------------------------------
+'  LoadUnitPriceProjectNames
+'    線区別のシート名・終了行を取得して ADO 読み込み。
+'--------------------------------------------------------------------------
 Private Function LoadUnitPriceProjectNames(ByVal sourceFilePath As String, _
                                            ByVal lineType As String) As Collection
     Dim sheetName As String
+    Dim endRow As Long
 
     On Error GoTo ErrorHandler
-    sheetName = ResolveUnitPriceProjectNameMasterSheetName(lineType)
+    ResolveUnitPriceProjectNameMasterConfig lineType, sheetName, endRow
     If sheetName = "" Then Exit Function
 
-    Set LoadUnitPriceProjectNames = LoadUnitPriceProjectNamesByAdo(sourceFilePath, sheetName)
+    Set LoadUnitPriceProjectNames = LoadUnitPriceProjectNamesByAdo(sourceFilePath, sheetName, endRow)
     Exit Function
 
 ErrorHandler:
     Set LoadUnitPriceProjectNames = Nothing
 End Function
 
-Private Function ResolveUnitPriceProjectNameMasterSheetName(ByVal lineType As String) As String
+'--------------------------------------------------------------------------
+'  ResolveUnitPriceProjectNameMasterConfig
+'    線区区分別に「シート名」と「取得終了行」を返す。
+'      在来線 → 単価適用工事件名マスタ，終了行 = 10（A2～A10）
+'      新幹線 → 新幹線_単価適用工事件名マスタ，終了行 = 6（A2～A6）
+'--------------------------------------------------------------------------
+Private Sub ResolveUnitPriceProjectNameMasterConfig(ByVal lineType As String, _
+                                                    ByRef sheetName As String, _
+                                                    ByRef endRow As Long)
     Select Case CommonNormalizeText(lineType)
         Case ZAIRAISEN_NAME
-            ResolveUnitPriceProjectNameMasterSheetName = PROJECT_MASTER_SHEET_NAME
+            sheetName = PROJECT_MASTER_SHEET_NAME
+            endRow = ZAIRAISEN_PROJECT_NAME_END_ROW
         Case SHINKANSEN_NAME
-            ResolveUnitPriceProjectNameMasterSheetName = SHINKANSEN_NAME & "_" & PROJECT_MASTER_SHEET_NAME
+            sheetName = SHINKANSEN_NAME & "_" & PROJECT_MASTER_SHEET_NAME
+            endRow = SHINKANSEN_PROJECT_NAME_END_ROW
+        Case Else
+            sheetName = ""
+            endRow = 0
     End Select
-End Function
+End Sub
 
+'--------------------------------------------------------------------------
+'  LoadUnitPriceProjectNamesByAdo
+'    指定シートの A{startRow}～A{endRow} を ADO で読み込む。
+'    空セルはスキップ。購入充当フィルタは適用しない（固定範囲指定のため不要）。
+'--------------------------------------------------------------------------
 Private Function LoadUnitPriceProjectNamesByAdo(ByVal sourceFilePath As String, _
-                                                ByVal sheetName As String) As Collection
+                                                ByVal sheetName As String, _
+                                                ByVal endRow As Long) As Collection
     Dim cn As Object
     Dim rs As Object
     Dim result As Collection
@@ -919,7 +961,8 @@ Private Function LoadUnitPriceProjectNamesByAdo(ByVal sourceFilePath As String, 
     If cn Is Nothing Then Exit Function
 
     Dim sql As String
-    sql = "SELECT F1 FROM " & BuildAdoSheetRangeName(sheetName, "A", PROJECT_NAME_MASTER_START_ROW, "A", PROJECT_NAME_MASTER_LAST_ROW) & _
+    sql = "SELECT F1 FROM " & _
+          BuildAdoSheetRangeName(sheetName, "A", PROJECT_NAME_MASTER_START_ROW, "A", endRow) & _
           " WHERE F1 IS NOT NULL"
 
     Set rs = cn.Execute(sql)
@@ -928,7 +971,7 @@ Private Function LoadUnitPriceProjectNamesByAdo(ByVal sourceFilePath As String, 
     Do Until rs.EOF
         Dim itemText As String
         itemText = Trim$(CommonNzText(CommonGetAdoFieldValue(rs, 0)))
-        If itemText <> "" And Not IsPurchaseUnitPriceProjectName(itemText) Then result.Add itemText
+        If itemText <> "" Then result.Add itemText
         rs.MoveNext
     Loop
 
@@ -1043,11 +1086,6 @@ Private Function CollectionContainsText(ByVal values As Collection, ByVal search
     Next item
 End Function
 
-'--------------------------------------------------------------------------
-'  FindUnitPriceWorkbook
-'    指定フォルダ直下から、工事件名に一致する通常の単価表ブックを返す。
-'    購入充当ファイルと「~$」で始まる一時ファイルはスキップ。
-'--------------------------------------------------------------------------
 Private Function FindUnitPriceWorkbook(ByVal folderPath As String, ByVal projectName As String) As String
     Dim extensions As Variant
     extensions = Array("*.xlsx", "*.xlsm", "*.xls")
@@ -1108,6 +1146,7 @@ Private Function IsPurchaseUnitPriceProjectName(ByVal projectName As String) As 
     IsPurchaseUnitPriceProjectName = (InStr(1, NormalizeMatchText(projectName), NormalizeMatchText(UNIT_PRICE_FILE_KEYWORD), vbTextCompare) > 0 Or _
                                       InStr(1, NormalizeMatchText(projectName), NormalizeMatchText("購入充当"), vbTextCompare) > 0)
 End Function
+
 Private Function FindChildFolderByKey(ByVal parentFolder As String, _
                                       ByVal keyText As String, _
                                       ByVal ignoreLeadingNumbers As Boolean) As String
@@ -1189,13 +1228,6 @@ Private Function GetUnitPriceDataRootPath() As String
     End If
 End Function
 
-'--------------------------------------------------------------------------
-'  FirstExistingFilePath
-'    候補パスを順に検索し、最初に存在するファイルパスを返す。
-'    SharePoint同期フォルダ未同期時など、ThisWorkbook.Path が
-'    https:// 形式になる環境では Dir() がエラー52を返すため、
-'    On Error Resume Next でスキップして次の候補へ進む。
-'--------------------------------------------------------------------------
 Private Function FirstExistingFilePath(ByVal candidates As Collection) As String
     Dim candidate As Variant
     Dim found As Boolean
@@ -1223,6 +1255,7 @@ Private Function BuildImportCompleteMessage(ByVal selectedSheetNames As Collecti
                                      "購入充当単価表を「" & purchaseSheetName & "」シートに作成しました。"
     End If
 End Function
+
 Private Function OrderInvoiceDocumentFolderText() As String
     Static cached As String
     If cached = "" Then
