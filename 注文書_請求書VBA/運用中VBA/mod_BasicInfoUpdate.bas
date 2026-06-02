@@ -1,13 +1,16 @@
 Option Explicit
 
 '==========================================================================
-'  Šî–{î•ñƒV[ƒg ŠúŠÔ^¿‹‰ñ”XVƒ‚ƒWƒ…[ƒ‹
-'    ‰üC“à—ei#15jF
-'      - ƒGƒ‰[ƒnƒ“ƒhƒ‰“à‚Å Err.Number / Err.Description ‚ğ‘Ş”ğ‚µA
-'        ‚»‚ÌŒã‚Ì Application İ’è•œ‹A‚ğŠmÀ‚És‚¤\‘¢‚Ö®—B
-'    ‰üC“à—ei#9jF
-'      - NormalizeText / GetBasicInfoWorksheet / “ú–{ŒêƒV[ƒg–¼¶¬‚Í
-'        mod_Common ‚ÉW–ñÏ‚İBd•¡’è‹`‚ğ“P‹‚µA‹¤’ÊŠÖ”Œo—R‚ÅQÆB
+'  åŸºæœ¬æƒ…å ±ã‚·ãƒ¼ãƒˆ æœŸé–“ï¼è«‹æ±‚å›æ•°æ›´æ–°ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«
+'    æ”¹ä¿®å†…å®¹ï¼ˆ#15ï¼‰ï¼š
+'      - ã‚¨ãƒ©ãƒ¼ãƒãƒ³ãƒ‰ãƒ©å†…ã§ Err.Number / Err.Description ã‚’é€€é¿ã—ã€
+'        ãã®å¾Œã® Application è¨­å®šå¾©å¸°ã‚’ç¢ºå®Ÿã«è¡Œã†æ§‹é€ ã¸æ•´ç†ã€‚
+'    æ”¹ä¿®å†…å®¹ï¼ˆ#9ï¼‰ï¼š
+'      - NormalizeText / GetBasicInfoWorksheet / æ—¥æœ¬èªã‚·ãƒ¼ãƒˆåç”Ÿæˆã¯
+'        mod_Common ã«é›†ç´„æ¸ˆã¿ã€‚é‡è¤‡å®šç¾©ã‚’æ’¤å»ã—ã€å…±é€šé–¢æ•°çµŒç”±ã§å‚ç…§ã€‚
+'    æ”¹ä¿®å†…å®¹ï¼ˆ#11ï¼‰ï¼š
+'      - SilentClearBasicInfo ã‚’è¿½åŠ ã€‚
+'        B6/C6 å¤‰æ›´æ™‚ã«ç¢ºèªãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ãªã—ã§åŸºæœ¬æƒ…å ±ã¨å˜ä¾¡ã‚·ãƒ¼ãƒˆã‚’ã‚¯ãƒªã‚¢ã€‚
 '==========================================================================
 
 Private Const BASIC_INFO_START_DATE_CELL As String = "C26"
@@ -33,28 +36,28 @@ Public Sub UpdateBasicInfoPeriod()
     On Error GoTo ErrorHandler
     Application.ScreenUpdating = False
 
-    If Not IsDate(wsInfo.Range(BASIC_INFO_START_DATE_CELL).value) Then
+    If Not IsDate(wsInfo.Range(BASIC_INFO_START_DATE_CELL).Value) Then
         Err.Raise vbObjectError + 515, , "Start date is not a valid date."
     End If
-    If Not IsDate(wsInfo.Range(BASIC_INFO_END_DATE_CELL).value) Then
+    If Not IsDate(wsInfo.Range(BASIC_INFO_END_DATE_CELL).Value) Then
         Err.Raise vbObjectError + 516, , "End date is not a valid date."
     End If
 
     Dim oldStartDate As Date
-    oldStartDate = CDate(wsInfo.Range(BASIC_INFO_START_DATE_CELL).value)
+    oldStartDate = CDate(wsInfo.Range(BASIC_INFO_START_DATE_CELL).Value)
 
     Dim oldEndDate As Date
-    oldEndDate = CDate(wsInfo.Range(BASIC_INFO_END_DATE_CELL).value)
+    oldEndDate = CDate(wsInfo.Range(BASIC_INFO_END_DATE_CELL).Value)
 
-    wsInfo.Range(BASIC_INFO_START_DATE_CELL).value = GetNextStartDate(oldStartDate)
-    wsInfo.Range(BASIC_INFO_END_DATE_CELL).value = GetNextEndDate(oldEndDate)
+    wsInfo.Range(BASIC_INFO_START_DATE_CELL).Value = GetNextStartDate(oldStartDate)
+    wsInfo.Range(BASIC_INFO_END_DATE_CELL).Value = GetNextEndDate(oldEndDate)
     ApplyJapaneseDateFormat wsInfo.Range(BASIC_INFO_START_DATE_CELL)
     ApplyJapaneseDateFormat wsInfo.Range(BASIC_INFO_END_DATE_CELL)
 
-    If Len(Trim$(CStr(wsInfo.Range(BASIC_INFO_BILLING_COUNT_CELL).value))) = 0 Then
-        wsInfo.Range(BASIC_INFO_BILLING_COUNT_CELL).value = 1
+    If Len(Trim$(CStr(wsInfo.Range(BASIC_INFO_BILLING_COUNT_CELL).Value))) = 0 Then
+        wsInfo.Range(BASIC_INFO_BILLING_COUNT_CELL).Value = 1
     Else
-        wsInfo.Range(BASIC_INFO_BILLING_COUNT_CELL).value = CLng(wsInfo.Range(BASIC_INFO_BILLING_COUNT_CELL).value) + 1
+        wsInfo.Range(BASIC_INFO_BILLING_COUNT_CELL).Value = CLng(wsInfo.Range(BASIC_INFO_BILLING_COUNT_CELL).Value) + 1
     End If
 
     GoTo FinallyExit
@@ -75,13 +78,13 @@ Public Sub ApplyInitialBillingPeriodFromStartDate(ByVal wsInfo As Worksheet)
     On Error GoTo ErrorHandler
 
     If wsInfo Is Nothing Then Exit Sub
-    If Not IsDate(wsInfo.Range(BASIC_INFO_START_DATE_CELL).value) Then Exit Sub
+    If Not IsDate(wsInfo.Range(BASIC_INFO_START_DATE_CELL).Value) Then Exit Sub
 
     Dim startDate As Date
-    startDate = CDate(wsInfo.Range(BASIC_INFO_START_DATE_CELL).value)
+    startDate = CDate(wsInfo.Range(BASIC_INFO_START_DATE_CELL).Value)
 
-    wsInfo.Range(BASIC_INFO_END_DATE_CELL).value = DateSerial(Year(startDate), Month(startDate) + 1, 16)
-    wsInfo.Range(BASIC_INFO_BILLING_COUNT_CELL).value = 1
+    wsInfo.Range(BASIC_INFO_END_DATE_CELL).Value = DateSerial(Year(startDate), Month(startDate) + 1, 16)
+    wsInfo.Range(BASIC_INFO_BILLING_COUNT_CELL).Value = 1
 
     ApplyJapaneseDateFormat wsInfo.Range(BASIC_INFO_START_DATE_CELL)
     ApplyJapaneseDateFormat wsInfo.Range(BASIC_INFO_END_DATE_CELL)
@@ -96,21 +99,21 @@ Public Sub ApplyWorkDaysFromWorkDates(ByVal wsInfo As Worksheet)
 
     If wsInfo Is Nothing Then Exit Sub
 
-    If Not IsDate(wsInfo.Range(BASIC_INFO_WORK_START_DATE_CELL).value) Or _
-       Not IsDate(wsInfo.Range(BASIC_INFO_WORK_END_DATE_CELL).value) Then
+    If Not IsDate(wsInfo.Range(BASIC_INFO_WORK_START_DATE_CELL).Value) Or _
+       Not IsDate(wsInfo.Range(BASIC_INFO_WORK_END_DATE_CELL).Value) Then
         wsInfo.Range(BASIC_INFO_WORK_DAYS_CELL).ClearContents
         Exit Sub
     End If
 
     Dim startDate As Date
-    startDate = CDate(wsInfo.Range(BASIC_INFO_WORK_START_DATE_CELL).value)
+    startDate = CDate(wsInfo.Range(BASIC_INFO_WORK_START_DATE_CELL).Value)
 
     Dim endDate As Date
-    endDate = CDate(wsInfo.Range(BASIC_INFO_WORK_END_DATE_CELL).value)
+    endDate = CDate(wsInfo.Range(BASIC_INFO_WORK_END_DATE_CELL).Value)
 
     With wsInfo.Range(BASIC_INFO_WORK_DAYS_CELL)
         .NumberFormatLocal = "0" & ChrW$(&H65E5)
-        .value = DateDiff("d", startDate, endDate) + 1
+        .Value = DateDiff("d", startDate, endDate) + 1
     End With
     Exit Sub
 
@@ -118,6 +121,10 @@ ErrorHandler:
     wsInfo.Range(BASIC_INFO_WORK_DAYS_CELL).ClearContents
 End Sub
 
+'--------------------------------------------------------------------------
+'  ClearBasicInfo
+'    ãƒœã‚¿ãƒ³æŠ¼ä¸‹ç”¨ã€‚ç¢ºèªãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚ã‚Šãƒ»å˜ä¾¡ã‚¯ãƒªã‚¢ç¢ºèªã‚ã‚Šã€‚
+'--------------------------------------------------------------------------
 Public Sub ClearBasicInfo()
     Dim wsInfo As Worksheet
     Set wsInfo = CommonGetBasicInfoWorksheet()
@@ -151,6 +158,39 @@ FinallyExit:
     End If
 End Sub
 
+'--------------------------------------------------------------------------
+'  SilentClearBasicInfo
+'    B6/C6 å¤‰æ›´æ™‚ã®è‡ªå‹•ã‚¯ãƒªã‚¢ç”¨ã€‚ç¢ºèªãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ãªã—ã€‚
+'    åŸºæœ¬æƒ…å ±ã‚¯ãƒªã‚¢ç¯„å›²ï¼‹å˜ä¾¡ã‚·ãƒ¼ãƒˆï¼‹C23 ã‚’ç„¡æ¡ä»¶ã§å‰Šé™¤ã™ã‚‹ã€‚
+'--------------------------------------------------------------------------
+Public Sub SilentClearBasicInfo(ByVal wsInfo As Worksheet)
+    If wsInfo Is Nothing Then Exit Sub
+
+    Dim savedErrNum As Long
+    Dim savedErrDesc As String
+
+    On Error GoTo ErrorHandler
+    Application.ScreenUpdating = False
+    Application.EnableEvents = False
+
+    HideOfficeComboBoxForUpdate wsInfo
+    mod_MaterialPriceImport.SilentClearUnitPriceForBasicInfo wsInfo
+    wsInfo.Range(BASIC_INFO_CLEAR_RANGES).ClearContents
+
+    GoTo FinallyExit
+
+ErrorHandler:
+    savedErrNum = Err.Number
+    savedErrDesc = Err.Description
+
+FinallyExit:
+    Application.EnableEvents = True
+    Application.ScreenUpdating = True
+    If savedErrNum <> 0 Then
+        MsgBox "Basic information silent clear failed." & vbCrLf & savedErrDesc, vbExclamation
+    End If
+End Sub
+
 Private Sub HideOfficeComboBoxForUpdate(ByVal wsInfo As Worksheet)
     On Error Resume Next
 
@@ -158,8 +198,8 @@ Private Sub HideOfficeComboBoxForUpdate(ByVal wsInfo As Worksheet)
     Set ole = wsInfo.OLEObjects(OFFICE_COMBO_NAME)
     If ole Is Nothing Then Exit Sub
 
-    If Len(Trim$(CStr(ole.Object.value))) > 0 Then
-        wsInfo.Range("C6").value = ole.Object.value
+    If Len(Trim$(CStr(ole.Object.Value))) > 0 Then
+        wsInfo.Range("C6").Value = ole.Object.Value
     End If
     ole.Visible = False
 
@@ -177,5 +217,3 @@ End Function
 Private Sub ApplyJapaneseDateFormat(ByVal targetCell As Range)
     targetCell.NumberFormatLocal = "yyyy" & ChrW$(&H5E74) & "m" & ChrW$(&H6708) & "d" & ChrW$(&H65E5)
 End Sub
-
-

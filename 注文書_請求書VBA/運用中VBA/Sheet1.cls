@@ -26,6 +26,13 @@ Private Sub Worksheet_Change(ByVal Target As Range)
         mod_VendorMaster.RefreshVendorListForBasicInfo Me
     End If
 
+    ' B6 または C6 が変更された場合：確認なしで基本情報・単価シートをクリア
+    If Not Intersect(Target, Me.Range("B6,C6")) Is Nothing Then
+        If Not mod_FillManagerName.IsSuppressingC6Change() Then
+            mod_BasicInfoUpdate.SilentClearBasicInfo Me
+        End If
+    End If
+
     If Not Intersect(Target, Me.Range("C6")) Is Nothing Then
         ' ComboBox選択確定による書き込み中はChangeイベントをスキップ
         If Not mod_FillManagerName.IsSuppressingC6Change() Then
