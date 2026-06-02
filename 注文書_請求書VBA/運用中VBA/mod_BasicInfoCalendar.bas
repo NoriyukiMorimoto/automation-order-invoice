@@ -15,7 +15,7 @@ Private Const LEGACY_CALENDAR_PREFIX As String = "__BasicInfoCalendar_"
 Private Const CALENDAR_TARGET_SHEET_NAME As String = "__BasicInfoCalendarTargetSheet"
 Private Const CALENDAR_TARGET_ADDRESS_NAME As String = "__BasicInfoCalendarTargetAddress"
 Private Const CALENDAR_MONTH_NAME As String = "__BasicInfoCalendarMonth"
-Private Const BASIC_INFO_DATE_CELLS As String = "C11,C15,C16,C26,C27"
+Private Const BASIC_INFO_DATE_CELLS As String = "C11,C15,C16,C27,C28"
 
 Public SharedMasterData As Variant
 Public ProjectSelectionBasicInfoMode As Boolean

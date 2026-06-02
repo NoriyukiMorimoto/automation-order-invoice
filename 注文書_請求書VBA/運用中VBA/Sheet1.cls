@@ -13,7 +13,7 @@ ExitHandler:
 End Sub
 
 Private Sub Worksheet_Change(ByVal Target As Range)
-    If Intersect(Target, Me.Range("B4,B6,C6,C10,C15:C16,F9,C20,C22,C26")) Is Nothing Then Exit Sub
+    If Intersect(Target, Me.Range("B4,B6,C6,C10,C15:C16,F9,C20,C22,C27")) Is Nothing Then Exit Sub
 
     On Error GoTo ExitHandler
     Application.EnableEvents = False
@@ -26,7 +26,7 @@ Private Sub Worksheet_Change(ByVal Target As Range)
         mod_VendorMaster.RefreshVendorListForBasicInfo Me
     End If
 
-    ' B6 ã¾ãŸã¯ C6 ãŒå¤‰æ›´ã•ã‚ŒãŸå ´åˆï¼šç¢ºèªãªã—ã§åŸºæœ¬æƒ…å ±ãƒ»å˜ä¾¡ã‚·ãƒ¼ãƒˆã‚’ã‚¯ãƒªã‚¢
+    ' B6 ‚Ü‚½‚Í C6 ‚ª•ÏX‚³‚ê‚½ê‡FŠm”F‚È‚µ‚ÅŠî–{î•ñE’P‰¿ƒV[ƒg‚ğƒNƒŠƒA
     If Not Intersect(Target, Me.Range("B6,C6")) Is Nothing Then
         If Not mod_FillManagerName.IsSuppressingC6Change() Then
             mod_BasicInfoUpdate.SilentClearBasicInfo Me
@@ -34,19 +34,19 @@ Private Sub Worksheet_Change(ByVal Target As Range)
     End If
 
     If Not Intersect(Target, Me.Range("C6")) Is Nothing Then
-        ' ComboBoxé¸æŠç¢ºå®šã«ã‚ˆã‚‹æ›¸ãè¾¼ã¿ä¸­ã¯Changeã‚¤ãƒ™ãƒ³ãƒˆã‚’ã‚¹ã‚­ãƒƒãƒ—
+        ' ComboBox‘I‘ğŠm’è‚É‚æ‚é‘‚«‚İ’†‚ÍChangeƒCƒxƒ“ƒg‚ğƒXƒLƒbƒv
         If Not mod_FillManagerName.IsSuppressingC6Change() Then
             mod_FillManagerName.FillManagerNameToBasicInfo
         End If
     End If
 
-    ' C10 ãŒå¤‰æ›´ã•ã‚ŒãŸå ´åˆï¼šåœ¨å¹¹åŒºåˆ†ãƒã‚¹ã‚¿ã‚’å‚ç…§ã—ã¦ C20ãƒ»C21 ã‚’è‡ªå‹•å…¥åŠ›
+    ' C10 ‚ª•ÏX‚³‚ê‚½ê‡FİŠ²‹æ•ªƒ}ƒXƒ^‚ğQÆ‚µ‚Ä C20EC21 ‚ğ©“®“ü—Í
     If Not Intersect(Target, Me.Range("C10")) Is Nothing Then
         mod_MaterialPriceImport.AutoFillLineTypeFromWorkName Me
         mod_MaterialPriceImport.AutoFillProjectNameFromWorkName Me
     End If
 
-    If Not Intersect(Target, Me.Range("C26")) Is Nothing Then
+    If Not Intersect(Target, Me.Range("C27")) Is Nothing Then
         mod_BasicInfoUpdate.ApplyInitialBillingPeriodFromStartDate Me
     End If
 
@@ -69,7 +69,7 @@ ExitHandler:
 End Sub
 
 Private Sub Worksheet_BeforeDoubleClick(ByVal Target As Range, Cancel As Boolean)
-    ' C23 ãƒ€ãƒ–ãƒ«ã‚¯ãƒªãƒƒã‚¯ â†’ ç©ç®—ç·šåŒºå˜ä¾¡å–è¾¼
+    ' C23 ƒ_ƒuƒ‹ƒNƒŠƒbƒN ¨ ÏZü‹æ’P‰¿æ
     If Not Intersect(Target, Me.Range("C23")) Is Nothing Then
         Cancel = True
         mod_MaterialPriceImport.ImportConstructionUnitPriceForBasicInfo

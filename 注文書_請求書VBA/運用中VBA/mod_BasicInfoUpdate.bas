@@ -13,14 +13,14 @@ Option Explicit
 '        B6/C6 変更時に確認メッセージなしで基本情報と単価シートをクリア。
 '==========================================================================
 
-Private Const BASIC_INFO_START_DATE_CELL As String = "C26"
-Private Const BASIC_INFO_END_DATE_CELL As String = "C27"
-Private Const BASIC_INFO_BILLING_COUNT_CELL As String = "C28"
+Private Const BASIC_INFO_START_DATE_CELL As String = "C27"
+Private Const BASIC_INFO_END_DATE_CELL As String = "C28"
+Private Const BASIC_INFO_BILLING_COUNT_CELL As String = "C29"
 Private Const BASIC_INFO_WORK_START_DATE_CELL As String = "C15"
 Private Const BASIC_INFO_WORK_END_DATE_CELL As String = "C16"
 Private Const BASIC_INFO_WORK_DAYS_CELL As String = "C17"
 Private Const OFFICE_COMBO_NAME As String = "ComboBox1"
-Private Const BASIC_INFO_CLEAR_RANGES As String = "C9:C12,C15:C17,C20:C23,C26:C28,F9:F14,F16:F21"
+Private Const BASIC_INFO_CLEAR_RANGES As String = "C9:C12,C15:C17,C20:C23,C27:C29,F9:F14,F16:F21"
 
 Public Sub UpdateBasicInfoPeriod()
     Dim wsInfo As Worksheet
@@ -49,16 +49,15 @@ Public Sub UpdateBasicInfoPeriod()
     Dim oldEndDate As Date
     oldEndDate = CDate(wsInfo.Range(BASIC_INFO_END_DATE_CELL).Value)
 
+    Dim nextBillingCount As Long
+    nextBillingCount = GetNextBillingCount(wsInfo.Range(BASIC_INFO_BILLING_COUNT_CELL).Value)
+
     wsInfo.Range(BASIC_INFO_START_DATE_CELL).Value = GetNextStartDate(oldStartDate)
     wsInfo.Range(BASIC_INFO_END_DATE_CELL).Value = GetNextEndDate(oldEndDate)
     ApplyJapaneseDateFormat wsInfo.Range(BASIC_INFO_START_DATE_CELL)
     ApplyJapaneseDateFormat wsInfo.Range(BASIC_INFO_END_DATE_CELL)
 
-    If Len(Trim$(CStr(wsInfo.Range(BASIC_INFO_BILLING_COUNT_CELL).Value))) = 0 Then
-        wsInfo.Range(BASIC_INFO_BILLING_COUNT_CELL).Value = 1
-    Else
-        wsInfo.Range(BASIC_INFO_BILLING_COUNT_CELL).Value = CLng(wsInfo.Range(BASIC_INFO_BILLING_COUNT_CELL).Value) + 1
-    End If
+    wsInfo.Range(BASIC_INFO_BILLING_COUNT_CELL).Value = nextBillingCount
 
     GoTo FinallyExit
 
@@ -212,6 +211,39 @@ End Function
 
 Private Function GetNextEndDate(ByVal oldDate As Date) As Date
     GetNextEndDate = DateSerial(Year(oldDate), Month(oldDate) + 1, 16)
+End Function
+
+Private Function GetNextBillingCount(ByVal currentValue As Variant) As Long
+    Dim currentText As String
+    currentText = Trim$(CStr(currentValue))
+
+    If currentText = "" Then
+        GetNextBillingCount = 1
+        Exit Function
+    End If
+
+    Dim digitText As String
+    digitText = ExtractBillingCountDigits(currentText)
+    If digitText = "" Then
+        Err.Raise vbObjectError + 517, , "Billing count is not a valid number."
+    End If
+
+    GetNextBillingCount = CLng(digitText) + 1
+End Function
+
+Private Function ExtractBillingCountDigits(ByVal value As String) As String
+    value = StrConv(value, vbNarrow)
+
+    Dim i As Long
+    Dim ch As String
+    For i = 1 To Len(value)
+        ch = Mid$(value, i, 1)
+        If ch >= "0" And ch <= "9" Then
+            ExtractBillingCountDigits = ExtractBillingCountDigits & ch
+        ElseIf ExtractBillingCountDigits <> "" Then
+            Exit Function
+        End If
+    Next i
 End Function
 
 Private Sub ApplyJapaneseDateFormat(ByVal targetCell As Range)
