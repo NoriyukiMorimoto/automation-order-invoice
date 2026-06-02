@@ -16,11 +16,15 @@ Option Explicit
 '          在来線：単価適用工事件名マスタシート A2～A8 と A10～A11（A9 除外）
 '          新幹線：新幹線_単価適用工事件名マスタシート A2～A6
 '    改修内容（#13）：
-'      - 在来線の A9 除外に対応。A2～A8 と A10～A11 を2回取得して合算。
+'      - 在来線の A9 除外に対応。A2～A8 と A10～A11 を 2回取得して合算。
 '    改修内容（#14）：
 '      - AutoFillLineTypeFromWorkName を追加。
 '        C10 の工事件名を在幹区分シートの A 列と照合し、
 '        一致した行の B 列（在来線/新幹線）を C20 に自動入力する。
+'    改修内容（#16）：
+'      - AutoFillProjectNameFromWorkName を追加。
+'        C20 の線区区分に応じた工事件名マスタの B 列を C10 と照合し、
+'        一致した行の A 列の値を C21 に自動入力する。
 '==========================================================================
 Public SharedMasterData As Variant
 
@@ -136,11 +140,102 @@ Public Sub AutoFillLineTypeFromWorkName(ByVal wsInfo As Worksheet)
     lineType = LookupLineTypeByWorkName(masterFilePath, workName)
     If lineType = "" Then Exit Sub
 
-    ' 現在値と同じなら書き込みスキップ（不要な Change イベント抑制）
+    ' 現在値と同じなら書き込みスキップ（不要な Change イベント抗制）
     If StrComp(CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_LINE_TYPE_CELL).Value)), lineType, vbTextCompare) = 0 Then Exit Sub
 
     wsInfo.Range(BASIC_INFO_LINE_TYPE_CELL).Value = lineType
 End Sub
+
+'--------------------------------------------------------------------------
+'  AutoFillProjectNameFromWorkName  (#16)
+'    C20 の線区区分に応じた工事件名マスタの B 列を C10 と照合し、
+'    一致した行の A 列の値を C21 に書き込む。
+'    在来線の場合：単価適用工事件名マスタシートの B2 以降を照合。
+'    新幹線の場合：新幹線_単価適用工事件名マスタシートの B2 以降を照合。
+'    C10 / C20 が空の場合・一致なしの場合は何もしない。
+'--------------------------------------------------------------------------
+Public Sub AutoFillProjectNameFromWorkName(ByVal wsInfo As Worksheet)
+    If wsInfo Is Nothing Then Exit Sub
+
+    Dim workName As String
+    workName = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_WORK_NAME_CELL).Value))
+    If workName = "" Then Exit Sub
+
+    Dim lineType As String
+    lineType = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_LINE_TYPE_CELL).Value))
+    If lineType = "" Then Exit Sub
+
+    Dim masterFilePath As String
+    masterFilePath = GetMasterFilePath()
+    If masterFilePath = "" Then Exit Sub
+
+    ' 線区区分に応じたシート名を取得
+    Dim sheetName As String
+    Dim dummy As Long
+    ResolveUnitPriceProjectNameMasterConfig lineType, sheetName, dummy
+    If sheetName = "" Then Exit Sub
+
+    Dim projectName As String
+    projectName = LookupProjectNameByWorkName(masterFilePath, sheetName, workName)
+    If projectName = "" Then Exit Sub
+
+    ' 現在値と同じなら書き込みスキップ
+    If StrComp(CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_PROJECT_NAME_CELL).Value)), projectName, vbTextCompare) = 0 Then Exit Sub
+
+    wsInfo.Range(BASIC_INFO_PROJECT_NAME_CELL).Value = projectName
+End Sub
+
+'--------------------------------------------------------------------------
+'  LookupProjectNameByWorkName  (#16)
+'    指定シートの B2 以降を全件取得し、B 列のキーワードが
+'    workName に含まれている最初の行の A 列値を返す。
+'    一致がなければ空文字を返す。
+'--------------------------------------------------------------------------
+Private Function LookupProjectNameByWorkName(ByVal masterFilePath As String, _
+                                             ByVal sheetName As String, _
+                                             ByVal workName As String) As String
+    Dim cn As Object
+    Dim rs As Object
+
+    On Error GoTo ErrorHandler
+    Set cn = CommonOpenExcelAdoConnection(masterFilePath)
+    If cn Is Nothing Then Exit Function
+
+    ' A 列（単価適用工事件名）と B 列（照合キーワード）を取得
+    Dim sql As String
+    sql = "SELECT F1, F2 FROM " & _
+          BuildAdoSheetRangeName(sheetName, "A", PROJECT_NAME_MASTER_START_ROW, "B", PROJECT_NAME_MASTER_LAST_ROW) & _
+          " WHERE F2 IS NOT NULL"
+
+    Set rs = cn.Execute(sql)
+
+    Dim normalizedWorkName As String
+    normalizedWorkName = NormalizeMatchText(workName)
+
+    Do Until rs.EOF
+        Dim keyword As String
+        keyword = NormalizeMatchText(CommonNzText(CommonGetAdoFieldValue(rs, 1)))
+        If keyword <> "" Then
+            If InStr(1, normalizedWorkName, keyword, vbTextCompare) > 0 Then
+                Dim projectNameRaw As String
+                projectNameRaw = Trim$(CommonNzText(CommonGetAdoFieldValue(rs, 0)))
+                If projectNameRaw <> "" Then
+                    LookupProjectNameByWorkName = CommonNormalizeText(projectNameRaw)
+                    GoTo Cleanup
+                End If
+            End If
+        End If
+        rs.MoveNext
+    Loop
+
+Cleanup:
+    CommonCloseAdoRecordset rs
+    CommonCloseAdoConnection cn
+    Exit Function
+
+ErrorHandler:
+    Resume Cleanup
+End Function
 
 '--------------------------------------------------------------------------
 '  LookupLineTypeByWorkName
@@ -994,7 +1089,7 @@ End Sub
 '--------------------------------------------------------------------------
 '  LoadUnitPriceProjectNames
 '    線区別のシート名・取得範囲で ADO 読み込み。
-'    在来線は A2～A8（前半）と A10～A11（後半）の2回取得で A9 を除外する。
+'    在来線は A2～A8（前半）と A10～A11（後半）の 2回取得で A9 を除外する。
 '--------------------------------------------------------------------------
 Private Function LoadUnitPriceProjectNames(ByVal sourceFilePath As String, _
                                            ByVal lineType As String) As Collection

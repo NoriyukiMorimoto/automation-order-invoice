@@ -40,9 +40,10 @@ Private Sub Worksheet_Change(ByVal Target As Range)
         End If
     End If
 
-    ' C10 が変更された場合：在幹区分マスタを参照して C20 を自動入力
+    ' C10 が変更された場合：在幹区分マスタを参照して C20・C21 を自動入力
     If Not Intersect(Target, Me.Range("C10")) Is Nothing Then
         mod_MaterialPriceImport.AutoFillLineTypeFromWorkName Me
+        mod_MaterialPriceImport.AutoFillProjectNameFromWorkName Me
     End If
 
     If Not Intersect(Target, Me.Range("C26")) Is Nothing Then
