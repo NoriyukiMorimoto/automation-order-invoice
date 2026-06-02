@@ -1,16 +1,16 @@
 Option Explicit
 
 '==========================================================================
-'  åŸºæœ¬æƒ…å ±ã‚·ãƒ¼ãƒˆ æœŸé–“ï¼è«‹æ±‚å›æ•°æ›´æ–°ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«
-'    æ”¹ä¿®å†…å®¹ï¼ˆ#15ï¼‰ï¼š
-'      - ã‚¨ãƒ©ãƒ¼ãƒãƒ³ãƒ‰ãƒ©å†…ã§ Err.Number / Err.Description ã‚’é€€é¿ã—ã€
-'        ãã®å¾Œã® Application è¨­å®šå¾©å¸°ã‚’ç¢ºå®Ÿã«è¡Œã†æ§‹é€ ã¸æ•´ç†ã€‚
-'    æ”¹ä¿®å†…å®¹ï¼ˆ#9ï¼‰ï¼š
-'      - NormalizeText / GetBasicInfoWorksheet / æ—¥æœ¬èªã‚·ãƒ¼ãƒˆåç”Ÿæˆã¯
-'        mod_Common ã«é›†ç´„æ¸ˆã¿ã€‚é‡è¤‡å®šç¾©ã‚’æ’¤å»ã—ã€å…±é€šé–¢æ•°çµŒç”±ã§å‚ç…§ã€‚
-'    æ”¹ä¿®å†…å®¹ï¼ˆ#11ï¼‰ï¼š
-'      - SilentClearBasicInfo ã‚’è¿½åŠ ã€‚
-'        B6/C6 å¤‰æ›´æ™‚ã«ç¢ºèªãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ãªã—ã§åŸºæœ¬æƒ…å ±ã¨å˜ä¾¡ã‚·ãƒ¼ãƒˆã‚’ã‚¯ãƒªã‚¢ã€‚
+'  Šî–{î•ñƒV[ƒg ŠúŠÔ^¿‹‰ñ”XVƒ‚ƒWƒ…[ƒ‹
+'    ‰üC“à—ei#15jF
+'      - ƒGƒ‰[ƒnƒ“ƒhƒ‰“à‚Å Err.Number / Err.Description ‚ğ‘Ş”ğ‚µA
+'        ‚»‚ÌŒã‚Ì Application İ’è•œ‹A‚ğŠmÀ‚És‚¤\‘¢‚Ö®—B
+'    ‰üC“à—ei#9jF
+'      - NormalizeText / GetBasicInfoWorksheet / “ú–{ŒêƒV[ƒg–¼¶¬‚Í
+'        mod_Common ‚ÉW–ñÏ‚İBd•¡’è‹`‚ğ“P‹‚µA‹¤’ÊŠÖ”Œo—R‚ÅQÆB
+'    ‰üC“à—ei#11jF
+'      - SilentClearBasicInfo ‚ğ’Ç‰ÁB
+'        B6/C6 •ÏX‚ÉŠm”FƒƒbƒZ[ƒW‚È‚µ‚ÅŠî–{î•ñ‚Æ’P‰¿ƒV[ƒg‚ğƒNƒŠƒAB
 '==========================================================================
 
 Private Const BASIC_INFO_START_DATE_CELL As String = "C26"
@@ -123,7 +123,7 @@ End Sub
 
 '--------------------------------------------------------------------------
 '  ClearBasicInfo
-'    ãƒœã‚¿ãƒ³æŠ¼ä¸‹ç”¨ã€‚ç¢ºèªãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚ã‚Šãƒ»å˜ä¾¡ã‚¯ãƒªã‚¢ç¢ºèªã‚ã‚Šã€‚
+'    ƒ{ƒ^ƒ“‰Ÿ‰º—pBŠm”FƒƒbƒZ[ƒW‚ ‚èE’P‰¿ƒNƒŠƒAŠm”F‚ ‚èB
 '--------------------------------------------------------------------------
 Public Sub ClearBasicInfo()
     Dim wsInfo As Worksheet
@@ -160,8 +160,8 @@ End Sub
 
 '--------------------------------------------------------------------------
 '  SilentClearBasicInfo
-'    B6/C6 å¤‰æ›´æ™‚ã®è‡ªå‹•ã‚¯ãƒªã‚¢ç”¨ã€‚ç¢ºèªãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ãªã—ã€‚
-'    åŸºæœ¬æƒ…å ±ã‚¯ãƒªã‚¢ç¯„å›²ï¼‹å˜ä¾¡ã‚·ãƒ¼ãƒˆï¼‹C23 ã‚’ç„¡æ¡ä»¶ã§å‰Šé™¤ã™ã‚‹ã€‚
+'    B6/C6 •ÏX‚Ì©“®ƒNƒŠƒA—pBŠm”FƒƒbƒZ[ƒW‚È‚µB
+'    Šî–{î•ñƒNƒŠƒA”ÍˆÍ{’P‰¿ƒV[ƒg{C23 ‚ğ–³ğŒ‚Åíœ‚·‚éB
 '--------------------------------------------------------------------------
 Public Sub SilentClearBasicInfo(ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Exit Sub
@@ -198,9 +198,9 @@ Private Sub HideOfficeComboBoxForUpdate(ByVal wsInfo As Worksheet)
     Set ole = wsInfo.OLEObjects(OFFICE_COMBO_NAME)
     If ole Is Nothing Then Exit Sub
 
-    If Len(Trim$(CStr(ole.Object.Value))) > 0 Then
-        wsInfo.Range("C6").Value = ole.Object.Value
-    End If
+    ' C6‚ğè“ü—Í‚µ‚½’¼Œã‚ÉAComboBox‚Éc‚Á‚½‹Œ’l‚Åã‘‚«‚µ‚È‚¢‚æ‚¤
+    ' ƒZƒ‹‚ÌŒ»İ’l‚ğComboBox‘¤‚Ö“¯Šú‚µ‚Ä‚©‚ç”ñ•\¦‚É‚·‚éB
+    ole.Object.Value = CStr(wsInfo.Range("C6").Value)
     ole.Visible = False
 
     On Error GoTo 0
