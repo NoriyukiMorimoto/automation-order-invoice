@@ -13,14 +13,14 @@ Option Explicit
 '        B6/C6 変更時に確認メッセージなしで基本情報と単価シートをクリア。
 '==========================================================================
 
-Private Const BASIC_INFO_START_DATE_CELL As String = "C27"
-Private Const BASIC_INFO_END_DATE_CELL As String = "C28"
-Private Const BASIC_INFO_BILLING_COUNT_CELL As String = "C29"
+Private Const BASIC_INFO_START_DATE_CELL As String = "F2"
+Private Const BASIC_INFO_END_DATE_CELL As String = "F3"
+Private Const BASIC_INFO_BILLING_COUNT_CELL As String = "F4"
 Private Const BASIC_INFO_WORK_START_DATE_CELL As String = "C15"
 Private Const BASIC_INFO_WORK_END_DATE_CELL As String = "C16"
 Private Const BASIC_INFO_WORK_DAYS_CELL As String = "C17"
 Private Const OFFICE_COMBO_NAME As String = "ComboBox1"
-Private Const BASIC_INFO_CLEAR_RANGES As String = "C9:C12,C15:C17,C20:C24,C27:C29,F9:F14,F16:F21"
+Private Const BASIC_INFO_CLEAR_RANGES As String = "C9:C12,C15:C17,C20:C24,F2:F4,F9:F14,F16:F21"
 
 Public Sub UpdateBasicInfoPeriod()
     Dim wsInfo As Worksheet
@@ -160,7 +160,7 @@ End Sub
 '--------------------------------------------------------------------------
 '  SilentClearBasicInfo
 '    B6/C6 変更時の自動クリア用。確認メッセージなし。
-'    基本情報クリア範囲＋単価シート＋C23 を無条件で削除する。
+'    基本情報クリア範囲＋単価シート＋C24 を無条件で削除する。
 '--------------------------------------------------------------------------
 Public Sub SilentClearBasicInfo(ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Exit Sub

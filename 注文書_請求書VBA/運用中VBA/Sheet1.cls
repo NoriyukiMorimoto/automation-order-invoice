@@ -13,7 +13,7 @@ ExitHandler:
 End Sub
 
 Private Sub Worksheet_Change(ByVal Target As Range)
-    If Intersect(Target, Me.Range("B4,B6,C6,C10,C15:C16,F9,C20,C22,C24,C27")) Is Nothing Then Exit Sub
+    If Intersect(Target, Me.Range("B4,B6,C6,C10,C15:C16,F9,C20,C22,C23,C24,F2")) Is Nothing Then Exit Sub
 
     On Error GoTo ExitHandler
     Application.EnableEvents = False
@@ -46,7 +46,7 @@ Private Sub Worksheet_Change(ByVal Target As Range)
         mod_MaterialPriceImport.AutoFillProjectNameFromWorkName Me
     End If
 
-    If Not Intersect(Target, Me.Range("C27")) Is Nothing Then
+    If Not Intersect(Target, Me.Range("F2")) Is Nothing Then
         mod_BasicInfoUpdate.ApplyInitialBillingPeriodFromStartDate Me
     End If
 
@@ -58,10 +58,14 @@ Private Sub Worksheet_Change(ByVal Target As Range)
         mod_MaterialPriceImport.RefreshUnitPriceProjectNameValidation Me, False
     End If
 
-    ' C22 または C24 が変更された場合：C23 に内容があれば（単価シート取込済み）、
-    ' 確認なしで C23 ・単価シート・購入充当単価シート・レール溶接単価シートを削除する
-    If Not Intersect(Target, Me.Range("C22,C24")) Is Nothing Then
-        If Trim$(CStr(Me.Range("C23").Value)) <> "" Then
+    If Not Intersect(Target, Me.Range("C24")) Is Nothing Then
+        mod_MaterialPriceImport.FormatImportedLineNamesCell Me
+    End If
+
+    ' C22 または C23 が変更された場合：C24 に内容があれば（単価シート取込済み）、
+    ' 確認なしで C24 ・単価シート・購入充当単価シート・レール溶接単価シートを削除する
+    If Not Intersect(Target, Me.Range("C22,C23")) Is Nothing Then
+        If Trim$(CStr(Me.Range("C24").Value)) <> "" Then
             mod_MaterialPriceImport.SilentClearUnitPriceForBasicInfo Me
         End If
     End If
@@ -77,8 +81,8 @@ ExitHandler:
 End Sub
 
 Private Sub Worksheet_BeforeDoubleClick(ByVal Target As Range, Cancel As Boolean)
-    ' C23 ダブルクリック → 積算線区単価取込
-    If Not Intersect(Target, Me.Range("C23")) Is Nothing Then
+    ' C24 ダブルクリック → 積算線区単価取込
+    If Not Intersect(Target, Me.Range("C24")) Is Nothing Then
         Cancel = True
         mod_MaterialPriceImport.ImportConstructionUnitPriceForBasicInfo
         Exit Sub

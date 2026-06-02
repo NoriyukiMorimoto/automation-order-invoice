@@ -52,8 +52,8 @@ Private Const BASIC_INFO_LINE_TYPE_CELL As String = "C20"
 Private Const BASIC_INFO_PROJECT_NAME_CELL As String = "C21"
 Private Const BASIC_INFO_PRICE_KIND_CELL As String = "C22"
 Private Const BASIC_INFO_PRICE_KIND_FALLBACK_CELL As String = "B22"
-Private Const BASIC_INFO_IMPORTED_LINE_NAMES_CELL As String = "C23"
-Private Const BASIC_INFO_WELDING_FLAG_CELL As String = "C24"
+Private Const BASIC_INFO_IMPORTED_LINE_NAMES_CELL As String = "C24"
+Private Const BASIC_INFO_WELDING_FLAG_CELL As String = "C23"
 Private Const PROJECT_NAME_LIST_COL As String = "AE"
 Private Const LINE_TYPE_LIST_COL As String = "AF"
 Private Const PRICE_KIND_LIST_COL As String = "AG"
@@ -75,6 +75,8 @@ Private Const WELDING_SHEET_TAB_R As Long = 252
 Private Const WELDING_SHEET_TAB_G As Long = 213
 Private Const WELDING_SHEET_TAB_B As Long = 180
 Private Const SOURCE_HEADER_ROW As Long = 1
+Private Const IMPORTED_LINE_NAME_BASE_ROW_HEIGHT As Double = 28.5
+Private Const IMPORTED_LINE_NAME_MAX_LINES As Long = 7
 
 Private Const ZAIRAISEN_PROJECT_NAME_FIRST_END_ROW  As Long = 8
 Private Const ZAIRAISEN_PROJECT_NAME_SKIP_ROW       As Long = 9
@@ -365,7 +367,7 @@ Private Function TryReadUnitPriceRequest(ByVal wsInfo As Worksheet, ByRef reques
     End If
     If IsPurchaseUnitPriceProjectName(request.projectName) Then
         MsgBox "基本情報シート C21 は軌道材料購入充当以外の単価適用工事件名を選択してください。" & vbCrLf & _
-               "購入充当単価は C23 確定後に自動作成します。", vbExclamation
+               "購入充当単価は C24 確定後に自動作成します。", vbExclamation
         Exit Function
     End If
     If request.UnitPriceKind = "" Then
@@ -941,7 +943,62 @@ End Function
 Private Sub WriteSelectedLineNames(ByVal wsInfo As Worksheet, ByVal selectedSheetNames As Collection)
     If wsInfo Is Nothing Then Exit Sub
     wsInfo.Range(BASIC_INFO_IMPORTED_LINE_NAMES_CELL).Value = JoinCollectionText(selectedSheetNames, ChrW$(&H3001))
+    FormatImportedLineNamesCell wsInfo
 End Sub
+
+Public Sub FormatImportedLineNamesCell(ByVal wsInfo As Worksheet)
+    If wsInfo Is Nothing Then Exit Sub
+
+    Dim targetCell As Range
+    Set targetCell = wsInfo.Range(BASIC_INFO_IMPORTED_LINE_NAMES_CELL).MergeArea.Cells(1, 1)
+
+    Dim formattedText As String
+    formattedText = NormalizeImportedLineNameText(CStr(targetCell.Value))
+    If CStr(targetCell.Value) <> formattedText Then targetCell.Value = formattedText
+
+    targetCell.MergeArea.WrapText = True
+    targetCell.MergeArea.VerticalAlignment = xlVAlignCenter
+
+    Dim lineCount As Long
+    lineCount = CountImportedLineNameLines(formattedText)
+    If lineCount < 1 Then lineCount = 1
+    If lineCount > IMPORTED_LINE_NAME_MAX_LINES Then lineCount = IMPORTED_LINE_NAME_MAX_LINES
+    targetCell.EntireRow.RowHeight = IMPORTED_LINE_NAME_BASE_ROW_HEIGHT * lineCount
+End Sub
+
+Private Function NormalizeImportedLineNameText(ByVal sourceText As String) As String
+    Dim normalized As String
+    normalized = Replace$(Replace$(sourceText, vbCrLf, vbLf), vbCr, vbLf)
+    normalized = Replace$(normalized, ChrW$(&H3001), vbLf)
+
+    Dim parts As Variant
+    parts = Split(normalized, vbLf)
+
+    Dim result As String
+    Dim i As Long
+    For i = LBound(parts) To UBound(parts)
+        Dim lineText As String
+        lineText = Trim$(CStr(parts(i)))
+        If lineText <> "" Then
+            If result <> "" Then result = result & vbLf
+            result = result & lineText
+        End If
+    Next i
+    NormalizeImportedLineNameText = result
+End Function
+
+Private Function CountImportedLineNameLines(ByVal lineNameText As String) As Long
+    If lineNameText = "" Then
+        CountImportedLineNameLines = 1
+        Exit Function
+    End If
+
+    Dim i As Long
+    CountImportedLineNameLines = 1
+    For i = 1 To Len(lineNameText)
+        If Mid$(lineNameText, i, 1) = vbLf Then CountImportedLineNameLines = CountImportedLineNameLines + 1
+    Next i
+End Function
 
 Private Function JoinCollectionText(ByVal values As Collection, ByVal delimiter As String) As String
     If values Is Nothing Then Exit Function
@@ -956,16 +1013,18 @@ End Function
 Public Sub ConfirmAndClearUnitPriceForBasicInfo(ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Exit Sub
     If MsgBox("単価情報をクリアしますか？" & vbCrLf & _
-              "はい：C23の選択内容と、作成済みの単価シートを削除します。" & vbCrLf & _
+              "はい：C24の選択内容と、作成済みの単価シートを削除します。" & vbCrLf & _
               "いいえ：単価情報を残します。", vbQuestion + vbYesNo, "単価情報クリア") <> vbYes Then Exit Sub
     ClearUnitPriceSheets wsInfo.Parent
     wsInfo.Range(BASIC_INFO_IMPORTED_LINE_NAMES_CELL).ClearContents
+    FormatImportedLineNamesCell wsInfo
 End Sub
 
 Public Sub SilentClearUnitPriceForBasicInfo(ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Exit Sub
     ClearUnitPriceSheets wsInfo.Parent
     wsInfo.Range(BASIC_INFO_IMPORTED_LINE_NAMES_CELL).ClearContents
+    FormatImportedLineNamesCell wsInfo
 End Sub
 
 Public Sub ClearUnitPriceSheets(Optional ByVal targetBook As Workbook)
