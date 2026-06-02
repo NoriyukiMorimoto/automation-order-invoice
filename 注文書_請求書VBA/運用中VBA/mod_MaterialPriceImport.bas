@@ -3,10 +3,15 @@ Option Explicit
 '==========================================================================
 '  工事単価インポートモジュール
 '    改修内容（#17）：
-'      - ResetUnitPriceProjectNameValidation の AlertStyle を
+'      - ResetUnitPriceValidation の AlertStyle を
 '        xlValidAlertStop → xlValidAlertInformation に変更。
 '        非表示列をリスト元に使用する場合、xlValidAlertStop では
 '        Excel がリスト外値と判定して入力をブロックするため。
+'    改修内容（#18）：
+'      - ResetUnitPriceValidation を MergeArea 対応に修正。
+'        C22 等がセル結合されている場合、targetCell が結合副セル
+'        （D22 等）を指してしまい入力規則が誤ったセルに設定される
+'        問題を解消。MergeArea.Cells(1,1) で代表セルを確実に取得する。
 '==========================================================================
 Public SharedMasterData As Variant
 
@@ -1080,13 +1085,18 @@ Private Sub WriteUnitPriceProjectNameValidation(ByVal wsInfo As Worksheet, _
 End Sub
 
 '--------------------------------------------------------------------------
-'  ResetUnitPriceValidation  (#17 修正)
-'    AlertStyle を xlValidAlertInformation に変更。
-'    非表示列を参照先に持つ入力規則で xlValidAlertStop を使うと、
-'    Excel がリスト内の値を「リスト外」と誤判定して入力をブロックするため。
+'  ResetUnitPriceValidation  (#17, #18 修正)
+'    セル結合されている場合、MergeArea の左上セルに対して入力規則を設定。
+'    targetCell が D22 等の結合副セルを指してしまう場合でも
+'    確実に結合範囲の代表セル（C22 等）に適用する。
+'    AlertStyle = xlValidAlertInformation：非表示列参照時に
+'    xlValidAlertStop だと入力がブロックされるため。
 '--------------------------------------------------------------------------
 Private Sub ResetUnitPriceValidation(ByVal targetCell As Range, ByVal listRange As Range)
-    With targetCell.Validation
+    ' 結合セルの左上（代表セル）に対して入力規則を設定する
+    Dim topLeft As Range
+    Set topLeft = targetCell.MergeArea.Cells(1, 1)
+    With topLeft.Validation
         .Delete
         .Add Type:=xlValidateList, AlertStyle:=xlValidAlertInformation, Operator:=xlBetween, _
              Formula1:="=" & listRange.Address(True, True)
