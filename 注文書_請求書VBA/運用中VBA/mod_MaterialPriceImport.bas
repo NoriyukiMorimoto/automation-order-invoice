@@ -104,13 +104,8 @@ Public Sub RefreshUnitPriceProjectNameValidation(Optional ByVal wsInfo As Worksh
 
     Dim lineType As String
     lineType = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_LINE_TYPE_CELL).value))
-    If lineType = "" Then
-        ClearUnitPriceProjectNameValidation wsInfo, Not keepProjectName
-        Exit Sub
-    End If
-
     Dim projectNames As Collection
-    Set projectNames = LoadUnitPriceProjectNames(GetMasterFilePath(), lineType)
+    Set projectNames = LoadUnitPriceProjectNamesForBasicInfo(GetMasterFilePath(), lineType)
     If projectNames Is Nothing Then
         ClearUnitPriceProjectNameValidation wsInfo, True
         Exit Sub
@@ -847,6 +842,30 @@ Private Function WorksheetExists(ByVal targetBook As Workbook, ByVal sheetName A
     On Error GoTo 0
 End Function
 
+Private Function LoadUnitPriceProjectNamesForBasicInfo(ByVal sourceFilePath As String, _
+                                                       ByVal lineType As String) As Collection
+    If CommonNormalizeText(lineType) <> "" Then
+        Set LoadUnitPriceProjectNamesForBasicInfo = LoadUnitPriceProjectNames(sourceFilePath, lineType)
+        Exit Function
+    End If
+
+    Dim result As Collection
+    Set result = New Collection
+
+    AddUnitPriceProjectNames result, LoadUnitPriceProjectNames(sourceFilePath, ZAIRAISEN_NAME)
+    AddUnitPriceProjectNames result, LoadUnitPriceProjectNames(sourceFilePath, SHINKANSEN_NAME)
+
+    Set LoadUnitPriceProjectNamesForBasicInfo = result
+End Function
+
+Private Sub AddUnitPriceProjectNames(ByVal target As Collection, ByVal source As Collection)
+    If target Is Nothing Or source Is Nothing Then Exit Sub
+
+    Dim item As Variant
+    For Each item In source
+        If Not CollectionContainsText(target, CStr(item)) Then target.Add CStr(item)
+    Next item
+End Sub
 Private Function LoadUnitPriceProjectNames(ByVal sourceFilePath As String, _
                                            ByVal lineType As String) As Collection
     Dim sheetName As String

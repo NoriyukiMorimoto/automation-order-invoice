@@ -77,6 +77,10 @@ End Sub
 Private Sub Worksheet_SelectionChange(ByVal Target As Range)
     mod_BasicInfoCalendar.HandleBasicInfoSelectionChange Target
 
+    If Not Intersect(Target, Me.Range("C21")) Is Nothing Then
+        mod_MaterialPriceImport.RefreshUnitPriceProjectNameValidation Me, True
+    End If
+
     If Not Intersect(Target, Me.Range("F9")) Is Nothing Then
         mod_VendorMaster.RefreshVendorListForBasicInfo Me
         mod_VendorMaster.ScheduleVendorListDropdown Me

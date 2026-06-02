@@ -42,6 +42,8 @@ Private Sub SetupListView()
         .ColumnHeaders.Add , , "工事件名", 500                 ' 3列目：左揃え
         .ColumnHeaders.Add , , "", 0                           ' 4列目：C10用（非表示）
         .ColumnHeaders.Add , , "", 0                           ' 5列目：C11用（非表示）
+        .ColumnHeaders.Add , , "", 0                           ' 6列目：C15用（非表示）
+        .ColumnHeaders.Add , , "", 0                           ' 7列目：C16用（非表示）
     End With
 End Sub
 
@@ -77,13 +79,15 @@ Private Sub LoadMasterDataToMemory()
         Next i
     End If
 
-    ReDim SharedMasterData(1 To Application.Max(1, hitCount), 1 To 4)
+    ReDim SharedMasterData(1 To Application.Max(1, hitCount), 1 To 6)
 
     If hitCount = 0 Then
         SharedMasterData(1, 1) = ""
         SharedMasterData(1, 2) = ""
         SharedMasterData(1, 3) = ""
         SharedMasterData(1, 4) = ""
+        SharedMasterData(1, 5) = ""
+        SharedMasterData(1, 6) = ""
     Else
         Dim writeIndex As Long
         writeIndex = 1
@@ -94,6 +98,8 @@ Private Sub LoadMasterDataToMemory()
                 SharedMasterData(writeIndex, 2) = GetProjectSourceValue(sourceArr, i, 29) & " " & GetProjectSourceValue(sourceArr, i, 30)
                 SharedMasterData(writeIndex, 3) = RemoveProjectSelectionSpaces(GetProjectSourceValue(sourceArr, i, 29) & GetProjectSourceValue(sourceArr, i, 30))
                 SharedMasterData(writeIndex, 4) = GetProjectSourceValue(sourceArr, i, 69)
+                SharedMasterData(writeIndex, 5) = GetProjectSourceRawValue(sourceArr, i, 34)
+                SharedMasterData(writeIndex, 6) = GetProjectSourceRawValue(sourceArr, i, 35)
                 writeIndex = writeIndex + 1
             End If
         Next i
@@ -147,6 +153,15 @@ Private Function GetProjectSourceValue(ByVal sourceArr As Variant, ByVal rowInde
 
 ErrorHandler:
     GetProjectSourceValue = ""
+End Function
+
+Private Function GetProjectSourceRawValue(ByVal sourceArr As Variant, ByVal rowIndex As Long, ByVal colIndex As Long) As Variant
+    On Error GoTo ErrorHandler
+    If colIndex <= UBound(sourceArr, 2) Then GetProjectSourceRawValue = sourceArr(rowIndex, colIndex)
+    Exit Function
+
+ErrorHandler:
+    GetProjectSourceRawValue = Empty
 End Function
 
 Private Function GetProjectSelectionBranchNameForSearch(ByVal BranchName As String) As String
@@ -222,7 +237,7 @@ Private Function RemoveProjectSelectionSpaces(ByVal value As String) As String
     RemoveProjectSelectionSpaces = value
 End Function
 
-Private Sub SetBasicInfoProjectSelection(ByVal projectNo As String, ByVal projectName As String, ByVal dataIndex As Long, Optional ByVal selectedProjectDetail As String = "", Optional ByVal selectedContractDate As String = "")
+Private Sub SetBasicInfoProjectSelection(ByVal projectNo As String, ByVal projectName As String, ByVal dataIndex As Long, Optional ByVal selectedProjectDetail As String = "", Optional ByVal selectedContractDate As String = "", Optional ByVal selectedWorkStartDate As Variant, Optional ByVal selectedWorkEndDate As Variant)
     Dim targetWs As Worksheet
     On Error Resume Next
     Set targetWs = ThisWorkbook.Worksheets(ProjectSelectionTargetSheetName)
@@ -237,13 +252,18 @@ Private Sub SetBasicInfoProjectSelection(ByVal projectNo As String, ByVal projec
 
     Dim projectDetail As String
     Dim contractDate As String
+    Dim workStartDate As Variant
+    Dim workEndDate As Variant
     projectDetail = selectedProjectDetail
     contractDate = selectedContractDate
+    workStartDate = selectedWorkStartDate
+    workEndDate = selectedWorkEndDate
+
     Dim lowerRow As Long
     Dim upperRow As Long
     Dim upperCol As Long
 
-    If (projectDetail = "" Or contractDate = "") And IsArray(SharedMasterData) Then
+    If IsArray(SharedMasterData) Then
         On Error Resume Next
         lowerRow = LBound(SharedMasterData, 1)
         upperRow = UBound(SharedMasterData, 1)
@@ -252,6 +272,8 @@ Private Sub SetBasicInfoProjectSelection(ByVal projectNo As String, ByVal projec
             If dataIndex >= lowerRow And dataIndex <= upperRow Then
                 If projectDetail = "" And upperCol >= 3 Then projectDetail = CStr(SharedMasterData(dataIndex, 3))
                 If contractDate = "" And upperCol >= 4 Then contractDate = CStr(SharedMasterData(dataIndex, 4))
+                If IsProjectDateValueBlank(workStartDate) And upperCol >= 5 Then workStartDate = SharedMasterData(dataIndex, 5)
+                If IsProjectDateValueBlank(workEndDate) And upperCol >= 6 Then workEndDate = SharedMasterData(dataIndex, 6)
             End If
         End If
         Err.Clear
@@ -262,6 +284,9 @@ Private Sub SetBasicInfoProjectSelection(ByVal projectNo As String, ByVal projec
     targetCell.value = projectNo
     targetWs.Range("C10").value = projectDetail
     SetBasicInfoContractDateValue targetWs.Range("C11"), contractDate
+    SetBasicInfoDateValueLikeCell targetWs.Range("C15"), workStartDate, targetWs.Range("C11")
+    SetBasicInfoDateValueLikeCell targetWs.Range("C16"), workEndDate, targetWs.Range("C11")
+    mod_BasicInfoUpdate.ApplyWorkDaysFromWorkDates targetWs
     Application.EnableEvents = True
 
     SelectionConfirmed = True
@@ -281,6 +306,47 @@ Private Sub SetBasicInfoContractDateValue(ByVal targetCell As Range, ByVal contr
         displayRange.NumberFormatLocal = "yyyy年m月d日"
     End If
 End Sub
+
+Private Function IsProjectDateValueBlank(ByVal sourceValue As Variant) As Boolean
+    If IsError(sourceValue) Or IsNull(sourceValue) Or IsEmpty(sourceValue) Then
+        IsProjectDateValueBlank = True
+    Else
+        IsProjectDateValueBlank = (Len(Trim$(CStr(sourceValue))) = 0)
+    End If
+End Function
+
+Private Sub SetBasicInfoDateValueLikeCell(ByVal targetCell As Range, ByVal sourceValue As Variant, ByVal formatSourceCell As Range)
+    Dim parsedDate As Date
+    Dim displayRange As Range
+    Set displayRange = targetCell.MergeArea
+
+    If IsProjectDateValueBlank(sourceValue) Then
+        targetCell.value = ""
+    ElseIf TryParseProjectDateValue(sourceValue, parsedDate) Then
+        targetCell.value = parsedDate
+    Else
+        targetCell.value = RemoveProjectContractWeekday(CStr(sourceValue))
+    End If
+    displayRange.NumberFormatLocal = formatSourceCell.MergeArea.NumberFormatLocal
+End Sub
+
+Private Function TryParseProjectDateValue(ByVal sourceValue As Variant, ByRef parsedDate As Date) As Boolean
+    If IsProjectDateValueBlank(sourceValue) Then Exit Function
+
+    If IsDate(sourceValue) Then
+        parsedDate = CDate(sourceValue)
+        TryParseProjectDateValue = True
+        Exit Function
+    End If
+
+    If IsNumeric(sourceValue) Then
+        parsedDate = DateSerial(1899, 12, 30) + CDbl(sourceValue)
+        TryParseProjectDateValue = True
+        Exit Function
+    End If
+
+    TryParseProjectDateValue = TryParseProjectContractDate(CStr(sourceValue), parsedDate)
+End Function
 
 Private Function TryParseProjectContractDate(ByVal sourceText As String, ByRef parsedDate As Date) As Boolean
     sourceText = RemoveProjectContractWeekday(sourceText)
@@ -376,6 +442,8 @@ Private Sub RefreshList(ByVal keyword As String)
             itmX.SubItems(2) = SharedMasterData(i, 2)     ' 3列目：工事件名
             If UBound(SharedMasterData, 2) >= 3 Then itmX.SubItems(3) = CStr(SharedMasterData(i, 3))
             If UBound(SharedMasterData, 2) >= 4 Then itmX.SubItems(4) = CStr(SharedMasterData(i, 4))
+            If UBound(SharedMasterData, 2) >= 5 Then itmX.SubItems(5) = CStr(SharedMasterData(i, 5))
+            If UBound(SharedMasterData, 2) >= 6 Then itmX.SubItems(6) = CStr(SharedMasterData(i, 6))
         End If
     Next i
 End Sub
@@ -390,12 +458,13 @@ Private Sub SetSelectedValue()
     Dim projectName As String
     projectNo = Me.ListView1.SelectedItem.SubItems(1)
     projectName = Me.ListView1.SelectedItem.SubItems(2)
-
     SetBasicInfoProjectSelection projectNo, _
                                  projectName, _
                                  CLng(Me.ListView1.SelectedItem.Tag), _
                                  Me.ListView1.SelectedItem.SubItems(3), _
-                                 Me.ListView1.SelectedItem.SubItems(4)
+                                 Me.ListView1.SelectedItem.SubItems(4), _
+                                 Me.ListView1.SelectedItem.SubItems(5), _
+                                 Me.ListView1.SelectedItem.SubItems(6)
 End Sub
 
 
