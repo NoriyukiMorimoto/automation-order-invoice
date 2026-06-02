@@ -1,12 +1,15 @@
 Option Explicit
 
 '==========================================================================
-'  o’£Š’·–¼ ©“®“ü—Í^x“XEo’£ŠƒoƒŠƒf[ƒVƒ‡ƒ“Ä\’zƒ‚ƒWƒ…[ƒ‹
-'    ‰üC“à—eF
-'      #7 : WriteValidationLists ‚Å‚Ì Dictionary¨ƒZƒ‹’PˆÊ‘‚«‚İ‚ğ
-'           Variant 2ŸŒ³”z—ñ{Range ˆêŠ‡‘ã“ü‚Ö’uŠ·B
-'      #9 : NormalizeText / CommonGetBasicInfoWorksheet / “ú–{Œê–¼¶¬ /
-'           ADO Ú‘±¶¬‚Í mod_Common ‚ÉW–ñBd•¡’è‹`‚ğ“P‹B
+'  å‡ºå¼µæ‰€é•·å è‡ªå‹•å…¥åŠ›ï¼æ”¯åº—ãƒ»å‡ºå¼µæ‰€ãƒãƒªãƒ‡ãƒ¼ã‚·ãƒ§ãƒ³å†æ§‹ç¯‰ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«
+'    æ”¹ä¿®å†…å®¹ï¼š
+'      #7 : WriteValidationLists ã§ã® Dictionaryâ†’ã‚»ãƒ«å˜ä½æ›¸ãè¾¼ã¿ã‚’
+'           Variant 2æ¬¡å…ƒé…åˆ—ï¼‹Range ä¸€æ‹¬ä»£å…¥ã¸ç½®æ›ã€‚
+'      #9 : NormalizeText / CommonGetBasicInfoWorksheet / æ—¥æœ¬èªåç”Ÿæˆ /
+'           ADO æ¥ç¶šç”Ÿæˆã¯ mod_Common ã«é›†ç´„ã€‚é‡è¤‡å®šç¾©ã‚’æ’¤å»ã€‚
+'      #10: CommitOfficeComboBoxSelection ã§ C6 æ›¸ãè¾¼ã¿æ™‚ã«
+'           Worksheet_Change ã® C6 å‡¦ç†ãŒå†èµ·å‹•ã™ã‚‹ã®ã‚’é˜²ããŸã‚
+'           mSuppressC6Change ãƒ•ãƒ©ã‚°ã‚’è¿½åŠ ã€‚
 '==========================================================================
 
 Private Const LIST_BRANCH_COL As String = "AA"
@@ -15,18 +18,25 @@ Private Const LIST_START_ROW As Long = 2
 Private Const OFFICE_COMBO_NAME As String = "ComboBox1"
 Private Const OFFICE_COMBO_WIDTH_POINTS As Double = 310.5
 
+' C6 ã¸ã®æ›¸ãè¾¼ã¿ä¸­ã« Worksheet_Change ã® C6 å‡¦ç†ã‚’ã‚¹ã‚­ãƒƒãƒ—ã™ã‚‹ãƒ•ãƒ©ã‚°
+Private mSuppressC6Change As Boolean
+
+Public Function IsSuppressingC6Change() As Boolean
+    IsSuppressingC6Change = mSuppressC6Change
+End Function
+
 Public Sub FillManagerNameToBasicInfo()
     Dim wsInfo As Worksheet
     Set wsInfo = CommonGetBasicInfoWorksheet()
     If wsInfo Is Nothing Then
-        MsgBox "Šî–{î•ñƒV[ƒg‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñBƒV[ƒg–¼‚ğŠm”F‚µ‚Ä‚­‚¾‚³‚¢B", vbExclamation
+        MsgBox "åŸºæœ¬æƒ…å ±ã‚·ãƒ¼ãƒˆãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚ã‚·ãƒ¼ãƒˆåã‚’ç¢ºèªã—ã¦ãã ã•ã„ã€‚", vbExclamation
         Exit Sub
     End If
 
     Dim yearText As String
     yearText = CommonExtractYear4Digits(Trim$(CStr(wsInfo.Range("B4").value)))
     If yearText = "" Then
-        MsgBox "Šî–{î•ñƒV[ƒg B4 ‚É4Œ…‚Ì”N“x‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB—á: 2026", vbExclamation
+        MsgBox "åŸºæœ¬æƒ…å ±ã‚·ãƒ¼ãƒˆ B4 ã«4æ¡ã®å¹´åº¦ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚ä¾‹: 2026", vbExclamation
         Exit Sub
     End If
 
@@ -34,7 +44,7 @@ Public Sub FillManagerNameToBasicInfo()
     BranchName = CommonNormalizeText(CStr(wsInfo.Range("B6").value))
     OfficeName = CommonNormalizeText(CStr(wsInfo.Range("C6").value))
     If BranchName = "" Or OfficeName = "" Then
-        MsgBox "Šî–{î•ñƒV[ƒg B6 ‚Ü‚½‚Í C6 ‚ª‹ó‚Å‚·Bx“X–¼Eo’£Š–¼‚ğŠm”F‚µ‚Ä‚­‚¾‚³‚¢B", vbExclamation
+        MsgBox "åŸºæœ¬æƒ…å ±ã‚·ãƒ¼ãƒˆ B6 ã¾ãŸã¯ C6 ãŒç©ºã§ã™ã€‚æ”¯åº—åãƒ»å‡ºå¼µæ‰€åã‚’ç¢ºèªã—ã¦ãã ã•ã„ã€‚", vbExclamation
         Exit Sub
     End If
 
@@ -45,7 +55,7 @@ Public Sub FillManagerNameToBasicInfo()
     Dim rows As Collection
     Set rows = LoadManagerListRows(sourceFilePath)
     If rows Is Nothing Then
-        MsgBox "o’£Š’·ƒŠƒXƒgƒtƒ@ƒCƒ‹‚ğQÆ‚Å‚«‚Ü‚¹‚ñ‚Å‚µ‚½B" & vbCrLf & sourceFilePath, vbExclamation
+        MsgBox "å‡ºå¼µæ‰€é•·ãƒªã‚¹ãƒˆãƒ•ã‚¡ã‚¤ãƒ«ã‚’å‚ç…§ã§ãã¾ã›ã‚“ã§ã—ãŸã€‚" & vbCrLf & sourceFilePath, vbExclamation
         Exit Sub
     End If
 
@@ -60,9 +70,9 @@ Public Sub FillManagerNameToBasicInfo()
     Next rowData
 
     If foundName = "" Then
-        MsgBox "ŠY“–‚·‚éx“X–¼Eo’£Š–¼‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñ‚Å‚µ‚½B" & vbCrLf & _
-               "x“X–¼F" & BranchName & vbCrLf & _
-               "o’£Š–¼F" & OfficeName, vbExclamation
+        MsgBox "è©²å½“ã™ã‚‹æ”¯åº—åãƒ»å‡ºå¼µæ‰€åãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã§ã—ãŸã€‚" & vbCrLf & _
+               "æ”¯åº—åï¼š" & BranchName & vbCrLf & _
+               "å‡ºå¼µæ‰€åï¼š" & OfficeName, vbExclamation
     Else
         wsInfo.Range("F6").value = foundName
     End If
@@ -72,14 +82,14 @@ Public Sub RefreshBranchOfficeValidation(Optional ByVal keepOffice As Boolean = 
     Dim wsInfo As Worksheet
     Set wsInfo = CommonGetBasicInfoWorksheet()
     If wsInfo Is Nothing Then
-        MsgBox "Šî–{î•ñƒV[ƒg‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñBƒV[ƒg–¼‚ğŠm”F‚µ‚Ä‚­‚¾‚³‚¢B", vbExclamation
+        MsgBox "åŸºæœ¬æƒ…å ±ã‚·ãƒ¼ãƒˆãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚ã‚·ãƒ¼ãƒˆåã‚’ç¢ºèªã—ã¦ãã ã•ã„ã€‚", vbExclamation
         Exit Sub
     End If
 
     Dim yearText As String
     yearText = CommonExtractYear4Digits(Trim$(CStr(wsInfo.Range("B4").value)))
     If yearText = "" Then
-        MsgBox "Šî–{î•ñƒV[ƒg B4 ‚É4Œ…‚Ì”N“x‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB—á: 2026", vbExclamation
+        MsgBox "åŸºæœ¬æƒ…å ±ã‚·ãƒ¼ãƒˆ B4 ã«4æ¡ã®å¹´åº¦ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚ä¾‹: 2026", vbExclamation
         Exit Sub
     End If
 
@@ -90,7 +100,7 @@ Public Sub RefreshBranchOfficeValidation(Optional ByVal keepOffice As Boolean = 
     Dim rows As Collection
     Set rows = LoadManagerListRows(sourceFilePath)
     If rows Is Nothing Then
-        MsgBox "o’£Š’·ƒŠƒXƒgƒtƒ@ƒCƒ‹‚ğQÆ‚Å‚«‚Ü‚¹‚ñ‚Å‚µ‚½B" & vbCrLf & sourceFilePath, vbExclamation
+        MsgBox "å‡ºå¼µæ‰€é•·ãƒªã‚¹ãƒˆãƒ•ã‚¡ã‚¤ãƒ«ã‚’å‚ç…§ã§ãã¾ã›ã‚“ã§ã—ãŸã€‚" & vbCrLf & sourceFilePath, vbExclamation
         Exit Sub
     End If
 
@@ -123,9 +133,9 @@ Public Sub RefreshBranchOfficeValidation(Optional ByVal keepOffice As Boolean = 
 End Sub
 
 '--------------------------------------------------------------------------
-'  x“XEo’£ŠƒoƒŠƒf[ƒVƒ‡ƒ“ƒŠƒXƒg‘‚«‚İ
-'  ‰üCi#7jFDictionary.Keys() ‚ğ 2ŸŒ³”z—ñ‚É‹l‚ß‚Ä Range ˆêŠ‡‘ã“ü‚·‚éB
-'              ‹Œ”Å‚ÍƒZƒ‹’PˆÊ .Cells(...).Value = ... ‚Ìƒ‹[ƒv‚¾‚Á‚½B
+'  æ”¯åº—ãƒ»å‡ºå¼µæ‰€ãƒãƒªãƒ‡ãƒ¼ã‚·ãƒ§ãƒ³ãƒªã‚¹ãƒˆæ›¸ãè¾¼ã¿
+'  æ”¹ä¿®ï¼ˆ#7ï¼‰ï¼šDictionary.Keys() ã‚’ 2æ¬¡å…ƒé…åˆ—ã«è©°ã‚ã¦ Range ä¸€æ‹¬ä»£å…¥ã™ã‚‹ã€‚
+'              æ—§ç‰ˆã¯ã‚»ãƒ«å˜ä½ .Cells(...).Value = ... ã®ãƒ«ãƒ¼ãƒ—ã ã£ãŸã€‚
 '--------------------------------------------------------------------------
 Private Sub WriteValidationLists(ByVal wsInfo As Worksheet, _
                                  ByVal branchList As Object, _
@@ -162,8 +172,8 @@ Private Sub WriteValidationLists(ByVal wsInfo As Worksheet, _
     End If
 End Sub
 
-' Dictionary ‚Ì Keys ‚ğ 2ŸŒ³”z—ñ‚É“WŠJ‚µAw’è—ñ‚É Range ˆêŠ‡‘ã“ü‚·‚éB
-' Œ” 0 Œ‚Ì‚Æ‚«‚Í‰½‚à‘‚©‚È‚¢iŒÄ‚Ño‚µ‘¤‚Å ClearContents Ï‚İjB
+' Dictionary ã® Keys ã‚’ 2æ¬¡å…ƒé…åˆ—ã«å±•é–‹ã—ã€æŒ‡å®šåˆ—ã« Range ä¸€æ‹¬ä»£å…¥ã™ã‚‹ã€‚
+' ä»¶æ•° 0 ä»¶ã®ã¨ãã¯ä½•ã‚‚æ›¸ã‹ãªã„ï¼ˆå‘¼ã³å‡ºã—å´ã§ ClearContents æ¸ˆã¿ï¼‰ã€‚
 Private Sub WriteDictionaryKeysToColumn(ByVal wsInfo As Worksheet, _
                                          ByVal dict As Object, _
                                          ByVal colLetter As String)
@@ -173,7 +183,7 @@ Private Sub WriteDictionaryKeysToColumn(ByVal wsInfo As Worksheet, _
     If total = 0 Then Exit Sub
 
     Dim keysArr As Variant
-    keysArr = dict.Keys ' 1 ‰ñ‚¾‚¯ŒÄ‚Ño‚µ‚ÄƒLƒƒƒbƒVƒ…‚·‚é
+    keysArr = dict.Keys ' 1 å›ã ã‘å‘¼ã³å‡ºã—ã¦ã‚­ãƒ£ãƒƒã‚·ãƒ¥ã™ã‚‹
 
     Dim outArr() As Variant
     ReDim outArr(1 To total, 1 To 1)
@@ -228,15 +238,22 @@ Public Sub CommitOfficeComboBoxSelection()
     selectedOffice = CommonNormalizeText(CStr(ole.Object.value))
     If selectedOffice = "" Then Exit Sub
 
+    ' ComboBox ã‚’å…ˆã«éè¡¨ç¤ºã«ã—ã¦ã‹ã‚‰ C6 ã«æ›¸ãè¾¼ã‚€
+    ' ï¼ˆæ›¸ãè¾¼ã¿ã§ Worksheet_Change ãŒç™ºç«ã—ã¦ã‚‚ DropDown ãŒå†èµ·å‹•ã—ãªã„ã‚ˆã†
+    '   mSuppressC6Change ãƒ•ãƒ©ã‚°ã§ C6 å‡¦ç†ã‚’ã‚¹ã‚­ãƒƒãƒ—ã™ã‚‹ï¼‰
+    ole.Visible = False
+
     If StrComp(CommonNormalizeText(CStr(wsInfo.Range("C6").value)), selectedOffice, vbTextCompare) <> 0 Then
+        mSuppressC6Change = True
         wsInfo.Range("C6").value = selectedOffice
+        mSuppressC6Change = False
     End If
 
     FillManagerNameToBasicInfo
-    ole.Visible = False
     wsInfo.Range("C6").Select
 
 ExitHandler:
+    mSuppressC6Change = False
 End Sub
 
 Private Sub ShowOfficeComboBox(ByVal wsInfo As Worksheet)
@@ -349,7 +366,7 @@ Private Function LoadManagerListRows(ByVal sourceFilePath As String) As Collecti
     Dim rows As Collection
     Set rows = New Collection
 
-    If Not rs.EOF Then rs.MoveNext ' æ“ªsiŒ©o‚µjƒXƒLƒbƒv
+    If Not rs.EOF Then rs.MoveNext ' å…ˆé ­è¡Œï¼ˆè¦‹å‡ºã—ï¼‰ã‚¹ã‚­ãƒƒãƒ—
     Do Until rs.EOF
         rows.Add Array(CommonNzText(rs.fields(0).value), _
                        CommonNzText(rs.fields(1).value), _
@@ -369,9 +386,9 @@ ErrorHandler:
     Resume Cleanup
 End Function
 
-' ADO ƒXƒL[ƒ}‚©‚çƒ[ƒNƒV[ƒg–¼iæ“ªƒV[ƒg‘Š“–j‚ğæ“¾‚·‚éB
-' Common ƒ‚ƒWƒ…[ƒ‹‚ÌƒXƒL[ƒ}ˆê——‚Æ“¯‚¶ƒƒWƒbƒN‚ğg‚¢AÅ‰‚ÉŒ©‚Â‚¯‚½
-' –¼‘O‚ğu[ƒV[ƒg–¼$]vŒ`®‚Å•Ô‚·B
+' ADO ã‚¹ã‚­ãƒ¼ãƒã‹ã‚‰ãƒ¯ãƒ¼ã‚¯ã‚·ãƒ¼ãƒˆåï¼ˆå…ˆé ­ã‚·ãƒ¼ãƒˆç›¸å½“ï¼‰ã‚’å–å¾—ã™ã‚‹ã€‚
+' Common ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«ã®ã‚¹ã‚­ãƒ¼ãƒä¸€è¦§ã¨åŒã˜ãƒ­ã‚¸ãƒƒã‚¯ã‚’ä½¿ã„ã€æœ€åˆã«è¦‹ã¤ã‘ãŸ
+' åå‰ã‚’ã€Œ[ã‚·ãƒ¼ãƒˆå$]ã€å½¢å¼ã§è¿”ã™ã€‚
 Private Function GetFirstWorksheetTableName(ByVal cn As Object) As String
     Dim sheetNames As Collection
     Set sheetNames = CommonGetAdoWorksheetNames(cn)
@@ -394,13 +411,13 @@ Private Function GetManagerListFilePath(ByVal yearText As String) As String
     folderPath = GetManagerListFolderPath()
     If Right$(folderPath, 1) <> Chr$(92) Then folderPath = folderPath & Chr$(92)
     If Dir(folderPath, vbDirectory) = "" Then
-        MsgBox "o’£Š’·ƒŠƒXƒgƒtƒHƒ‹ƒ_‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB" & vbCrLf & folderPath, vbExclamation
+        MsgBox "å‡ºå¼µæ‰€é•·ãƒªã‚¹ãƒˆãƒ•ã‚©ãƒ«ãƒ€ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚" & vbCrLf & folderPath, vbExclamation
         Exit Function
     End If
 
     GetManagerListFilePath = FindManagerListFile(folderPath, yearText)
     If GetManagerListFilePath = "" Then
-        MsgBox yearText & " ”N‚Ìo’£Š’·ƒŠƒXƒgƒtƒ@ƒCƒ‹‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñBƒtƒ@ƒCƒ‹–¼‚É”N“x‚ªŠÜ‚Ü‚ê‚Ä‚¢‚é‚©Šm”F‚µ‚Ä‚­‚¾‚³‚¢B", vbExclamation
+        MsgBox yearText & " å¹´ã®å‡ºå¼µæ‰€é•·ãƒªã‚¹ãƒˆãƒ•ã‚¡ã‚¤ãƒ«ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚ãƒ•ã‚¡ã‚¤ãƒ«åã«å¹´åº¦ãŒå«ã¾ã‚Œã¦ã„ã‚‹ã‹ç¢ºèªã—ã¦ãã ã•ã„ã€‚", vbExclamation
     End If
 End Function
 
@@ -444,11 +461,11 @@ Private Function FindManagerListFile(ByVal folderPath As String, ByVal yearText 
 End Function
 
 '--------------------------------------------------------------------------
-'  –{ƒ‚ƒWƒ…[ƒ‹ê—p‚Ì“ú–{Œê–¼iCommon ‚É‹¤’Ê‰»‚µ‚Ä‚¢‚È‚¢j
-'    Œ»êƒTƒ|[ƒgºŠÇ—_‹Æ–±ŠÖŒWƒŠƒXƒg - ƒhƒLƒ…ƒƒ“ƒg
-'    o’£Š’·–¼
-'    ü˜Ho’£ŠƒŠƒXƒg
-'    –{Ğ^x“X–¼^o’£Š–¼^o’£ŠExŠ–¼
+'  æœ¬ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«å°‚ç”¨ã®æ—¥æœ¬èªåï¼ˆCommon ã«å…±é€šåŒ–ã—ã¦ã„ãªã„ï¼‰
+'    ç¾å ´ã‚µãƒãƒ¼ãƒˆå®¤ç®¡ç†_æ¥­å‹™é–¢ä¿‚ãƒªã‚¹ãƒˆ - ãƒ‰ã‚­ãƒ¥ãƒ¡ãƒ³ãƒˆ
+'    å‡ºå¼µæ‰€é•·å
+'    ç·šè·¯å‡ºå¼µæ‰€ãƒªã‚¹ãƒˆ
+'    æœ¬ç¤¾ï¼æ”¯åº—åï¼å‡ºå¼µæ‰€åï¼å‡ºå¼µæ‰€ãƒ»æ”¯æ‰€å
 '--------------------------------------------------------------------------
 
 Private Function SupportListDocumentFolderText() As String

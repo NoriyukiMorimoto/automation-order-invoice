@@ -27,7 +27,10 @@ Private Sub Worksheet_Change(ByVal Target As Range)
     End If
 
     If Not Intersect(Target, Me.Range("C6")) Is Nothing Then
-        mod_FillManagerName.FillManagerNameToBasicInfo
+        ' ComboBox選択確定による書き込み中はChangeイベントをスキップ
+        If Not mod_FillManagerName.IsSuppressingC6Change() Then
+            mod_FillManagerName.FillManagerNameToBasicInfo
+        End If
     End If
 
     If Not Intersect(Target, Me.Range("C26")) Is Nothing Then
@@ -53,7 +56,7 @@ ExitHandler:
 End Sub
 
 Private Sub Worksheet_BeforeDoubleClick(ByVal Target As Range, Cancel As Boolean)
-    ' C23 �_�u���N���b�N �� �ώZ����P���捞
+    ' C23 ダブルクリック → 積算線区単価取込
     If Not Intersect(Target, Me.Range("C23")) Is Nothing Then
         Cancel = True
         mod_MaterialPriceImport.ImportConstructionUnitPriceForBasicInfo
@@ -117,4 +120,3 @@ End Sub
 Private Sub btnClearBasicInfo_Click()
     mod_BasicInfoUpdate.ClearBasicInfo
 End Sub
-
