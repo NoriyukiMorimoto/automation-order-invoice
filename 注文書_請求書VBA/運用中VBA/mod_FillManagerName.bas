@@ -10,6 +10,11 @@ Option Explicit
 '      #10: CommitOfficeComboBoxSelection で C6 書き込み時に
 '           Worksheet_Change の C6 処理が再起動するのを防ぐため
 '           mSuppressC6Change フラグを追加。
+'      #15: CommitOfficeComboBoxSelection の「現在値と同じならスキップ」
+'           ガードを撤廃。LinkedCell が C6 を自動書き換えるため、
+'           選択変更時に StrComp が常に False になり FillManagerName が
+'           呼ばれない問題を修正。フラグは常に ON にして Change イベントの
+'           二重発火を抑制する。
 '==========================================================================
 
 Private Const LIST_BRANCH_COL As String = "AA"
@@ -34,15 +39,15 @@ Public Sub FillManagerNameToBasicInfo()
     End If
 
     Dim yearText As String
-    yearText = CommonExtractYear4Digits(Trim$(CStr(wsInfo.Range("B4").value)))
+    yearText = CommonExtractYear4Digits(Trim$(CStr(wsInfo.Range("B4").Value)))
     If yearText = "" Then
         MsgBox "基本情報シート B4 に4桁の年度が見つかりません。例: 2026", vbExclamation
         Exit Sub
     End If
 
     Dim BranchName As String, OfficeName As String
-    BranchName = CommonNormalizeText(CStr(wsInfo.Range("B6").value))
-    OfficeName = CommonNormalizeText(CStr(wsInfo.Range("C6").value))
+    BranchName = CommonNormalizeText(CStr(wsInfo.Range("B6").Value))
+    OfficeName = CommonNormalizeText(CStr(wsInfo.Range("C6").Value))
     If BranchName = "" Or OfficeName = "" Then
         MsgBox "基本情報シート B6 または C6 が空です。支店名・出張所名を確認してください。", vbExclamation
         Exit Sub
@@ -74,7 +79,7 @@ Public Sub FillManagerNameToBasicInfo()
                "支店名：" & BranchName & vbCrLf & _
                "出張所名：" & OfficeName, vbExclamation
     Else
-        wsInfo.Range("F6").value = foundName
+        wsInfo.Range("F6").Value = foundName
     End If
 End Sub
 
@@ -87,7 +92,7 @@ Public Sub RefreshBranchOfficeValidation(Optional ByVal keepOffice As Boolean = 
     End If
 
     Dim yearText As String
-    yearText = CommonExtractYear4Digits(Trim$(CStr(wsInfo.Range("B4").value)))
+    yearText = CommonExtractYear4Digits(Trim$(CStr(wsInfo.Range("B4").Value)))
     If yearText = "" Then
         MsgBox "基本情報シート B4 に4桁の年度が見つかりません。例: 2026", vbExclamation
         Exit Sub
@@ -111,7 +116,7 @@ Public Sub RefreshBranchOfficeValidation(Optional ByVal keepOffice As Boolean = 
     officeList.CompareMode = vbTextCompare
 
     Dim selectedBranch As String
-    selectedBranch = CommonNormalizeText(CStr(wsInfo.Range("B6").value))
+    selectedBranch = CommonNormalizeText(CStr(wsInfo.Range("B6").Value))
 
     Dim rowData As Variant, BranchName As String, OfficeName As String
     For Each rowData In rows
@@ -159,7 +164,7 @@ Private Sub WriteValidationLists(ByVal wsInfo As Worksheet, _
     If branchList.Count = 0 Then wsInfo.Range("B6").ClearContents
 
     Dim currentOffice As String
-    currentOffice = CommonNormalizeText(CStr(wsInfo.Range("C6").value))
+    currentOffice = CommonNormalizeText(CStr(wsInfo.Range("C6").Value))
     If Not keepOffice Or currentOffice = "" Or Not officeList.Exists(currentOffice) Then
         wsInfo.Range("C6").ClearContents
     End If
@@ -192,7 +197,7 @@ Private Sub WriteDictionaryKeysToColumn(ByVal wsInfo As Worksheet, _
         outArr(i + 1, 1) = keysArr(i)
     Next i
 
-    wsInfo.Range(colLetter & LIST_START_ROW).Resize(total, 1).value = outArr
+    wsInfo.Range(colLetter & LIST_START_ROW).Resize(total, 1).Value = outArr
 End Sub
 
 Private Sub ResetListValidation(ByVal targetCell As Range, ByVal listRange As Range)
@@ -224,30 +229,49 @@ Public Sub PromptOfficeComboBox()
     ShowOfficeComboBox wsInfo
 End Sub
 
+'--------------------------------------------------------------------------
+'  CommitOfficeComboBoxSelection  (#15 修正)
+'    ComboBox で選択確定した出張所名を C6 に反映し、担当者名を更新する。
+'
+'    【修正前の問題】
+'      LinkedCell = "C6" の設定により、ドロップダウンで選択した瞬間に
+'      Excel が自動で C6 を書き換える。そのため CommitOfficeComboBoxSelection
+'      が呼ばれた時点では「C6 の現在値 = selectedOffice」になっており、
+'      旧ガード条件（StrComp <> 0 の場合のみ書き込む）が常に False と
+'      判定されて FillManagerNameToBasicInfo が呼ばれなかった。
+'      さらに SilentClearBasicInfo は Worksheet_Change 経由で実行済みのため
+'      担当者名が空のままになっていた。
+'
+'    【修正内容】
+'      - 「現在値と同じならスキップ」ガードを撤廃し、常に処理を続行する。
+'      - LinkedCell による自動書き込みも Worksheet_Change を発火させるため、
+'        mSuppressC6Change フラグを ComboBox 非表示の直前（処理全体の開始時）
+'        に立てることで、Change イベントの二重発火を防ぐ。
+'--------------------------------------------------------------------------
 Public Sub CommitOfficeComboBoxSelection()
     Dim wsInfo As Worksheet
     Set wsInfo = CommonGetBasicInfoWorksheet()
     If wsInfo Is Nothing Then Exit Sub
 
     On Error GoTo ExitHandler
+
     Dim ole As OLEObject
     Set ole = wsInfo.OLEObjects(OFFICE_COMBO_NAME)
     If ole Is Nothing Then Exit Sub
 
     Dim selectedOffice As String
-    selectedOffice = CommonNormalizeText(CStr(ole.Object.value))
+    selectedOffice = CommonNormalizeText(CStr(ole.Object.Value))
     If selectedOffice = "" Then Exit Sub
 
-    ' ComboBox を先に非表示にしてから C6 に書き込む
-    ' （書き込みで Worksheet_Change が発火しても DropDown が再起動しないよう
-    '   mSuppressC6Change フラグで C6 処理をスキップする）
-    ole.Visible = False
+    ' フラグを先に ON にして LinkedCell による C6 自動書き込みの
+    ' Change イベントも含めて抑制する
+    mSuppressC6Change = True
 
-    If StrComp(CommonNormalizeText(CStr(wsInfo.Range("C6").value)), selectedOffice, vbTextCompare) <> 0 Then
-        mSuppressC6Change = True
-        wsInfo.Range("C6").value = selectedOffice
-        mSuppressC6Change = False
-    End If
+    ' ComboBox を非表示にしてから C6 に確定値を書き込む
+    ' （LinkedCell 経由で既に書き換わっている場合も含め、確実に確定値を設定）
+    ole.Visible = False
+    wsInfo.Range("C6").Value = selectedOffice
+    mSuppressC6Change = False
 
     FillManagerNameToBasicInfo
     wsInfo.Range("C6").Select
@@ -342,7 +366,7 @@ Private Sub UpdateOfficeComboBox(ByVal wsInfo As Worksheet, ByVal officeList As 
         .LinkedCell = wsInfo.Range("C6").Address(False, False)
         .ListRows = Application.Max(1, Application.Min(12, officeList.Count))
         .MatchRequired = False
-        .value = CStr(wsInfo.Range("C6").value)
+        .Value = CStr(wsInfo.Range("C6").Value)
     End With
     On Error GoTo 0
 End Sub
@@ -368,9 +392,9 @@ Private Function LoadManagerListRows(ByVal sourceFilePath As String) As Collecti
 
     If Not rs.EOF Then rs.MoveNext ' 先頭行（見出し）スキップ
     Do Until rs.EOF
-        rows.Add Array(CommonNzText(rs.fields(0).value), _
-                       CommonNzText(rs.fields(1).value), _
-                       CommonNzText(rs.fields(2).value))
+        rows.Add Array(CommonNzText(rs.Fields(0).Value), _
+                       CommonNzText(rs.Fields(1).Value), _
+                       CommonNzText(rs.Fields(2).Value))
         rs.MoveNext
     Loop
 
