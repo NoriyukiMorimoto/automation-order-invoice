@@ -17,6 +17,10 @@ Option Explicit
 '          新幹線：新幹線_単価適用工事件名マスタシート A2～A6
 '    改修内容（#13）：
 '      - 在来線の A9 除外に対応。A2～A8 と A10～A11 を2回取得して合算。
+'    改修内容（#14）：
+'      - AutoFillLineTypeFromWorkName を追加。
+'        C10 の工事件名を在幹区分シートの A 列と照合し、
+'        一致した行の B 列（在来線/新幹線）を C20 に自動入力する。
 '==========================================================================
 Public SharedMasterData As Variant
 
@@ -38,6 +42,7 @@ End Type
 
 Private Const MASTER_SHEET_NAME As String = "単価適用線区"
 Private Const PROJECT_MASTER_SHEET_NAME As String = "単価適用工事件名マスタ"
+Private Const ZAIRAISEN_DISTINCTION_SHEET_NAME As String = "在幹区分"   ' C10→C20 自動入力用シート
 Private Const UNIT_PRICE_DATA_FOLDER As String = "単価データ"
 Private Const UNIT_PRICE_REFERENCE_FOLDER As String = "工事件名別マスタ"
 Private Const UNIT_PRICE_MASTER_FILE As String = "出張所別_単価適用線区.xlsx"
@@ -51,6 +56,7 @@ Private Const NORMAL_PRICE_FOLDER As String = "通常単価"
 Private Const BASIC_INFO_YEAR_CELL As String = "B4"
 Private Const BASIC_INFO_BRANCH_CELL As String = "B6"
 Private Const BASIC_INFO_OFFICE_CELL As String = "C6"
+Private Const BASIC_INFO_WORK_NAME_CELL As String = "C10"              ' 工事件名セル
 Private Const BASIC_INFO_LINE_TYPE_CELL As String = "C20"
 Private Const BASIC_INFO_PROJECT_NAME_CELL As String = "C21"
 Private Const BASIC_INFO_PRICE_KIND_CELL As String = "C22"
@@ -106,6 +112,85 @@ Public Function GetMasterFilePath() As String
     End If
 
     GetMasterFilePath = FirstExistingFilePath(candidates)
+End Function
+
+'--------------------------------------------------------------------------
+'  AutoFillLineTypeFromWorkName  (#14)
+'    C10（工事件名）の内容を在幹区分シートの A 列と部分一致で照合し、
+'    一致した行の B 列の値（在来線 or 新幹線）を C20 に書き込む。
+'    C10 が空の場合・マスタファイルが見つからない場合・一致なしの場合は
+'    何もしない（C20 を書き換えない）。
+'--------------------------------------------------------------------------
+Public Sub AutoFillLineTypeFromWorkName(ByVal wsInfo As Worksheet)
+    If wsInfo Is Nothing Then Exit Sub
+
+    Dim workName As String
+    workName = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_WORK_NAME_CELL).Value))
+    If workName = "" Then Exit Sub
+
+    Dim masterFilePath As String
+    masterFilePath = GetMasterFilePath()
+    If masterFilePath = "" Then Exit Sub
+
+    Dim lineType As String
+    lineType = LookupLineTypeByWorkName(masterFilePath, workName)
+    If lineType = "" Then Exit Sub
+
+    ' 現在値と同じなら書き込みスキップ（不要な Change イベント抑制）
+    If StrComp(CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_LINE_TYPE_CELL).Value)), lineType, vbTextCompare) = 0 Then Exit Sub
+
+    wsInfo.Range(BASIC_INFO_LINE_TYPE_CELL).Value = lineType
+End Sub
+
+'--------------------------------------------------------------------------
+'  LookupLineTypeByWorkName
+'    在幹区分シートを ADO で走査し、A 列のキーワードが workName に
+'    含まれている最初の行の B 列値（在来線 or 新幹線）を返す。
+'    一致がなければ空文字を返す。
+'--------------------------------------------------------------------------
+Private Function LookupLineTypeByWorkName(ByVal masterFilePath As String, _
+                                          ByVal workName As String) As String
+    Dim cn As Object
+    Dim rs As Object
+
+    On Error GoTo ErrorHandler
+    Set cn = CommonOpenExcelAdoConnection(masterFilePath)
+    If cn Is Nothing Then Exit Function
+
+    ' 在幹区分シートの A・B 列を全件取得（行数上限は既存定数を流用）
+    Dim sql As String
+    sql = "SELECT F1, F2 FROM " & _
+          BuildAdoSheetRangeName(ZAIRAISEN_DISTINCTION_SHEET_NAME, "A", 2, "B", PROJECT_NAME_MASTER_LAST_ROW) & _
+          " WHERE F1 IS NOT NULL"
+
+    Set rs = cn.Execute(sql)
+
+    Dim normalizedWorkName As String
+    normalizedWorkName = NormalizeMatchText(workName)
+
+    Do Until rs.EOF
+        Dim keyword As String
+        keyword = NormalizeMatchText(CommonNzText(CommonGetAdoFieldValue(rs, 0)))
+        If keyword <> "" Then
+            If InStr(1, normalizedWorkName, keyword, vbTextCompare) > 0 Then
+                Dim lineTypeRaw As String
+                lineTypeRaw = Trim$(CommonNzText(CommonGetAdoFieldValue(rs, 1)))
+                If lineTypeRaw <> "" Then
+                    LookupLineTypeByWorkName = CommonNormalizeText(lineTypeRaw)
+                    GoTo Cleanup
+                End If
+            End If
+        End If
+        rs.MoveNext
+    Loop
+
+Cleanup:
+    CommonCloseAdoRecordset rs
+    CommonCloseAdoConnection cn
+    Exit Function
+
+ErrorHandler:
+    Resume Cleanup
 End Function
 
 Public Sub RefreshUnitPriceProjectNameValidation(Optional ByVal wsInfo As Worksheet, _
