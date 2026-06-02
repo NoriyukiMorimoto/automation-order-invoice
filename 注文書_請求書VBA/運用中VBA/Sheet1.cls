@@ -13,7 +13,7 @@ ExitHandler:
 End Sub
 
 Private Sub Worksheet_Change(ByVal Target As Range)
-    If Intersect(Target, Me.Range("B4,B6,C6,C15:C16,F9,C20,C22,C26")) Is Nothing Then Exit Sub
+    If Intersect(Target, Me.Range("B4,B6,C6,C10,C15:C16,F9,C20,C22,C26")) Is Nothing Then Exit Sub
 
     On Error GoTo ExitHandler
     Application.EnableEvents = False
@@ -38,6 +38,11 @@ Private Sub Worksheet_Change(ByVal Target As Range)
         If Not mod_FillManagerName.IsSuppressingC6Change() Then
             mod_FillManagerName.FillManagerNameToBasicInfo
         End If
+    End If
+
+    ' C10 が変更された場合：在幹区分マスタを参照して C20 を自動入力
+    If Not Intersect(Target, Me.Range("C10")) Is Nothing Then
+        mod_MaterialPriceImport.AutoFillLineTypeFromWorkName Me
     End If
 
     If Not Intersect(Target, Me.Range("C26")) Is Nothing Then
