@@ -17,6 +17,16 @@ Option Explicit
 '        アクティブにならない問題を修正。
 '        ImportUnitPriceData の全取込処理完了後（MsgBox 直前）に
 '        wsInfo.Activate を追加し、常に基本情報シートへ戻るようにした。
+'    改修内容（#20）：
+'      - 新幹線区分で購入充当単価の参照キーが取得できない問題を修正。
+'        BuildPurchaseReferenceKey は保線区フォルダ名の先頭数字を
+'        参照キーとして使っていたが、新幹線の保線区フォルダ名は
+'        「金沢新幹線保線区」のように数字で始まらないため "" を返し
+'        「参照キーを取得できませんでした」エラーになっていた。
+'        先頭数字が取れた場合はそのまま（在来線の既存動作を維持）、
+'        取れなかった場合はフォルダ名全体を正規化して参照キーとする。
+'        あわせて PurchaseSheetNameMatchesReferenceKey にキーがシート名に
+'        含まれる部分一致パターンを追加し、漢字キーにも対応した。
 '==========================================================================
 Public SharedMasterData As Variant
 
@@ -889,6 +899,14 @@ Private Function LoadPurchaseSheetNamesByReference(ByVal sourceFilePath As Strin
     Set LoadPurchaseSheetNamesByReference = result
 End Function
 
+'--------------------------------------------------------------------------
+'  PurchaseSheetNameMatchesReferenceKey  (#20 修正)
+'    在来線（数字キー）: 完全一致 / 「キー-」始まり / 「キー_」始まり
+'    新幹線（漢字キー）: 上記3パターンに加えて、シート名にキーが
+'                       含まれる（部分一致）パターンを追加。
+'    例: シート名「金沢新幹線保線区」, キー「金沢新幹線保線区」→ 一致
+'        シート名「金沢新幹線保線区-本線」, キー「金沢新幹線保線区」→ 一致
+'--------------------------------------------------------------------------
 Private Function PurchaseSheetNameMatchesReferenceKey(ByVal sheetName As String, ByVal referenceKey As String) As Boolean
     Dim a As String, b As String
     a = NormalizeMatchText(sheetName)
@@ -896,11 +914,32 @@ Private Function PurchaseSheetNameMatchesReferenceKey(ByVal sheetName As String,
     If a = "" Or b = "" Then Exit Function
     PurchaseSheetNameMatchesReferenceKey = (a = b Or _
                                             Left$(a, Len(b) + 1) = b & "-" Or _
-                                            Left$(a, Len(b) + 1) = b & "_")
+                                            Left$(a, Len(b) + 1) = b & "_" Or _
+                                            InStr(1, a, b, vbTextCompare) > 0)
 End Function
 
+'--------------------------------------------------------------------------
+'  BuildPurchaseReferenceKey  (#20 修正)
+'    在来線フォルダ名は「01_金沢保線区」のように数字始まりなので
+'    先頭数字（"01"）を参照キーとして使う（既存動作を維持）。
+'    新幹線フォルダ名は「金沢新幹線保線区」のように漢字始まりのため
+'    ExtractLeadingDigits が "" を返し「参照キー取得失敗」エラーになっていた。
+'    先頭数字が取れない場合はフォルダ名全体を正規化して参照キーとする。
+'--------------------------------------------------------------------------
 Private Function BuildPurchaseReferenceKey(ByVal sectionFolderPath As String) As String
-    BuildPurchaseReferenceKey = ExtractLeadingDigits(GetPathBaseName(sectionFolderPath))
+    Dim baseName As String
+    baseName = GetPathBaseName(sectionFolderPath)
+
+    ' 先頭数字が取れた場合はそれをキーとして使う（在来線の既存動作）
+    Dim digits As String
+    digits = ExtractLeadingDigits(baseName)
+    If digits <> "" Then
+        BuildPurchaseReferenceKey = digits
+        Exit Function
+    End If
+
+    ' 先頭数字がない場合（新幹線等）はフォルダ名全体を正規化してキーとする
+    BuildPurchaseReferenceKey = NormalizeMatchText(baseName)
 End Function
 
 Private Function ExtractLeadingDigits(ByVal value As String) As String
