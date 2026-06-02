@@ -1,7 +1,3 @@
-VERSION 1.0 CLASS
-BEGIN
-  MultiUse = -1  'True
-END
 Option Explicit
 
 Private Sub Worksheet_Activate()
@@ -17,7 +13,7 @@ ExitHandler:
 End Sub
 
 Private Sub Worksheet_Change(ByVal Target As Range)
-    If Intersect(Target, Me.Range("B4,B6,C6,C9,C14:C15,F9,C25,C27")) Is Nothing Then Exit Sub
+    If Intersect(Target, Me.Range("B4,B6,C6,C15:C16,F9,C20,C22,C26")) Is Nothing Then Exit Sub
 
     On Error GoTo ExitHandler
     Application.EnableEvents = False
@@ -34,15 +30,15 @@ Private Sub Worksheet_Change(ByVal Target As Range)
         mod_FillManagerName.FillManagerNameToBasicInfo
     End If
 
-    If Not Intersect(Target, Me.Range("C9")) Is Nothing Then
+    If Not Intersect(Target, Me.Range("C26")) Is Nothing Then
         mod_BasicInfoUpdate.ApplyInitialBillingPeriodFromStartDate Me
     End If
 
-    If Not Intersect(Target, Me.Range("C14:C15")) Is Nothing Then
+    If Not Intersect(Target, Me.Range("C15:C16")) Is Nothing Then
         mod_BasicInfoUpdate.ApplyWorkDaysFromWorkDates Me
     End If
 
-    If Not Intersect(Target, Me.Range("C25")) Is Nothing Then
+    If Not Intersect(Target, Me.Range("C20")) Is Nothing Then
         mod_MaterialPriceImport.RefreshUnitPriceProjectNameValidation Me, False
     End If
 
@@ -57,8 +53,8 @@ ExitHandler:
 End Sub
 
 Private Sub Worksheet_BeforeDoubleClick(ByVal Target As Range, Cancel As Boolean)
-    ' C28 ダブルクリック → 積算線区単価取込
-    If Not Intersect(Target, Me.Range("C28")) Is Nothing Then
+    ' C23 ダブルクリック → 積算線区単価取込
+    If Not Intersect(Target, Me.Range("C23")) Is Nothing Then
         Cancel = True
         mod_MaterialPriceImport.ImportConstructionUnitPriceForBasicInfo
         Exit Sub

@@ -10,14 +10,14 @@ Option Explicit
 '        mod_Common に集約済み。重複定義を撤去し、共通関数経由で参照。
 '==========================================================================
 
-Private Const BASIC_INFO_START_DATE_CELL As String = "C9"
-Private Const BASIC_INFO_END_DATE_CELL As String = "C10"
-Private Const BASIC_INFO_BILLING_COUNT_CELL As String = "C11"
-Private Const BASIC_INFO_WORK_START_DATE_CELL As String = "C14"
-Private Const BASIC_INFO_WORK_END_DATE_CELL As String = "C15"
-Private Const BASIC_INFO_WORK_DAYS_CELL As String = "C16"
+Private Const BASIC_INFO_START_DATE_CELL As String = "C26"
+Private Const BASIC_INFO_END_DATE_CELL As String = "C27"
+Private Const BASIC_INFO_BILLING_COUNT_CELL As String = "C28"
+Private Const BASIC_INFO_WORK_START_DATE_CELL As String = "C15"
+Private Const BASIC_INFO_WORK_END_DATE_CELL As String = "C16"
+Private Const BASIC_INFO_WORK_DAYS_CELL As String = "C17"
 Private Const OFFICE_COMBO_NAME As String = "ComboBox1"
-Private Const BASIC_INFO_CLEAR_RANGES As String = "C9:C11,C14:C16,C18:C21,C25:C27,F9:F14,F16:F21"
+Private Const BASIC_INFO_CLEAR_RANGES As String = "C9:C12,C15:C17,C20:C23,C26:C28,F9:F14,F16:F21"
 
 Public Sub UpdateBasicInfoPeriod()
     Dim wsInfo As Worksheet

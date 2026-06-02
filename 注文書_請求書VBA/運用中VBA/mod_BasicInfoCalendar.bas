@@ -15,7 +15,7 @@ Private Const LEGACY_CALENDAR_PREFIX As String = "__BasicInfoCalendar_"
 Private Const CALENDAR_TARGET_SHEET_NAME As String = "__BasicInfoCalendarTargetSheet"
 Private Const CALENDAR_TARGET_ADDRESS_NAME As String = "__BasicInfoCalendarTargetAddress"
 Private Const CALENDAR_MONTH_NAME As String = "__BasicInfoCalendarMonth"
-Private Const BASIC_INFO_DATE_CELLS As String = "C9,C10,C14,C15,C18"
+Private Const BASIC_INFO_DATE_CELLS As String = "C11,C15,C16,C26,C27"
 
 Public SharedMasterData As Variant
 Public ProjectSelectionBasicInfoMode As Boolean
@@ -330,13 +330,13 @@ Private Function GetBasicInfoProjectNameTargetCell(ByVal Target As Range) As Ran
     Set ws = Target.Worksheet
 
     Dim candidate As Range
-    Set candidate = Intersect(Target.MergeArea.Cells(1, 1), ws.Range("C19"))
+    Set candidate = Intersect(Target.MergeArea.Cells(1, 1), ws.Range("C9"))
     If Not candidate Is Nothing Then
         Set GetBasicInfoProjectNameTargetCell = candidate.Cells(1, 1)
         Exit Function
     End If
 
-    Set candidate = Intersect(Target, ws.Range("C19"))
+    Set candidate = Intersect(Target, ws.Range("C9"))
     If Not candidate Is Nothing Then Set GetBasicInfoProjectNameTargetCell = candidate.Cells(1, 1)
 End Function
 

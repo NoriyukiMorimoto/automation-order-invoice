@@ -2,11 +2,11 @@ Option Explicit
 
 '==========================================================================
 '  工事単価インポートモジュール
-'    基本情報 B4/B6/C6/C25/C26/C27 から条件を読み取り、
+'    基本情報 B4/B6/C6/C20/C21/C22 から条件を読み取り、
 '    単価マスタ配下の通常単価/設計変更単価ブックを探す。
 '    対象ブックの積算線区シート名を SelectLineName フォームへ表示し、
 '    選択された積算線区シートを同名シートとしてこのブックへコピーする。
-'    取り込み完了後、選択線区名を C28 に書き込み、参照キーから
+'    取り込み完了後、選択線区名を C23 に書き込み、参照キーから
 '    ⑩軌道材料購入充当の単価シートを別ロジックで自動作成する。
 '==========================================================================
 Public SharedMasterData As Variant
@@ -42,11 +42,11 @@ Private Const NORMAL_PRICE_FOLDER As String = "通常単価"
 Private Const BASIC_INFO_YEAR_CELL As String = "B4"
 Private Const BASIC_INFO_BRANCH_CELL As String = "B6"
 Private Const BASIC_INFO_OFFICE_CELL As String = "C6"
-Private Const BASIC_INFO_LINE_TYPE_CELL As String = "C25"
-Private Const BASIC_INFO_PROJECT_NAME_CELL As String = "C26"
-Private Const BASIC_INFO_PRICE_KIND_CELL As String = "C27"
-Private Const BASIC_INFO_PRICE_KIND_FALLBACK_CELL As String = "B27"
-Private Const BASIC_INFO_IMPORTED_LINE_NAMES_CELL As String = "C28"
+Private Const BASIC_INFO_LINE_TYPE_CELL As String = "C20"
+Private Const BASIC_INFO_PROJECT_NAME_CELL As String = "C21"
+Private Const BASIC_INFO_PRICE_KIND_CELL As String = "C22"
+Private Const BASIC_INFO_PRICE_KIND_FALLBACK_CELL As String = "B22"
+Private Const BASIC_INFO_IMPORTED_LINE_NAMES_CELL As String = "C23"
 Private Const PROJECT_NAME_LIST_COL As String = "AE"
 Private Const LINE_TYPE_LIST_COL As String = "AF"
 Private Const PRICE_KIND_LIST_COL As String = "AG"
@@ -204,20 +204,20 @@ Private Function TryReadUnitPriceRequest(ByVal wsInfo As Worksheet, ByRef reques
         Exit Function
     End If
     If request.lineType = "" Then
-        MsgBox "基本情報シート C25 の線区区分を選択してください。", vbExclamation
+        MsgBox "基本情報シート C20 の線区区分を選択してください。", vbExclamation
         Exit Function
     End If
     If request.projectName = "" Then
-        MsgBox "基本情報シート C26 の単価適用工事件名を選択してください。", vbExclamation
+        MsgBox "基本情報シート C21 の単価適用工事件名を選択してください。", vbExclamation
         Exit Function
     End If
     If IsPurchaseUnitPriceProjectName(request.projectName) Then
-        MsgBox "基本情報シート C26 は軌道材料購入充当以外の単価適用工事件名を選択してください。" & vbCrLf & _
-               "購入充当単価は C28 確定後に自動作成します。", vbExclamation
+        MsgBox "基本情報シート C21 は軌道材料購入充当以外の単価適用工事件名を選択してください。" & vbCrLf & _
+               "購入充当単価は C23 確定後に自動作成します。", vbExclamation
         Exit Function
     End If
     If request.UnitPriceKind = "" Then
-        MsgBox "基本情報シート C27 の単価区分を選択してください。", vbExclamation
+        MsgBox "基本情報シート C22 の単価区分を選択してください。", vbExclamation
         Exit Function
     End If
 
@@ -723,7 +723,7 @@ Public Sub ConfirmAndClearUnitPriceForBasicInfo(ByVal wsInfo As Worksheet)
 
     Dim response As VbMsgBoxResult
     response = MsgBox("単価情報をクリアしますか？" & vbCrLf & _
-                      "はい：C28の選択内容と、作成済みの単価シートを削除します。" & vbCrLf & _
+                      "はい：C23の選択内容と、作成済みの単価シートを削除します。" & vbCrLf & _
                       "いいえ：単価情報を残します。", _
                       vbQuestion + vbYesNo, "単価情報クリア")
     If response <> vbYes Then Exit Sub

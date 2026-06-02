@@ -1,13 +1,3 @@
-VERSION 5.00
-Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} Project_Number_Selection 
-   Caption         =   "工事番号選択（最新順）"
-   ClientHeight    =   13110
-   ClientLeft      =   120
-   ClientTop       =   465
-   ClientWidth     =   10635
-   OleObjectBlob   =   "Project_Number_Selection.frx":0000
-   StartUpPosition =   1  'オーナー フォームの中央
-End
 Option Explicit
 
 Public SelectionConfirmed As Boolean
@@ -50,8 +40,8 @@ Private Sub SetupListView()
         .ColumnHeaders.Add , , "", 0                            ' 1列目：ダミー（幅0）
         .ColumnHeaders.Add , , "工事番号", 100, lvwColumnCenter ' 2列目：中央揃え
         .ColumnHeaders.Add , , "工事件名", 500                 ' 3列目：左揃え
-        .ColumnHeaders.Add , , "", 0                           ' 4列目：C20用（非表示）
-        .ColumnHeaders.Add , , "", 0                           ' 5列目：C21用（非表示）
+        .ColumnHeaders.Add , , "", 0                           ' 4列目：C10用（非表示）
+        .ColumnHeaders.Add , , "", 0                           ' 5列目：C11用（非表示）
     End With
 End Sub
 
@@ -243,7 +233,7 @@ Private Sub SetBasicInfoProjectSelection(ByVal projectNo As String, ByVal projec
     On Error Resume Next
     Set targetCell = targetWs.Range(ProjectSelectionTargetAddress)
     On Error GoTo 0
-    If targetCell Is Nothing Then Set targetCell = targetWs.Range("C19")
+    If targetCell Is Nothing Then Set targetCell = targetWs.Range("C9")
 
     Dim projectDetail As String
     Dim contractDate As String
@@ -270,8 +260,8 @@ Private Sub SetBasicInfoProjectSelection(ByVal projectNo As String, ByVal projec
 
     Application.EnableEvents = False
     targetCell.value = projectNo
-    targetWs.Range("C20").value = projectDetail
-    SetBasicInfoContractDateValue targetWs.Range("C21"), contractDate
+    targetWs.Range("C10").value = projectDetail
+    SetBasicInfoContractDateValue targetWs.Range("C11"), contractDate
     Application.EnableEvents = True
 
     SelectionConfirmed = True
