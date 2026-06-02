@@ -37,6 +37,10 @@ Option Explicit
 '        全ブックのシートを対応積算線区選択フォームの候補に出すよう修正。
 '        新幹線の軌道整備他で「基地線」ブックだけが候補になり、「本線」ブックが
 '        選択できない問題を解消。
+'    改修内容（#23）：
+'      - 単価表ブック検索で同じファイルパスが複数回返った場合、重複して候補に
+'        追加しないよう修正。対応積算線区選択フォームに同じ本線・基地線が
+'        2回表示される問題を解消。
 '==========================================================================
 Public SharedMasterData As Variant
 
@@ -1578,7 +1582,9 @@ Private Function FindUnitPriceWorkbooks(ByVal folderPath As String, ByVal projec
             If Left$(fileName, 2) <> "~$" Then
                 If InStr(1, fileName, UNIT_PRICE_FILE_KEYWORD, vbTextCompare) = 0 Then
                     If InStr(1, NormalizeMatchText(RemoveFileExtension(fileName)), normalizedProjectName, vbTextCompare) > 0 Then
-                        result.Add folderPath & "\" & fileName
+                        Dim workbookPath As String
+                        workbookPath = folderPath & "\" & fileName
+                        If Not CollectionContainsText(result, workbookPath) Then result.Add workbookPath
                     End If
                 End If
             End If
