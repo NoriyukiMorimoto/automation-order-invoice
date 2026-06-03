@@ -1,30 +1,30 @@
 Option Explicit
 
 '==========================================================================
-'  å‡ºå¼µæ‰€é•·å è‡ªå‹•å…¥åŠ›ï¼æ”¯åº—ãƒ»å‡ºå¼µæ‰€ãƒãƒªãƒ‡ãƒ¼ã‚·ãƒ§ãƒ³å†æ§‹ç¯‰ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«
-'    æ”¹ä¿®å†…å®¹ï¼š
-'      #19: B6å¤‰æ›´å¾Œã«C6ã‚³ãƒ³ãƒœãŒè¡¨ç¤ºã•ã‚Œãªã„å•é¡Œã‚’ä¿®æ­£ã€‚
-'           RefreshBranchOfficeValidation ã®æˆ»ã‚Šå€¤ï¼ˆBooleanï¼‰ã§
-'           ã€Œã‚³ãƒ³ãƒœè¡¨ç¤ºã‚¹ã‚±ã‚¸ãƒ¥ãƒ¼ãƒ«ãŒå¿…è¦ã‹ã€ã‚’ Sheet1.cls ã¸è¿”ã™ã‚ˆã†å¤‰æ›´ã€‚
-'           WriteValidationLists å†…ã® ScheduleOfficeComboBoxPrompt å‘¼ã³å‡ºã—ã‚’æ’¤å»ã—ã€
-'           EnableEvents=True å¾©å¸°å¾Œã® Sheet1.cls å´ã§å‘¼ã¶ã“ã¨ã§
-'           EnableEvents=False ä¸­ã® OnTime ç«¶åˆã‚’è§£æ¶ˆã€‚
-'      #7 : WriteValidationLists ã§ã® Dictionaryâ†’ã‚»ãƒ«å˜ä½æ›¸ãè¾¼ã¿ã‚’
-'           Variant 2æ¬¡å…ƒé…åˆ—ï¼‹Range ä¸€æ‹¬ä»£å…¥ã¸ç½®æ›ã€‚
-'      #9 : NormalizeText / CommonGetBasicInfoWorksheet / æ—¥æœ¬èªåç”Ÿæˆ /
-'           ADO æ¥ç¶šç”Ÿæˆã¯ mod_Common ã«é›†ç´„ã€‚é‡è¤‡å®šç¾©ã‚’æ’¤å»ã€‚
-'      #10: CommitOfficeComboBoxSelection ã§ C6 æ›¸ãè¾¼ã¿æ™‚ã«
-'           Worksheet_Change ã® C6 å‡¦ç†ãŒå†èµ·å‹•ã™ã‚‹ã®ã‚’é˜²ããŸã‚
-'           mSuppressC6Change ãƒ•ãƒ©ã‚°ã‚’è¿½åŠ ã€‚
-'      #15: CommitOfficeComboBoxSelection ã®ã€Œç¾åœ¨å€¤ã¨åŒã˜ãªã‚‰ã‚¹ã‚­ãƒƒãƒ—ã€
-'           ã‚¬ãƒ¼ãƒ‰ã‚’æ’¤å»ƒã€‚LinkedCell ãŒ C6 ã‚’è‡ªå‹•æ›¸ãæ›ãˆã‚‹ãŸã‚ã€
-'           é¸æŠå¤‰æ›´æ™‚ã« StrComp ãŒå¸¸ã« False ã«ãªã‚Š FillManagerName ãŒ
-'           å‘¼ã°ã‚Œãªã„å•é¡Œã‚’ä¿®æ­£ã€‚ãƒ•ãƒ©ã‚°ã¯å¸¸ã« ON ã«ã—ã¦ Change ã‚¤ãƒ™ãƒ³ãƒˆã®
-'           äºŒé‡ç™ºç«ã‚’æŠ‘åˆ¶ã™ã‚‹ã€‚
-'      #16: å‡ºå¼µæ‰€é•·ãƒªã‚¹ãƒˆãƒ•ã‚¡ã‚¤ãƒ«åã‚’
-'           ã€Œå¹´åº¦_ç·šè·¯å‡ºå¼µæ‰€é•·ãƒªã‚¹ãƒˆ.xlsxã€ï¼ˆã‚¢ãƒ³ãƒ€ãƒ¼ãƒãƒ¼å¾Œã‚¹ãƒšãƒ¼ã‚¹ãªã—ï¼‰å„ªå…ˆã«å¤‰æ›´ã€‚
-'      #17: å‡ºå¼µæ‰€é•·ãƒªã‚¹ãƒˆã®å‚ç…§å…ˆã‚’
-'           å˜ä¾¡ãƒã‚¹ã‚¿\å·¥äº‹ä»¶ååˆ¥ãƒã‚¹ã‚¿\å‡ºå¼µæ‰€é•·å ã«å¤‰æ›´ã€‚
+'  o’£Š’·–¼ ©“®“ü—Í^x“XEo’£ŠƒoƒŠƒf[ƒVƒ‡ƒ“Ä\’zƒ‚ƒWƒ…[ƒ‹
+'    ‰üC“à—eF
+'      #19: B6•ÏXŒã‚ÉC6ƒRƒ“ƒ{‚ª•\¦‚³‚ê‚È‚¢–â‘è‚ğC³B
+'           RefreshBranchOfficeValidation ‚Ì–ß‚è’liBooleanj‚Å
+'           uƒRƒ“ƒ{•\¦ƒXƒPƒWƒ…[ƒ‹‚ª•K—v‚©v‚ğ Sheet1.cls ‚Ö•Ô‚·‚æ‚¤•ÏXB
+'           WriteValidationLists “à‚Ì ScheduleOfficeComboBoxPrompt ŒÄ‚Ño‚µ‚ğ“P‹‚µA
+'           EnableEvents=True •œ‹AŒã‚Ì Sheet1.cls ‘¤‚ÅŒÄ‚Ô‚±‚Æ‚Å
+'           EnableEvents=False ’†‚Ì OnTime ‹£‡‚ğ‰ğÁB
+'      #7 : WriteValidationLists ‚Å‚Ì Dictionary¨ƒZƒ‹’PˆÊ‘‚«‚İ‚ğ
+'           Variant 2ŸŒ³”z—ñ{Range ˆêŠ‡‘ã“ü‚Ö’uŠ·B
+'      #9 : NormalizeText / CommonGetBasicInfoWorksheet / “ú–{Œê–¼¶¬ /
+'           ADO Ú‘±¶¬‚Í mod_Common ‚ÉW–ñBd•¡’è‹`‚ğ“P‹B
+'      #10: CommitOfficeComboBoxSelection ‚Å C6 ‘‚«‚İ‚É
+'           Worksheet_Change ‚Ì C6 ˆ—‚ªÄ‹N“®‚·‚é‚Ì‚ğ–h‚®‚½‚ß
+'           mSuppressC6Change ƒtƒ‰ƒO‚ğ’Ç‰ÁB
+'      #15: CommitOfficeComboBoxSelection ‚ÌuŒ»İ’l‚Æ“¯‚¶‚È‚çƒXƒLƒbƒvv
+'           ƒK[ƒh‚ğ“P”pBLinkedCell ‚ª C6 ‚ğ©“®‘‚«Š·‚¦‚é‚½‚ßA
+'           ‘I‘ğ•ÏX‚É StrComp ‚ªí‚É False ‚É‚È‚è FillManagerName ‚ª
+'           ŒÄ‚Î‚ê‚È‚¢–â‘è‚ğC³Bƒtƒ‰ƒO‚Íí‚É ON ‚É‚µ‚Ä Change ƒCƒxƒ“ƒg‚Ì
+'           “ñd”­‰Î‚ğ—}§‚·‚éB
+'      #16: o’£Š’·ƒŠƒXƒgƒtƒ@ƒCƒ‹–¼‚ğ
+'           u”N“x_ü˜Ho’£Š’·ƒŠƒXƒg.xlsxviƒAƒ“ƒ_[ƒo[ŒãƒXƒy[ƒX‚È‚µj—Dæ‚É•ÏXB
+'      #17: o’£Š’·ƒŠƒXƒg‚ÌQÆæ‚ğ
+'           ’P‰¿ƒ}ƒXƒ^\H–Œ–¼•Êƒ}ƒXƒ^\o’£Š’·–¼ ‚É•ÏXB
 '==========================================================================
 
 Private Const LIST_BRANCH_COL As String = "AA"
@@ -33,7 +33,7 @@ Private Const LIST_START_ROW As Long = 2
 Private Const OFFICE_COMBO_NAME As String = "ComboBox1"
 Private Const OFFICE_COMBO_WIDTH_POINTS As Double = 310.5
 
-' C6 ã¸ã®æ›¸ãè¾¼ã¿ä¸­ã« Worksheet_Change ã® C6 å‡¦ç†ã‚’ã‚¹ã‚­ãƒƒãƒ—ã™ã‚‹ãƒ•ãƒ©ã‚°
+' C6 ‚Ö‚Ì‘‚«‚İ’†‚É Worksheet_Change ‚Ì C6 ˆ—‚ğƒXƒLƒbƒv‚·‚éƒtƒ‰ƒO
 Private mSuppressC6Change As Boolean
 
 Public Function IsSuppressingC6Change() As Boolean
@@ -44,14 +44,14 @@ Public Sub FillManagerNameToBasicInfo()
     Dim wsInfo As Worksheet
     Set wsInfo = CommonGetBasicInfoWorksheet()
     If wsInfo Is Nothing Then
-        MsgBox "åŸºæœ¬æƒ…å ±ã‚·ãƒ¼ãƒˆãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚ã‚·ãƒ¼ãƒˆåã‚’ç¢ºèªã—ã¦ãã ã•ã„ã€‚", vbExclamation
+        MsgBox "Šî–{î•ñƒV[ƒg‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñBƒV[ƒg–¼‚ğŠm”F‚µ‚Ä‚­‚¾‚³‚¢B", vbExclamation
         Exit Sub
     End If
 
     Dim yearText As String
     yearText = CommonExtractYear4Digits(Trim$(CStr(wsInfo.Range("B4").Value)))
     If yearText = "" Then
-        MsgBox "åŸºæœ¬æƒ…å ±ã‚·ãƒ¼ãƒˆ B4 ã«4æ¡ã®å¹´åº¦ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚ä¾‹: 2026", vbExclamation
+        MsgBox "Šî–{î•ñƒV[ƒg B4 ‚É4Œ…‚Ì”N“x‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB—á: 2026", vbExclamation
         Exit Sub
     End If
 
@@ -59,7 +59,7 @@ Public Sub FillManagerNameToBasicInfo()
     BranchName = CommonNormalizeText(CStr(wsInfo.Range("B6").Value))
     OfficeName = CommonNormalizeText(CStr(wsInfo.Range("C6").Value))
     If BranchName = "" Or OfficeName = "" Then
-        MsgBox "åŸºæœ¬æƒ…å ±ã‚·ãƒ¼ãƒˆ B6 ã¾ãŸã¯ C6 ãŒç©ºã§ã™ã€‚æ”¯åº—åãƒ»å‡ºå¼µæ‰€åã‚’ç¢ºèªã—ã¦ãã ã•ã„ã€‚", vbExclamation
+        MsgBox "Šî–{î•ñƒV[ƒg B6 ‚Ü‚½‚Í C6 ‚ª‹ó‚Å‚·Bx“X–¼Eo’£Š–¼‚ğŠm”F‚µ‚Ä‚­‚¾‚³‚¢B", vbExclamation
         Exit Sub
     End If
 
@@ -70,7 +70,7 @@ Public Sub FillManagerNameToBasicInfo()
     Dim rows As Collection
     Set rows = LoadManagerListRows(sourceFilePath)
     If rows Is Nothing Then
-        MsgBox "å‡ºå¼µæ‰€é•·ãƒªã‚¹ãƒˆãƒ•ã‚¡ã‚¤ãƒ«ã‚’å‚ç…§ã§ãã¾ã›ã‚“ã§ã—ãŸã€‚" & vbCrLf & sourceFilePath, vbExclamation
+        MsgBox "o’£Š’·ƒŠƒXƒgƒtƒ@ƒCƒ‹‚ğQÆ‚Å‚«‚Ü‚¹‚ñ‚Å‚µ‚½B" & vbCrLf & sourceFilePath, vbExclamation
         Exit Sub
     End If
 
@@ -85,9 +85,9 @@ Public Sub FillManagerNameToBasicInfo()
     Next rowData
 
     If foundName = "" Then
-        MsgBox "è©²å½“ã™ã‚‹æ”¯åº—åãƒ»å‡ºå¼µæ‰€åãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã§ã—ãŸã€‚" & vbCrLf & _
-               "æ”¯åº—åï¼š" & BranchName & vbCrLf & _
-               "å‡ºå¼µæ‰€åï¼š" & OfficeName, vbExclamation
+        MsgBox "ŠY“–‚·‚éx“X–¼Eo’£Š–¼‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñ‚Å‚µ‚½B" & vbCrLf & _
+               "x“X–¼F" & BranchName & vbCrLf & _
+               "o’£Š–¼F" & OfficeName, vbExclamation
     Else
         wsInfo.Range("F6").Value = foundName
     End If
@@ -95,13 +95,13 @@ End Sub
 
 '--------------------------------------------------------------------------
 '  RefreshBranchOfficeValidation
-'    æˆ»ã‚Šå€¤ï¼šTrue = å‘¼ã³å‡ºã—å…ƒã§ ScheduleOfficeComboBoxPrompt ã‚’å‘¼ã¶å¿…è¦ã‚ã‚Š
-'             False = ä¸è¦
-'    (#19) keepOffice=False ã®ã¨ãã€ä»¥å‰ã¯ WriteValidationLists å†…ã§
-'    ScheduleOfficeComboBoxPrompt ã‚’ç›´æ¥å‘¼ã‚“ã§ã„ãŸãŒã€Worksheet_Change ãŒ
-'    EnableEvents=False ä¸­ã« OnTime äºˆç´„ â†’ SilentClearBasicInfo ã§ã‚³ãƒ³ãƒœã‚’
-'    éè¡¨ç¤ºã«ã™ã‚‹ç«¶åˆãŒç™ºç”Ÿã—ã¦ã„ãŸã€‚å‘¼ã³å‡ºã—å…ƒï¼ˆSheet1.clsï¼‰ãŒ
-'    EnableEvents=True å¾©å¸°å¾Œã«å‘¼ã¶ã‚ˆã†è²¬å‹™ã‚’ç§»å‹•ã€‚
+'    –ß‚è’lFTrue = ŒÄ‚Ño‚µŒ³‚Å ScheduleOfficeComboBoxPrompt ‚ğŒÄ‚Ô•K—v‚ ‚è
+'             False = •s—v
+'    (#19) keepOffice=False ‚Ì‚Æ‚«AˆÈ‘O‚Í WriteValidationLists “à‚Å
+'    ScheduleOfficeComboBoxPrompt ‚ğ’¼ÚŒÄ‚ñ‚Å‚¢‚½‚ªAWorksheet_Change ‚ª
+'    EnableEvents=False ’†‚É OnTime —\–ñ ¨ SilentClearBasicInfo ‚ÅƒRƒ“ƒ{‚ğ
+'    ”ñ•\¦‚É‚·‚é‹£‡‚ª”­¶‚µ‚Ä‚¢‚½BŒÄ‚Ño‚µŒ³iSheet1.clsj‚ª
+'    EnableEvents=True •œ‹AŒã‚ÉŒÄ‚Ô‚æ‚¤Ó–±‚ğˆÚ“®B
 '--------------------------------------------------------------------------
 Public Function RefreshBranchOfficeValidation(Optional ByVal keepOffice As Boolean = True) As Boolean
     RefreshBranchOfficeValidation = False
@@ -109,14 +109,14 @@ Public Function RefreshBranchOfficeValidation(Optional ByVal keepOffice As Boole
     Dim wsInfo As Worksheet
     Set wsInfo = CommonGetBasicInfoWorksheet()
     If wsInfo Is Nothing Then
-        MsgBox "åŸºæœ¬æƒ…å ±ã‚·ãƒ¼ãƒˆãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚ã‚·ãƒ¼ãƒˆåã‚’ç¢ºèªã—ã¦ãã ã•ã„ã€‚", vbExclamation
+        MsgBox "Šî–{î•ñƒV[ƒg‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñBƒV[ƒg–¼‚ğŠm”F‚µ‚Ä‚­‚¾‚³‚¢B", vbExclamation
         Exit Function
     End If
 
     Dim yearText As String
     yearText = CommonExtractYear4Digits(Trim$(CStr(wsInfo.Range("B4").Value)))
     If yearText = "" Then
-        MsgBox "åŸºæœ¬æƒ…å ±ã‚·ãƒ¼ãƒˆ B4 ã«4æ¡ã®å¹´åº¦ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚ä¾‹: 2026", vbExclamation
+        MsgBox "Šî–{î•ñƒV[ƒg B4 ‚É4Œ…‚Ì”N“x‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB—á: 2026", vbExclamation
         Exit Function
     End If
 
@@ -127,7 +127,7 @@ Public Function RefreshBranchOfficeValidation(Optional ByVal keepOffice As Boole
     Dim rows As Collection
     Set rows = LoadManagerListRows(sourceFilePath)
     If rows Is Nothing Then
-        MsgBox "å‡ºå¼µæ‰€é•·ãƒªã‚¹ãƒˆãƒ•ã‚¡ã‚¤ãƒ«ã‚’å‚ç…§ã§ãã¾ã›ã‚“ã§ã—ãŸã€‚" & vbCrLf & sourceFilePath, vbExclamation
+        MsgBox "o’£Š’·ƒŠƒXƒgƒtƒ@ƒCƒ‹‚ğQÆ‚Å‚«‚Ü‚¹‚ñ‚Å‚µ‚½B" & vbCrLf & sourceFilePath, vbExclamation
         Exit Function
     End If
 
@@ -156,14 +156,14 @@ Public Function RefreshBranchOfficeValidation(Optional ByVal keepOffice As Boole
         End If
     Next rowData
 
-    ' (#19) ScheduleOfficeComboBoxPrompt ã¯ã“ã“ã§ã¯å‘¼ã°ãšã€æˆ»ã‚Šå€¤ã§è¦å¦ã‚’é€šçŸ¥ã™ã‚‹
+    ' (#19) ScheduleOfficeComboBoxPrompt ‚Í‚±‚±‚Å‚ÍŒÄ‚Î‚¸A–ß‚è’l‚Å—v”Û‚ğ’Ê’m‚·‚é
     RefreshBranchOfficeValidation = WriteValidationLists(wsInfo, branchList, officeList, keepOffice)
 End Function
 
 '--------------------------------------------------------------------------
-'  æ”¯åº—ãƒ»å‡ºå¼µæ‰€ãƒãƒªãƒ‡ãƒ¼ã‚·ãƒ§ãƒ³ãƒªã‚¹ãƒˆæ›¸ãè¾¼ã¿
-'  (#19) æˆ»ã‚Šå€¤ï¼šTrue = ã‚³ãƒ³ãƒœè¡¨ç¤ºã‚¹ã‚±ã‚¸ãƒ¥ãƒ¼ãƒ«ãŒå¿…è¦
-'  æ”¹ä¿®ï¼ˆ#7ï¼‰ï¼šDictionary.Keys() ã‚’ 2æ¬¡å…ƒé…åˆ—ã«è©°ã‚ã¦ Range ä¸€æ‹¬ä»£å…¥ã™ã‚‹ã€‚
+'  x“XEo’£ŠƒoƒŠƒf[ƒVƒ‡ƒ“ƒŠƒXƒg‘‚«‚İ
+'  (#19) –ß‚è’lFTrue = ƒRƒ“ƒ{•\¦ƒXƒPƒWƒ…[ƒ‹‚ª•K—v
+'  ‰üCi#7jFDictionary.Keys() ‚ğ 2ŸŒ³”z—ñ‚É‹l‚ß‚Ä Range ˆêŠ‡‘ã“ü‚·‚éB
 '--------------------------------------------------------------------------
 Private Function WriteValidationLists(ByVal wsInfo As Worksheet, _
                                       ByVal branchList As Object, _
@@ -197,14 +197,14 @@ Private Function WriteValidationLists(ByVal wsInfo As Worksheet, _
     UpdateOfficeComboBox wsInfo, officeList
     wsInfo.Columns(branchCol & ":" & officeCol).Hidden = True
 
-    ' (#19) keepOffice=False ã‹ã¤å€™è£œã‚ã‚Š â†’ å‘¼ã³å‡ºã—å…ƒã§ã‚³ãƒ³ãƒœè¡¨ç¤ºã‚¹ã‚±ã‚¸ãƒ¥ãƒ¼ãƒ«ãŒå¿…è¦
+    ' (#19) keepOffice=False ‚©‚ÂŒó•â‚ ‚è ¨ ŒÄ‚Ño‚µŒ³‚ÅƒRƒ“ƒ{•\¦ƒXƒPƒWƒ…[ƒ‹‚ª•K—v
     If Not keepOffice And officeList.Count > 0 Then
         WriteValidationLists = True
     End If
 End Function
 
-' Dictionary ã® Keys ã‚’ 2æ¬¡å…ƒé…åˆ—ã«å±•é–‹ã—ã€æŒ‡å®šåˆ—ã« Range ä¸€æ‹¬ä»£å…¥ã™ã‚‹ã€‚
-' ä»¶æ•° 0 ä»¶ã®ã¨ãã¯ä½•ã‚‚æ›¸ã‹ãªã„ï¼ˆå‘¼ã³å‡ºã—å´ã§ ClearContents æ¸ˆã¿ï¼‰ã€‚
+' Dictionary ‚Ì Keys ‚ğ 2ŸŒ³”z—ñ‚É“WŠJ‚µAw’è—ñ‚É Range ˆêŠ‡‘ã“ü‚·‚éB
+' Œ” 0 Œ‚Ì‚Æ‚«‚Í‰½‚à‘‚©‚È‚¢iŒÄ‚Ño‚µ‘¤‚Å ClearContents Ï‚İjB
 Private Sub WriteDictionaryKeysToColumn(ByVal wsInfo As Worksheet, _
                                          ByVal dict As Object, _
                                          ByVal colLetter As String)
@@ -214,7 +214,7 @@ Private Sub WriteDictionaryKeysToColumn(ByVal wsInfo As Worksheet, _
     If total = 0 Then Exit Sub
 
     Dim keysArr As Variant
-    keysArr = dict.Keys ' 1 å›ã ã‘å‘¼ã³å‡ºã—ã¦ã‚­ãƒ£ãƒƒã‚·ãƒ¥ã™ã‚‹
+    keysArr = dict.Keys ' 1 ‰ñ‚¾‚¯ŒÄ‚Ño‚µ‚ÄƒLƒƒƒbƒVƒ…‚·‚é
 
     Dim outArr() As Variant
     ReDim outArr(1 To total, 1 To 1)
@@ -252,14 +252,32 @@ Public Sub PromptOfficeComboBox()
     Set wsInfo = CommonGetBasicInfoWorksheet()
     If wsInfo Is Nothing Then Exit Sub
 
+    If ActiveSheet Is Nothing Then Exit Sub
+    If Not ActiveSheet Is wsInfo Then Exit Sub
+
     ShowOfficeComboBox wsInfo
 End Sub
 
+Public Sub HideOfficeComboBox(Optional ByVal wsInfo As Worksheet)
+    If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet()
+    If wsInfo Is Nothing Then Exit Sub
+
+    On Error Resume Next
+    Dim ole As OLEObject
+    Set ole = wsInfo.OLEObjects(OFFICE_COMBO_NAME)
+    If Not ole Is Nothing Then
+        ole.Object.LinkedCell = ""
+        ole.Object.Value = CStr(wsInfo.Range("C6").Value)
+        ole.Visible = False
+    End If
+    On Error GoTo 0
+End Sub
+
 '--------------------------------------------------------------------------
-'  CommitOfficeComboBoxSelection  (#15 ä¿®æ­£)
-'    ComboBox ã§é¸æŠç¢ºå®šã—ãŸå‡ºå¼µæ‰€åã‚’ C6 ã«åæ˜ ã—ã€æ‹…å½“è€…åã‚’æ›´æ–°ã™ã‚‹ã€‚
+'  CommitOfficeComboBoxSelection  (#15 C³)
+'    ComboBox ‚Å‘I‘ğŠm’è‚µ‚½o’£Š–¼‚ğ C6 ‚É”½‰f‚µA’S“–Ò–¼‚ğXV‚·‚éB
 '--------------------------------------------------------------------------
-Public Sub CommitOfficeComboBoxSelection()
+Public Sub CommitOfficeComboBoxSelection(Optional ByVal selectC6 As Boolean = True)
     Dim wsInfo As Worksheet
     Set wsInfo = CommonGetBasicInfoWorksheet()
     If wsInfo Is Nothing Then Exit Sub
@@ -268,31 +286,36 @@ Public Sub CommitOfficeComboBoxSelection()
 
     Dim ole As OLEObject
     Set ole = wsInfo.OLEObjects(OFFICE_COMBO_NAME)
-    If ole Is Nothing Then Exit Sub
+    If ole Is Nothing Then GoTo ExitHandler
 
     Dim selectedOffice As String
     selectedOffice = CommonNormalizeText(CStr(ole.Object.Value))
-    If selectedOffice = "" Then Exit Sub
+    If selectedOffice = "" Then GoTo ExitHandler
 
-    ' ãƒ•ãƒ©ã‚°ã‚’å…ˆã« ON ã«ã—ã¦ LinkedCell ã«ã‚ˆã‚‹ C6 è‡ªå‹•æ›¸ãè¾¼ã¿ã®
-    ' Change ã‚¤ãƒ™ãƒ³ãƒˆã‚‚å«ã‚ã¦æŠ‘åˆ¶ã™ã‚‹
+    ' ƒtƒ‰ƒO‚ğæ‚É ON ‚É‚µ‚Ä LinkedCell ‚É‚æ‚é C6 ©“®‘‚«‚İ‚Ì
+    ' Change ƒCƒxƒ“ƒg‚àŠÜ‚ß‚Ä—}§‚·‚é
     mSuppressC6Change = True
 
-    ' ComboBox ã‚’éè¡¨ç¤ºã«ã—ã¦ã‹ã‚‰ C6 ã«ç¢ºå®šå€¤ã‚’æ›¸ãè¾¼ã‚€
-    ' ï¼ˆLinkedCell çµŒç”±ã§æ—¢ã«æ›¸ãæ›ã‚ã£ã¦ã„ã‚‹å ´åˆã‚‚å«ã‚ã€ç¢ºå®Ÿã«ç¢ºå®šå€¤ã‚’è¨­å®šï¼‰
-    ole.Visible = False
+    ' ComboBox ‚ğ”ñ•\¦‚É‚µ‚Ä‚©‚ç C6 ‚ÉŠm’è’l‚ğ‘‚«‚Ş
+    ' iLinkedCell Œo—R‚ÅŠù‚É‘‚«Š·‚í‚Á‚Ä‚¢‚éê‡‚àŠÜ‚ßAŠmÀ‚ÉŠm’è’l‚ğİ’èj
+    ole.Object.LinkedCell = ""
     wsInfo.Range("C6").Value = selectedOffice
     mSuppressC6Change = False
 
     FillManagerNameToBasicInfo
-    wsInfo.Range("C6").Select
 
 ExitHandler:
     mSuppressC6Change = False
+    HideOfficeComboBox wsInfo
+    If selectC6 Then
+        On Error Resume Next
+        wsInfo.Range("C6").Select
+        On Error GoTo 0
+    End If
 End Sub
 
 Private Sub ShowOfficeComboBox(ByVal wsInfo As Worksheet)
-    On Error Resume Next
+    On Error GoTo ErrorHandler
 
     Dim ole As OLEObject
     Set ole = GetOfficeComboBox(wsInfo)
@@ -304,16 +327,20 @@ Private Sub ShowOfficeComboBox(ByVal wsInfo As Worksheet)
     FitOfficeComboBoxToC6 wsInfo, ole
     wsInfo.Activate
     wsInfo.Range("C6").Select
+    ole.Object.LinkedCell = ""
+    If ole.Object.ListCount = 0 Then
+        HideOfficeComboBox wsInfo
+        ShowC6ValidationDropdown wsInfo
+        Exit Sub
+    End If
     ole.Visible = True
     ole.Activate
     ole.Object.DropDown
-    If Err.Number <> 0 Then
-        Err.Clear
-        ole.Visible = False
-        ShowC6ValidationDropdown wsInfo
-    End If
+    Exit Sub
 
-    On Error GoTo 0
+ErrorHandler:
+    HideOfficeComboBox wsInfo
+    ShowC6ValidationDropdown wsInfo
 End Sub
 
 Private Sub FitOfficeComboBoxToC6(ByVal wsInfo As Worksheet, ByVal ole As OLEObject)
@@ -374,15 +401,23 @@ Private Sub UpdateOfficeComboBox(ByVal wsInfo As Worksheet, ByVal officeList As 
                 .AddItem keysArr(i)
             Next i
         End If
-        .LinkedCell = wsInfo.Range("C6").Address(False, False)
+        .LinkedCell = ""
         .ListRows = Application.Max(1, Application.Min(12, officeList.Count))
         .MatchRequired = False
         .Value = CStr(wsInfo.Range("C6").Value)
     End With
+    ole.Visible = False
     On Error GoTo 0
 End Sub
 
 Private Function LoadManagerListRows(ByVal sourceFilePath As String) As Collection
+    Set LoadManagerListRows = LoadManagerListRowsFromAdo(sourceFilePath)
+    If LoadManagerListRows Is Nothing Then
+        Set LoadManagerListRows = LoadManagerListRowsFromWorkbook(sourceFilePath)
+    End If
+End Function
+
+Private Function LoadManagerListRowsFromAdo(ByVal sourceFilePath As String) As Collection
     Dim cn As Object
     Set cn = CommonOpenExcelAdoConnection(sourceFilePath)
     If cn Is Nothing Then Exit Function
@@ -401,7 +436,7 @@ Private Function LoadManagerListRows(ByVal sourceFilePath As String) As Collecti
     Dim rows As Collection
     Set rows = New Collection
 
-    If Not rs.EOF Then rs.MoveNext ' å…ˆé ­è¡Œï¼ˆè¦‹å‡ºã—ï¼‰ã‚¹ã‚­ãƒƒãƒ—
+    If Not rs.EOF Then rs.MoveNext ' æ“ªsiŒ©o‚µjƒXƒLƒbƒv
     Do Until rs.EOF
         rows.Add Array(CommonNzText(rs.Fields(0).Value), _
                        CommonNzText(rs.Fields(1).Value), _
@@ -409,7 +444,7 @@ Private Function LoadManagerListRows(ByVal sourceFilePath As String) As Collecti
         rs.MoveNext
     Loop
 
-    Set LoadManagerListRows = rows
+    Set LoadManagerListRowsFromAdo = rows
 
 Cleanup:
     CommonCloseAdoRecordset rs
@@ -417,7 +452,48 @@ Cleanup:
     Exit Function
 
 ErrorHandler:
-    Set LoadManagerListRows = Nothing
+    Set LoadManagerListRowsFromAdo = Nothing
+    Resume Cleanup
+End Function
+
+Private Function LoadManagerListRowsFromWorkbook(ByVal sourceFilePath As String) As Collection
+    Dim sourceBook As Workbook
+    Dim previousDisplayAlerts As Boolean
+    previousDisplayAlerts = Application.DisplayAlerts
+
+    On Error GoTo ErrorHandler
+    Application.DisplayAlerts = False
+
+    Set sourceBook = Application.Workbooks.Open(Filename:=sourceFilePath, _
+                                                UpdateLinks:=False, _
+                                                ReadOnly:=True, _
+                                                AddToMru:=False)
+
+    Dim sourceSheet As Worksheet
+    Set sourceSheet = sourceBook.Worksheets(1)
+
+    Dim rows As Collection
+    Set rows = New Collection
+
+    Dim lastRow As Long
+    lastRow = sourceSheet.Cells(sourceSheet.Rows.Count, 2).End(xlUp).Row
+
+    Dim rr As Long
+    For rr = 2 To lastRow
+        rows.Add Array(CommonNzText(sourceSheet.Cells(rr, 2).Value), _
+                       CommonNzText(sourceSheet.Cells(rr, 3).Value), _
+                       CommonNzText(sourceSheet.Cells(rr, 6).Value))
+    Next rr
+
+    Set LoadManagerListRowsFromWorkbook = rows
+
+Cleanup:
+    If Not sourceBook Is Nothing Then sourceBook.Close SaveChanges:=False
+    Application.DisplayAlerts = previousDisplayAlerts
+    Exit Function
+
+ErrorHandler:
+    Set LoadManagerListRowsFromWorkbook = Nothing
     Resume Cleanup
 End Function
 
@@ -443,13 +519,13 @@ Private Function GetManagerListFilePath(ByVal yearText As String) As String
     folderPath = GetManagerListFolderPath()
     If Right$(folderPath, 1) <> Chr$(92) Then folderPath = folderPath & Chr$(92)
     If Dir(folderPath, vbDirectory) = "" Then
-        MsgBox "å‡ºå¼µæ‰€é•·ãƒªã‚¹ãƒˆãƒ•ã‚©ãƒ«ãƒ€ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚" & vbCrLf & folderPath, vbExclamation
+        MsgBox "o’£Š’·ƒŠƒXƒgƒtƒHƒ‹ƒ_‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB" & vbCrLf & folderPath, vbExclamation
         Exit Function
     End If
 
     GetManagerListFilePath = FindManagerListFile(folderPath, yearText)
     If GetManagerListFilePath = "" Then
-        MsgBox yearText & " å¹´ã®å‡ºå¼µæ‰€é•·ãƒªã‚¹ãƒˆãƒ•ã‚¡ã‚¤ãƒ«ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚ãƒ•ã‚¡ã‚¤ãƒ«åã«å¹´åº¦ãŒå«ã¾ã‚Œã¦ã„ã‚‹ã‹ç¢ºèªã—ã¦ãã ã•ã„ã€‚", vbExclamation
+        MsgBox yearText & " ”N‚Ìo’£Š’·ƒŠƒXƒgƒtƒ@ƒCƒ‹‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñBƒtƒ@ƒCƒ‹–¼‚É”N“x‚ªŠÜ‚Ü‚ê‚Ä‚¢‚é‚©Šm”F‚µ‚Ä‚­‚¾‚³‚¢B", vbExclamation
     End If
 End Function
 
@@ -540,7 +616,7 @@ Private Function ManagerListFileNameText(ByVal yearText As String) As String
 End Function
 
 '--------------------------------------------------------------------------
-'  æœ¬ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«å°‚ç”¨ã®æ—¥æœ¬èªåï¼ˆCommon ã«å…±é€šåŒ–ã—ã¦ã„ãªã„ï¼‰
+'  –{ƒ‚ƒWƒ…[ƒ‹ê—p‚Ì“ú–{Œê–¼iCommon ‚É‹¤’Ê‰»‚µ‚Ä‚¢‚È‚¢j
 '--------------------------------------------------------------------------
 
 Private Function OrderInvoiceDocumentFolderText() As String

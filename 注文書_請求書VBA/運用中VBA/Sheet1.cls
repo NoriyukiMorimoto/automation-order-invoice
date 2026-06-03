@@ -4,6 +4,7 @@ Private Sub Worksheet_Activate()
     On Error GoTo ExitHandler
     Application.EnableEvents = False
 
+    mod_FillManagerName.HideOfficeComboBox Me
     mod_FillManagerName.RefreshBranchOfficeValidation True
     mod_VendorMaster.RefreshVendorListForBasicInfo Me
     mod_MaterialPriceImport.RefreshUnitPriceProjectNameValidation Me
@@ -22,7 +23,7 @@ Private Sub Worksheet_Change(ByVal Target As Range)
     needComboPrompt = False
 
     If Not Intersect(Target, Me.Range("B4,B6")) Is Nothing Then
-        ' (#19) æˆ»ã‚Šå€¤ã§ã‚³ãƒ³ãƒœè¡¨ç¤ºã‚¹ã‚±ã‚¸ãƒ¥ãƒ¼ãƒ«ã®è¦å¦ã‚’å—ã‘å–ã‚‹
+        ' (#19) –ß‚è’l‚ÅƒRƒ“ƒ{•\¦ƒXƒPƒWƒ…[ƒ‹‚Ì—v”Û‚ğó‚¯æ‚é
         needComboPrompt = mod_FillManagerName.RefreshBranchOfficeValidation(False)
     End If
 
@@ -30,7 +31,7 @@ Private Sub Worksheet_Change(ByVal Target As Range)
         mod_VendorMaster.RefreshVendorListForBasicInfo Me
     End If
 
-    ' B6 ã¾ãŸã¯ C6 ãŒå¤‰æ›´ã•ã‚ŒãŸå ´åˆï¼šç¢ºèªãªã—ã§åŸºæœ¬æƒ…å ±ãƒ»å˜ä¾¡ã‚·ãƒ¼ãƒˆã‚’ã‚¯ãƒªã‚¢
+    ' B6 ‚Ü‚½‚Í C6 ‚ª•ÏX‚³‚ê‚½ê‡FŠm”F‚È‚µ‚ÅŠî–{î•ñE’P‰¿ƒV[ƒg‚ğƒNƒŠƒA
     If Not Intersect(Target, Me.Range("B6,C6")) Is Nothing Then
         If Not mod_FillManagerName.IsSuppressingC6Change() Then
             mod_BasicInfoUpdate.SilentClearBasicInfo Me
@@ -38,13 +39,13 @@ Private Sub Worksheet_Change(ByVal Target As Range)
     End If
 
     If Not Intersect(Target, Me.Range("C6")) Is Nothing Then
-        ' ComboBoxé¸æŠç¢ºå®šã«ã‚ˆã‚‹æ›¸ãè¾¼ã¿ä¸­ã¯Changeã‚¤ãƒ™ãƒ³ãƒˆã‚’ã‚¹ã‚­ãƒƒãƒ—
+        ' ComboBox‘I‘ğŠm’è‚É‚æ‚é‘‚«‚İ’†‚ÍChangeƒCƒxƒ“ƒg‚ğƒXƒLƒbƒv
         If Not mod_FillManagerName.IsSuppressingC6Change() Then
             mod_FillManagerName.FillManagerNameToBasicInfo
         End If
     End If
 
-    ' C10 ãŒå¤‰æ›´ã•ã‚ŒãŸå ´åˆï¼šåœ¨å¹¹åŒºåˆ†ãƒã‚¹ã‚¿ã‚’å‚ç…§ã—ã¦ C20ãƒ»C21 ã‚’è‡ªå‹•å…¥åŠ›
+    ' C10 ‚ª•ÏX‚³‚ê‚½ê‡FİŠ²‹æ•ªƒ}ƒXƒ^‚ğQÆ‚µ‚Ä C20EC21 ‚ğ©“®“ü—Í
     If Not Intersect(Target, Me.Range("C10")) Is Nothing Then
         mod_MaterialPriceImport.AutoFillLineTypeFromWorkName Me
         mod_MaterialPriceImport.AutoFillProjectNameFromWorkName Me
@@ -66,8 +67,8 @@ Private Sub Worksheet_Change(ByVal Target As Range)
         mod_MaterialPriceImport.FormatImportedLineNamesCell Me
     End If
 
-    ' C22 ã¾ãŸã¯ C23 ãŒå¤‰æ›´ã•ã‚ŒãŸå ´åˆï¼šC24 ã«å†…å®¹ãŒã‚ã‚Œã°ï¼ˆå˜ä¾¡ã‚·ãƒ¼ãƒˆå–è¾¼æ¸ˆã¿ï¼‰ã€
-    ' ç¢ºèªãªã—ã§ C24 ãƒ»å˜ä¾¡ã‚·ãƒ¼ãƒˆãƒ»è³¼å…¥å……å½“å˜ä¾¡ã‚·ãƒ¼ãƒˆãƒ»ãƒ¬ãƒ¼ãƒ«æº¶æ¥å˜ä¾¡ã‚·ãƒ¼ãƒˆã‚’å‰Šé™¤ã™ã‚‹
+    ' C22 ‚Ü‚½‚Í C23 ‚ª•ÏX‚³‚ê‚½ê‡FC24 ‚É“à—e‚ª‚ ‚ê‚Îi’P‰¿ƒV[ƒgæÏ‚İjA
+    ' Šm”F‚È‚µ‚Å C24 E’P‰¿ƒV[ƒgEw“ü[“–’P‰¿ƒV[ƒgEƒŒ[ƒ‹—nÚ’P‰¿ƒV[ƒg‚ğíœ‚·‚é
     If Not Intersect(Target, Me.Range("C22,C23")) Is Nothing Then
         If Trim$(CStr(Me.Range("C24").Value)) <> "" Then
             mod_MaterialPriceImport.SilentClearUnitPriceForBasicInfo Me
@@ -82,14 +83,14 @@ Private Sub Worksheet_Change(ByVal Target As Range)
 
 ExitHandler:
     Application.EnableEvents = True
-    ' (#19) EnableEvents=True å¾©å¸°å¾Œã«ã‚³ãƒ³ãƒœè¡¨ç¤ºã‚’ã‚¹ã‚±ã‚¸ãƒ¥ãƒ¼ãƒ«
-    ' ï¼ˆEnableEvents=False ä¸­ã« OnTime äºˆç´„ã™ã‚‹ã¨ SilentClearBasicInfo ã¨ã®
-    '   ç«¶åˆã§ã‚³ãƒ³ãƒœãŒè¡¨ç¤ºã•ã‚Œã‚‹å‰ã«éè¡¨ç¤ºã«ã•ã‚Œã‚‹å•é¡Œã‚’å›é¿ï¼‰
+    ' (#19) EnableEvents=True •œ‹AŒã‚ÉƒRƒ“ƒ{•\¦‚ğƒXƒPƒWƒ…[ƒ‹
+    ' iEnableEvents=False ’†‚É OnTime —\–ñ‚·‚é‚Æ SilentClearBasicInfo ‚Æ‚Ì
+    '   ‹£‡‚ÅƒRƒ“ƒ{‚ª•\¦‚³‚ê‚é‘O‚É”ñ•\¦‚É‚³‚ê‚é–â‘è‚ğ‰ñ”ğj
     If needComboPrompt Then mod_FillManagerName.ScheduleOfficeComboBoxPrompt
 End Sub
 
 Private Sub Worksheet_BeforeDoubleClick(ByVal Target As Range, Cancel As Boolean)
-    ' C24 ãƒ€ãƒ–ãƒ«ã‚¯ãƒªãƒƒã‚¯ â†’ ç©ç®—ç·šåŒºå˜ä¾¡å–è¾¼
+    ' C24 ƒ_ƒuƒ‹ƒNƒŠƒbƒN ¨ ÏZü‹æ’P‰¿æ
     If Not Intersect(Target, Me.Range("C24")) Is Nothing Then
         Cancel = True
         mod_MaterialPriceImport.ImportConstructionUnitPriceForBasicInfo
@@ -113,6 +114,10 @@ End Sub
 Private Sub Worksheet_SelectionChange(ByVal Target As Range)
     mod_BasicInfoCalendar.HandleBasicInfoSelectionChange Target
 
+    If Intersect(Target, Me.Range("C6")) Is Nothing Then
+        mod_FillManagerName.HideOfficeComboBox Me
+    End If
+
     If Not Intersect(Target, Me.Range("C21")) Is Nothing Then
         mod_MaterialPriceImport.RefreshUnitPriceProjectNameValidation Me, True
     End If
@@ -134,6 +139,10 @@ Private Sub ComboBox1_KeyDown(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shif
     If KeyCode = vbKeyReturn Then
         mod_FillManagerName.CommitOfficeComboBoxSelection
     End If
+End Sub
+
+Private Sub ComboBox1_LostFocus()
+    mod_FillManagerName.CommitOfficeComboBoxSelection False
 End Sub
 
 Private Sub ComboBoxVendor_Click()
