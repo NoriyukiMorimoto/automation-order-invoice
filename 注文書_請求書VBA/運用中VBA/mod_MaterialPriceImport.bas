@@ -47,6 +47,12 @@ Option Explicit
 '        フルキー一致、短縮キー一致、単一シート採用の順で判定する。
 '    改修内容（#25）：
 '      - 購入充当単価シートのタブ色を #FFCC99 から #99FFCC に変更。
+'    改修内容（#26）：
+'      - 工事単価シートのタブ色を #DDEBF7 から #A5ABE5 に変更。
+'    改修内容（#27）：
+'      - 溶接単価ブックが無い保線区で、C23 が溶接ありの場合に
+'        「○○には溶接単価の設定がありません。」と警告するよう修正。
+'      - C23 の溶接工事有無判定を MergeArea と表記ゆれに対応。
 '==========================================================================
 Public SharedMasterData As Variant
 
@@ -98,6 +104,9 @@ Private Const PROJECT_NAME_MASTER_START_ROW As Long = 2
 Private Const PROJECT_NAME_MASTER_LAST_ROW As Long = 1048576
 Private Const IMPORTED_SHEET_PROPERTY As String = "UnitPriceImported"
 
+Private Const UNIT_PRICE_SHEET_TAB_R As Long = 165
+Private Const UNIT_PRICE_SHEET_TAB_G As Long = 171
+Private Const UNIT_PRICE_SHEET_TAB_B As Long = 229
 Private Const UNIT_PRICE_FILE_KEYWORD As String = "軌道材料購入充当"
 Private Const PURCHASE_SHEET_NAME_SUFFIX As String = "_購入充当単価"
 Private Const PURCHASE_SHEET_TAB_R As Long = 153
@@ -369,7 +378,7 @@ Private Sub ImportUnitPriceData(ByVal wsInfo As Worksheet)
     Call ImportPurchaseUnitPriceSheetsByReference(request, masterRow, priceFolderPath, sectionFolderPath, wsInfo.Parent, purchaseSheetName)
 
     Dim weldingSheetName As String
-    Call ImportWeldingUnitPriceSheetsIfRequired(wsInfo, masterRow, priceFolderPath, sectionFolderPath, selectedSheetNames, wsInfo.Parent, weldingSheetName)
+    If Not ImportWeldingUnitPriceSheetsIfRequired(wsInfo, masterRow, priceFolderPath, sectionFolderPath, selectedSheetNames, wsInfo.Parent, weldingSheetName) Then Exit Sub
 
     ' #19: 購入充当・溶接単価取込後も基本情報シートに戻す
     wsInfo.Activate
@@ -772,7 +781,7 @@ Private Function ImportSelectedUnitPriceSheets(ByVal selectedSheetNames As Colle
         sourceBook.Worksheets(sourceSheetName).Copy After:=targetBook.Worksheets(targetBook.Worksheets.Count)
         With targetBook.Worksheets(targetBook.Worksheets.Count)
             .Name = MakeUniqueWorksheetName(targetBook, targetSheetName, .Name)
-            .Tab.Color = RGB(221, 235, 247)
+            .Tab.Color = RGB(UNIT_PRICE_SHEET_TAB_R, UNIT_PRICE_SHEET_TAB_G, UNIT_PRICE_SHEET_TAB_B)
             MarkImportedUnitPriceSheet targetBook.Worksheets(.Name)
         End With
 
@@ -1003,8 +1012,8 @@ Private Function ImportWeldingUnitPriceSheetsIfRequired(ByVal wsInfo As Workshee
     Dim weldingFilePath As String
     weldingFilePath = FindWeldingUnitPriceWorkbook(priceFolderPath)
     If weldingFilePath = "" Then
-        MsgBox "レール溶接単価表が見つかりません。" & vbCrLf & _
-               "検索値：" & WELDING_FILE_KEYWORD & vbCrLf & priceFolderPath, vbExclamation
+        MsgBox BuildMissingWeldingUnitPriceMessage(sectionFolderPath, masterRow), vbExclamation
+        ImportWeldingUnitPriceSheetsIfRequired = True
         Exit Function
     End If
 
@@ -1030,10 +1039,27 @@ Private Function ImportWeldingUnitPriceSheetsIfRequired(ByVal wsInfo As Workshee
     ImportWeldingUnitPriceSheetsIfRequired = True
 End Function
 
+Private Function BuildMissingWeldingUnitPriceMessage(ByVal sectionFolderPath As String, _
+                                                     ByRef masterRow As UnitPriceMasterRow) As String
+    Dim sectionName As String
+    sectionName = TrimLeadingDigitsAndSeparators(GetPathBaseName(sectionFolderPath))
+    If sectionName = "" Then sectionName = TrimLeadingDigitsAndSeparators(masterRow.UnitPriceSectionName)
+    If sectionName = "" Then sectionName = masterRow.UnitPriceSectionName
+
+    BuildMissingWeldingUnitPriceMessage = sectionName & "には溶接単価の設定がありません。"
+End Function
+
 Private Function IsWeldingUnitPriceRequired(ByVal wsInfo As Worksheet) As Boolean
     If wsInfo Is Nothing Then Exit Function
-    IsWeldingUnitPriceRequired = (StrComp(NormalizeMatchText(CStr(wsInfo.Range(BASIC_INFO_WELDING_FLAG_CELL).Value)), _
-                                         NormalizeMatchText(WELDING_REQUIRED_VALUE), vbTextCompare) = 0)
+
+    Dim targetCell As Range
+    Set targetCell = wsInfo.Range(BASIC_INFO_WELDING_FLAG_CELL).MergeArea.Cells(1, 1)
+
+    Dim normalizedFlag As String
+    normalizedFlag = NormalizeMatchText(CStr(targetCell.Value))
+    IsWeldingUnitPriceRequired = (StrComp(normalizedFlag, NormalizeMatchText(WELDING_REQUIRED_VALUE), vbTextCompare) = 0 Or _
+                                  (InStr(1, normalizedFlag, NormalizeMatchText("溶接"), vbTextCompare) > 0 And _
+                                   InStr(1, normalizedFlag, NormalizeMatchText("あり"), vbTextCompare) > 0))
 End Function
 
 Private Function LoadWeldingSheetNames(ByVal sourceFilePath As String, _
