@@ -81,17 +81,16 @@ Private Sub Worksheet_Change(ByVal Target As Range)
         mod_VendorMaster.HideVendorComboBox Me
     End If
 
-ExitHandler:
-    Application.EnableEvents = True
-    ' (#20) OnTime 経由の遅延予約をやめ、Worksheet_Change 完了直後に
-    '       DoEvents でイベントキューを処理してから同期的に呼ぶ。
-    '       OnTime の 1 秒遅延中に他のイベント（SelectionChange 内の
-    '       HideOfficeComboBox など）と競合してコンボが表示されない
-    '       問題を回避する。
+    ' (#21) コンボ表示を EnableEvents=False のまま On Error 保護下で同期呼び出し。
+    '       これにより ole.Activate / Range.Select で発火しうる
+    '       SelectionChange / LostFocus などの再帰イベントが
+    '       物理的にブロックされ、競合もエラー漏れも起こらない。
     If needComboPrompt Then
-        DoEvents
         mod_FillManagerName.PromptOfficeComboBox
     End If
+
+ExitHandler:
+    Application.EnableEvents = True
 End Sub
 
 Private Sub Worksheet_BeforeDoubleClick(ByVal Target As Range, Cancel As Boolean)

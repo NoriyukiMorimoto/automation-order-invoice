@@ -2,6 +2,11 @@ Option Explicit
 
 '==========================================================================
 '  基本情報シート 期間／請求回数更新モジュール
+'    改修内容（#21）：
+'      - SilentClearBasicInfo / ClearBasicInfo で EnableEvents を
+'        上書きしないよう保存・復元するように変更。
+'        親呼び出し元（Worksheet_Change など）が EnableEvents=False 中に
+'        これらを呼び出しても EnableEvents 状態を損なわないようにする。
 '    改修内容（#18）：
 '      - 業者情報8行目に2行挿入のため、BASIC_INFO_CLEAR_RANGES の
 '        F列範囲を F9:F14,F16:F21 → F11:F16,F18:F23 に更新。
@@ -137,6 +142,8 @@ Public Sub ClearBasicInfo()
 
     Dim savedErrNum As Long
     Dim savedErrDesc As String
+    Dim prevEnableEvents As Boolean
+    prevEnableEvents = Application.EnableEvents
 
     On Error GoTo ErrorHandler
     Application.ScreenUpdating = False
@@ -153,7 +160,8 @@ ErrorHandler:
     savedErrDesc = Err.Description
 
 FinallyExit:
-    Application.EnableEvents = True
+    ' (#21) 呼び出し元の EnableEvents 状態を復元する。
+    Application.EnableEvents = prevEnableEvents
     Application.ScreenUpdating = True
     If savedErrNum <> 0 Then
         MsgBox "Basic information clear failed." & vbCrLf & savedErrDesc, vbExclamation
@@ -163,13 +171,16 @@ End Sub
 '--------------------------------------------------------------------------
 '  SilentClearBasicInfo
 '    B6/C6 変更時の自動クリア用。確認メッセージなし。
-'    基本情報クリア範囲＋単価シート＋C24 を無条件で削除する。
+'    (#21) Worksheet_Change などから呼ばれたとき EnableEvents を
+'    上書きしないよう、保存・復元するように変更。
 '--------------------------------------------------------------------------
 Public Sub SilentClearBasicInfo(ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Exit Sub
 
     Dim savedErrNum As Long
     Dim savedErrDesc As String
+    Dim prevEnableEvents As Boolean
+    prevEnableEvents = Application.EnableEvents
 
     On Error GoTo ErrorHandler
     Application.ScreenUpdating = False
@@ -186,7 +197,10 @@ ErrorHandler:
     savedErrDesc = Err.Description
 
 FinallyExit:
-    Application.EnableEvents = True
+    ' (#21) 呼び出し元の EnableEvents 状態を復元する。
+    '       以前は無条件で True にしていたため、親呼び出し元が False 中だった
+    '       場合も True に上書きされてしまう問題があった。
+    Application.EnableEvents = prevEnableEvents
     Application.ScreenUpdating = True
     If savedErrNum <> 0 Then
         MsgBox "Basic information silent clear failed." & vbCrLf & savedErrDesc, vbExclamation
