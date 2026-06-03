@@ -41,6 +41,12 @@ Option Explicit
 '      - 単価表ブック検索で同じファイルパスが複数回返った場合、重複して候補に
 '        追加しないよう修正。対応積算線区選択フォームに同じ本線・基地線が
 '        2回表示される問題を解消。
+'    改修内容（#24）：
+'      - 新幹線の購入充当単価表で、シート名が「福井新幹線保線区」ではなく
+'        「2026単価一覧表(材料)福井」のような短縮名称の場合でも取り込めるよう修正。
+'        フルキー一致、短縮キー一致、単一シート採用の順で判定する。
+'    改修内容（#25）：
+'      - 購入充当単価シートのタブ色を #FFCC99 から #99FFCC に変更。
 '==========================================================================
 Public SharedMasterData As Variant
 
@@ -94,9 +100,9 @@ Private Const IMPORTED_SHEET_PROPERTY As String = "UnitPriceImported"
 
 Private Const UNIT_PRICE_FILE_KEYWORD As String = "軌道材料購入充当"
 Private Const PURCHASE_SHEET_NAME_SUFFIX As String = "_購入充当単価"
-Private Const PURCHASE_SHEET_TAB_R As Long = 255
-Private Const PURCHASE_SHEET_TAB_G As Long = 204
-Private Const PURCHASE_SHEET_TAB_B As Long = 153
+Private Const PURCHASE_SHEET_TAB_R As Long = 153
+Private Const PURCHASE_SHEET_TAB_G As Long = 255
+Private Const PURCHASE_SHEET_TAB_B As Long = 204
 Private Const WELDING_REQUIRED_VALUE As String = "溶接工事あり"
 Private Const WELDING_FILE_KEYWORD As String = "⑧レール溶接工事"
 Private Const WELDING_FILE_FALLBACK_KEYWORD As String = "レール溶接工事"
@@ -1062,11 +1068,63 @@ Private Function LoadPurchaseSheetNamesByReference(ByVal sourceFilePath As Strin
 
     Dim result As Collection
     Set result = New Collection
+
+    AddPurchaseSheetNamesByReferenceKey sheetNames, referenceKey, result
+    If result.Count = 0 Then
+        AddPurchaseSheetNamesByReferenceKey sheetNames, BuildPurchaseFallbackReferenceKey(referenceKey), result
+    End If
+
+    If result.Count = 0 And sheetNames.Count = 1 Then
+        result.Add CStr(sheetNames(1))
+    End If
+
+    Set LoadPurchaseSheetNamesByReference = result
+End Function
+
+Private Sub AddPurchaseSheetNamesByReferenceKey(ByVal sheetNames As Collection, _
+                                                ByVal referenceKey As String, _
+                                                ByVal result As Collection)
+    If sheetNames Is Nothing Or result Is Nothing Then Exit Sub
+    If referenceKey = "" Then Exit Sub
+
     Dim sheetName As Variant
     For Each sheetName In sheetNames
-        If PurchaseSheetNameMatchesReferenceKey(CStr(sheetName), referenceKey) Then result.Add CStr(sheetName)
+        If PurchaseSheetNameMatchesReferenceKey(CStr(sheetName), referenceKey) Then
+            If Not CollectionContainsText(result, CStr(sheetName)) Then result.Add CStr(sheetName)
+        End If
     Next sheetName
-    Set LoadPurchaseSheetNamesByReference = result
+End Sub
+
+Private Function BuildPurchaseFallbackReferenceKey(ByVal referenceKey As String) As String
+    Dim result As String
+    result = NormalizeMatchText(referenceKey)
+
+    result = TrimPurchaseReferenceSuffix(result, SHINKANSEN_NAME & "保線技術センター")
+    result = TrimPurchaseReferenceSuffix(result, SHINKANSEN_NAME & "保線区")
+    result = TrimPurchaseReferenceSuffix(result, "保線技術センター")
+    result = TrimPurchaseReferenceSuffix(result, "保線区")
+    result = TrimPurchaseReferenceSuffix(result, "地域鉄道部")
+    result = TrimPurchaseReferenceSuffix(result, "鉄道部")
+
+    If result <> NormalizeMatchText(referenceKey) Then BuildPurchaseFallbackReferenceKey = result
+End Function
+
+Private Function TrimPurchaseReferenceSuffix(ByVal sourceText As String, ByVal suffixText As String) As String
+    Dim suffix As String
+    suffix = NormalizeMatchText(suffixText)
+    If sourceText = "" Or suffix = "" Then
+        TrimPurchaseReferenceSuffix = sourceText
+        Exit Function
+    End If
+
+    If Len(sourceText) > Len(suffix) Then
+        If Right$(sourceText, Len(suffix)) = suffix Then
+            TrimPurchaseReferenceSuffix = Left$(sourceText, Len(sourceText) - Len(suffix))
+            Exit Function
+        End If
+    End If
+
+    TrimPurchaseReferenceSuffix = sourceText
 End Function
 
 '--------------------------------------------------------------------------
