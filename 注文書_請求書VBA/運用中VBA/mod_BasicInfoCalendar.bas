@@ -8,6 +8,8 @@ Option Explicit
 '      #10 : DrawBasicInfoCalendar / DeleteBasicInfoCalendar の前後で
 '            ScreenUpdating を OFF にし、Shape の追加・削除でちらつきが
 '            出ないようにする（描画のもたつき緩和）。
+'      #11 : C9 / 日付セルの対象判定で Target.MergeArea が 1004 を出す
+'            場合に備え、MergeArea 左上セル取得を安全化。
 '==========================================================================
 
 Private Const CALENDAR_PREFIX As String = "BICal_"
@@ -329,8 +331,12 @@ Private Function GetBasicInfoProjectNameTargetCell(ByVal Target As Range) As Ran
     Dim ws As Worksheet
     Set ws = Target.Worksheet
 
+    Dim topLeftCell As Range
+    Set topLeftCell = GetMergeAreaTopLeftCell(Target)
+    If topLeftCell Is Nothing Then Exit Function
+
     Dim candidate As Range
-    Set candidate = Intersect(Target.MergeArea.Cells(1, 1), ws.Range("C9"))
+    Set candidate = Intersect(topLeftCell, ws.Range("C9"))
     If Not candidate Is Nothing Then
         Set GetBasicInfoProjectNameTargetCell = candidate.Cells(1, 1)
         Exit Function
@@ -368,8 +374,12 @@ Private Function GetDateTargetCell(ByVal Target As Range) As Range
     Dim ws As Worksheet
     Set ws = Target.Worksheet
 
+    Dim topLeftCell As Range
+    Set topLeftCell = GetMergeAreaTopLeftCell(Target)
+    If topLeftCell Is Nothing Then Exit Function
+
     Dim candidate As Range
-    Set candidate = Intersect(Target.MergeArea.Cells(1, 1), ws.Range(BASIC_INFO_DATE_CELLS))
+    Set candidate = Intersect(topLeftCell, ws.Range(BASIC_INFO_DATE_CELLS))
     If Not candidate Is Nothing Then
         Set GetDateTargetCell = candidate.Cells(1, 1)
         Exit Function
@@ -377,6 +387,17 @@ Private Function GetDateTargetCell(ByVal Target As Range) As Range
 
     Set candidate = Intersect(Target, ws.Range(BASIC_INFO_DATE_CELLS))
     If Not candidate Is Nothing Then Set GetDateTargetCell = candidate.Cells(1, 1)
+End Function
+
+Private Function GetMergeAreaTopLeftCell(ByVal targetRange As Range) As Range
+    If targetRange Is Nothing Then Exit Function
+
+    On Error Resume Next
+    Set GetMergeAreaTopLeftCell = targetRange.MergeArea.Cells(1, 1)
+    If GetMergeAreaTopLeftCell Is Nothing Then
+        Set GetMergeAreaTopLeftCell = targetRange.Cells(1, 1)
+    End If
+    On Error GoTo 0
 End Function
 
 Private Function GetInitialCalendarDate(ByVal targetCell As Range) As Date
