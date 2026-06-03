@@ -18,8 +18,12 @@ Private Sub Worksheet_Change(ByVal Target As Range)
     On Error GoTo ExitHandler
     Application.EnableEvents = False
 
+    Dim needComboPrompt As Boolean
+    needComboPrompt = False
+
     If Not Intersect(Target, Me.Range("B4,B6")) Is Nothing Then
-        mod_FillManagerName.RefreshBranchOfficeValidation False
+        ' (#19) 戻り値でコンボ表示スケジュールの要否を受け取る
+        needComboPrompt = mod_FillManagerName.RefreshBranchOfficeValidation(False)
     End If
 
     If Not Intersect(Target, Me.Range("B6")) Is Nothing Then
@@ -78,6 +82,10 @@ Private Sub Worksheet_Change(ByVal Target As Range)
 
 ExitHandler:
     Application.EnableEvents = True
+    ' (#19) EnableEvents=True 復帰後にコンボ表示をスケジュール
+    ' （EnableEvents=False 中に OnTime 予約すると SilentClearBasicInfo との
+    '   競合でコンボが表示される前に非表示にされる問題を回避）
+    If needComboPrompt Then mod_FillManagerName.ScheduleOfficeComboBoxPrompt
 End Sub
 
 Private Sub Worksheet_BeforeDoubleClick(ByVal Target As Range, Cancel As Boolean)
