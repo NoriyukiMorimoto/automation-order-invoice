@@ -1,16 +1,19 @@
 Option Explicit
 
 '==========================================================================
-'  ��{���V�[�g ���ԁ^�����񐔍X�V���W���[��
-'    ���C���e�i#15�j�F
-'      - �G���[�n���h������ Err.Number / Err.Description ��ޔ����A
-'        ���̌�� Application �ݒ蕜�A���m���ɍs���\���֐����B
-'    ���C���e�i#9�j�F
-'      - NormalizeText / GetBasicInfoWorksheet / ���{��V�[�g��������
-'        mod_Common �ɏW��ς݁B�d����`��P�����A���ʊ֐��o�R�ŎQ�ƁB
-'    ���C���e�i#11�j�F
-'      - SilentClearBasicInfo ��ǉ��B
-'        B6/C6 �ύX���Ɋm�F���b�Z�[�W�Ȃ��Ŋ�{���ƒP���V�[�g���N���A�B
+'  基本情報シート 期間／請求回数更新モジュール
+'    改修内容（#18）：
+'      - 業者情報8行目に2行挿入のため、BASIC_INFO_CLEAR_RANGES の
+'        F列範囲を F9:F14,F16:F21 → F11:F16,F18:F23 に更新。
+'    改修内容（#15）：
+'      - エラーハンドラ内で Err.Number / Err.Description を退避し、
+'        その後の Application 設定復帰を確実に行う構造へ整理。
+'    改修内容（#9）：
+'      - NormalizeText / GetBasicInfoWorksheet / 日本語シート名生成は
+'        mod_Common に集約済み。重複定義を撤去し、共通関数経由で参照。
+'    改修内容（#11）：
+'      - SilentClearBasicInfo を追加。
+'        B6/C6 変更時に確認メッセージなしで基本情報と単価シートをクリア。
 '==========================================================================
 
 Private Const BASIC_INFO_START_DATE_CELL As String = "F2"
@@ -20,7 +23,7 @@ Private Const BASIC_INFO_WORK_START_DATE_CELL As String = "C15"
 Private Const BASIC_INFO_WORK_END_DATE_CELL As String = "C16"
 Private Const BASIC_INFO_WORK_DAYS_CELL As String = "C17"
 Private Const OFFICE_COMBO_NAME As String = "ComboBox1"
-Private Const BASIC_INFO_CLEAR_RANGES As String = "C9:C12,C15:C17,C20:C24,F2:F4,F9:F14,F16:F21"
+Private Const BASIC_INFO_CLEAR_RANGES As String = "C9:C12,C15:C17,C20:C24,F2:F4,F11:F16,F18:F23"
 
 Public Sub UpdateBasicInfoPeriod()
     Dim wsInfo As Worksheet
@@ -122,7 +125,7 @@ End Sub
 
 '--------------------------------------------------------------------------
 '  ClearBasicInfo
-'    �{�^�������p�B�m�F���b�Z�[�W����E�P���N���A�m�F����B
+'    ボタン押下用。確認メッセージあり・単価クリア確認あり。
 '--------------------------------------------------------------------------
 Public Sub ClearBasicInfo()
     Dim wsInfo As Worksheet
@@ -159,8 +162,8 @@ End Sub
 
 '--------------------------------------------------------------------------
 '  SilentClearBasicInfo
-'    B6/C6 �ύX���̎����N���A�p�B�m�F���b�Z�[�W�Ȃ��B
-'    ��{���N���A�͈́{�P���V�[�g�{C24 �𖳏����ō폜����B
+'    B6/C6 変更時の自動クリア用。確認メッセージなし。
+'    基本情報クリア範囲＋単価シート＋C24 を無条件で削除する。
 '--------------------------------------------------------------------------
 Public Sub SilentClearBasicInfo(ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Exit Sub
@@ -197,8 +200,8 @@ Private Sub HideOfficeComboBoxForUpdate(ByVal wsInfo As Worksheet)
     Set ole = wsInfo.OLEObjects(OFFICE_COMBO_NAME)
     If ole Is Nothing Then Exit Sub
 
-    ' C6������͂�������ɁAComboBox�Ɏc�������l�ŏ㏑�����Ȃ��悤
-    ' �Z���̌��ݒl��ComboBox���֓������Ă����\���ɂ���B
+    ' C6を手入力した直後に、ComboBoxに残った旧値で上書きしないよう
+    ' セルの現在値をComboBox側へ同期してから非表示にする。
     ole.Object.Value = CStr(wsInfo.Range("C6").Value)
     ole.Visible = False
 
