@@ -23,7 +23,6 @@ Private Sub Worksheet_Change(ByVal Target As Range)
     needComboPrompt = False
 
     If Not Intersect(Target, Me.Range("B4,B6")) Is Nothing Then
-        ' (#19) 戻り値でコンボ表示スケジュールの要否を受け取る
         needComboPrompt = mod_FillManagerName.RefreshBranchOfficeValidation(False)
     End If
 
@@ -39,13 +38,11 @@ Private Sub Worksheet_Change(ByVal Target As Range)
     End If
 
     If Not Intersect(Target, Me.Range("C6")) Is Nothing Then
-        ' ComboBox選択確定による書き込み中はChangeイベントをスキップ
         If Not mod_FillManagerName.IsSuppressingC6Change() Then
             mod_FillManagerName.FillManagerNameToBasicInfo
         End If
     End If
 
-    ' C10 が変更された場合：在幹区分マスタを参照して C20・C21 を自動入力
     If Not Intersect(Target, Me.Range("C10")) Is Nothing Then
         mod_MaterialPriceImport.AutoFillLineTypeFromWorkName Me
         mod_MaterialPriceImport.AutoFillProjectNameFromWorkName Me
@@ -67,8 +64,6 @@ Private Sub Worksheet_Change(ByVal Target As Range)
         mod_MaterialPriceImport.FormatImportedLineNamesCell Me
     End If
 
-    ' C22 または C23 が変更された場合：C24 に内容があれば（単価シート取込済み）、
-    ' 確認なしで C24 ・単価シート・購入充当単価シート・レール溶接単価シートを削除する
     If Not Intersect(Target, Me.Range("C22,C23")) Is Nothing Then
         If Trim$(CStr(Me.Range("C24").Value)) <> "" Then
             mod_MaterialPriceImport.SilentClearUnitPriceForBasicInfo Me
@@ -81,10 +76,10 @@ Private Sub Worksheet_Change(ByVal Target As Range)
         mod_VendorMaster.HideVendorComboBox Me
     End If
 
-    ' (#21) コンボ表示を EnableEvents=False のまま On Error 保護下で同期呼び出し。
-    '       これにより ole.Activate / Range.Select で発火しうる
-    '       SelectionChange / LostFocus などの再帰イベントが
-    '       物理的にブロックされ、競合もエラー漏れも起こらない。
+    ' (#22) PromptOfficeComboBox は内部で EnableEvents=True に切り替えて
+    '       OLEObject.Activate を動作させる。mInPromptOffice フラグで
+    '       SelectionChange / LostFocus を拑否し、終了時に EnableEvents を
+    '       現在の False 状態へ復元して返る。
     If needComboPrompt Then
         mod_FillManagerName.PromptOfficeComboBox
     End If
@@ -94,7 +89,6 @@ ExitHandler:
 End Sub
 
 Private Sub Worksheet_BeforeDoubleClick(ByVal Target As Range, Cancel As Boolean)
-    ' C24 ダブルクリック → 積算線区単価取込
     If Not Intersect(Target, Me.Range("C24")) Is Nothing Then
         Cancel = True
         mod_MaterialPriceImport.ImportConstructionUnitPriceForBasicInfo
@@ -118,8 +112,11 @@ End Sub
 Private Sub Worksheet_SelectionChange(ByVal Target As Range)
     mod_BasicInfoCalendar.HandleBasicInfoSelectionChange Target
 
-    If Intersect(Target, Me.Range("C6")) Is Nothing Then
-        mod_FillManagerName.HideOfficeComboBox Me
+    ' (#22) PromptOfficeComboBox 処理中はコンボを消さない
+    If Not mod_FillManagerName.IsPromptingOfficeComboBox() Then
+        If Intersect(Target, Me.Range("C6")) Is Nothing Then
+            mod_FillManagerName.HideOfficeComboBox Me
+        End If
     End If
 
     If Not Intersect(Target, Me.Range("C21")) Is Nothing Then
@@ -146,6 +143,9 @@ Private Sub ComboBox1_KeyDown(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shif
 End Sub
 
 Private Sub ComboBox1_LostFocus()
+    ' (#22) PromptOfficeComboBox 処理中の LostFocus は無視する
+    '       （コンボ表示直後に誤って確定処理が走るのを防ぐ）
+    If mod_FillManagerName.IsPromptingOfficeComboBox() Then Exit Sub
     mod_FillManagerName.CommitOfficeComboBoxSelection False
 End Sub
 
