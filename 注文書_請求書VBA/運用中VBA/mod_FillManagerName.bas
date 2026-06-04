@@ -123,20 +123,27 @@ Public Function RefreshBranchOfficeValidation(Optional ByVal keepOffice As Boole
     Dim yearText As String
     yearText = CommonExtractYear4Digits(Trim$(CStr(wsInfo.Range("B4").Value)))
     If yearText = "" Then
+        mod_DebugLog.Log "[FillMgr] RefreshBranchOfficeValidation: yearText 空 -> Exit"
         MsgBox "基本情報シート B4 に4桁の年度が見つかりません。例: 2026", vbExclamation
         Exit Function
     End If
 
     Dim sourceFilePath As String
     sourceFilePath = GetManagerListFilePath(yearText)
-    If sourceFilePath = "" Then Exit Function
+    mod_DebugLog.Log "[FillMgr] RefreshBranchOfficeValidation: sourceFilePath=[" & sourceFilePath & "]"
+    If sourceFilePath = "" Then
+        mod_DebugLog.Log "[FillMgr] RefreshBranchOfficeValidation: sourceFilePath 空 -> Exit"
+        Exit Function
+    End If
 
     Dim rows As Collection
     Set rows = LoadManagerListRows(sourceFilePath)
     If rows Is Nothing Then
+        mod_DebugLog.Log "[FillMgr] RefreshBranchOfficeValidation: rows Is Nothing -> Exit"
         MsgBox "出張所長リストファイルを参照できませんでした。" & vbCrLf & sourceFilePath, vbExclamation
         Exit Function
     End If
+    mod_DebugLog.Log "[FillMgr] RefreshBranchOfficeValidation: rows.Count=" & rows.Count
 
     Dim branchList As Object, officeList As Object
     Set branchList = CreateObject("Scripting.Dictionary")
@@ -146,6 +153,7 @@ Public Function RefreshBranchOfficeValidation(Optional ByVal keepOffice As Boole
 
     Dim selectedBranch As String
     selectedBranch = CommonNormalizeText(CStr(wsInfo.Range("B6").Value))
+    mod_DebugLog.Log "[FillMgr] RefreshBranchOfficeValidation: selectedBranch=[" & selectedBranch & "]"
 
     Dim rowData As Variant, BranchName As String, OfficeName As String
     For Each rowData In rows
@@ -163,6 +171,7 @@ Public Function RefreshBranchOfficeValidation(Optional ByVal keepOffice As Boole
         End If
     Next rowData
 
+    mod_DebugLog.Log "[FillMgr] RefreshBranchOfficeValidation: 集計完了 branchList=" & branchList.Count & " officeList=" & officeList.Count & " -> WriteValidationLists 呼び出し"
     RefreshBranchOfficeValidation = WriteValidationLists(wsInfo, branchList, officeList, keepOffice)
 End Function
 
