@@ -555,13 +555,17 @@ Private Function GetManagerListFilePath(ByVal yearText As String) As String
     Dim folderPath As String
     folderPath = GetManagerListFolderPath()
     If Right$(folderPath, 1) <> Chr$(92) Then folderPath = folderPath & Chr$(92)
+    mod_DebugLog.Log "[FillMgr] GetManagerListFilePath: folderPath=[" & folderPath & "]"
     If Dir(folderPath, vbDirectory) = "" Then
+        mod_DebugLog.Log "[FillMgr] GetManagerListFilePath: フォルダ不存在 -> Exit"
         MsgBox "出張所長リストフォルダが見つかりません。" & vbCrLf & folderPath, vbExclamation
         Exit Function
     End If
 
     GetManagerListFilePath = FindManagerListFile(folderPath, yearText)
+    mod_DebugLog.Log "[FillMgr] GetManagerListFilePath: 結果=[" & GetManagerListFilePath & "]"
     If GetManagerListFilePath = "" Then
+        mod_DebugLog.Log "[FillMgr] GetManagerListFilePath: ファイル不存在 -> Exit"
         MsgBox yearText & " 年の出張所長リストファイルが見つかりません。ファイル名に年度が含まれているか確認してください。", vbExclamation
     End If
 End Function
@@ -589,7 +593,10 @@ Private Function GetManagerListFolderPath() As String
                                                   OrderInvoiceDocumentFolderText(), fso)
     End If
 
-    GetManagerListFolderPath = FirstExistingManagerListFolderPath(candidates)
+    Dim resolvedPath As String
+    resolvedPath = FirstExistingManagerListFolderPath(candidates)
+    mod_DebugLog.Log "[FillMgr] GetManagerListFolderPath: 結果=[" & resolvedPath & "]"
+    GetManagerListFolderPath = resolvedPath
 End Function
 
 Private Function BuildManagerListFolderPath(ByVal documentRootPath As String, _
@@ -601,6 +608,7 @@ Private Function BuildManagerListFolderPath(ByVal documentRootPath As String, _
     folderPath = fso.BuildPath(folderPath, UnitPriceReferenceFolderText())
     folderPath = fso.BuildPath(folderPath, ManagerNameFolderText())
     BuildManagerListFolderPath = folderPath & Chr$(92)
+    mod_DebugLog.Log "[FillMgr] BuildManagerListFolderPath: root=[" & documentRootPath & "] -> [" & BuildManagerListFolderPath & "]"
 End Function
 
 Private Function FirstExistingManagerListFolderPath(ByVal candidates As Collection) As String
