@@ -1497,14 +1497,14 @@ Public Sub ConfirmAndClearUnitPriceForBasicInfo(ByVal wsInfo As Worksheet)
               "はい：C24の選択内容と、作成済みの単価シートを削除します。" & vbCrLf & _
               "いいえ：単価情報を残します。", vbQuestion + vbYesNo, "単価情報クリア") <> vbYes Then Exit Sub
     ClearUnitPriceSheets wsInfo.Parent
-    wsInfo.Range(BASIC_INFO_IMPORTED_LINE_NAMES_CELL).ClearContents
+    wsInfo.Range(BASIC_INFO_IMPORTED_LINE_NAMES_CELL).MergeArea.ClearContents
     FormatImportedLineNamesCell wsInfo
 End Sub
 
 Public Sub SilentClearUnitPriceForBasicInfo(ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Exit Sub
     ClearUnitPriceSheets wsInfo.Parent
-    wsInfo.Range(BASIC_INFO_IMPORTED_LINE_NAMES_CELL).ClearContents
+    wsInfo.Range(BASIC_INFO_IMPORTED_LINE_NAMES_CELL).MergeArea.ClearContents
     FormatImportedLineNamesCell wsInfo
 End Sub
 
