@@ -448,9 +448,18 @@ Private Sub UpdateOfficeComboBox(ByVal wsInfo As Worksheet, ByVal officeList As 
 End Sub
 
 Private Function LoadManagerListRows(ByVal sourceFilePath As String) As Collection
+    mod_DebugLog.Log "[FillMgr] LoadManagerListRows: ADO試行 path=[" & sourceFilePath & "]"
     Set LoadManagerListRows = LoadManagerListRowsFromAdo(sourceFilePath)
     If LoadManagerListRows Is Nothing Then
+        mod_DebugLog.Log "[FillMgr] LoadManagerListRows: ADO失敗 -> Workbook.Open試行"
         Set LoadManagerListRows = LoadManagerListRowsFromWorkbook(sourceFilePath)
+        If LoadManagerListRows Is Nothing Then
+            mod_DebugLog.Log "[FillMgr] LoadManagerListRows: Workbook.Open も失敗"
+        Else
+            mod_DebugLog.Log "[FillMgr] LoadManagerListRows: Workbook.Open 成功 Count=" & LoadManagerListRows.Count
+        End If
+    Else
+        mod_DebugLog.Log "[FillMgr] LoadManagerListRows: ADO成功 Count=" & LoadManagerListRows.Count
     End If
 End Function
 
@@ -489,6 +498,7 @@ Cleanup:
     Exit Function
 
 ErrorHandler:
+    mod_DebugLog.Log "[FillMgr] LoadManagerListRowsFromAdo: Err=" & Err.Number & " " & Err.Description
     Set LoadManagerListRowsFromAdo = Nothing
     Resume Cleanup
 End Function
@@ -530,6 +540,7 @@ Cleanup:
     Exit Function
 
 ErrorHandler:
+    mod_DebugLog.Log "[FillMgr] LoadManagerListRowsFromWorkbook: Err=" & Err.Number & " " & Err.Description
     Set LoadManagerListRowsFromWorkbook = Nothing
     Resume Cleanup
 End Function
