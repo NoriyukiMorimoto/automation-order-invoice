@@ -615,12 +615,18 @@ Private Function FirstExistingManagerListFolderPath(ByVal candidates As Collecti
     Dim candidate As Variant
     For Each candidate In candidates
         If Len(CStr(candidate)) > 0 Then
-            Dim existResult As String
-            existResult = Dir(CStr(candidate), vbDirectory)
-            mod_DebugLog.Log "[FillMgr] FirstExistingPath: [" & CStr(candidate) & "] Dir=[" & existResult & "]"
-            If existResult <> "" Then
-                FirstExistingManagerListFolderPath = CStr(candidate)
-                Exit Function
+            If Left$(CStr(candidate), 8) = "https://" Then
+                mod_DebugLog.Log "[FillMgr] FirstExistingPath: [" & CStr(candidate) & "] -> https スキップ"
+            Else
+                Dim existResult As String
+                On Error Resume Next
+                existResult = Dir(CStr(candidate), vbDirectory)
+                On Error GoTo 0
+                mod_DebugLog.Log "[FillMgr] FirstExistingPath: [" & CStr(candidate) & "] Dir=[" & existResult & "]"
+                If existResult <> "" Then
+                    FirstExistingManagerListFolderPath = CStr(candidate)
+                    Exit Function
+                End If
             End If
         End If
     Next candidate
