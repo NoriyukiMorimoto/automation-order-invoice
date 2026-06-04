@@ -14,9 +14,13 @@ ExitHandler:
 End Sub
 
 Private Sub Worksheet_Change(ByVal Target As Range)
-    mod_DebugLog.Log "[Sheet1] Worksheet_Change Áô∫ÁÅ´: " & Target.Address & " Value=[" & GetTargetValueText(Target) & "] EnableEvents=" & Application.EnableEvents
-    If Intersect(Target, Me.Range("B4,B6,C6,C10,C15:C16,F11,C20,C22,C23,C24,F2")) Is Nothing Then
-        mod_DebugLog.Log "[Sheet1] Áõ£Ë¶ñÂØæË±°Â§ñ -> Exit"
+    mod_DebugLog.Log "[Sheet1] Worksheet_Change î≠âŒ: " & Target.Address & " Value=[" & GetTargetValueText(Target) & "] EnableEvents=" & Application.EnableEvents
+    Dim vendorNameRange As Range
+    Set vendorNameRange = mod_VendorMaster.GetVendorNameRange(Me)
+
+    If Intersect(Target, Me.Range("B4,B6,C6,C10,C15:C16,F9,C20,C22,C23,C24,F2")) Is Nothing And _
+       Intersect(Target, vendorNameRange) Is Nothing Then
+        mod_DebugLog.Log "[Sheet1] äƒéãëŒè€äO -> Exit"
         Exit Sub
     End If
 
@@ -27,22 +31,27 @@ Private Sub Worksheet_Change(ByVal Target As Range)
     needComboPrompt = False
 
     If Not Intersect(Target, Me.Range("B4,B6")) Is Nothing Then
-        mod_DebugLog.Log "[Sheet1] B4/B6Â§âÊõ¥ -> RefreshBranchOfficeValidation(False) Âëº„Å≥Âá∫„Åó"
+        mod_DebugLog.Log "[Sheet1] B4/B6ïœçX -> RefreshBranchOfficeValidation(False) åƒÇ—èoÇµ"
         needComboPrompt = mod_FillManagerName.RefreshBranchOfficeValidation(False)
-        mod_DebugLog.Log "[Sheet1] RefreshBranchOfficeValidation Êàª„ÇäÂÄ§ needComboPrompt=" & needComboPrompt
+        mod_DebugLog.Log "[Sheet1] RefreshBranchOfficeValidation ñﬂÇËíl needComboPrompt=" & needComboPrompt
     End If
 
     If Not Intersect(Target, Me.Range("B6")) Is Nothing Then
         mod_VendorMaster.RefreshVendorListForBasicInfo Me
     End If
 
-    ' B6 „Åæ„Åü„ÅØ C6 „ÅåÂ§âÊõ¥„Åï„Çå„ÅüÂ†¥ÂêàÔºöÁ¢∫Ë™ç„Å™„Åó„ÅßÂü∫Êú¨ÊÉÖÂ†±„ÉªÂçò‰æ°„Ç∑„Éº„Éà„Çí„ÇØ„É™„Ç¢
+    If Not Intersect(Target, Me.Range("F9")) Is Nothing Then
+        mod_VendorMaster.SyncVendorBlocksFromCount Me
+        Set vendorNameRange = mod_VendorMaster.GetVendorNameRange(Me)
+    End If
+
+    ' B6 Ç‹ÇΩÇÕ C6 Ç™ïœçXÇ≥ÇÍÇΩèÍçáÅFämîFÇ»ÇµÇ≈äÓñ{èÓïÒÅEíPâøÉVÅ[ÉgÇÉNÉäÉA
     If Not Intersect(Target, Me.Range("B6,C6")) Is Nothing Then
-        mod_DebugLog.Log "[Sheet1] B6/C6Â§âÊõ¥ IsSuppressing=" & mod_FillManagerName.IsSuppressingC6Change()
+        mod_DebugLog.Log "[Sheet1] B6/C6ïœçX IsSuppressing=" & mod_FillManagerName.IsSuppressingC6Change()
         If Not mod_FillManagerName.IsSuppressingC6Change() Then
-            mod_DebugLog.Log "[Sheet1] SilentClearBasicInfo Âëº„Å≥Âá∫„Åó"
+            mod_DebugLog.Log "[Sheet1] SilentClearBasicInfo åƒÇ—èoÇµ"
             mod_BasicInfoUpdate.SilentClearBasicInfo Me
-            mod_DebugLog.Log "[Sheet1] SilentClearBasicInfo ÂÆå‰∫Ü"
+            mod_DebugLog.Log "[Sheet1] SilentClearBasicInfo äÆóπ"
         End If
     End If
 
@@ -79,21 +88,21 @@ Private Sub Worksheet_Change(ByVal Target As Range)
         End If
     End If
 
-    If Not Intersect(Target, Me.Range("F11")) Is Nothing Then
-        mod_VendorMaster.FillVendorInfoToBasicInfo Me
+    If Not Intersect(Target, vendorNameRange) Is Nothing Then
+        mod_VendorMaster.FillVendorInfoToBasicInfo Me, Intersect(Target, vendorNameRange).Cells(1, 1)
         mod_VendorMaster.CancelScheduledVendorListDropdown
         mod_VendorMaster.HideVendorComboBox Me
     End If
 
     mod_DebugLog.Log "[Sheet1] needComboPrompt=" & needComboPrompt
     If needComboPrompt Then
-        mod_DebugLog.Log "[Sheet1] PromptOfficeComboBox Âëº„Å≥Âá∫„ÅóÂâç EnableEvents=" & Application.EnableEvents
+        mod_DebugLog.Log "[Sheet1] PromptOfficeComboBox åƒÇ—èoÇµëO EnableEvents=" & Application.EnableEvents
         mod_FillManagerName.PromptOfficeComboBox
-        mod_DebugLog.Log "[Sheet1] PromptOfficeComboBox Âëº„Å≥Âá∫„ÅóÂæå EnableEvents=" & Application.EnableEvents
+        mod_DebugLog.Log "[Sheet1] PromptOfficeComboBox åƒÇ—èoÇµå„ EnableEvents=" & Application.EnableEvents
     End If
 
 ExitHandler:
-    mod_DebugLog.Log "[Sheet1] Worksheet_Change ÁµÇ‰∫Ü EnableEvents=" & Application.EnableEvents
+    mod_DebugLog.Log "[Sheet1] Worksheet_Change èIóπ EnableEvents=" & Application.EnableEvents
     Application.EnableEvents = True
 End Sub
 
@@ -104,11 +113,14 @@ Private Sub Worksheet_BeforeDoubleClick(ByVal Target As Range, Cancel As Boolean
         Exit Sub
     End If
 
-    If Not Intersect(Target, Me.Range("F11")) Is Nothing Then
+    Dim vendorNameRange As Range
+    Set vendorNameRange = mod_VendorMaster.GetVendorNameRange(Me)
+
+    If Not Intersect(Target, vendorNameRange) Is Nothing Then
         Cancel = True
         mod_VendorMaster.CancelScheduledVendorListDropdown
         mod_VendorMaster.HideVendorComboBox Me
-        mod_VendorMaster.ShowAllVendorSelection Me
+        mod_VendorMaster.ShowAllVendorSelection Me, Intersect(Target, vendorNameRange).Cells(1, 1)
         Exit Sub
     End If
 
@@ -122,21 +134,24 @@ Private Sub Worksheet_SelectionChange(ByVal Target As Range)
     mod_DebugLog.Log "[Sheet1] SelectionChange: " & Target.Address & " IsPrompting=" & mod_FillManagerName.IsPromptingOfficeComboBox()
     mod_BasicInfoCalendar.HandleBasicInfoSelectionChange Target
 
-    ' (#22) PromptOfficeComboBox Âá¶ÁêÜ‰∏≠„ÅØ„Ç≥„É≥„Éú„ÇíÊ∂à„Åï„Å™„ÅÑ
+    ' (#22) PromptOfficeComboBox èàóùíÜÇÕÉRÉìÉ{Çè¡Ç≥Ç»Ç¢
     If Not mod_FillManagerName.IsPromptingOfficeComboBox() Then
         If Intersect(Target, Me.Range("C6")) Is Nothing Then
-            mod_DebugLog.Log "[Sheet1] SelectionChange: C6‰ª•Â§ñ -> HideOfficeComboBox"
+            mod_DebugLog.Log "[Sheet1] SelectionChange: C6à»äO -> HideOfficeComboBox"
             mod_FillManagerName.HideOfficeComboBox Me
         End If
     Else
-        mod_DebugLog.Log "[Sheet1] SelectionChange: IsPrompting=True -> Hide„Çπ„Ç≠„ÉÉ„ÉóII"
+        mod_DebugLog.Log "[Sheet1] SelectionChange: IsPrompting=True -> HideÉXÉLÉbÉvII"
     End If
 
     If Not Intersect(Target, Me.Range("C21")) Is Nothing Then
         mod_MaterialPriceImport.RefreshUnitPriceProjectNameValidation Me, True
     End If
 
-    If Not Intersect(Target, Me.Range("F11")) Is Nothing Then
+    Dim vendorNameRange As Range
+    Set vendorNameRange = mod_VendorMaster.GetVendorNameRange(Me)
+
+    If Not Intersect(Target, vendorNameRange) Is Nothing Then
         mod_VendorMaster.RefreshVendorListForBasicInfo Me
         mod_VendorMaster.ScheduleVendorListDropdown Me
     Else
@@ -157,10 +172,10 @@ End Sub
 
 Private Sub ComboBox1_LostFocus()
     mod_DebugLog.Log "[Sheet1] ComboBox1_LostFocus IsPrompting=" & mod_FillManagerName.IsPromptingOfficeComboBox()
-    ' (#22) PromptOfficeComboBox Âá¶ÁêÜ‰∏≠„ÅÆ LostFocus „ÅØÁÑ°Ë¶ñ„Åô„Çã
-    '       Ôºà„Ç≥„É≥„ÉúË°®Á§∫Áõ¥Âæå„Å´Ë™§„Å£„Å¶Á¢∫ÂÆöÂá¶ÁêÜ„ÅåËµ∞„Çã„ÅÆ„ÇíÈò≤„ÅêÔºâ
+    ' (#22) PromptOfficeComboBox èàóùíÜÇÃ LostFocus ÇÕñ≥éãÇ∑ÇÈ
+    '       ÅiÉRÉìÉ{ï\é¶íºå„Ç…åÎÇ¡ÇƒämíËèàóùÇ™ëñÇÈÇÃÇñhÇÆÅj
     If mod_FillManagerName.IsPromptingOfficeComboBox() Then
-        mod_DebugLog.Log "[Sheet1] ComboBox1_LostFocus: IsPrompting=True -> „Çπ„Ç≠„ÉÉ„Éó"
+        mod_DebugLog.Log "[Sheet1] ComboBox1_LostFocus: IsPrompting=True -> ÉXÉLÉbÉv"
         Exit Sub
     End If
     mod_FillManagerName.CommitOfficeComboBoxSelection False

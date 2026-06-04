@@ -1,24 +1,24 @@
 Option Explicit
 
 '==========================================================================
-'  åŸºæœ¬æƒ…å ±ã‚·ãƒ¼ãƒˆ æœŸé–“ï¼è«‹æ±‚å›æ•°æ›´æ–°ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«
-'    æ”¹ä¿®å†…å®¹ï¼ˆ#21ï¼‰ï¼š
-'      - SilentClearBasicInfo / ClearBasicInfo ã§ EnableEvents ã‚’
-'        ä¸Šæ›¸ãã—ãªã„ã‚ˆã†ä¿å­˜ãƒ»å¾©å…ƒã™ã‚‹ã‚ˆã†ã«å¤‰æ›´ã€‚
-'        è¦ªå‘¼ã³å‡ºã—å…ƒï¼ˆWorksheet_Change ãªã©ï¼‰ãŒ EnableEvents=False ä¸­ã«
-'        ã“ã‚Œã‚‰ã‚’å‘¼ã³å‡ºã—ã¦ã‚‚ EnableEvents çŠ¶æ…‹ã‚’æãªã‚ãªã„ã‚ˆã†ã«ã™ã‚‹ã€‚
-'    æ”¹ä¿®å†…å®¹ï¼ˆ#18ï¼‰ï¼š
-'      - æ¥­è€…æƒ…å ±8è¡Œç›®ã«2è¡ŒæŒ¿å…¥ã®ãŸã‚ã€BASIC_INFO_CLEAR_RANGES ã®
-'        Fåˆ—ç¯„å›²ã‚’ F9:F14,F16:F21 â†’ F11:F16,F18:F23 ã«æ›´æ–°ã€‚
-'    æ”¹ä¿®å†…å®¹ï¼ˆ#15ï¼‰ï¼š
-'      - ã‚¨ãƒ©ãƒ¼ãƒãƒ³ãƒ‰ãƒ©å†…ã§ Err.Number / Err.Description ã‚’é€€é¿ã—ã€
-'        ãã®å¾Œã® Application è¨­å®šå¾©å¸°ã‚’ç¢ºå®Ÿã«è¡Œã†æ§‹é€ ã¸æ•´ç†ã€‚
-'    æ”¹ä¿®å†…å®¹ï¼ˆ#9ï¼‰ï¼š
-'      - NormalizeText / GetBasicInfoWorksheet / æ—¥æœ¬èªã‚·ãƒ¼ãƒˆåç”Ÿæˆã¯
-'        mod_Common ã«é›†ç´„æ¸ˆã¿ã€‚é‡è¤‡å®šç¾©ã‚’æ’¤å»ã—ã€å…±é€šé–¢æ•°çµŒç”±ã§å‚ç…§ã€‚
-'    æ”¹ä¿®å†…å®¹ï¼ˆ#11ï¼‰ï¼š
-'      - SilentClearBasicInfo ã‚’è¿½åŠ ã€‚
-'        B6/C6 å¤‰æ›´æ™‚ã«ç¢ºèªãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ãªã—ã§åŸºæœ¬æƒ…å ±ã¨å˜ä¾¡ã‚·ãƒ¼ãƒˆã‚’ã‚¯ãƒªã‚¢ã€‚
+'  Šî–{î•ñƒV[ƒg ŠúŠÔ^¿‹‰ñ”XVƒ‚ƒWƒ…[ƒ‹
+'    ‰üC“à—ei#21jF
+'      - SilentClearBasicInfo / ClearBasicInfo ‚Å EnableEvents ‚ğ
+'        ã‘‚«‚µ‚È‚¢‚æ‚¤•Û‘¶E•œŒ³‚·‚é‚æ‚¤‚É•ÏXB
+'        eŒÄ‚Ño‚µŒ³iWorksheet_Change ‚È‚Çj‚ª EnableEvents=False ’†‚É
+'        ‚±‚ê‚ç‚ğŒÄ‚Ño‚µ‚Ä‚à EnableEvents ó‘Ô‚ğ‘¹‚È‚í‚È‚¢‚æ‚¤‚É‚·‚éB
+'    ‰üC“à—ei#18jF
+'      - ‹ÆÒî•ñ8s–Ú‚É2s‘}“ü‚Ì‚½‚ßABASIC_INFO_CLEAR_RANGES ‚Ì
+'        F—ñ”ÍˆÍ‚ğ F9:F14,F16:F21 ¨ F11:F16,F18:F23 ‚ÉXVB
+'    ‰üC“à—ei#15jF
+'      - ƒGƒ‰[ƒnƒ“ƒhƒ‰“à‚Å Err.Number / Err.Description ‚ğ‘Ş”ğ‚µA
+'        ‚»‚ÌŒã‚Ì Application İ’è•œ‹A‚ğŠmÀ‚És‚¤\‘¢‚Ö®—B
+'    ‰üC“à—ei#9jF
+'      - NormalizeText / GetBasicInfoWorksheet / “ú–{ŒêƒV[ƒg–¼¶¬‚Í
+'        mod_Common ‚ÉW–ñÏ‚İBd•¡’è‹`‚ğ“P‹‚µA‹¤’ÊŠÖ”Œo—R‚ÅQÆB
+'    ‰üC“à—ei#11jF
+'      - SilentClearBasicInfo ‚ğ’Ç‰ÁB
+'        B6/C6 •ÏX‚ÉŠm”FƒƒbƒZ[ƒW‚È‚µ‚ÅŠî–{î•ñ‚Æ’P‰¿ƒV[ƒg‚ğƒNƒŠƒAB
 '==========================================================================
 
 Private Const BASIC_INFO_START_DATE_CELL As String = "F2"
@@ -28,7 +28,7 @@ Private Const BASIC_INFO_WORK_START_DATE_CELL As String = "C15"
 Private Const BASIC_INFO_WORK_END_DATE_CELL As String = "C16"
 Private Const BASIC_INFO_WORK_DAYS_CELL As String = "C17"
 Private Const OFFICE_COMBO_NAME As String = "ComboBox1"
-Private Const BASIC_INFO_CLEAR_RANGES As String = "C9:C12,C15:C17,C20:C24,F2:F4,F11:F16,F18:F23"
+Private Const BASIC_INFO_CLEAR_RANGES As String = "C9:C12,C15:C17,C20:C24,F2:F4,F11:F16,F18:F23,F25,F27"
 
 Public Sub UpdateBasicInfoPeriod()
     Dim wsInfo As Worksheet
@@ -130,7 +130,7 @@ End Sub
 
 '--------------------------------------------------------------------------
 '  ClearBasicInfo
-'    ãƒœã‚¿ãƒ³æŠ¼ä¸‹ç”¨ã€‚ç¢ºèªãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚ã‚Šãƒ»å˜ä¾¡ã‚¯ãƒªã‚¢ç¢ºèªã‚ã‚Šã€‚
+'    ƒ{ƒ^ƒ“‰Ÿ‰º—pBŠm”FƒƒbƒZ[ƒW‚ ‚èE’P‰¿ƒNƒŠƒAŠm”F‚ ‚èB
 '--------------------------------------------------------------------------
 Public Sub ClearBasicInfo()
     Dim wsInfo As Worksheet
@@ -160,7 +160,7 @@ ErrorHandler:
     savedErrDesc = Err.Description
 
 FinallyExit:
-    ' (#21) å‘¼ã³å‡ºã—å…ƒã® EnableEvents çŠ¶æ…‹ã‚’å¾©å…ƒã™ã‚‹ã€‚
+    ' (#21) ŒÄ‚Ño‚µŒ³‚Ì EnableEvents ó‘Ô‚ğ•œŒ³‚·‚éB
     Application.EnableEvents = prevEnableEvents
     Application.ScreenUpdating = True
     If savedErrNum <> 0 Then
@@ -170,9 +170,9 @@ End Sub
 
 '--------------------------------------------------------------------------
 '  SilentClearBasicInfo
-'    B6/C6 å¤‰æ›´æ™‚ã®è‡ªå‹•ã‚¯ãƒªã‚¢ç”¨ã€‚ç¢ºèªãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ãªã—ã€‚
-'    (#21) Worksheet_Change ãªã©ã‹ã‚‰å‘¼ã°ã‚ŒãŸã¨ã EnableEvents ã‚’
-'    ä¸Šæ›¸ãã—ãªã„ã‚ˆã†ã€ä¿å­˜ãƒ»å¾©å…ƒã™ã‚‹ã‚ˆã†ã«å¤‰æ›´ã€‚
+'    B6/C6 •ÏX‚Ì©“®ƒNƒŠƒA—pBŠm”FƒƒbƒZ[ƒW‚È‚µB
+'    (#21) Worksheet_Change ‚È‚Ç‚©‚çŒÄ‚Î‚ê‚½‚Æ‚« EnableEvents ‚ğ
+'    ã‘‚«‚µ‚È‚¢‚æ‚¤A•Û‘¶E•œŒ³‚·‚é‚æ‚¤‚É•ÏXB
 '--------------------------------------------------------------------------
 Public Sub SilentClearBasicInfo(ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Exit Sub
@@ -197,9 +197,9 @@ ErrorHandler:
     savedErrDesc = Err.Description
 
 FinallyExit:
-    ' (#21) å‘¼ã³å‡ºã—å…ƒã® EnableEvents çŠ¶æ…‹ã‚’å¾©å…ƒã™ã‚‹ã€‚
-    '       ä»¥å‰ã¯ç„¡æ¡ä»¶ã§ True ã«ã—ã¦ã„ãŸãŸã‚ã€è¦ªå‘¼ã³å‡ºã—å…ƒãŒ False ä¸­ã ã£ãŸ
-    '       å ´åˆã‚‚ True ã«ä¸Šæ›¸ãã•ã‚Œã¦ã—ã¾ã†å•é¡ŒãŒã‚ã£ãŸã€‚
+    ' (#21) ŒÄ‚Ño‚µŒ³‚Ì EnableEvents ó‘Ô‚ğ•œŒ³‚·‚éB
+    '       ˆÈ‘O‚Í–³ğŒ‚Å True ‚É‚µ‚Ä‚¢‚½‚½‚ßAeŒÄ‚Ño‚µŒ³‚ª False ’†‚¾‚Á‚½
+    '       ê‡‚à True ‚Éã‘‚«‚³‚ê‚Ä‚µ‚Ü‚¤–â‘è‚ª‚ ‚Á‚½B
     Application.EnableEvents = prevEnableEvents
     Application.ScreenUpdating = True
     If savedErrNum <> 0 Then
@@ -214,8 +214,8 @@ Private Sub HideOfficeComboBoxForUpdate(ByVal wsInfo As Worksheet)
     Set ole = wsInfo.OLEObjects(OFFICE_COMBO_NAME)
     If ole Is Nothing Then Exit Sub
 
-    ' C6ã‚’æ‰‹å…¥åŠ›ã—ãŸç›´å¾Œã«ã€ComboBoxã«æ®‹ã£ãŸæ—§å€¤ã§ä¸Šæ›¸ãã—ãªã„ã‚ˆã†
-    ' ã‚»ãƒ«ã®ç¾åœ¨å€¤ã‚’ComboBoxå´ã¸åŒæœŸã—ã¦ã‹ã‚‰éè¡¨ç¤ºã«ã™ã‚‹ã€‚
+    ' C6‚ğè“ü—Í‚µ‚½’¼Œã‚ÉAComboBox‚Éc‚Á‚½‹Œ’l‚Åã‘‚«‚µ‚È‚¢‚æ‚¤
+    ' ƒZƒ‹‚ÌŒ»İ’l‚ğComboBox‘¤‚Ö“¯Šú‚µ‚Ä‚©‚ç”ñ•\¦‚É‚·‚éB
     ole.Object.Value = CStr(wsInfo.Range("C6").Value)
     ole.Visible = False
 
