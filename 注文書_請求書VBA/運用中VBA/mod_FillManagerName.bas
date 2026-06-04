@@ -3,6 +3,8 @@ Option Explicit
 '==========================================================================
 '  出張所長名 自動入力／支店・出張所バリデーション再構篈モジュール
 '    改修内容：
+'      #23: B6変更時コンボ表示フロー追跡用ログを挿入（mod_DebugLog使用）
+'           デバッグ確認後は mod_DebugLog の呼び出しを削除すること。
 '      #22: B6変更時に C6 コンボが開かない問題を修正。
 '           EnableEvents=False 中は OLEObject.Activate が正しく動かないため、
 '           PromptOfficeComboBox の処理中だけ一時的に True に切り替える。
@@ -109,6 +111,7 @@ End Sub
 '--------------------------------------------------------------------------
 Public Function RefreshBranchOfficeValidation(Optional ByVal keepOffice As Boolean = True) As Boolean
     RefreshBranchOfficeValidation = False
+    mod_DebugLog.Log "[FillMgr] RefreshBranchOfficeValidation 開始 keepOffice=" & keepOffice
 
     Dim wsInfo As Worksheet
     Set wsInfo = CommonGetBasicInfoWorksheet()
@@ -168,6 +171,7 @@ Private Function WriteValidationLists(ByVal wsInfo As Worksheet, _
                                       ByVal officeList As Object, _
                                       ByVal keepOffice As Boolean) As Boolean
     WriteValidationLists = False
+    mod_DebugLog.Log "[FillMgr] WriteValidationLists: keepOffice=" & keepOffice & " branchCount=" & branchList.Count & " officeCount=" & officeList.Count
 
     Dim branchCol As String, officeCol As String
     branchCol = LIST_BRANCH_COL
@@ -196,7 +200,10 @@ Private Function WriteValidationLists(ByVal wsInfo As Worksheet, _
     wsInfo.Columns(branchCol & ":" & officeCol).Hidden = True
 
     If Not keepOffice And officeList.Count > 0 Then
+        mod_DebugLog.Log "[FillMgr] WriteValidationLists -> True（コンボ表示要）"
         WriteValidationLists = True
+    Else
+        mod_DebugLog.Log "[FillMgr] WriteValidationLists -> False (keepOffice=" & keepOffice & " officeCount=" & officeList.Count & ")"
     End If
 End Function
 
@@ -244,22 +251,28 @@ End Sub
 
 '--------------------------------------------------------------------------
 '  PromptOfficeComboBox  (#22 修正)
-'    処理中だけ EnableEvents=True に切り替えて OLEObject.Activate の
-'    フォーカス移動を有効化し、同時に mInPromptOffice フラグを ON にする。
-'    Sheet1.cls の SelectionChange / ComboBox1_LostFocus はこのフラグを
-'    見てコンボを消さないようにする。
-'    終了時に EnableEvents を呼び出し元の状態へ確実に復元する。
 '--------------------------------------------------------------------------
 Public Sub PromptOfficeComboBox()
+    mod_DebugLog.Log "[FillMgr] PromptOfficeComboBox 開始 EnableEvents=" & Application.EnableEvents
     Dim wsInfo As Worksheet
     Set wsInfo = CommonGetBasicInfoWorksheet()
-    If wsInfo Is Nothing Then Exit Sub
+    If wsInfo Is Nothing Then
+        mod_DebugLog.Log "[FillMgr] PromptOfficeComboBox: wsInfo Is Nothing -> Exit"
+        Exit Sub
+    End If
 
-    If ActiveSheet Is Nothing Then Exit Sub
-    If Not ActiveSheet Is wsInfo Then Exit Sub
+    If ActiveSheet Is Nothing Then
+        mod_DebugLog.Log "[FillMgr] PromptOfficeComboBox: ActiveSheet Is Nothing -> Exit"
+        Exit Sub
+    End If
+    If Not ActiveSheet Is wsInfo Then
+        mod_DebugLog.Log "[FillMgr] PromptOfficeComboBox: ActiveSheet=[" & ActiveSheet.Name & "] <> wsInfo=[" & wsInfo.Name & "] -> Exit"
+        Exit Sub
+    End If
 
     Dim prevEnableEvents As Boolean
     prevEnableEvents = Application.EnableEvents
+    mod_DebugLog.Log "[FillMgr] PromptOfficeComboBox: prevEnableEvents=" & prevEnableEvents & " -> EnableEvents=True にして ShowOfficeComboBox 呼び出し"
 
     On Error GoTo ExitHandler
     mInPromptOffice = True
@@ -267,6 +280,7 @@ Public Sub PromptOfficeComboBox()
     ShowOfficeComboBox wsInfo
 
 ExitHandler:
+    mod_DebugLog.Log "[FillMgr] PromptOfficeComboBox 終了 Err=" & Err.Number & " mInPromptOffice=" & mInPromptOffice
     mInPromptOffice = False
     Application.EnableEvents = prevEnableEvents
 End Sub
@@ -288,7 +302,6 @@ End Sub
 
 '--------------------------------------------------------------------------
 '  CommitOfficeComboBoxSelection  (#15 修正)
-'    ComboBox で選択確定した出張所名を C6 に反映し、担当者名を更新する。
 '--------------------------------------------------------------------------
 Public Sub CommitOfficeComboBoxSelection(Optional ByVal selectC6 As Boolean = True)
     Dim wsInfo As Worksheet
@@ -324,11 +337,13 @@ ExitHandler:
 End Sub
 
 Private Sub ShowOfficeComboBox(ByVal wsInfo As Worksheet)
+    mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox 開始 EnableEvents=" & Application.EnableEvents
     On Error GoTo ErrorHandler
 
     Dim ole As OLEObject
     Set ole = GetOfficeComboBox(wsInfo)
     If ole Is Nothing Then
+        mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: ole Is Nothing -> ValidationDropdown へ"
         ShowC6ValidationDropdown wsInfo
         Exit Sub
     End If
@@ -338,16 +353,20 @@ Private Sub ShowOfficeComboBox(ByVal wsInfo As Worksheet)
     wsInfo.Range("C6").Select
     ole.Object.LinkedCell = ""
     If ole.Object.ListCount = 0 Then
+        mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: ListCount=0 -> ValidationDropdown へ"
         HideOfficeComboBox wsInfo
         ShowC6ValidationDropdown wsInfo
         Exit Sub
     End If
+    mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: ListCount=" & ole.Object.ListCount & " -> DropDown 呼び出し"
     ole.Visible = True
     ole.Activate
     ole.Object.DropDown
+    mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: DropDown 完了 Err=" & Err.Number
     Exit Sub
 
 ErrorHandler:
+    mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: ErrorHandler Err=" & Err.Number & " " & Err.Description
     HideOfficeComboBox wsInfo
     ShowC6ValidationDropdown wsInfo
 End Sub
