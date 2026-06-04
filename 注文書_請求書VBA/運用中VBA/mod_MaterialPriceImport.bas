@@ -458,9 +458,9 @@ Private Function TryLoadUnitPriceMasterRow(ByRef request As UnitPriceRequest, _
     End If
 
     Dim sql As String
-    sql = "SELECT F1, F2, F3, F4, F5 FROM " & _
-          BuildAdoSheetRangeName(masterSheetName, "B", 2, "F", PROJECT_NAME_MASTER_LAST_ROW) & _
-          " WHERE F1 IS NOT NULL"
+    sql = "SELECT F2, F3, F4, F5, F6 FROM " & _
+          BuildAdoSheetTableName(masterSheetName) & _
+          " WHERE F2 IS NOT NULL"
     Set rs = cn.Execute(sql)
 
     Dim matchedCount As Long
@@ -527,12 +527,15 @@ Private Function TryLoadUnitPriceMasterRowFromWorkbook(ByVal sourceFilePath As S
     Dim sourceSheet As Worksheet
     Dim previousDisplayAlerts As Boolean
     Dim previousScreenUpdating As Boolean
+    Dim previousCalculation As XlCalculation
 
     On Error GoTo ErrorHandler
     previousDisplayAlerts = Application.DisplayAlerts
     previousScreenUpdating = Application.ScreenUpdating
+    previousCalculation = Application.Calculation
     Application.DisplayAlerts = False
     Application.ScreenUpdating = False
+    Application.Calculation = xlCalculationManual
 
     Set sourceBook = Workbooks.Open(fileName:=sourceFilePath, ReadOnly:=True, UpdateLinks:=False, AddToMru:=False)
     Set sourceSheet = FindWorksheetByName(sourceBook, MASTER_SHEET_NAME)
@@ -576,6 +579,7 @@ Cleanup:
     If Not sourceBook Is Nothing Then sourceBook.Close SaveChanges:=False
     Application.DisplayAlerts = previousDisplayAlerts
     Application.ScreenUpdating = previousScreenUpdating
+    Application.Calculation = previousCalculation
     On Error GoTo 0
     Exit Function
 
@@ -628,6 +632,10 @@ Private Function FindAdoWorksheetName(ByVal cn As Object, ByVal expectedSheetNam
             Exit Function
         End If
     Next sheetName
+End Function
+
+Private Function BuildAdoSheetTableName(ByVal sheetName As String) As String
+    BuildAdoSheetTableName = "[" & Replace$(sheetName, "]", "]]") & "$]"
 End Function
 
 Private Sub FillUnitPriceMasterRowFromRecordset(ByVal rs As Object, _
