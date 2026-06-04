@@ -28,7 +28,7 @@ Private Const BASIC_INFO_WORK_START_DATE_CELL As String = "C15"
 Private Const BASIC_INFO_WORK_END_DATE_CELL As String = "C16"
 Private Const BASIC_INFO_WORK_DAYS_CELL As String = "C17"
 Private Const OFFICE_COMBO_NAME As String = "ComboBox1"
-Private Const BASIC_INFO_CLEAR_RANGES As String = "C9:C12,C15:C17,C20:C24,F2:F4,F11:F16,F18:F23,F25,F27"
+Private Const BASIC_INFO_CLEAR_RANGES As String = "C2,C9:C12,C15:C17,C20:C24,F2:F4,F11:F16,F18:F23,F25,F27"
 
 Public Sub UpdateBasicInfoPeriod()
     Dim wsInfo As Worksheet
