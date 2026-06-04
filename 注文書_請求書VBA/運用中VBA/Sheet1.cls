@@ -14,7 +14,7 @@ ExitHandler:
 End Sub
 
 Private Sub Worksheet_Change(ByVal Target As Range)
-    mod_DebugLog.Log "[Sheet1] Worksheet_Change 発火: " & Target.Address & " Value=[" & CStr(Target.Value) & "] EnableEvents=" & Application.EnableEvents
+    mod_DebugLog.Log "[Sheet1] Worksheet_Change 発火: " & Target.Address & " Value=[" & GetTargetValueText(Target) & "] EnableEvents=" & Application.EnableEvents
     If Intersect(Target, Me.Range("B4,B6,C6,C10,C15:C16,F11,C20,C22,C23,C24,F2")) Is Nothing Then
         mod_DebugLog.Log "[Sheet1] 監視対象外 -> Exit"
         Exit Sub
@@ -183,3 +183,32 @@ End Sub
 Private Sub btnClearBasicInfo_Click()
     mod_BasicInfoUpdate.ClearBasicInfo
 End Sub
+
+Private Function GetTargetValueText(ByVal Target As Range) As String
+    On Error GoTo ErrorHandler
+
+    If Target Is Nothing Then
+        GetTargetValueText = ""
+        Exit Function
+    End If
+
+    If Target.Cells.CountLarge > 1 Then
+        GetTargetValueText = "(multi-cell)"
+        Exit Function
+    End If
+
+    Dim cellValue As Variant
+    cellValue = Target.Value
+
+    If IsError(cellValue) Then
+        GetTargetValueText = "(error)"
+    ElseIf IsArray(cellValue) Then
+        GetTargetValueText = "(array)"
+    Else
+        GetTargetValueText = CStr(cellValue)
+    End If
+    Exit Function
+
+ErrorHandler:
+    GetTargetValueText = "(unreadable)"
+End Function

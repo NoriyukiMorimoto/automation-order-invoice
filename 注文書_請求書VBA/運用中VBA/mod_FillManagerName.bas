@@ -270,7 +270,7 @@ Public Sub HideOfficeComboBox(Optional ByVal wsInfo As Worksheet)
     Dim ole As OLEObject
     Set ole = wsInfo.OLEObjects(OFFICE_COMBO_NAME)
     If Not ole Is Nothing Then
-        ole.Object.LinkedCell = ""
+        ClearOfficeComboBoxLinkedCell ole
         ole.Object.Value = CStr(wsInfo.Range("C6").Value)
         ole.Visible = False
     End If
@@ -293,7 +293,7 @@ Public Sub CommitOfficeComboBoxSelection(Optional ByVal selectC6 As Boolean = Tr
     If selectedOffice = "" Then GoTo ExitHandler
 
     mSuppressC6Change = True
-    ole.Object.LinkedCell = ""
+    ClearOfficeComboBoxLinkedCell ole
     wsInfo.Range("C6").Value = selectedOffice
     mSuppressC6Change = False
 
@@ -327,8 +327,8 @@ Private Sub ShowOfficeComboBox(ByVal wsInfo As Worksheet)
     wsInfo.Activate
     mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: C6.Select 開始"
     wsInfo.Range("C6").Select
-    mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: LinkedCell=""" 開始"
-    ole.Object.LinkedCell = ""
+    mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: OLEObject.LinkedCell="""" 開始"
+    ClearOfficeComboBoxLinkedCell ole
     mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: ListCount チェック"
     If ole.Object.ListCount = 0 Then
         mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: ListCount=0 -> ValidationDropdown へ"
@@ -347,9 +347,9 @@ Private Sub ShowOfficeComboBox(ByVal wsInfo As Worksheet)
     dropDownDesc = Err.Description
     On Error GoTo ErrorHandler
     If dropDownErr <> 0 Then
-        mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: DropDown Err=" & dropDownErr & " " & dropDownDesc & " -> SendKeysフォールバック"
-        ole.Visible = False
-        ShowC6ValidationDropdown wsInfo
+        mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: DropDown Err=" & dropDownErr & " " & dropDownDesc & " -> SendKeys未使用で表示維持"
+        ole.Visible = True
+        ole.Activate
     Else
         mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: DropDown 完了"
     End If
@@ -402,7 +402,15 @@ Private Sub ShowC6ValidationDropdown(ByVal wsInfo As Worksheet)
     On Error Resume Next
     wsInfo.Activate
     wsInfo.Range("C6").Select
-    Application.SendKeys "%{DOWN}", True
+    mod_DebugLog.Log "[FillMgr] ShowC6ValidationDropdown: SendKeys未使用（NumLock保護）"
+    On Error GoTo 0
+End Sub
+
+Private Sub ClearOfficeComboBoxLinkedCell(ByVal ole As OLEObject)
+    On Error Resume Next
+    ole.LinkedCell = ""
+    mod_DebugLog.Log "[FillMgr] ClearLinkedCell Err=" & Err.Number
+    Err.Clear
     On Error GoTo 0
 End Sub
 
@@ -424,11 +432,11 @@ Private Sub UpdateOfficeComboBox(ByVal wsInfo As Worksheet, ByVal officeList As 
                 .AddItem keysArr(i)
             Next i
         End If
-        .LinkedCell = ""
         .ListRows = Application.Max(1, Application.Min(12, officeList.Count))
         .MatchRequired = False
         .Value = CStr(wsInfo.Range("C6").Value)
     End With
+    ClearOfficeComboBoxLinkedCell ole
     ole.Visible = False
     On Error GoTo 0
 End Sub
