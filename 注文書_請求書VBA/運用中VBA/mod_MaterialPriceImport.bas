@@ -53,6 +53,19 @@ Option Explicit
 '      - 溶接単価ブックが無い保線区で、C23 が溶接ありの場合に
 '        「○○には溶接単価の設定がありません。」と警告するよう修正。
 '      - C23 の溶接工事有無判定を MergeArea と表記ゆれに対応。
+'    改修内容（#28）：
+'      - C24 単価シート作成ロジックに [UnitPrice] タグ付きデバッグログを
+'        追加。mod_DebugLog 経由でイミディエイト＋ログシートに記録する。
+'      - 追跡対象は ImportUnitPriceData の全フェーズ：
+'        TryReadUnitPriceRequest（基本情報読み取り値）、
+'        TryLoadUnitPriceMasterRow（ADO接続・マッチ結果）、
+'        ResolveUnitPricePriceFolderPath（フォルダ階層解決）、
+'        ResolveUnitPriceSourceFilePaths（単価表ブック検出）、
+'        ImportSelectedUnitPriceSheets（シートコピー）、
+'        ImportPurchaseUnitPriceSheetsByReference（購入充当）、
+'        ImportWeldingUnitPriceSheetsIfRequired（溶接単価）、
+'        WriteSelectedLineNames（C24書き込み）。
+'      - 既存の [FillMgr] ログと同形式・同タグ運用。
 '==========================================================================
 Public SharedMasterData As Variant
 
@@ -129,6 +142,23 @@ Private Const ZAIRAISEN_PROJECT_NAME_FIRST_END_ROW  As Long = 8
 Private Const ZAIRAISEN_PROJECT_NAME_SKIP_ROW       As Long = 9
 Private Const ZAIRAISEN_PROJECT_NAME_SECOND_END_ROW As Long = 11
 Private Const SHINKANSEN_PROJECT_NAME_END_ROW       As Long = 6
+
+'==========================================================================
+'  [UnitPrice] 専用ログヘルパー
+'    mod_DebugLog.Log を [UnitPrice] タグ付きで呼び出す薄いラッパー。
+'    On Error Resume Next で囲み、ロガーが使えない環境でも本処理を
+'    止めないようにする。Boolean 戻り値版は条件文の中で使える形。
+'==========================================================================
+Private Sub LogUP(ByVal msg As String)
+    On Error Resume Next
+    mod_DebugLog.Log "[UnitPrice] " & msg
+    On Error GoTo 0
+End Sub
+
+Private Function LogUPB(ByVal msg As String, ByVal returnValue As Boolean) As Boolean
+    LogUP msg
+    LogUPB = returnValue
+End Function
 
 Public Function GetMasterFilePath() As String
     Dim fso As Object
@@ -342,12 +372,15 @@ ErrorHandler:
 End Sub
 
 Public Sub ImportConstructionUnitPriceForBasicInfo()
+    LogUP "ImportConstructionUnitPriceForBasicInfo 開始"
     Dim wsInfo As Worksheet
     Set wsInfo = CommonGetBasicInfoWorksheet()
     If wsInfo Is Nothing Then
+        LogUP "基本情報シート取得失敗 -> 中断"
         MsgBox "基本情報シートが見つかりません。", vbExclamation
         Exit Sub
     End If
+    LogUP "基本情報シート取得成功 sheet=[" & wsInfo.Name & "]"
 
     ClearAndImportUnitPriceForBasicInfo wsInfo
 End Sub
@@ -358,53 +391,97 @@ Public Sub ClearAndImportUnitPriceForBasicInfo(ByVal ws As Worksheet)
 End Sub
 
 Private Sub ImportUnitPriceData(ByVal wsInfo As Worksheet)
+    LogUP "ImportUnitPriceData 開始 wb=[" & wsInfo.Parent.Name & "]"
+
     Dim request As UnitPriceRequest
-    If Not TryReadUnitPriceRequest(wsInfo, request) Then Exit Sub
+    If Not TryReadUnitPriceRequest(wsInfo, request) Then
+        LogUP "TryReadUnitPriceRequest -> False 中断"
+        Exit Sub
+    End If
+    LogUP "TryReadUnitPriceRequest -> True"
 
     Dim masterRow As UnitPriceMasterRow
-    If Not TryLoadUnitPriceMasterRow(request, masterRow) Then Exit Sub
+    If Not TryLoadUnitPriceMasterRow(request, masterRow) Then
+        LogUP "TryLoadUnitPriceMasterRow -> False 中断"
+        Exit Sub
+    End If
+    LogUP "TryLoadUnitPriceMasterRow -> True BranchGroup=[" & masterRow.BranchGroupName & _
+          "] UnitPriceSection=[" & masterRow.UnitPriceSectionName & "]"
 
     Dim priceFolderPath As String
     Dim sectionFolderPath As String
     Dim sourceFilePaths As Collection
     Set sourceFilePaths = ResolveUnitPriceSourceFilePaths(request, masterRow, priceFolderPath, sectionFolderPath)
-    If sourceFilePaths Is Nothing Then Exit Sub
-    If sourceFilePaths.Count = 0 Then Exit Sub
+    If sourceFilePaths Is Nothing Then
+        LogUP "ResolveUnitPriceSourceFilePaths -> Nothing 中断"
+        Exit Sub
+    End If
+    If sourceFilePaths.Count = 0 Then
+        LogUP "ResolveUnitPriceSourceFilePaths -> 0件 中断"
+        Exit Sub
+    End If
+    LogUP "ResolveUnitPriceSourceFilePaths: ブック数=" & CStr(sourceFilePaths.Count) & _
+          " priceFolder=[" & priceFolderPath & "] sectionFolder=[" & sectionFolderPath & "]"
 
     Dim sheetSourceFileMap As Object
     Dim sheetSourceSheetMap As Object
     Dim sheetNames As Collection
     Set sheetNames = LoadWorksheetNameCandidatesFromWorkbooks(sourceFilePaths, sheetSourceFileMap, sheetSourceSheetMap)
     If sheetNames Is Nothing Then
+        LogUP "LoadWorksheetNameCandidatesFromWorkbooks -> Nothing 中断"
         MsgBox "単価表ブックに取り込み可能なシートが見つかりませんでした。" & vbCrLf & JoinCollectionText(sourceFilePaths, vbCrLf), vbExclamation
         Exit Sub
     End If
     If sheetNames.Count = 0 Then
+        LogUP "LoadWorksheetNameCandidatesFromWorkbooks -> 0件 中断"
         MsgBox "単価表ブックに取り込み可能なシートが見つかりませんでした。" & vbCrLf & JoinCollectionText(sourceFilePaths, vbCrLf), vbExclamation
         Exit Sub
     End If
+    LogUP "LoadWorksheetNameCandidatesFromWorkbooks: 候補シート数=" & CStr(sheetNames.Count)
 
     Dim selectedSheetNames As Collection
     Set selectedSheetNames = PromptLineNameSelection(sheetNames)
-    If selectedSheetNames Is Nothing Then Exit Sub
-    If selectedSheetNames.Count = 0 Then Exit Sub
+    If selectedSheetNames Is Nothing Then
+        LogUP "PromptLineNameSelection -> Nothing (キャンセル) 中断"
+        Exit Sub
+    End If
+    If selectedSheetNames.Count = 0 Then
+        LogUP "PromptLineNameSelection -> 0件 中断"
+        Exit Sub
+    End If
+    LogUP "PromptLineNameSelection: 選択件数=" & CStr(selectedSheetNames.Count) & _
+          " 選択=[" & JoinCollectionText(selectedSheetNames, "|") & "]"
 
-    If Not ImportSelectedUnitPriceSheets(selectedSheetNames, wsInfo.Parent, sheetSourceFileMap, sheetSourceSheetMap) Then Exit Sub
+    If Not ImportSelectedUnitPriceSheets(selectedSheetNames, wsInfo.Parent, sheetSourceFileMap, sheetSourceSheetMap) Then
+        LogUP "ImportSelectedUnitPriceSheets -> False 中断"
+        Exit Sub
+    End If
+    LogUP "ImportSelectedUnitPriceSheets -> True"
+
     WriteSelectedLineNames wsInfo, selectedSheetNames
 
     Dim purchaseSheetName As String
+    LogUP "ImportPurchaseUnitPriceSheetsByReference 呼び出し"
     Call ImportPurchaseUnitPriceSheetsByReference(request, masterRow, priceFolderPath, sectionFolderPath, wsInfo.Parent, purchaseSheetName)
+    LogUP "ImportPurchaseUnitPriceSheetsByReference 完了 createdSheet=[" & purchaseSheetName & "]"
 
     Dim weldingSheetName As String
-    If Not ImportWeldingUnitPriceSheetsIfRequired(wsInfo, masterRow, priceFolderPath, sectionFolderPath, selectedSheetNames, wsInfo.Parent, weldingSheetName) Then Exit Sub
+    LogUP "ImportWeldingUnitPriceSheetsIfRequired 呼び出し"
+    If Not ImportWeldingUnitPriceSheetsIfRequired(wsInfo, masterRow, priceFolderPath, sectionFolderPath, selectedSheetNames, wsInfo.Parent, weldingSheetName) Then
+        LogUP "ImportWeldingUnitPriceSheetsIfRequired -> False 中断"
+        Exit Sub
+    End If
+    LogUP "ImportWeldingUnitPriceSheetsIfRequired -> True createdSheet=[" & weldingSheetName & "]"
 
     ' #19: 購入充当・溶接単価取込後も基本情報シートに戻す
     wsInfo.Activate
+    LogUP "ImportUnitPriceData 完了"
 
     MsgBox BuildImportCompleteMessage(selectedSheetNames, JoinCollectionText(sourceFilePaths, vbCrLf), purchaseSheetName, weldingSheetName), vbInformation, "完了"
 End Sub
 
 Private Function TryReadUnitPriceRequest(ByVal wsInfo As Worksheet, ByRef request As UnitPriceRequest) As Boolean
+    LogUP "TryReadUnitPriceRequest 開始"
     request.Nendo = CommonExtractYear4Digits(CStr(wsInfo.Range(BASIC_INFO_YEAR_CELL).Value))
     request.BranchName = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_BRANCH_CELL).Value))
     request.OfficeName = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_OFFICE_CELL).Value))
@@ -419,39 +496,51 @@ Private Function TryReadUnitPriceRequest(ByVal wsInfo As Worksheet, ByRef reques
     End If
 
     If request.Nendo = "" Then
+        LogUP "年度未取得 -> 中断"
         MsgBox "基本情報シート B4 に4桁の年度が見つかりません。", vbExclamation
         Exit Function
     End If
     If request.BranchName = "" Or request.OfficeName = "" Then
+        LogUP "支店/出張所未入力 Branch=[" & request.BranchName & "] Office=[" & request.OfficeName & "] -> 中断"
         MsgBox "基本情報シート B6 または C6 が空です。支店名・出張所名を確認してください。", vbExclamation
         Exit Function
     End If
     If request.lineType = "" Then
+        LogUP "C20 線区区分未入力 -> 中断"
         MsgBox "基本情報シート C20 の線区区分を選択してください。", vbExclamation
         Exit Function
     End If
     If request.projectName = "" Then
+        LogUP "C21 工事件名未入力 -> 中断"
         MsgBox "基本情報シート C21 の単価適用工事件名を選択してください。", vbExclamation
         Exit Function
     End If
     If IsPurchaseUnitPriceProjectName(request.projectName) Then
+        LogUP "C21 が購入充当系工事件名 ProjectName=[" & request.projectName & "] -> 中断"
         MsgBox "基本情報シート C21 は軌道材料購入充当以外の単価適用工事件名を選択してください。" & vbCrLf & _
                "購入充当単価は C24 確定後に自動作成します。", vbExclamation
         Exit Function
     End If
     If request.UnitPriceKind = "" Then
+        LogUP "C22 単価区分未入力 -> 中断"
         MsgBox "基本情報シート C22 の単価区分を選択してください。", vbExclamation
         Exit Function
     End If
 
+    LogUP "読み取り値 Nendo=[" & request.Nendo & "] Branch=[" & request.BranchName & _
+          "] Office=[" & request.OfficeName & "] LineType=[" & request.lineType & _
+          "] ProjectName=[" & request.projectName & "] PriceKind=[" & request.UnitPriceKind & "]"
     TryReadUnitPriceRequest = True
 End Function
 
 Private Function TryLoadUnitPriceMasterRow(ByRef request As UnitPriceRequest, _
                                            ByRef masterRow As UnitPriceMasterRow) As Boolean
+    LogUP "TryLoadUnitPriceMasterRow 開始"
     Dim sourceFilePath As String
     sourceFilePath = GetMasterFilePath()
+    LogUP "masterFilePath=[" & sourceFilePath & "]"
     If sourceFilePath = "" Then
+        LogUP "masterFilePath 未取得 -> 中断"
         MsgBox "出張所別_単価適用線区.xlsx が見つかりません。", vbExclamation
         Exit Function
     End If
@@ -461,15 +550,20 @@ Private Function TryLoadUnitPriceMasterRow(ByRef request As UnitPriceRequest, _
     Dim adoErrDescription As String
     On Error GoTo ErrorHandler
 
+    LogUP "ADO試行 path=[" & sourceFilePath & "]"
     Set cn = CommonOpenExcelAdoConnection(sourceFilePath)
     If cn Is Nothing Then
+        LogUP "ADO接続失敗 -> 中断"
         MsgBox "出張所別_単価適用線区.xlsx を参照できませんでした。" & vbCrLf & sourceFilePath, vbExclamation
         Exit Function
     End If
+    LogUP "ADO接続成功"
 
     Dim masterSheetName As String
     masterSheetName = FindAdoWorksheetName(cn, MASTER_SHEET_NAME)
+    LogUP "masterSheetName=[" & masterSheetName & "]"
     If masterSheetName = "" Then
+        LogUP "単価適用線区シート未検出 -> 中断"
         MsgBox "単価適用線区シートが見つかりませんでした。" & vbCrLf & _
                "ブック内のシート名を確認してください。" & vbCrLf & sourceFilePath, vbExclamation
         GoTo Cleanup
@@ -503,13 +597,17 @@ Private Function TryLoadUnitPriceMasterRow(ByRef request As UnitPriceRequest, _
         rs.MoveNext
     Loop
 
+    LogUP "マッチ結果 matchedCount=" & CStr(matchedCount) & " bestScore=" & CStr(bestScore)
     If matchedCount > 0 Then
         If bestScore > 1 Or matchedCount = 1 Then
             masterRow = bestRow
+            LogUP "masterRow確定 BranchGroup=[" & masterRow.BranchGroupName & _
+                  "] Section=[" & masterRow.SectionName & "] UnitPriceSection=[" & masterRow.UnitPriceSectionName & "]"
             TryLoadUnitPriceMasterRow = True
             GoTo Cleanup
         End If
 
+        LogUP "線区区分に一致する保線区を特定できず -> 中断"
         MsgBox "単価適用線区シートに支店・出張所は見つかりましたが、線区区分に一致する単価適用保線区を特定できませんでした。" & vbCrLf & _
                "支店：" & request.BranchName & vbCrLf & _
                "出張所：" & request.OfficeName & vbCrLf & _
@@ -517,6 +615,7 @@ Private Function TryLoadUnitPriceMasterRow(ByRef request As UnitPriceRequest, _
         GoTo Cleanup
     End If
 
+    LogUP "該当する支店・出張所なし -> 中断"
     MsgBox "単価適用線区シートに該当する支店・出張所が見つかりませんでした。" & vbCrLf & _
            "支店：" & request.BranchName & vbCrLf & _
            "出張所：" & request.OfficeName, vbExclamation
@@ -528,12 +627,15 @@ Cleanup:
 
 ErrorHandler:
     adoErrDescription = Err.Description
+    LogUP "ADO例外発生 Err=[" & adoErrDescription & "] -> Workbookフォールバック試行"
     CommonCloseAdoRecordset rs
     CommonCloseAdoConnection cn
     If TryLoadUnitPriceMasterRowFromWorkbook(sourceFilePath, request, masterRow) Then
+        LogUP "Workbookフォールバック成功"
         TryLoadUnitPriceMasterRow = True
         Exit Function
     End If
+    LogUP "Workbookフォールバック失敗"
     MsgBox "単価適用線区データの読み込みに失敗しました。" & vbCrLf & adoErrDescription, vbExclamation
     Resume Cleanup
 End Function
@@ -730,57 +832,79 @@ Private Function ResolveUnitPriceSourceFilePaths(ByRef request As UnitPriceReque
 
     Dim sourceFilePaths As Collection
     Set sourceFilePaths = FindUnitPriceWorkbooks(priceFolderPath, request.projectName)
-    If sourceFilePaths Is Nothing Then Exit Function
+    If sourceFilePaths Is Nothing Then
+        LogUP "FindUnitPriceWorkbooks -> Nothing"
+        Exit Function
+    End If
+    LogUP "FindUnitPriceWorkbooks: hits=" & CStr(sourceFilePaths.Count) & " projectName=[" & request.projectName & "]"
     If sourceFilePaths.Count = 0 Then
+        LogUP "工事件名一致ブックなし -> 中断"
         MsgBox "工事件名に一致する単価表が見つかりません。" & vbCrLf & _
                "工事件名：" & request.projectName & vbCrLf & _
                priceFolderPath, vbExclamation
         Exit Function
     End If
+    Dim sourceIndex As Long
+    For sourceIndex = 1 To sourceFilePaths.Count
+        LogUP "単価表ブック#" & CStr(sourceIndex) & "=[" & CStr(sourceFilePaths(sourceIndex)) & "]"
+    Next sourceIndex
     Set ResolveUnitPriceSourceFilePaths = sourceFilePaths
 End Function
 
 Private Function ResolveUnitPricePriceFolderPath(ByRef request As UnitPriceRequest, _
                                                  ByRef masterRow As UnitPriceMasterRow, _
                                                  ByRef sectionFolderPath As String) As String
+    LogUP "ResolveUnitPricePriceFolderPath 開始"
     Dim dataRoot As String
     dataRoot = GetUnitPriceDataRootPath()
+    LogUP "dataRoot=[" & dataRoot & "]"
     If dataRoot = "" Or Dir(dataRoot, vbDirectory) = "" Then
+        LogUP "単価データフォルダ未検出 -> 中断"
         MsgBox "単価データフォルダが見つかりません。" & vbCrLf & dataRoot, vbExclamation
         Exit Function
     End If
 
     Dim lineFolder As String
     lineFolder = FindChildFolderByKey(dataRoot, request.lineType, True)
+    LogUP "lineFolder=[" & lineFolder & "]"
     If lineFolder = "" Then
+        LogUP "線区区分フォルダ未検出 key=[" & request.lineType & "] -> 中断"
         MsgBox "線区区分フォルダが見つかりません。" & vbCrLf & request.lineType & vbCrLf & dataRoot, vbExclamation
         Exit Function
     End If
 
     Dim branchGroupFolder As String
     branchGroupFolder = FindChildFolderByKey(lineFolder, masterRow.BranchGroupName, False)
+    LogUP "branchGroupFolder=[" & branchGroupFolder & "]"
     If branchGroupFolder = "" Then
+        LogUP "支社フォルダ未検出 key=[" & masterRow.BranchGroupName & "] -> 中断"
         MsgBox "支社フォルダが見つかりません。" & vbCrLf & masterRow.BranchGroupName & vbCrLf & lineFolder, vbExclamation
         Exit Function
     End If
 
     Dim sectionFolder As String
     sectionFolder = FindChildFolderByKey(branchGroupFolder, masterRow.UnitPriceSectionName, True)
+    LogUP "sectionFolder=[" & sectionFolder & "]"
     If sectionFolder = "" Then
+        LogUP "保線区フォルダ未検出 key=[" & masterRow.UnitPriceSectionName & "] -> 中断"
         MsgBox "単価適用保線区フォルダが見つかりません。" & vbCrLf & masterRow.UnitPriceSectionName & vbCrLf & branchGroupFolder, vbExclamation
         Exit Function
     End If
 
     Dim yearFolder As String
     yearFolder = sectionFolder & "\" & request.Nendo
+    LogUP "yearFolder=[" & yearFolder & "]"
     If Dir(yearFolder, vbDirectory) = "" Then
+        LogUP "年度フォルダ未検出 -> 中断"
         MsgBox "年度フォルダが見つかりません。" & vbCrLf & yearFolder, vbExclamation
         Exit Function
     End If
 
     Dim priceFolder As String
     priceFolder = yearFolder & "\" & ResolveUnitPriceFolderName(request.UnitPriceKind)
+    LogUP "priceFolder=[" & priceFolder & "]"
     If Dir(priceFolder, vbDirectory) = "" Then
+        LogUP "単価区分フォルダ未検出 -> 中断"
         MsgBox "単価区分フォルダが見つかりません。" & vbCrLf & priceFolder, vbExclamation
         Exit Function
     End If
@@ -927,6 +1051,7 @@ Private Function ImportSelectedUnitPriceSheets(ByVal selectedSheetNames As Colle
     Application.DisplayAlerts = False
     Application.ScreenUpdating = False
 
+    LogUP "ImportSelectedUnitPriceSheets: 既存シート削除"
     DeleteImportedUnitPriceSheets targetBook
 
     Dim displayName As Variant
@@ -937,6 +1062,8 @@ Private Function ImportSelectedUnitPriceSheets(ByVal selectedSheetNames As Colle
         sourceFilePath = CStr(sheetSourceFileMap(CStr(displayName)))
         sourceSheetName = CStr(sheetSourceSheetMap(CStr(displayName)))
         targetSheetName = CStr(displayName)
+        LogUP "シートコピー displayName=[" & targetSheetName & "] srcSheet=[" & sourceSheetName & _
+              "] srcFile=[" & sourceFilePath & "]"
 
         Set sourceBook = Workbooks.Open(fileName:=sourceFilePath, ReadOnly:=True, UpdateLinks:=False, AddToMru:=False)
         DeleteWorksheetIfExists targetBook, targetSheetName
@@ -945,6 +1072,7 @@ Private Function ImportSelectedUnitPriceSheets(ByVal selectedSheetNames As Colle
             .Name = MakeUniqueWorksheetName(targetBook, targetSheetName, .Name)
             .Tab.Color = RGB(UNIT_PRICE_SHEET_TAB_R, UNIT_PRICE_SHEET_TAB_G, UNIT_PRICE_SHEET_TAB_B)
             MarkImportedUnitPriceSheet targetBook.Worksheets(.Name)
+            LogUP "シート作成完了 name=[" & .Name & "]"
         End With
 
         sourceBook.Close SaveChanges:=False
@@ -1124,22 +1252,34 @@ Private Function ImportPurchaseUnitPriceSheetsByReference(ByRef request As UnitP
                                                           ByVal targetBook As Workbook, _
                                                           ByRef createdSheetName As String) As Boolean
     createdSheetName = ""
+    LogUP "ImportPurchaseUnitPriceSheetsByReference 開始"
 
     Dim purchaseFilePath As String
     purchaseFilePath = FindPurchaseUnitPriceWorkbook(priceFolderPath)
-    If purchaseFilePath = "" Then Exit Function
+    LogUP "purchaseFilePath=[" & purchaseFilePath & "]"
+    If purchaseFilePath = "" Then
+        LogUP "購入充当ブック未検出 -> スキップ"
+        Exit Function
+    End If
 
     Dim referenceKey As String
     referenceKey = BuildPurchaseReferenceKey(sectionFolderPath)
+    LogUP "referenceKey=[" & referenceKey & "]"
     If referenceKey = "" Then
+        LogUP "referenceKey 取得失敗 -> 中断"
         MsgBox "購入充当単価表の参照キーを取得できませんでした。" & vbCrLf & sectionFolderPath, vbExclamation
         Exit Function
     End If
 
     Dim purchaseSheetNames As Collection
     Set purchaseSheetNames = LoadPurchaseSheetNamesByReference(purchaseFilePath, referenceKey)
-    If purchaseSheetNames Is Nothing Then Exit Function
+    If purchaseSheetNames Is Nothing Then
+        LogUP "LoadPurchaseSheetNamesByReference -> Nothing 中断"
+        Exit Function
+    End If
+    LogUP "購入充当シート候補数=" & CStr(purchaseSheetNames.Count)
     If purchaseSheetNames.Count = 0 Then
+        LogUP "参照キー一致シートなし key=[" & referenceKey & "] -> 中断"
         MsgBox "購入充当単価表に参照キー「" & referenceKey & "」に一致するシートが見つかりません。" & vbCrLf & purchaseFilePath, vbExclamation
         Exit Function
     End If
@@ -1147,14 +1287,20 @@ Private Function ImportPurchaseUnitPriceSheetsByReference(ByRef request As UnitP
     Dim newSheetName As String
     newSheetName = BuildPurchaseSheetName(GetPathBaseName(sectionFolderPath))
     If newSheetName = "" Then newSheetName = BuildPurchaseSheetName(masterRow.UnitPriceSectionName)
+    LogUP "購入充当 newSheetName=[" & newSheetName & "]"
     If newSheetName = "" Then
+        LogUP "newSheetName 生成失敗 -> 中断"
         MsgBox "購入充当単価表の取込先シート名を生成できませんでした。", vbExclamation
         Exit Function
     End If
 
-    If Not ImportAndMergePurchaseUnitPriceSheets(purchaseFilePath, purchaseSheetNames, targetBook, newSheetName) Then Exit Function
+    If Not ImportAndMergePurchaseUnitPriceSheets(purchaseFilePath, purchaseSheetNames, targetBook, newSheetName) Then
+        LogUP "ImportAndMergePurchaseUnitPriceSheets -> False"
+        Exit Function
+    End If
 
     createdSheetName = newSheetName
+    LogUP "購入充当単価シート作成完了 createdSheet=[" & createdSheetName & "]"
     ImportPurchaseUnitPriceSheetsByReference = True
 End Function
 
@@ -1166,14 +1312,19 @@ Private Function ImportWeldingUnitPriceSheetsIfRequired(ByVal wsInfo As Workshee
                                                         ByVal targetBook As Workbook, _
                                                         ByRef createdSheetName As String) As Boolean
     createdSheetName = ""
+    LogUP "ImportWeldingUnitPriceSheetsIfRequired 開始"
     If Not IsWeldingUnitPriceRequired(wsInfo) Then
+        LogUP "C23 溶接不要 -> スキップ"
         ImportWeldingUnitPriceSheetsIfRequired = True
         Exit Function
     End If
+    LogUP "C23 溶接必要"
 
     Dim weldingFilePath As String
     weldingFilePath = FindWeldingUnitPriceWorkbook(priceFolderPath)
+    LogUP "weldingFilePath=[" & weldingFilePath & "]"
     If weldingFilePath = "" Then
+        LogUP "溶接ブック未検出 -> 警告表示してスキップ"
         MsgBox BuildMissingWeldingUnitPriceMessage(sectionFolderPath, masterRow), vbExclamation
         ImportWeldingUnitPriceSheetsIfRequired = True
         Exit Function
@@ -1181,8 +1332,13 @@ Private Function ImportWeldingUnitPriceSheetsIfRequired(ByVal wsInfo As Workshee
 
     Dim weldingSheetNames As Collection
     Set weldingSheetNames = LoadWeldingSheetNames(weldingFilePath, selectedLineNames)
-    If weldingSheetNames Is Nothing Then Exit Function
+    If weldingSheetNames Is Nothing Then
+        LogUP "LoadWeldingSheetNames -> Nothing 中断"
+        Exit Function
+    End If
+    LogUP "溶接シート候補数=" & CStr(weldingSheetNames.Count)
     If weldingSheetNames.Count = 0 Then
+        LogUP "溶接対象シートなし -> 中断"
         MsgBox "レール溶接単価表に取り込み可能なシートが見つかりません。" & vbCrLf & weldingFilePath, vbExclamation
         Exit Function
     End If
@@ -1190,14 +1346,20 @@ Private Function ImportWeldingUnitPriceSheetsIfRequired(ByVal wsInfo As Workshee
     Dim newSheetName As String
     newSheetName = BuildWeldingSheetName(GetPathBaseName(sectionFolderPath))
     If newSheetName = "" Then newSheetName = BuildWeldingSheetName(masterRow.UnitPriceSectionName)
+    LogUP "溶接 newSheetName=[" & newSheetName & "]"
     If newSheetName = "" Then
+        LogUP "newSheetName 生成失敗 -> 中断"
         MsgBox "レール溶接単価表の取込先シート名を生成できませんでした。", vbExclamation
         Exit Function
     End If
 
-    If Not ImportAndMergeWeldingUnitPriceSheets(weldingFilePath, weldingSheetNames, targetBook, newSheetName) Then Exit Function
+    If Not ImportAndMergeWeldingUnitPriceSheets(weldingFilePath, weldingSheetNames, targetBook, newSheetName) Then
+        LogUP "ImportAndMergeWeldingUnitPriceSheets -> False"
+        Exit Function
+    End If
 
     createdSheetName = newSheetName
+    LogUP "溶接単価シート作成完了 createdSheet=[" & createdSheetName & "]"
     ImportWeldingUnitPriceSheetsIfRequired = True
 End Function
 
@@ -1405,7 +1567,10 @@ End Function
 
 Private Sub WriteSelectedLineNames(ByVal wsInfo As Worksheet, ByVal selectedSheetNames As Collection)
     If wsInfo Is Nothing Then Exit Sub
-    wsInfo.Range(BASIC_INFO_IMPORTED_LINE_NAMES_CELL).Value = JoinCollectionText(selectedSheetNames, ChrW$(&H3001))
+    Dim joinedText As String
+    joinedText = JoinCollectionText(selectedSheetNames, ChrW$(&H3001))
+    LogUP "WriteSelectedLineNames C24=[" & joinedText & "]"
+    wsInfo.Range(BASIC_INFO_IMPORTED_LINE_NAMES_CELL).Value = joinedText
     FormatImportedLineNamesCell wsInfo
 End Sub
 
