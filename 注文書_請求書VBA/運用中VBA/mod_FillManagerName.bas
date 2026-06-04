@@ -1,33 +1,13 @@
 Option Explicit
 
 '==========================================================================
-'  出張所長名 自動入力／支店・出張所バリデーション再構篈モジュール
+'  出張所長名 自動入力／支店・出張所バリデーション再構築モジュール
 '    改修内容：
 '      #23: B6変更時コンボ表示フロー追跡用ログを挿入（mod_DebugLog使用）
 '           デバッグ確認後は mod_DebugLog の呼び出しを削除すること。
 '      #22: B6変更時に C6 コンボが開かない問題を修正。
-'           EnableEvents=False 中は OLEObject.Activate が正しく動かないため、
-'           PromptOfficeComboBox の処理中だけ一時的に True に切り替える。
-'           同時に mInPromptOffice フラグを追加し、Sheet1.cls の
-'           SelectionChange / ComboBox1_LostFocus でコンボを消さないようにする。
-'           終了時に EnableEvents を呼び出し元の状態へ復元する。
-'      #19: B6変更後にC6コンボが表示されない問題を修正。
-'           RefreshBranchOfficeValidation の戻り値（Boolean）で
-'           「コンボ表示スケジュールが必要か」を Sheet1.cls へ返すよう変更。
-'      #7 : WriteValidationLists での Dictionary→セル単位書き込みを
-'           Variant 2次元配列＋Range 一括代入へ置換。
-'      #9 : NormalizeText / CommonGetBasicInfoWorksheet / 日本語名生成 /
-'           ADO 接続生成は mod_Common に集約。重複定義を撤去。
-'      #10: CommitOfficeComboBoxSelection で C6 書き込み時に
-'           Worksheet_Change の C6 処理が再起動するのを防ぐため
-'           mSuppressC6Change フラグを追加。
-'      #15: CommitOfficeComboBoxSelection の「現在値と同じならスキップ」
-'           ガードを撤廃。フラグは常に ON にして Change イベントの
-'           二重発火を抑制する。
-'      #16: 出張所長リストファイル名を
-'           「年度_線路出張所長リスト.xlsx」優先に変更。
-'      #17: 出張所長リストの参照先を
-'           単価マスタ\工事件名別マスタ\出張所長名 に変更。
+'      #19: RefreshBranchOfficeValidation の戻り値（Boolean）で制御。
+'      #7,#9,#10,#15,#16,#17: 各種改修済み。
 '==========================================================================
 
 Private Const LIST_BRANCH_COL As String = "AA"
@@ -36,17 +16,13 @@ Private Const LIST_START_ROW As Long = 2
 Private Const OFFICE_COMBO_NAME As String = "ComboBox1"
 Private Const OFFICE_COMBO_WIDTH_POINTS As Double = 310.5
 
-' C6 への書き込み中に Worksheet_Change の C6 処理をスキップするフラグ
 Private mSuppressC6Change As Boolean
-' (#22) PromptOfficeComboBox 処理中を示すフラグ
-'       True の間は SelectionChange / LostFocus のコンボ非表示処理をスキップする
 Private mInPromptOffice As Boolean
 
 Public Function IsSuppressingC6Change() As Boolean
     IsSuppressingC6Change = mSuppressC6Change
 End Function
 
-' (#22) PromptOfficeComboBox 処理中かどうかを Sheet1.cls から参照するための Public Function
 Public Function IsPromptingOfficeComboBox() As Boolean
     IsPromptingOfficeComboBox = mInPromptOffice
 End Function
@@ -104,11 +80,6 @@ Public Sub FillManagerNameToBasicInfo()
     End If
 End Sub
 
-'--------------------------------------------------------------------------
-'  RefreshBranchOfficeValidation
-'    戻り値：True = 呼び出し元でコンボ表示処理を呼ぶ必要あり
-'             False = 不要
-'--------------------------------------------------------------------------
 Public Function RefreshBranchOfficeValidation(Optional ByVal keepOffice As Boolean = True) As Boolean
     RefreshBranchOfficeValidation = False
     mod_DebugLog.Log "[FillMgr] RefreshBranchOfficeValidation 開始 keepOffice=" & keepOffice
@@ -258,9 +229,6 @@ Public Sub ScheduleOfficeComboBoxPrompt()
     On Error GoTo 0
 End Sub
 
-'--------------------------------------------------------------------------
-'  PromptOfficeComboBox  (#22 修正)
-'--------------------------------------------------------------------------
 Public Sub PromptOfficeComboBox()
     mod_DebugLog.Log "[FillMgr] PromptOfficeComboBox 開始 EnableEvents=" & Application.EnableEvents
     Dim wsInfo As Worksheet
@@ -309,9 +277,6 @@ Public Sub HideOfficeComboBox(Optional ByVal wsInfo As Worksheet)
     On Error GoTo 0
 End Sub
 
-'--------------------------------------------------------------------------
-'  CommitOfficeComboBoxSelection  (#15 修正)
-'--------------------------------------------------------------------------
 Public Sub CommitOfficeComboBoxSelection(Optional ByVal selectC6 As Boolean = True)
     Dim wsInfo As Worksheet
     Set wsInfo = CommonGetBasicInfoWorksheet()
@@ -328,7 +293,6 @@ Public Sub CommitOfficeComboBoxSelection(Optional ByVal selectC6 As Boolean = Tr
     If selectedOffice = "" Then GoTo ExitHandler
 
     mSuppressC6Change = True
-
     ole.Object.LinkedCell = ""
     wsInfo.Range("C6").Value = selectedOffice
     mSuppressC6Change = False
@@ -357,10 +321,15 @@ Private Sub ShowOfficeComboBox(ByVal wsInfo As Worksheet)
         Exit Sub
     End If
 
+    mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: FitOfficeComboBoxToC6 開始"
     FitOfficeComboBoxToC6 wsInfo, ole
+    mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: wsInfo.Activate 開始"
     wsInfo.Activate
+    mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: C6.Select 開始"
     wsInfo.Range("C6").Select
+    mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: LinkedCell=""" 開始"
     ole.Object.LinkedCell = ""
+    mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: ListCount チェック"
     If ole.Object.ListCount = 0 Then
         mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: ListCount=0 -> ValidationDropdown へ"
         HideOfficeComboBox wsInfo
@@ -393,13 +362,18 @@ ErrorHandler:
 End Sub
 
 Private Sub FitOfficeComboBoxToC6(ByVal wsInfo As Worksheet, ByVal ole As OLEObject)
-    With ole
-        .Left = wsInfo.Range("C6").Left
-        .Top = wsInfo.Range("C6").Top
-        .Width = OFFICE_COMBO_WIDTH_POINTS
-        .Height = wsInfo.Range("C6").Height
-        .Placement = xlMoveAndSize
-    End With
+    On Error Resume Next
+    ole.Left = wsInfo.Range("C6").Left
+    mod_DebugLog.Log "[FillMgr] Fit: Left Err=" & Err.Number : Err.Clear
+    ole.Top = wsInfo.Range("C6").Top
+    mod_DebugLog.Log "[FillMgr] Fit: Top Err=" & Err.Number : Err.Clear
+    ole.Width = OFFICE_COMBO_WIDTH_POINTS
+    mod_DebugLog.Log "[FillMgr] Fit: Width Err=" & Err.Number : Err.Clear
+    ole.Height = wsInfo.Range("C6").Height
+    mod_DebugLog.Log "[FillMgr] Fit: Height Err=" & Err.Number : Err.Clear
+    ole.Placement = xlMoveAndSize
+    mod_DebugLog.Log "[FillMgr] Fit: Placement Err=" & Err.Number : Err.Clear
+    On Error GoTo 0
 End Sub
 
 Private Function GetOfficeComboBox(ByVal wsInfo As Worksheet) As OLEObject
@@ -562,7 +536,6 @@ Private Function GetFirstWorksheetTableName(ByVal cn As Object) As String
     Set sheetNames = CommonGetAdoWorksheetNames(cn)
     If sheetNames Is Nothing Then Exit Function
     If sheetNames.Count = 0 Then Exit Function
-
     GetFirstWorksheetTableName = CStr(sheetNames(1)) & "$"
 End Function
 
@@ -584,7 +557,6 @@ Private Function GetManagerListFilePath(ByVal yearText As String) As String
         MsgBox "出張所長リストフォルダが見つかりません。" & vbCrLf & folderPath, vbExclamation
         Exit Function
     End If
-
     GetManagerListFilePath = FindManagerListFile(folderPath, yearText)
     mod_DebugLog.Log "[FillMgr] GetManagerListFilePath: 結果=[" & GetManagerListFilePath & "]"
     If GetManagerListFilePath = "" Then
@@ -625,7 +597,6 @@ End Function
 Private Function BuildManagerListFolderPath(ByVal documentRootPath As String, _
                                             ByVal fso As Object) As String
     If Len(Trim$(documentRootPath)) = 0 Then Exit Function
-
     Dim folderPath As String
     folderPath = fso.BuildPath(documentRootPath, UnitPriceMasterFolderText())
     folderPath = fso.BuildPath(folderPath, UnitPriceReferenceFolderText())
@@ -659,26 +630,22 @@ End Function
 Private Function FindManagerListFile(ByVal folderPath As String, ByVal yearText As String) As String
     Dim listKeyword As String
     listKeyword = ManagerListKeywordText()
-
     Dim fileName As String
     fileName = ManagerListFileNameText(yearText)
     If Dir(folderPath & fileName, vbNormal) <> "" Then
         FindManagerListFile = folderPath & fileName
         Exit Function
     End If
-
     fileName = Dir(folderPath & yearText & "_*" & listKeyword & "*.*")
     If fileName <> "" Then
         FindManagerListFile = folderPath & fileName
         Exit Function
     End If
-
     fileName = Dir(folderPath & "*" & yearText & "*" & listKeyword & "*.*")
     If fileName <> "" Then
         FindManagerListFile = folderPath & fileName
         Exit Function
     End If
-
     fileName = Dir(folderPath & "*" & listKeyword & "*.*")
     Do While fileName <> ""
         If InStr(fileName, yearText) > 0 Then
@@ -692,10 +659,6 @@ End Function
 Private Function ManagerListFileNameText(ByVal yearText As String) As String
     ManagerListFileNameText = yearText & "_" & ManagerListKeywordText() & ".xlsx"
 End Function
-
-'--------------------------------------------------------------------------
-'  本モジュール専用の日本語名（Common に共通化していない）
-'--------------------------------------------------------------------------
 
 Private Function OrderInvoiceDocumentFolderText() As String
     Static cached As String
