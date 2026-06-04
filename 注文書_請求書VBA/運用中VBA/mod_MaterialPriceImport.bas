@@ -120,8 +120,10 @@ Private Const WELDING_SHEET_TAB_R As Long = 252
 Private Const WELDING_SHEET_TAB_G As Long = 213
 Private Const WELDING_SHEET_TAB_B As Long = 180
 Private Const SOURCE_HEADER_ROW As Long = 1
-Private Const IMPORTED_LINE_NAME_BASE_ROW_HEIGHT As Double = 28.5
-Private Const IMPORTED_LINE_NAME_MAX_LINES As Long = 7
+Private Const IMPORTED_LINE_NAME_BASE_FONT_SIZE As Double = 16
+Private Const IMPORTED_LINE_NAME_MIN_FONT_SIZE As Double = 5
+Private Const IMPORTED_LINE_NAME_LINE_HEIGHT_RATIO As Double = 1.25
+Private Const IMPORTED_LINE_NAME_VERTICAL_PADDING As Double = 4
 
 Private Const ZAIRAISEN_PROJECT_NAME_FIRST_END_ROW  As Long = 8
 Private Const ZAIRAISEN_PROJECT_NAME_SKIP_ROW       As Long = 9
@@ -1419,13 +1421,31 @@ Public Sub FormatImportedLineNamesCell(ByVal wsInfo As Worksheet)
 
     targetCell.MergeArea.WrapText = True
     targetCell.MergeArea.VerticalAlignment = xlVAlignCenter
+    targetCell.MergeArea.Font.Size = CalculateImportedLineNameFontSize(targetCell.MergeArea, formattedText)
+End Sub
+
+Private Function CalculateImportedLineNameFontSize(ByVal targetArea As Range, ByVal lineNameText As String) As Double
+    If targetArea Is Nothing Then
+        CalculateImportedLineNameFontSize = IMPORTED_LINE_NAME_BASE_FONT_SIZE
+        Exit Function
+    End If
 
     Dim lineCount As Long
-    lineCount = CountImportedLineNameLines(formattedText)
+    lineCount = CountImportedLineNameLines(lineNameText)
     If lineCount < 1 Then lineCount = 1
-    If lineCount > IMPORTED_LINE_NAME_MAX_LINES Then lineCount = IMPORTED_LINE_NAME_MAX_LINES
-    targetCell.EntireRow.RowHeight = IMPORTED_LINE_NAME_BASE_ROW_HEIGHT * lineCount
-End Sub
+
+    Dim availableHeight As Double
+    availableHeight = targetArea.Height - IMPORTED_LINE_NAME_VERTICAL_PADDING
+    If availableHeight <= 0 Then availableHeight = targetArea.Height
+
+    Dim fontSize As Double
+    fontSize = Int(availableHeight / (lineCount * IMPORTED_LINE_NAME_LINE_HEIGHT_RATIO))
+
+    If fontSize > IMPORTED_LINE_NAME_BASE_FONT_SIZE Then fontSize = IMPORTED_LINE_NAME_BASE_FONT_SIZE
+    If fontSize < IMPORTED_LINE_NAME_MIN_FONT_SIZE Then fontSize = IMPORTED_LINE_NAME_MIN_FONT_SIZE
+
+    CalculateImportedLineNameFontSize = fontSize
+End Function
 
 Private Function NormalizeImportedLineNameText(ByVal sourceText As String) As String
     Dim normalized As String
