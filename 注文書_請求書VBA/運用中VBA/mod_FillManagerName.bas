@@ -367,11 +367,23 @@ Private Sub ShowOfficeComboBox(ByVal wsInfo As Worksheet)
         ShowC6ValidationDropdown wsInfo
         Exit Sub
     End If
-    mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: ListCount=" & ole.Object.ListCount & " -> DropDown 呼び出し"
+    mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: ListCount=" & ole.Object.ListCount & " ole.ProgID=[" & ole.progID & "] ole.Name=[" & ole.Name & "]"
     ole.Visible = True
     ole.Activate
+    On Error Resume Next
     ole.Object.DropDown
-    mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: DropDown 完了 Err=" & Err.Number
+    Dim dropDownErr As Long
+    Dim dropDownDesc As String
+    dropDownErr = Err.Number
+    dropDownDesc = Err.Description
+    On Error GoTo ErrorHandler
+    If dropDownErr <> 0 Then
+        mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: DropDown Err=" & dropDownErr & " " & dropDownDesc & " -> SendKeysフォールバック"
+        ole.Visible = False
+        ShowC6ValidationDropdown wsInfo
+    Else
+        mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: DropDown 完了"
+    End If
     Exit Sub
 
 ErrorHandler:
