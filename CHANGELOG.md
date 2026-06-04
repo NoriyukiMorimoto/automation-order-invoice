@@ -1,0 +1,142 @@
+# CHANGELOG
+
+改修履歴は各 `.bas` ファイルのヘッダーコメントから本ファイルへ移管しました。
+各モジュールのヘッダーには `改修履歴: CHANGELOG.md 参照` と記載しています。
+
+---
+
+## mod_MaterialPriceImport.bas（工事単価インポートモジュール）
+
+### #17
+- ResetUnitPriceValidation の AlertStyle を xlValidAlertStop → xlValidAlertInformation に変更。
+  非表示列をリスト元に使用する場合、xlValidAlertStop では Excel がリスト外値と判定して入力をブロックするため。
+
+### #18
+- ResetUnitPriceValidation を MergeArea 対応に修正。
+  C22 等がセル結合されている場合、targetCell が結合副セル（D22 等）を指してしまい
+  入力規則が誤ったセルに設定される問題を解消。MergeArea.Cells(1,1) で代表セルを確実に取得する。
+
+### #19
+- 購入充当・レール溶接単価シート取込後に基本情報シートがアクティブにならない問題を修正。
+  ImportUnitPriceData の全取込処理完了後（MsgBox 直前）に wsInfo.Activate を追加し、
+  常に基本情報シートへ戻るようにした。
+
+### #20
+- 新幹線区分で購入充当単価の参照キーが取得できない問題を修正。
+  BuildPurchaseReferenceKey は保線区フォルダ名の先頭数字を参照キーとして使っていたが、
+  新幹線の保線区フォルダ名は「金沢新幹線保線区」のように数字で始まらないため "" を返し
+  「参照キーを取得できませんでした」エラーになっていた。
+  先頭数字が取れた場合はそのまま（在来線の既存動作を維持）、
+  取れなかった場合はフォルダ名全体を正規化して参照キーとする。
+  あわせて PurchaseSheetNameMatchesReferenceKey にキーがシート名に含まれる部分一致パターンを追加し、
+  漢字キーにも対応した。
+
+### #21
+- 同じ支店・出張所で在来線／新幹線の単価適用保線区が複数ある場合、C20 の線区区分に合うマスタ行を
+  優先して選択するよう修正。福井出張所の新幹線単価適用時に在来線側の「敦賀地域鉄道部」を先に拾ってしまい、
+  新幹線フォルダ配下で見つからない問題を解消。
+
+### #22
+- 工事件名に一致する単価表ブックが複数ある場合、最初の1ブックだけでなく全ブックのシートを
+  対応積算線区選択フォームの候補に出すよう修正。
+  新幹線の軌道整備他で「基地線」ブックだけが候補になり、「本線」ブックが選択できない問題を解消。
+
+### #23
+- 単価表ブック検索で同じファイルパスが複数回返った場合、重複して候補に追加しないよう修正。
+  対応積算線区選択フォームに同じ本線・基地線が2回表示される問題を解消。
+
+### #24
+- 新幹線の購入充当単価表で、シート名が「福井新幹線保線区」ではなく
+  「2026単価一覧表(材料)福井」のような短縮名称の場合でも取り込めるよう修正。
+  フルキー一致、短縮キー一致、単一シート採用の順で判定する。
+
+### #25
+- 購入充当単価シートのタブ色を #FFCC99 から #99FFCC に変更。
+
+### #26
+- 工事単価シートのタブ色を #DDEBF7 から #A5ABE5 に変更。
+
+### #27
+- 溶接単価ブックが無い保線区で、C23 が溶接ありの場合に「○○には溶接単価の設定がありません。」と警告するよう修正。
+- C23 の溶接工事有無判定を MergeArea と表記ゆれに対応。
+
+### #28
+- C24 単価シート作成ロジックに [UnitPrice] タグ付きデバッグログを追加。
+  mod_DebugLog 経由でイミディエイト＋ログシートに記録する。
+- 追跡対象は ImportUnitPriceData の全フェーズ：
+  TryReadUnitPriceRequest、TryLoadUnitPriceMasterRow、ResolveUnitPricePriceFolderPath、
+  ResolveUnitPriceSourceFilePaths、ImportSelectedUnitPriceSheets、
+  ImportPurchaseUnitPriceSheetsByReference、ImportWeldingUnitPriceSheetsIfRequired、WriteSelectedLineNames。
+- 既存の [FillMgr] ログと同形式・同タグ運用。
+
+---
+
+## mod_FillManagerName.bas（出張所長名 自動入力／支店・出張所バリデーション再構築モジュール）
+
+### #7, #9, #10, #15, #16, #17
+- 各種改修済み（詳細はコード内コメント参照）。
+
+### #19
+- RefreshBranchOfficeValidation の戻り値（Boolean）で制御するよう変更。
+
+### #22
+- B6変更時に C6 コンボが開かない問題を修正。
+
+### #23
+- B6変更時コンボ表示フロー追跡用ログを挿入（mod_DebugLog 使用）。
+  デバッグ確認後は mod_DebugLog の呼び出しを削除すること。
+
+---
+
+## mod_VendorMaster.bas（業者マスタ参照／業者選択モジュール）
+
+### #7
+- WriteVendorValidationList の Dictionary→セル単位ループを
+  Variant 2次元配列＋Range 一括代入へ置換。
+
+### #8
+- LoadVendorComboBoxItems のセル単位走査を配列読込ループへ変更。
+
+### #9
+- NormalizeText / CommonGetBasicInfoWorksheet / 日本語名生成 / ADO 接続生成は
+  mod_Common に集約。重複定義を撤去。
+
+### #18
+- 業者情報8行目に2行挿入のため、F列セル参照を +2行シフト。
+  BASIC_INFO_VENDOR_NAME_CELL: F9 → F11
+  BASIC_INFO_VENDOR_CLEAR_RANGES: F9:F14,F16:F21 → F11:F16,F18:F23
+  ApplyVendorRowToBasicInfo: F9→F23 範囲を対応更新
+  FitVendorComboBoxToF9 → FitVendorComboBoxToF11
+
+---
+
+## mod_BasicInfoUpdate.bas（基本情報シート 期間／請求回数更新モジュール）
+
+### #9
+- NormalizeText / GetBasicInfoWorksheet / 日本語シート名生成は mod_Common に集約済み。
+  重複定義を撤去し、共通関数経由で参照。
+
+### #11
+- SilentClearBasicInfo を追加。B6/C6 変更時に確認メッセージなしで基本情報と単価シートをクリア。
+
+### #15
+- エラーハンドラ内で Err.Number / Err.Description を退避し、
+  その後の Application 設定復帰を確実に行う構造へ整理。
+
+### #18
+- 業者情報8行目に2行挿入のため、BASIC_INFO_CLEAR_RANGES の
+  F列範囲を F9:F14,F16:F21 → F11:F16,F18:F23 に更新。
+
+### #21
+- SilentClearBasicInfo / ClearBasicInfo で EnableEvents を上書きしないよう保存・復元するように変更。
+  親呼び出し元（Worksheet_Change など）が EnableEvents=False 中にこれらを呼び出しても
+  EnableEvents 状態を損なわないようにする。
+
+---
+
+## mod_common.bas（共通ユーティリティモジュール）
+
+- 各モジュールに散らばっていた汎用関数（文字列正規化、シート取得、日本語名生成、
+  ADO 接続生成、年抽出、長整数配列ソートなど）を集約。
+- ChrW で構築する日本語名は Static 変数でキャッシュし、再構築のコストを排除する。
+- 全モジュールから本モジュールの関数を呼ぶ前提とする。
