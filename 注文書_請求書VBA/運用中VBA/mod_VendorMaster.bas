@@ -1,18 +1,8 @@
 Option Explicit
 
 '==========================================================================
-'  ‹ÆÒƒ}ƒXƒ^QÆ^‹ÆÒ‘I‘ğƒ‚ƒWƒ…[ƒ‹
-'    ‰üC“à—eF
-'      #18: ‹ÆÒî•ñ8s–Ú‚É2s‘}“ü‚Ì‚½‚ßAF—ñƒZƒ‹QÆ‚ğ+2sƒVƒtƒgB
-'           BASIC_INFO_VENDOR_NAME_CELL : F9 ¨ F11
-'           BASIC_INFO_VENDOR_CLEAR_RANGES : F9:F14,F16:F21 ¨ F11:F16,F18:F23
-'           ApplyVendorRowToBasicInfo : F9?F21 ¨ F11?F23
-'           FitVendorComboBoxToF9 ¨ FitVendorComboBoxToF11
-'      #7 : WriteVendorValidationList ‚Ì Dictionary¨ƒZƒ‹’PˆÊƒ‹[ƒv‚ğ
-'           Variant 2ŸŒ³”z—ñ{Range ˆêŠ‡‘ã“ü‚Ö’uŠ·B
-'      #8 : LoadVendorComboBoxItems ‚ÌƒZƒ‹’PˆÊ‘–¸‚ğ”z—ñ“Çƒ‹[ƒv‚ÖB
-'      #9 : NormalizeText / CommonGetBasicInfoWorksheet / “ú–{Œê–¼¶¬ /
-'           ADO Ú‘±¶¬‚Í mod_Common ‚ÉW–ñBd•¡’è‹`‚ğ“P‹B
+'  æ¥­è€…ãƒã‚¹ã‚¿å‚ç…§ï¼æ¥­è€…é¸æŠãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«
+'  æ”¹ä¿®å±¥æ­´: CHANGELOG.md å‚ç…§
 '==========================================================================
 
 Private Const VENDOR_LIST_COL As String = "AD"
@@ -299,9 +289,7 @@ Private Sub FitVendorComboBoxToTarget(ByVal targetCell As Range, ByVal ole As OL
 End Sub
 
 '--------------------------------------------------------------------------
-'  ComboBox —p ‹ÆÒ–¼ƒAƒCƒeƒ€“Ç
-'  ‰üCi#8jF]—ˆ‚Í AD —ñ‚ğ 1 ƒZƒ‹‚¸‚Â Cells(...).Value ‚ÅQÆ‚µ‚Ä‚¢‚½‚ª
-'              ‘ÎÛ”ÍˆÍ‚ğ Variant ”z—ñ‚ÅˆêŠ‡æ“¾‚µ‚Ä‚©‚çƒ‹[ƒv‚·‚éB
+'  ComboBox ç”¨ æ¥­è€…åã‚¢ã‚¤ãƒ†ãƒ èª­è¾¼ï¼ˆ#8: é…åˆ—èª­è¾¼ãƒ«ãƒ¼ãƒ—ã¸å¤‰æ›´ï¼‰
 '--------------------------------------------------------------------------
 Private Sub LoadVendorComboBoxItems(ByVal wsInfo As Worksheet, ByVal ole As OLEObject, ByVal targetCell As Range)
     Dim lastRow As Long
@@ -325,7 +313,6 @@ Private Sub LoadVendorComboBoxItems(ByVal wsInfo As Worksheet, ByVal ole As OLEO
                 End If
             Next rr
         Else
-            ' ”ÍˆÍ‚ª 1 ƒZƒ‹‚¾‚¯‚Ì‚Æ‚« Variant ‚Í”z—ñ‚É‚È‚ç‚È‚¢
             If CommonNormalizeText(CStr(arr)) <> "" Then .AddItem CStr(arr)
         End If
         .LinkedCell = ""
@@ -336,9 +323,7 @@ Private Sub LoadVendorComboBoxItems(ByVal wsInfo As Worksheet, ByVal ole As OLEO
 End Sub
 
 '--------------------------------------------------------------------------
-'  ‹ÆÒƒoƒŠƒf[ƒVƒ‡ƒ“ƒŠƒXƒg‘
-'  ‰üCi#7jFDictionary.Keys ‚ğ 1 “x‚¾‚¯æ“¾¨ 2 ŸŒ³”z—ñ‚É‹l‚ß‚Ä
-'              Range ˆêŠ‡‘ã“ü‚·‚éB
+'  æ¥­è€…ãƒãƒªãƒ‡ãƒ¼ã‚·ãƒ§ãƒ³ãƒªã‚¹ãƒˆæ›¸è¾¼ï¼ˆ#7: 2æ¬¡å…ƒé…åˆ—ï¼‹Range ä¸€æ‹¬ä»£å…¥ï¼‰
 '--------------------------------------------------------------------------
 Private Sub WriteVendorValidationList(ByVal wsInfo As Worksheet, ByVal vendorRows As Collection)
     wsInfo.Columns(VENDOR_LIST_COL & ":" & VENDOR_LIST_COL).Hidden = False
@@ -685,8 +670,6 @@ Private Function BuildVendorRowFromAdoRecord(ByVal recordset As Object, ByVal sh
                                         CommonNormalizeText(sheetName))
 End Function
 
-' ‹ÆÒƒ}ƒXƒ^‚Íw’èx“X–¼‚ÌƒV[ƒg‚ğŒŸõ‚·‚éBƒV[ƒg–¼‚Ì‘å•¶š¬•¶šE
-' ‘SŠp‹ó”’‚È‚Ç‚Ì‚ä‚ç‚¬‚ğ‹zû‚·‚é‚½‚ß CommonNormalizeText ‚Å”äŠr‚·‚éB
 Private Function GetAdoWorksheetName(ByVal connection As Object, ByVal targetSheetName As String) As String
     Dim sheetNames As Collection
     Set sheetNames = CommonGetAdoWorksheetNames(connection)
@@ -746,14 +729,6 @@ Private Function GetVendorMasterFilePath() As String
     If Len(Dir(localPath, vbNormal)) > 0 Then GetVendorMasterFilePath = localPath
 End Function
 
-'--------------------------------------------------------------------------
-'  –{ƒ‚ƒWƒ…[ƒ‹ê—p‚Ì“ú–{Œê–¼
-'    ü˜Ho’£Š—p_’•¶‘_¿‹‘ƒAƒNƒZƒXƒTƒCƒg - ƒhƒLƒ…ƒƒ“ƒg
-'    ‹ÆÒƒ}ƒXƒ^
-'    ‹ÆÒƒ}ƒXƒ^(‘SĞ”Å).xlsx
-'    ‹ÆÒî•ñ‚ğ“ü—Í‚Å‚«‚Ü‚¹‚ñ‚Å‚µ‚½B
-'--------------------------------------------------------------------------
-
 Private Function OrderInvoiceDocumentFolderText() As String
     Static cached As String
     If cached = "" Then
@@ -792,5 +767,3 @@ Private Function VendorInfoFillErrorText() As String
     End If
     VendorInfoFillErrorText = cached
 End Function
-
-
