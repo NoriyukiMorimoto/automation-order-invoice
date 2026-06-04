@@ -174,6 +174,14 @@ Public Sub AutoFillLineTypeFromWorkName(ByVal wsInfo As Worksheet)
     wsInfo.Range(BASIC_INFO_LINE_TYPE_CELL).Value = lineType
 End Sub
 
+Public Sub AutoFillUnitPriceFieldsFromWorkName(ByVal wsInfo As Worksheet)
+    If wsInfo Is Nothing Then Exit Sub
+
+    AutoFillLineTypeFromWorkName wsInfo
+    RefreshUnitPriceProjectNameValidation wsInfo, False
+    AutoFillProjectNameFromWorkName wsInfo
+End Sub
+
 Public Sub AutoFillProjectNameFromWorkName(ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Exit Sub
 
@@ -213,9 +221,13 @@ Private Function LookupProjectNameByWorkName(ByVal masterFilePath As String, _
     Set cn = CommonOpenExcelAdoConnection(masterFilePath)
     If cn Is Nothing Then Exit Function
 
+    Dim actualSheetName As String
+    actualSheetName = FindAdoWorksheetName(cn, sheetName)
+    If actualSheetName = "" Then GoTo Cleanup
+
     Dim sql As String
     sql = "SELECT F1, F2 FROM " & _
-          BuildAdoSheetRangeName(sheetName, "A", PROJECT_NAME_MASTER_START_ROW, "B", PROJECT_NAME_MASTER_LAST_ROW) & _
+          BuildAdoSheetTableName(actualSheetName) & _
           " WHERE F2 IS NOT NULL"
 
     Set rs = cn.Execute(sql)
@@ -257,9 +269,13 @@ Private Function LookupLineTypeByWorkName(ByVal masterFilePath As String, _
     Set cn = CommonOpenExcelAdoConnection(masterFilePath)
     If cn Is Nothing Then Exit Function
 
+    Dim actualSheetName As String
+    actualSheetName = FindAdoWorksheetName(cn, ZAIRAISEN_DISTINCTION_SHEET_NAME)
+    If actualSheetName = "" Then GoTo Cleanup
+
     Dim sql As String
     sql = "SELECT F1, F2 FROM " & _
-          BuildAdoSheetRangeName(ZAIRAISEN_DISTINCTION_SHEET_NAME, "A", 2, "B", PROJECT_NAME_MASTER_LAST_ROW) & _
+          BuildAdoSheetTableName(actualSheetName) & _
           " WHERE F1 IS NOT NULL"
 
     Set rs = cn.Execute(sql)

@@ -283,9 +283,7 @@ Private Sub SetBasicInfoProjectSelection(ByVal projectNo As String, ByVal projec
     Application.EnableEvents = False
     targetCell.value = projectNo
     targetWs.Range("C10").value = projectDetail
-    mod_MaterialPriceImport.AutoFillLineTypeFromWorkName targetWs
-    mod_MaterialPriceImport.RefreshUnitPriceProjectNameValidation targetWs, False
-    mod_MaterialPriceImport.AutoFillProjectNameFromWorkName targetWs
+    mod_MaterialPriceImport.AutoFillUnitPriceFieldsFromWorkName targetWs
     SetBasicInfoContractDateValue targetWs.Range("C11"), contractDate
     SetBasicInfoDateValueLikeCell targetWs.Range("C15"), workStartDate, targetWs.Range("C11")
     SetBasicInfoDateValueLikeCell targetWs.Range("C16"), workEndDate, targetWs.Range("C11")

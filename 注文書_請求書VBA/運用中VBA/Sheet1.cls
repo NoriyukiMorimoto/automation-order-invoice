@@ -62,8 +62,7 @@ Private Sub Worksheet_Change(ByVal Target As Range)
     End If
 
     If Not Intersect(Target, Me.Range("C10")) Is Nothing Then
-        mod_MaterialPriceImport.AutoFillLineTypeFromWorkName Me
-        mod_MaterialPriceImport.AutoFillProjectNameFromWorkName Me
+        mod_MaterialPriceImport.AutoFillUnitPriceFieldsFromWorkName Me
     End If
 
     If Not Intersect(Target, Me.Range("F2")) Is Nothing Then
