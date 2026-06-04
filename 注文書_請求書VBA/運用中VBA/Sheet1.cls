@@ -107,7 +107,7 @@ ExitHandler:
 End Sub
 
 Private Sub Worksheet_BeforeDoubleClick(ByVal Target As Range, Cancel As Boolean)
-    If Not Intersect(Target, Me.Range("C24")) Is Nothing Then
+    If IsUnitPriceImportDoubleClickTarget(Target) Then
         Cancel = True
         mod_MaterialPriceImport.ImportConstructionUnitPriceForBasicInfo
         Exit Sub
@@ -129,6 +129,12 @@ Private Sub Worksheet_BeforeDoubleClick(ByVal Target As Range, Cancel As Boolean
 
     mod_BasicInfoCalendar.HandleBasicInfoDateDoubleClick Target, Cancel
 End Sub
+
+Private Function IsUnitPriceImportDoubleClickTarget(ByVal Target As Range) As Boolean
+    If Target Is Nothing Then Exit Function
+    If Target.Cells.CountLarge <> 1 Then Exit Function
+    IsUnitPriceImportDoubleClickTarget = (Target.Address(False, False) = Me.Range("C24").Address(False, False))
+End Function
 
 Private Sub Worksheet_SelectionChange(ByVal Target As Range)
     mod_DebugLog.Log "[Sheet1] SelectionChange: " & Target.Address & " IsPrompting=" & mod_FillManagerName.IsPromptingOfficeComboBox()

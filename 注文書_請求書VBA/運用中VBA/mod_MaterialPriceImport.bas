@@ -440,6 +440,7 @@ Private Function TryLoadUnitPriceMasterRow(ByRef request As UnitPriceRequest, _
 
     Dim cn As Object
     Dim rs As Object
+    Dim adoErrDescription As String
     On Error GoTo ErrorHandler
 
     Set cn = CommonOpenExcelAdoConnection(sourceFilePath)
@@ -448,9 +449,17 @@ Private Function TryLoadUnitPriceMasterRow(ByRef request As UnitPriceRequest, _
         Exit Function
     End If
 
+    Dim masterSheetName As String
+    masterSheetName = FindAdoWorksheetName(cn, MASTER_SHEET_NAME)
+    If masterSheetName = "" Then
+        MsgBox "単価適用線区シートが見つかりませんでした。" & vbCrLf & _
+               "ブック内のシート名を確認してください。" & vbCrLf & sourceFilePath, vbExclamation
+        GoTo Cleanup
+    End If
+
     Dim sql As String
     sql = "SELECT F1, F2, F3, F4, F5 FROM " & _
-          BuildAdoSheetRangeName(MASTER_SHEET_NAME, "B", 2, "F", PROJECT_NAME_MASTER_LAST_ROW) & _
+          BuildAdoSheetRangeName(masterSheetName, "B", 2, "F", PROJECT_NAME_MASTER_LAST_ROW) & _
           " WHERE F1 IS NOT NULL"
     Set rs = cn.Execute(sql)
 
@@ -500,8 +509,125 @@ Cleanup:
     Exit Function
 
 ErrorHandler:
-    MsgBox "単価適用線区データの読み込みに失敗しました。" & vbCrLf & Err.Description, vbExclamation
+    adoErrDescription = Err.Description
+    CommonCloseAdoRecordset rs
+    CommonCloseAdoConnection cn
+    If TryLoadUnitPriceMasterRowFromWorkbook(sourceFilePath, request, masterRow) Then
+        TryLoadUnitPriceMasterRow = True
+        Exit Function
+    End If
+    MsgBox "単価適用線区データの読み込みに失敗しました。" & vbCrLf & adoErrDescription, vbExclamation
     Resume Cleanup
+End Function
+
+Private Function TryLoadUnitPriceMasterRowFromWorkbook(ByVal sourceFilePath As String, _
+                                                       ByRef request As UnitPriceRequest, _
+                                                       ByRef masterRow As UnitPriceMasterRow) As Boolean
+    Dim sourceBook As Workbook
+    Dim sourceSheet As Worksheet
+    Dim previousDisplayAlerts As Boolean
+    Dim previousScreenUpdating As Boolean
+
+    On Error GoTo ErrorHandler
+    previousDisplayAlerts = Application.DisplayAlerts
+    previousScreenUpdating = Application.ScreenUpdating
+    Application.DisplayAlerts = False
+    Application.ScreenUpdating = False
+
+    Set sourceBook = Workbooks.Open(fileName:=sourceFilePath, ReadOnly:=True, UpdateLinks:=False, AddToMru:=False)
+    Set sourceSheet = FindWorksheetByName(sourceBook, MASTER_SHEET_NAME)
+    If sourceSheet Is Nothing Then GoTo Cleanup
+
+    Dim lastRow As Long
+    lastRow = sourceSheet.Cells(sourceSheet.Rows.Count, 2).End(xlUp).Row
+    If lastRow < 2 Then GoTo Cleanup
+
+    Dim matchedCount As Long
+    Dim bestScore As Long
+    Dim bestRow As UnitPriceMasterRow
+
+    Dim rr As Long
+    For rr = 2 To lastRow
+        If MasterTextMatches(CommonNzText(sourceSheet.Cells(rr, 2).Value), request.BranchName) And _
+           MasterTextMatches(CommonNzText(sourceSheet.Cells(rr, 3).Value), request.OfficeName) Then
+            Dim candidateRow As UnitPriceMasterRow
+            FillUnitPriceMasterRowFromWorksheet sourceSheet, rr, candidateRow
+
+            matchedCount = matchedCount + 1
+
+            Dim score As Long
+            score = GetUnitPriceMasterRowScore(request, candidateRow)
+            If score > bestScore Then
+                bestScore = score
+                bestRow = candidateRow
+            End If
+        End If
+    Next rr
+
+    If matchedCount > 0 Then
+        If bestScore > 1 Or matchedCount = 1 Then
+            masterRow = bestRow
+            TryLoadUnitPriceMasterRowFromWorkbook = True
+        End If
+    End If
+
+Cleanup:
+    On Error Resume Next
+    If Not sourceBook Is Nothing Then sourceBook.Close SaveChanges:=False
+    Application.DisplayAlerts = previousDisplayAlerts
+    Application.ScreenUpdating = previousScreenUpdating
+    On Error GoTo 0
+    Exit Function
+
+ErrorHandler:
+    TryLoadUnitPriceMasterRowFromWorkbook = False
+    Resume Cleanup
+End Function
+
+Private Function FindWorksheetByName(ByVal sourceBook As Workbook, ByVal expectedSheetName As String) As Worksheet
+    If sourceBook Is Nothing Then Exit Function
+
+    Dim normalizedExpected As String
+    normalizedExpected = NormalizeMatchText(expectedSheetName)
+
+    Dim ws As Worksheet
+    For Each ws In sourceBook.Worksheets
+        If StrComp(NormalizeMatchText(ws.Name), normalizedExpected, vbTextCompare) = 0 Then
+            Set FindWorksheetByName = ws
+            Exit Function
+        End If
+    Next ws
+
+    For Each ws In sourceBook.Worksheets
+        If InStr(1, NormalizeMatchText(ws.Name), normalizedExpected, vbTextCompare) > 0 Then
+            Set FindWorksheetByName = ws
+            Exit Function
+        End If
+    Next ws
+End Function
+
+Private Function FindAdoWorksheetName(ByVal cn As Object, ByVal expectedSheetName As String) As String
+    Dim sheetNames As Collection
+    Set sheetNames = CommonGetAdoWorksheetNames(cn)
+    If sheetNames Is Nothing Then Exit Function
+
+    Dim normalizedExpected As String
+    normalizedExpected = NormalizeMatchText(expectedSheetName)
+
+    Dim sheetName As Variant
+    For Each sheetName In sheetNames
+        If StrComp(NormalizeMatchText(CStr(sheetName)), normalizedExpected, vbTextCompare) = 0 Then
+            FindAdoWorksheetName = CStr(sheetName)
+            Exit Function
+        End If
+    Next sheetName
+
+    For Each sheetName In sheetNames
+        If InStr(1, NormalizeMatchText(CStr(sheetName)), normalizedExpected, vbTextCompare) > 0 Then
+            FindAdoWorksheetName = CStr(sheetName)
+            Exit Function
+        End If
+    Next sheetName
 End Function
 
 Private Sub FillUnitPriceMasterRowFromRecordset(ByVal rs As Object, _
@@ -511,6 +637,16 @@ Private Sub FillUnitPriceMasterRowFromRecordset(ByVal rs As Object, _
     masterRow.BranchGroupName = CommonNzText(CommonGetAdoFieldValue(rs, 2))
     masterRow.SectionName = CommonNzText(CommonGetAdoFieldValue(rs, 3))
     masterRow.UnitPriceSectionName = CommonNzText(CommonGetAdoFieldValue(rs, 4))
+End Sub
+
+Private Sub FillUnitPriceMasterRowFromWorksheet(ByVal sourceSheet As Worksheet, _
+                                                ByVal rowIndex As Long, _
+                                                ByRef masterRow As UnitPriceMasterRow)
+    masterRow.BranchName = CommonNzText(sourceSheet.Cells(rowIndex, 2).Value)
+    masterRow.OfficeName = CommonNzText(sourceSheet.Cells(rowIndex, 3).Value)
+    masterRow.BranchGroupName = CommonNzText(sourceSheet.Cells(rowIndex, 4).Value)
+    masterRow.SectionName = CommonNzText(sourceSheet.Cells(rowIndex, 5).Value)
+    masterRow.UnitPriceSectionName = CommonNzText(sourceSheet.Cells(rowIndex, 6).Value)
 End Sub
 
 Private Function GetUnitPriceMasterRowScore(ByRef request As UnitPriceRequest, _
