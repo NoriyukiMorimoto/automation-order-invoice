@@ -576,6 +576,7 @@ Private Sub ClearUnusedVendorBlocks(ByVal wsInfo As Worksheet, ByVal firstUnused
             Set clearRange = wsInfo.Range(headerCell, headerCell.Offset(BASIC_INFO_VENDOR_BLOCK_BOTTOM_ROW - BASIC_INFO_VENDOR_BLOCK_TOP_ROW, 1))
             clearRange.ClearContents
             clearRange.Interior.Color = RGB(6, 17, 29)
+            clearRange.Borders.LineStyle = xlNone
         End If
     Next i
 End Sub
