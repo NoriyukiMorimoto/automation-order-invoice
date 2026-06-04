@@ -1,18 +1,18 @@
 Option Explicit
 
 '==========================================================================
-'  æ¥­è€…ãƒã‚¹ã‚¿å‚ç…§ï¼æ¥­è€…é¸æŠãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«
-'    æ”¹ä¿®å†…å®¹ï¼š
-'      #18: æ¥­è€…æƒ…å ±8è¡Œç›®ã«2è¡ŒæŒ¿å…¥ã®ãŸã‚ã€Fåˆ—ã‚»ãƒ«å‚ç…§ã‚’+2è¡Œã‚·ãƒ•ãƒˆã€‚
-'           BASIC_INFO_VENDOR_NAME_CELL : F9 â†’ F11
-'           BASIC_INFO_VENDOR_CLEAR_RANGES : F9:F14,F16:F21 â†’ F11:F16,F18:F23
-'           ApplyVendorRowToBasicInfo : F9?F21 â†’ F11?F23
-'           FitVendorComboBoxToF9 â†’ FitVendorComboBoxToF11
-'      #7 : WriteVendorValidationList ã® Dictionaryâ†’ã‚»ãƒ«å˜ä½ãƒ«ãƒ¼ãƒ—ã‚’
-'           Variant 2æ¬¡å…ƒé…åˆ—ï¼‹Range ä¸€æ‹¬ä»£å…¥ã¸ç½®æ›ã€‚
-'      #8 : LoadVendorComboBoxItems ã®ã‚»ãƒ«å˜ä½èµ°æŸ»ã‚’é…åˆ—èª­è¾¼ãƒ«ãƒ¼ãƒ—ã¸ã€‚
-'      #9 : NormalizeText / CommonGetBasicInfoWorksheet / æ—¥æœ¬èªåç”Ÿæˆ /
-'           ADO æ¥ç¶šç”Ÿæˆã¯ mod_Common ã«é›†ç´„ã€‚é‡è¤‡å®šç¾©ã‚’æ’¤å»ã€‚
+'  ‹ÆÒƒ}ƒXƒ^QÆ^‹ÆÒ‘I‘ğƒ‚ƒWƒ…[ƒ‹
+'    ‰üC“à—eF
+'      #18: ‹ÆÒî•ñ8s–Ú‚É2s‘}“ü‚Ì‚½‚ßAF—ñƒZƒ‹QÆ‚ğ+2sƒVƒtƒgB
+'           BASIC_INFO_VENDOR_NAME_CELL : F9 ¨ F11
+'           BASIC_INFO_VENDOR_CLEAR_RANGES : F9:F14,F16:F21 ¨ F11:F16,F18:F23
+'           ApplyVendorRowToBasicInfo : F9?F21 ¨ F11?F23
+'           FitVendorComboBoxToF9 ¨ FitVendorComboBoxToF11
+'      #7 : WriteVendorValidationList ‚Ì Dictionary¨ƒZƒ‹’PˆÊƒ‹[ƒv‚ğ
+'           Variant 2ŸŒ³”z—ñ{Range ˆêŠ‡‘ã“ü‚Ö’uŠ·B
+'      #8 : LoadVendorComboBoxItems ‚ÌƒZƒ‹’PˆÊ‘–¸‚ğ”z—ñ“Çƒ‹[ƒv‚ÖB
+'      #9 : NormalizeText / CommonGetBasicInfoWorksheet / “ú–{Œê–¼¶¬ /
+'           ADO Ú‘±¶¬‚Í mod_Common ‚ÉW–ñBd•¡’è‹`‚ğ“P‹B
 '==========================================================================
 
 Private Const VENDOR_LIST_COL As String = "AD"
@@ -299,9 +299,9 @@ Private Sub FitVendorComboBoxToTarget(ByVal targetCell As Range, ByVal ole As OL
 End Sub
 
 '--------------------------------------------------------------------------
-'  ComboBox ç”¨ æ¥­è€…åã‚¢ã‚¤ãƒ†ãƒ èª­è¾¼
-'  æ”¹ä¿®ï¼ˆ#8ï¼‰ï¼šå¾“æ¥ã¯ AD åˆ—ã‚’ 1 ã‚»ãƒ«ãšã¤ Cells(...).Value ã§å‚ç…§ã—ã¦ã„ãŸãŒ
-'              å¯¾è±¡ç¯„å›²ã‚’ Variant é…åˆ—ã§ä¸€æ‹¬å–å¾—ã—ã¦ã‹ã‚‰ãƒ«ãƒ¼ãƒ—ã™ã‚‹ã€‚
+'  ComboBox —p ‹ÆÒ–¼ƒAƒCƒeƒ€“Ç
+'  ‰üCi#8jF]—ˆ‚Í AD —ñ‚ğ 1 ƒZƒ‹‚¸‚Â Cells(...).Value ‚ÅQÆ‚µ‚Ä‚¢‚½‚ª
+'              ‘ÎÛ”ÍˆÍ‚ğ Variant ”z—ñ‚ÅˆêŠ‡æ“¾‚µ‚Ä‚©‚çƒ‹[ƒv‚·‚éB
 '--------------------------------------------------------------------------
 Private Sub LoadVendorComboBoxItems(ByVal wsInfo As Worksheet, ByVal ole As OLEObject, ByVal targetCell As Range)
     Dim lastRow As Long
@@ -325,7 +325,7 @@ Private Sub LoadVendorComboBoxItems(ByVal wsInfo As Worksheet, ByVal ole As OLEO
                 End If
             Next rr
         Else
-            ' ç¯„å›²ãŒ 1 ã‚»ãƒ«ã ã‘ã®ã¨ã Variant ã¯é…åˆ—ã«ãªã‚‰ãªã„
+            ' ”ÍˆÍ‚ª 1 ƒZƒ‹‚¾‚¯‚Ì‚Æ‚« Variant ‚Í”z—ñ‚É‚È‚ç‚È‚¢
             If CommonNormalizeText(CStr(arr)) <> "" Then .AddItem CStr(arr)
         End If
         .LinkedCell = ""
@@ -336,9 +336,9 @@ Private Sub LoadVendorComboBoxItems(ByVal wsInfo As Worksheet, ByVal ole As OLEO
 End Sub
 
 '--------------------------------------------------------------------------
-'  æ¥­è€…ãƒãƒªãƒ‡ãƒ¼ã‚·ãƒ§ãƒ³ãƒªã‚¹ãƒˆæ›¸è¾¼
-'  æ”¹ä¿®ï¼ˆ#7ï¼‰ï¼šDictionary.Keys ã‚’ 1 åº¦ã ã‘å–å¾—â†’ 2 æ¬¡å…ƒé…åˆ—ã«è©°ã‚ã¦
-'              Range ä¸€æ‹¬ä»£å…¥ã™ã‚‹ã€‚
+'  ‹ÆÒƒoƒŠƒf[ƒVƒ‡ƒ“ƒŠƒXƒg‘
+'  ‰üCi#7jFDictionary.Keys ‚ğ 1 “x‚¾‚¯æ“¾¨ 2 ŸŒ³”z—ñ‚É‹l‚ß‚Ä
+'              Range ˆêŠ‡‘ã“ü‚·‚éB
 '--------------------------------------------------------------------------
 Private Sub WriteVendorValidationList(ByVal wsInfo As Worksheet, ByVal vendorRows As Collection)
     wsInfo.Columns(VENDOR_LIST_COL & ":" & VENDOR_LIST_COL).Hidden = False
@@ -572,7 +572,10 @@ Private Sub ClearUnusedVendorBlocks(ByVal wsInfo As Worksheet, ByVal firstUnused
         Dim headerCell As Range
         Set headerCell = wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, VendorLabelColumnByIndex(i))
         If InStr(1, CStr(headerCell.value), VendorInfoHeaderPrefixText(), vbTextCompare) > 0 Then
-            wsInfo.Range(headerCell, headerCell.Offset(BASIC_INFO_VENDOR_BLOCK_BOTTOM_ROW - BASIC_INFO_VENDOR_BLOCK_TOP_ROW, 1)).Clear
+            Dim clearRange As Range
+            Set clearRange = wsInfo.Range(headerCell, headerCell.Offset(BASIC_INFO_VENDOR_BLOCK_BOTTOM_ROW - BASIC_INFO_VENDOR_BLOCK_TOP_ROW, 1))
+            clearRange.ClearContents
+            clearRange.Interior.Color = RGB(6, 17, 29)
         End If
     Next i
 End Sub
@@ -681,8 +684,8 @@ Private Function BuildVendorRowFromAdoRecord(ByVal recordset As Object, ByVal sh
                                         CommonNormalizeText(sheetName))
 End Function
 
-' æ¥­è€…ãƒã‚¹ã‚¿ã¯æŒ‡å®šæ”¯åº—åã®ã‚·ãƒ¼ãƒˆã‚’æ¤œç´¢ã™ã‚‹ã€‚ã‚·ãƒ¼ãƒˆåã®å¤§æ–‡å­—å°æ–‡å­—ãƒ»
-' å…¨è§’ç©ºç™½ãªã©ã®ã‚†ã‚‰ãã‚’å¸åã™ã‚‹ãŸã‚ CommonNormalizeText ã§æ¯”è¼ƒã™ã‚‹ã€‚
+' ‹ÆÒƒ}ƒXƒ^‚Íw’èx“X–¼‚ÌƒV[ƒg‚ğŒŸõ‚·‚éBƒV[ƒg–¼‚Ì‘å•¶š¬•¶šE
+' ‘SŠp‹ó”’‚È‚Ç‚Ì‚ä‚ç‚¬‚ğ‹zû‚·‚é‚½‚ß CommonNormalizeText ‚Å”äŠr‚·‚éB
 Private Function GetAdoWorksheetName(ByVal connection As Object, ByVal targetSheetName As String) As String
     Dim sheetNames As Collection
     Set sheetNames = CommonGetAdoWorksheetNames(connection)
@@ -743,11 +746,11 @@ Private Function GetVendorMasterFilePath() As String
 End Function
 
 '--------------------------------------------------------------------------
-'  æœ¬ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«å°‚ç”¨ã®æ—¥æœ¬èªå
-'    ç·šè·¯å‡ºå¼µæ‰€ç”¨_æ³¨æ–‡æ›¸_è«‹æ±‚æ›¸ã‚¢ã‚¯ã‚»ã‚¹ã‚µã‚¤ãƒˆ - ãƒ‰ã‚­ãƒ¥ãƒ¡ãƒ³ãƒˆ
-'    æ¥­è€…ãƒã‚¹ã‚¿
-'    æ¥­è€…ãƒã‚¹ã‚¿(å…¨ç¤¾ç‰ˆ).xlsx
-'    æ¥­è€…æƒ…å ±ã‚’å…¥åŠ›ã§ãã¾ã›ã‚“ã§ã—ãŸã€‚
+'  –{ƒ‚ƒWƒ…[ƒ‹ê—p‚Ì“ú–{Œê–¼
+'    ü˜Ho’£Š—p_’•¶‘_¿‹‘ƒAƒNƒZƒXƒTƒCƒg - ƒhƒLƒ…ƒƒ“ƒg
+'    ‹ÆÒƒ}ƒXƒ^
+'    ‹ÆÒƒ}ƒXƒ^(‘SĞ”Å).xlsx
+'    ‹ÆÒî•ñ‚ğ“ü—Í‚Å‚«‚Ü‚¹‚ñ‚Å‚µ‚½B
 '--------------------------------------------------------------------------
 
 Private Function OrderInvoiceDocumentFolderText() As String
