@@ -1,22 +1,15 @@
 Option Explicit
 
 '==========================================================================
-'  ‹¤’Êƒ†[ƒeƒBƒŠƒeƒBƒ‚ƒWƒ…[ƒ‹
-'    Šeƒ‚ƒWƒ…[ƒ‹‚ÉU‚ç‚Î‚Á‚Ä‚¢‚½”Ä—pŠÖ”i•¶š—ñ³‹K‰»AƒV[ƒgæ“¾A
-'    “ú–{Œê–¼¶¬AADO Ú‘±¶¬A”N’ŠoA’·®””z—ñƒ\[ƒg ‚È‚Çj‚ğW–ñB
-'
-'  ‰üC•ûjF
-'    - Šù‘¶‚Ì Private ŠÖ”‚ÆŠ®‘S‚É“¯ˆê‚ÌU‚é•‘‚¢‚ğˆÛ‚·‚éB
-'    - ChrW ‚Å\’z‚·‚é“ú–{Œê–¼‚Í Static •Ï”‚ÅƒLƒƒƒbƒVƒ…‚µAÄ\’z‚Ì
-'      ƒRƒXƒg‚ğ”rœ‚·‚éB
-'    - ‘Sƒ‚ƒWƒ…[ƒ‹‚©‚ç–{ƒ‚ƒWƒ…[ƒ‹‚ÌŠÖ”‚ğŒÄ‚Ô‘O’ñ‚Æ‚·‚éB
+'  å…±é€šãƒ¦ãƒ¼ãƒ†ã‚£ãƒªãƒ†ã‚£ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«
+'  æ”¹ä¿®å±¥æ­´: CHANGELOG.md å‚ç…§
 '==========================================================================
 
 '--------------------------------------------------------------------------
-'  •¶š—ñƒ†[ƒeƒBƒŠƒeƒB
+'  æ–‡å­—åˆ—ãƒ¦ãƒ¼ãƒ†ã‚£ãƒªãƒ†ã‚£
 '--------------------------------------------------------------------------
 
-' ‰üsEƒ^ƒuE‘SŠp‹ó”’‚ğ”¼Šp‹ó”’‚É³‹K‰»‚µA˜A‘±‹ó”’‚ğ 1 ‚Â‚É‚Ü‚Æ‚ß‚éB
+' æ”¹è¡Œãƒ»ã‚¿ãƒ–ãƒ»å…¨è§’ç©ºç™½ã‚’åŠè§’ç©ºç™½ã«æ­£è¦åŒ–ã—ã€é€£ç¶šç©ºç™½ã‚’ 1 ã¤ã«ã¾ã¨ã‚ã‚‹ã€‚
 Public Function CommonNormalizeText(ByVal value As String) As String
     Dim s As String
     s = Trim$(Replace$(Replace$(Replace$(value, vbCr, ""), vbLf, ""), vbTab, " "))
@@ -27,7 +20,7 @@ Public Function CommonNormalizeText(ByVal value As String) As String
     CommonNormalizeText = Trim$(s)
 End Function
 
-' •¶š—ñ“à‚Ì‘Sí‹ó”’i”¼ŠpE‘SŠpEƒ^ƒuE‰üsj‚ğíœ‚·‚éB
+' æ–‡å­—åˆ—å†…ã®å…¨ç¨®ç©ºç™½ï¼ˆåŠè§’ãƒ»å…¨è§’ãƒ»ã‚¿ãƒ–ãƒ»æ”¹è¡Œï¼‰ã‚’å‰Šé™¤ã™ã‚‹ã€‚
 Public Function CommonRemoveAllSpaces(ByVal value As String) As String
     Dim s As String
     s = Replace$(value, " ", "")
@@ -38,7 +31,7 @@ Public Function CommonRemoveAllSpaces(ByVal value As String) As String
     CommonRemoveAllSpaces = s
 End Function
 
-' Null / Empty ‚ğ‹ó•¶š‚É•ÏŠ·‚µA‚»‚êˆÈŠO‚Í CStr ‚Å•¶š—ñ‰»‚·‚éB
+' Null / Empty ã‚’ç©ºæ–‡å­—ã«å¤‰æ›ã—ã€ãã‚Œä»¥å¤–ã¯ CStr ã§æ–‡å­—åˆ—åŒ–ã™ã‚‹ã€‚
 Public Function CommonNzText(ByVal value As Variant) As String
     If IsNull(value) Or IsEmpty(value) Then
         CommonNzText = ""
@@ -47,8 +40,8 @@ Public Function CommonNzText(ByVal value As Variant) As String
     End If
 End Function
 
-' •¶š—ñ‚Ìæ“ª‚©‚ç”š‚Ì‚İ‚ğE‚¢A4 Œ…‚É‚È‚Á‚½“_‚Å•Ô‚·B
-' 4 Œ…‚É–‚½‚È‚¢ê‡‚Í‹ó•¶š‚ğ•Ô‚·B
+' æ–‡å­—åˆ—ã®å…ˆé ­ã‹ã‚‰æ•°å­—ã®ã¿ã‚’æ‹¾ã„ã€4 æ¡ã«ãªã£ãŸæ™‚ç‚¹ã§è¿”ã™ã€‚
+' 4 æ¡ã«æº€ãŸãªã„å ´åˆã¯ç©ºæ–‡å­—ã‚’è¿”ã™ã€‚
 Public Function CommonExtractYear4Digits(ByVal sourceText As String) As String
     Dim result As String
     Dim i As Long, ch As String
@@ -70,15 +63,15 @@ Public Function CommonExtractYear4Digits(ByVal sourceText As String) As String
 End Function
 
 '--------------------------------------------------------------------------
-'  “ú–{Œê–¼ƒLƒƒƒbƒVƒ…
-'    ChrW ‚Å‘g‚İ—§‚Ä‚½“ú–{ŒêƒV[ƒg–¼EƒtƒHƒ‹ƒ_–¼“™‚ğ Static ‚ÅƒLƒƒƒbƒVƒ…B
-'    ‚Ç‚Ìƒ‚ƒWƒ…[ƒ‹‚©‚ç‚à‚±‚ÌŠÖ”Œo—R‚ÅQÆ‚·‚é‚±‚Æ‚Åd•¡‚ğ”rœ‚·‚éB
+'  æ—¥æœ¬èªåã‚­ãƒ£ãƒƒã‚·ãƒ¥
+'    ChrW ã§çµ„ã¿ç«‹ã¦ãŸæ—¥æœ¬èªã‚·ãƒ¼ãƒˆåãƒ»ãƒ•ã‚©ãƒ«ãƒ€åç­‰ã‚’ Static ã§ã‚­ãƒ£ãƒƒã‚·ãƒ¥ã€‚
+'    ã©ã®ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«ã‹ã‚‰ã‚‚ã“ã®é–¢æ•°çµŒç”±ã§å‚ç…§ã™ã‚‹ã“ã¨ã§é‡è¤‡ã‚’æ’é™¤ã™ã‚‹ã€‚
 '--------------------------------------------------------------------------
 
 Public Function CommonBasicInfoSheetNameText() As String
     Static cached As String
     If cached = "" Then
-        cached = ChrW$(&H57FA) & ChrW$(&H672C) & ChrW$(&H60C5) & ChrW$(&H5831) ' Šî–{î•ñ
+        cached = ChrW$(&H57FA) & ChrW$(&H672C) & ChrW$(&H60C5) & ChrW$(&H5831) ' åŸºæœ¬æƒ…å ±
     End If
     CommonBasicInfoSheetNameText = cached
 End Function
@@ -86,7 +79,7 @@ End Function
 Public Function CommonCoverSheetNameText() As String
     Static cached As String
     If cached = "" Then
-        cached = ChrW$(&H8868) & ChrW$(&H7D19) ' •\†
+        cached = ChrW$(&H8868) & ChrW$(&H7D19) ' è¡¨ç´™
     End If
     CommonCoverSheetNameText = cached
 End Function
@@ -95,7 +88,7 @@ Public Function CommonCompanyNameText() As String
     Static cached As String
     If cached = "" Then
         cached = ChrW$(&H5927) & ChrW$(&H9244) & ChrW$(&H5DE5) & ChrW$(&H696D) & _
-                 ChrW$(&H682A) & ChrW$(&H5F0F) & ChrW$(&H4F1A) & ChrW$(&H793E) ' ‘å“SH‹ÆŠ”®‰ïĞ
+                 ChrW$(&H682A) & ChrW$(&H5F0F) & ChrW$(&H4F1A) & ChrW$(&H793E) ' å¤§é‰„å·¥æ¥­æ ªå¼ä¼šç¤¾
     End If
     CommonCompanyNameText = cached
 End Function
@@ -103,12 +96,12 @@ End Function
 Public Function CommonBranchSuffixText() As String
     Static cached As String
     If cached = "" Then
-        cached = ChrW$(&H652F) & ChrW$(&H5E97) ' x“X
+        cached = ChrW$(&H652F) & ChrW$(&H5E97) ' æ”¯åº—
     End If
     CommonBranchSuffixText = cached
 End Function
 
-' ’P‰¿ƒ}ƒXƒ^‚Ìu’P‰¿“K—pH–Œ–¼ƒ}ƒXƒ^vƒV[ƒg–¼
+' å˜ä¾¡ãƒã‚¹ã‚¿ã®ã€Œå˜ä¾¡é©ç”¨å·¥äº‹ä»¶åãƒã‚¹ã‚¿ã€ã‚·ãƒ¼ãƒˆå
 Public Function CommonUnitPriceProjectNameMasterSheetNameText() As String
     Static cached As String
     If cached = "" Then
@@ -120,8 +113,8 @@ Public Function CommonUnitPriceProjectNameMasterSheetNameText() As String
 End Function
 
 '--------------------------------------------------------------------------
-'  ƒV[ƒgæ“¾
-'    Šî–{î•ñƒV[ƒg‚ğuŠî–{î•ñvu•\†vuCoverv‚Ì‡‚Å’T‚·B
+'  ã‚·ãƒ¼ãƒˆå–å¾—
+'    åŸºæœ¬æƒ…å ±ã‚·ãƒ¼ãƒˆã‚’ã€ŒåŸºæœ¬æƒ…å ±ã€ã€Œè¡¨ç´™ã€ã€ŒCoverã€ã®é †ã§æ¢ã™ã€‚
 '--------------------------------------------------------------------------
 
 Public Function CommonGetBasicInfoWorksheet(Optional ByVal wb As Workbook = Nothing) As Worksheet
@@ -143,7 +136,7 @@ Public Function CommonGetBasicInfoWorksheet(Optional ByVal wb As Workbook = Noth
     Next i
 End Function
 
-' ƒV[ƒg–¼‚Ì‚İ‚ğ•Ô‚·”ÅiŒÄ‚Ño‚µ‘¤‚ÅƒV[ƒgQÆ‚ª•s—v‚ÈƒP[ƒXŒü‚¯jB
+' ã‚·ãƒ¼ãƒˆåã®ã¿ã‚’è¿”ã™ç‰ˆï¼ˆå‘¼ã³å‡ºã—å´ã§ã‚·ãƒ¼ãƒˆå‚ç…§ãŒä¸è¦ãªã‚±ãƒ¼ã‚¹å‘ã‘ï¼‰ã€‚
 Public Function CommonGetBasicInfoSheetName(Optional ByVal wb As Workbook = Nothing) As String
     Dim ws As Worksheet
     Set ws = CommonGetBasicInfoWorksheet(wb)
@@ -151,8 +144,8 @@ Public Function CommonGetBasicInfoSheetName(Optional ByVal wb As Workbook = Noth
 End Function
 
 '--------------------------------------------------------------------------
-'  ADO Ú‘±¶¬
-'    Šù‘¶ mod_FillManagerName / mod_VendorMaster ‚Ìd•¡‚ğ“‡B
+'  ADO æ¥ç¶šç”Ÿæˆ
+'    æ—¢å­˜ mod_FillManagerName / mod_VendorMaster ã®é‡è¤‡ã‚’çµ±åˆã€‚
 '--------------------------------------------------------------------------
 
 Public Function CommonGetExcelAdoConnectionString(ByVal sourceFilePath As String) As String
@@ -202,7 +195,7 @@ Public Sub CommonCloseAdoRecordset(ByVal rs As Object)
     On Error GoTo 0
 End Sub
 
-' ADO ƒXƒL[ƒ}‚©‚çƒ[ƒNƒV[ƒg–¼ˆê——‚ğæ“¾‚·‚éB
+' ADO ã‚¹ã‚­ãƒ¼ãƒã‹ã‚‰ãƒ¯ãƒ¼ã‚¯ã‚·ãƒ¼ãƒˆåä¸€è¦§ã‚’å–å¾—ã™ã‚‹ã€‚
 Public Function CommonGetAdoWorksheetNames(ByVal cn As Object) As Collection
     Const AD_SCHEMA_TABLES As Long = 20
 
@@ -242,15 +235,15 @@ Public Function CommonCleanAdoWorksheetName(ByVal tableName As String) As String
     CommonCleanAdoWorksheetName = t
 End Function
 
-' ADO ƒŒƒR[ƒhƒZƒbƒg‚©‚çƒCƒ“ƒfƒbƒNƒXw’è‚ÅƒtƒB[ƒ‹ƒh’l‚ğˆÀ‘S‚Éæ‚èo‚·B
+' ADO ãƒ¬ã‚³ãƒ¼ãƒ‰ã‚»ãƒƒãƒˆã‹ã‚‰ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹æŒ‡å®šã§ãƒ•ã‚£ãƒ¼ãƒ«ãƒ‰å€¤ã‚’å®‰å…¨ã«å–ã‚Šå‡ºã™ã€‚
 Public Function CommonGetAdoFieldValue(ByVal rs As Object, ByVal fieldIndex As Long) As Variant
     If fieldIndex < rs.fields.Count Then CommonGetAdoFieldValue = rs.fields(fieldIndex).value
 End Function
 
 '--------------------------------------------------------------------------
-'  Long ”z—ñ‚Ì¸‡ƒ\[ƒgi‘}“üƒ\[ƒgj
-'    Project_Number_Selection.frm ‚Ì˜A‘±‹æŠÔ”»’è‚Åg—pB
-'    ‘ÎÛŒ”‚Í’Êí”•SŒˆÈ‰º‚Ì‚½‚ß‘}“üƒ\[ƒg‚Å\•ªB
+'  Long é…åˆ—ã®æ˜‡é †ã‚½ãƒ¼ãƒˆï¼ˆæŒ¿å…¥ã‚½ãƒ¼ãƒˆï¼‰
+'    Project_Number_Selection.frm ã®é€£ç¶šåŒºé–“åˆ¤å®šã§ä½¿ç”¨ã€‚
+'    å¯¾è±¡ä»¶æ•°ã¯é€šå¸¸æ•°ç™¾ä»¶ä»¥ä¸‹ã®ãŸã‚æŒ¿å…¥ã‚½ãƒ¼ãƒˆã§ååˆ†ã€‚
 '--------------------------------------------------------------------------
 
 Public Sub CommonSortLongArrayAsc(ByRef arr() As Long, ByVal itemCount As Long)
