@@ -132,7 +132,13 @@ End Sub
 Private Function IsUnitPriceImportDoubleClickTarget(ByVal Target As Range) As Boolean
     If Target Is Nothing Then Exit Function
     If Target.Cells.CountLarge <> 1 Then Exit Function
-    IsUnitPriceImportDoubleClickTarget = (Target.Address(False, False) = Me.Range("C24").Address(False, False))
+
+    Dim topLeft As Range
+    Set topLeft = Target.MergeArea.Cells(1, 1)
+
+    IsUnitPriceImportDoubleClickTarget = _
+        (topLeft.Address(False, False) = Me.Range("C24").Address(False, False) And _
+         Target.Column = Me.Range("C24").Column)
 End Function
 
 Private Sub Worksheet_SelectionChange(ByVal Target As Range)
