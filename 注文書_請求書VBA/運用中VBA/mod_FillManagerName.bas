@@ -615,12 +615,16 @@ Private Function FirstExistingManagerListFolderPath(ByVal candidates As Collecti
     Dim candidate As Variant
     For Each candidate In candidates
         If Len(CStr(candidate)) > 0 Then
-            If Dir(CStr(candidate), vbDirectory) <> "" Then
+            Dim existResult As String
+            existResult = Dir(CStr(candidate), vbDirectory)
+            mod_DebugLog.Log "[FillMgr] FirstExistingPath: [" & CStr(candidate) & "] Dir=[" & existResult & "]"
+            If existResult <> "" Then
                 FirstExistingManagerListFolderPath = CStr(candidate)
                 Exit Function
             End If
         End If
     Next candidate
+    mod_DebugLog.Log "[FillMgr] FirstExistingPath: 全候補が存在しない"
 End Function
 
 Private Function FindManagerListFile(ByVal folderPath As String, ByVal yearText As String) As String
