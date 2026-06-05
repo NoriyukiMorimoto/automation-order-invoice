@@ -1,13 +1,13 @@
 Option Explicit
 
 '==========================================================================
-'  ãƒ‡ãƒãƒƒã‚°ãƒ­ã‚°ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«  mod_DebugLog
-'  B6å¤‰æ›´æ™‚ã®ã‚³ãƒ³ãƒœè¡¨ç¤ºãƒ•ãƒ­ãƒ¼è¿½è·¡ç”¨
-'  ä½¿ã„æ–¹ï¼š
-'    1. ã“ã®ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«ã‚’ã‚¤ãƒ³ãƒãƒ¼ãƒˆ
-'    2. B6ã‚’å¤‰æ›´ã™ã‚‹
-'    3. ã‚¤ãƒŸãƒ‡ã‚£ã‚¨ã‚¤ãƒˆã‚¦ã‚£ãƒ³ãƒ‰ã‚¦(Ctrl+G)ã¾ãŸã¯ãƒ­ã‚°ã‚·ãƒ¼ãƒˆã§çµæœç¢ºèª
-'    4. ç¢ºèªå¾Œã¯ mod_DebugLog.ClearLog ã§æ¶ˆå»
+'  ƒfƒoƒbƒOƒƒOƒ‚ƒWƒ…[ƒ‹  mod_DebugLog
+'  B6•ÏX‚ÌƒRƒ“ƒ{•\¦ƒtƒ[’ÇÕ—p
+'  g‚¢•ûF
+'    1. ‚±‚Ìƒ‚ƒWƒ…[ƒ‹‚ğƒCƒ“ƒ|[ƒg
+'    2. B6‚ğ•ÏX‚·‚é
+'    3. ƒCƒ~ƒfƒBƒGƒCƒgƒEƒBƒ“ƒhƒE(Ctrl+G)‚Ü‚½‚ÍƒƒOƒV[ƒg‚ÅŒ‹‰ÊŠm”F
+'    4. Šm”FŒã‚Í mod_DebugLog.ClearLog ‚ÅÁ‹
 '==========================================================================
 
 Private mLogs() As String
@@ -15,16 +15,16 @@ Private mLogCount As Long
 Private Const LOG_SHEET_NAME As String = "DebugLog"
 
 '--------------------------------------------------------------------------
-' ãƒ­ã‚°è¿½è¨˜ï¼ˆã‚¤ãƒŸãƒ‡ã‚£ã‚¨ã‚¤ãƒˆã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ï¼‹å†…éƒ¨ãƒãƒƒãƒ•ã‚¡ä¸¡æ–¹ã«å‡ºåŠ›ï¼‰
+' ƒƒO’Ç‹LiƒCƒ~ƒfƒBƒGƒCƒgƒEƒBƒ“ƒhƒE{“à•”ƒoƒbƒtƒ@—¼•û‚Éo—Íj
 '--------------------------------------------------------------------------
 Public Sub Log(ByVal msg As String)
     Dim line As String
     line = Format(Now, "hh:mm:ss") & "  " & msg
 
-    ' ã‚¤ãƒŸãƒ‡ã‚£ã‚¨ã‚¤ãƒˆã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã¸
+    ' ƒCƒ~ƒfƒBƒGƒCƒgƒEƒBƒ“ƒhƒE‚Ö
     Debug.Print line
 
-    ' å†…éƒ¨ãƒãƒƒãƒ•ã‚¡ã¸
+    ' “à•”ƒoƒbƒtƒ@‚Ö
     If mLogCount = 0 Then
         ReDim mLogs(0 To 99)
     ElseIf mLogCount > UBound(mLogs) Then
@@ -35,11 +35,11 @@ Public Sub Log(ByVal msg As String)
 End Sub
 
 '--------------------------------------------------------------------------
-' ãƒ­ã‚°ã‚’ã‚·ãƒ¼ãƒˆã«æ›¸ãå‡ºã™ï¼ˆB6å¤‰æ›´å¾Œã«ã“ã‚Œã‚’æ‰‹å‹•å®Ÿè¡Œã—ã¦ç¢ºèªï¼‰
+' ƒƒO‚ğƒV[ƒg‚É‘‚«o‚·iB6•ÏXŒã‚É‚±‚ê‚ğè“®Às‚µ‚ÄŠm”Fj
 '--------------------------------------------------------------------------
 Public Sub FlushToSheet()
     If mLogCount = 0 Then
-        MsgBox "ãƒ­ã‚°ã¯ã‚ã‚Šã¾ã›ã‚“ã€‚", vbInformation
+        MsgBox "ƒƒO‚Í‚ ‚è‚Ü‚¹‚ñB", vbInformation
         Exit Sub
     End If
 
@@ -54,8 +54,8 @@ Public Sub FlushToSheet()
     End If
 
     ws.Cells.ClearContents
-    ws.Range("A1").Value = "æ™‚åˆ»"
-    ws.Range("B1").Value = "ãƒ­ã‚°"
+    ws.Range("A1").Value = ""
+    ws.Range("B1").Value = "ƒƒO"
 
     Dim i As Long
     For i = 0 To mLogCount - 1
@@ -71,14 +71,14 @@ Public Sub FlushToSheet()
 
     ws.Columns("A:B").AutoFit
     ws.Activate
-    MsgBox mLogCount & " ä»¶ã®ãƒ­ã‚°ã‚’ã‚·ãƒ¼ãƒˆã«å‡ºåŠ›ã—ã¾ã—ãŸã€‚", vbInformation
+    MsgBox mLogCount & " Œ‚ÌƒƒO‚ğƒV[ƒg‚Éo—Í‚µ‚Ü‚µ‚½B", vbInformation
 End Sub
 
 '--------------------------------------------------------------------------
-' ãƒ­ã‚°ã‚¯ãƒªã‚¢
+' ƒƒOƒNƒŠƒA
 '--------------------------------------------------------------------------
 Public Sub ClearLog()
     mLogCount = 0
     ReDim mLogs(0 To 0)
-    Debug.Print "--- ãƒ­ã‚°ã‚¯ãƒªã‚¢ ---"
+    Debug.Print "--- ƒƒOƒNƒŠƒA ---"
 End Sub

@@ -1,8 +1,8 @@
 Option Explicit
 
 '==========================================================================
-'  æ¥­è€…ãƒã‚¹ã‚¿å‚ç…§ï¼æ¥­è€…é¸æŠãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«
-'  æ”¹ä¿®å±¥æ­´: CHANGELOG.md å‚ç…§
+'  ‹ÆÒƒ}ƒXƒ^QÆ^‹ÆÒ‘I‘ğƒ‚ƒWƒ…[ƒ‹
+'  ‰üC—š—ğ: CHANGELOG.md QÆ
 '==========================================================================
 
 Private Const VENDOR_LIST_COL As String = "AD"
@@ -289,7 +289,7 @@ Private Sub FitVendorComboBoxToTarget(ByVal targetCell As Range, ByVal ole As OL
 End Sub
 
 '--------------------------------------------------------------------------
-'  ComboBox ç”¨ æ¥­è€…åã‚¢ã‚¤ãƒ†ãƒ èª­è¾¼ï¼ˆ#8: é…åˆ—èª­è¾¼ãƒ«ãƒ¼ãƒ—ã¸å¤‰æ›´ï¼‰
+'  ComboBox —p ‹ÆÒ–¼ƒAƒCƒeƒ€“Çi#8: ”z—ñ“Çƒ‹[ƒv‚Ö•ÏXj
 '--------------------------------------------------------------------------
 Private Sub LoadVendorComboBoxItems(ByVal wsInfo As Worksheet, ByVal ole As OLEObject, ByVal targetCell As Range)
     Dim lastRow As Long
@@ -323,7 +323,7 @@ Private Sub LoadVendorComboBoxItems(ByVal wsInfo As Worksheet, ByVal ole As OLEO
 End Sub
 
 '--------------------------------------------------------------------------
-'  æ¥­è€…ãƒãƒªãƒ‡ãƒ¼ã‚·ãƒ§ãƒ³ãƒªã‚¹ãƒˆæ›¸è¾¼ï¼ˆ#7: 2æ¬¡å…ƒé…åˆ—ï¼‹Range ä¸€æ‹¬ä»£å…¥ï¼‰
+'  ‹ÆÒƒoƒŠƒf[ƒVƒ‡ƒ“ƒŠƒXƒg‘i#7: 2ŸŒ³”z—ñ{Range ˆêŠ‡‘ã“üj
 '--------------------------------------------------------------------------
 Private Sub WriteVendorValidationList(ByVal wsInfo As Worksheet, ByVal vendorRows As Collection)
     wsInfo.Columns(VENDOR_LIST_COL & ":" & VENDOR_LIST_COL).Hidden = False
