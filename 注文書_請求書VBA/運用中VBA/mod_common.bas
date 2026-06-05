@@ -236,8 +236,15 @@ Public Function CommonCleanAdoWorksheetName(ByVal tableName As String) As String
 End Function
 
 ' ADO レコードセットからインデックス指定でフィールド値を安全に取り出す。
+' Fields コレクションは 1 始まり（1=A列）で扱う。0 は先頭フィールド参照用。
 Public Function CommonGetAdoFieldValue(ByVal rs As Object, ByVal fieldIndex As Long) As Variant
-    If fieldIndex < rs.fields.Count Then CommonGetAdoFieldValue = rs.fields(fieldIndex).value
+    On Error Resume Next
+    If fieldIndex >= 1 And fieldIndex <= rs.Fields.Count Then
+        CommonGetAdoFieldValue = rs.Fields(fieldIndex).Value
+    ElseIf fieldIndex = 0 And rs.Fields.Count > 0 Then
+        CommonGetAdoFieldValue = rs.Fields(0).Value
+    End If
+    On Error GoTo 0
 End Function
 
 '--------------------------------------------------------------------------

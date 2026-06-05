@@ -22,6 +22,7 @@ Private Const BASIC_INFO_VENDOR_COUNT_CELL As String = "F9"
 Private Const MAX_VENDOR_BLOCK_COUNT As Long = 20
 Private Const VENDOR_SOURCE_START_ROW As Long = 2
 Private Const VENDOR_SOURCE_END_ROW As Long = 36
+Private Const VENDOR_MASTER_FIELD_INDEX_O As Long = 15
 Private Const VENDOR_COMBO_NAME As String = "ComboBoxVendor"
 Private mVendorPromptTime As Date
 Private mVendorTargetAddress As String
@@ -396,7 +397,9 @@ Private Sub DeleteVendorComboBox(ByVal wsInfo As Worksheet)
 End Sub
 
 Private Sub ApplyVendorRowToBasicInfo(ByVal targetCell As Range, ByVal rowData As Variant)
+    mod_DebugLog.Log "[VendorMaster] ApplyVendorRow F10=[" & CStr(rowData(14)) & "] vendor=[" & CStr(rowData(0)) & "]"
     With targetCell.Worksheet
+        .Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, targetCell.Column).value = rowData(14)
         .Cells(11, targetCell.Column).value = rowData(0)
         .Cells(12, targetCell.Column).value = rowData(3)
         .Cells(13, targetCell.Column).value = rowData(11)
@@ -533,6 +536,7 @@ End Sub
 
 Private Sub ClearVendorInfoBlock(ByVal targetCell As Range)
     With targetCell.Worksheet
+        .Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, targetCell.Column).ClearContents
         .Range(.Cells(11, targetCell.Column), .Cells(16, targetCell.Column)).ClearContents
         .Range(.Cells(18, targetCell.Column), .Cells(23, targetCell.Column)).ClearContents
         .Range(.Cells(BASIC_INFO_VENDOR_PERCENT_ROW, targetCell.Column), _
@@ -666,7 +670,8 @@ Private Function BuildVendorRowFromAdoRecord(ByVal recordset As Object, ByVal sh
                                         CommonNzText(CommonGetAdoFieldValue(recordset, 11)), _
                                         CommonNzText(CommonGetAdoFieldValue(recordset, 12)), _
                                         CommonNzText(CommonGetAdoFieldValue(recordset, 0)), _
-                                        CommonNormalizeText(sheetName))
+                                        CommonNormalizeText(sheetName), _
+                                        CommonNzText(CommonGetAdoFieldValue(recordset, VENDOR_MASTER_FIELD_INDEX_O)))
 End Function
 
 Private Function GetAdoWorksheetName(ByVal connection As Object, ByVal targetSheetName As String) As String
@@ -686,7 +691,7 @@ Private Function GetAdoWorksheetName(ByVal connection As Object, ByVal targetShe
 End Function
 
 Private Function GetAdoVendorRangeName(ByVal sheetName As String) As String
-    GetAdoVendorRangeName = "[" & Replace$(sheetName, "]", "]]") & "$A" & VENDOR_SOURCE_START_ROW & ":M" & VENDOR_SOURCE_END_ROW & "]"
+    GetAdoVendorRangeName = "[" & Replace$(sheetName, "]", "]]") & "$A" & VENDOR_SOURCE_START_ROW & ":O" & VENDOR_SOURCE_END_ROW & "]"
 End Function
 
 Private Function HasVendorRows(ByVal rows As Collection) As Boolean
