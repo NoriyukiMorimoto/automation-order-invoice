@@ -1,8 +1,8 @@
 Option Explicit
 
 '==========================================================================
-'  ã∆é“É}ÉXÉ^éQè∆Å^ã∆é“ëIëÉÇÉWÉÖÅ[Éã
-'  â¸èCóöó: CHANGELOG.md éQè∆
+'  ?????}?X?^?Q???^?????I?????W???[??
+'  ???C????: CHANGELOG.md ?Q??
 '==========================================================================
 
 Private Const VENDOR_LIST_COL As String = "AD"
@@ -12,13 +12,12 @@ Private Const BASIC_INFO_VENDOR_NAME_ROW As Long = 11
 Private Const BASIC_INFO_VENDOR_BLOCK_LABEL_COL As Long = 5
 Private Const BASIC_INFO_VENDOR_BLOCK_VALUE_COL As Long = 6
 Private Const BASIC_INFO_VENDOR_BLOCK_TOP_ROW As Long = 10
-Private Const BASIC_INFO_VENDOR_BLOCK_BOTTOM_ROW As Long = 27
+Private Const BASIC_INFO_VENDOR_BLOCK_BOTTOM_ROW As Long = 31
 Private Const BASIC_INFO_VENDOR_BLOCK_STEP_COLS As Long = 3
 Private Const BASIC_INFO_VENDOR_LABEL_COL_WIDTH As Double = 26.38
 Private Const BASIC_INFO_VENDOR_VALUE_COL_WIDTH As Double = 42.5
 Private Const BASIC_INFO_VENDOR_SPACER_COL_WIDTH As Double = 0.92
 Private Const BASIC_INFO_VENDOR_PERCENT_ROW As Long = 25
-Private Const BASIC_INFO_VENDOR_EXTRA_CLEAR_ROW As Long = 27
 Private Const BASIC_INFO_VENDOR_COUNT_CELL As String = "F9"
 Private Const MAX_VENDOR_BLOCK_COUNT As Long = 20
 Private Const VENDOR_SOURCE_START_ROW As Long = 2
@@ -289,7 +288,7 @@ Private Sub FitVendorComboBoxToTarget(ByVal targetCell As Range, ByVal ole As OL
 End Sub
 
 '--------------------------------------------------------------------------
-'  ComboBox óp ã∆é“ñºÉAÉCÉeÉÄì«çûÅi#8: îzóÒì«çûÉãÅ[ÉvÇ÷ïœçXÅj
+'  ComboBox ?p ???????A?C?e?Ä?????i#8: ?z?????????[?v?????X?j
 '--------------------------------------------------------------------------
 Private Sub LoadVendorComboBoxItems(ByVal wsInfo As Worksheet, ByVal ole As OLEObject, ByVal targetCell As Range)
     Dim lastRow As Long
@@ -323,7 +322,7 @@ Private Sub LoadVendorComboBoxItems(ByVal wsInfo As Worksheet, ByVal ole As OLEO
 End Sub
 
 '--------------------------------------------------------------------------
-'  ã∆é“ÉoÉäÉfÅ[ÉVÉáÉìÉäÉXÉgèëçûÅi#7: 2éüå≥îzóÒÅ{Range àÍäáë„ì¸Åj
+'  ?????o???f?[?V???????X?g?????i#7: 2?????z???{Range ?????????j
 '--------------------------------------------------------------------------
 Private Sub WriteVendorValidationList(ByVal wsInfo As Worksheet, ByVal vendorRows As Collection)
     wsInfo.Columns(VENDOR_LIST_COL & ":" & VENDOR_LIST_COL).Hidden = False
@@ -536,8 +535,8 @@ Private Sub ClearVendorInfoBlock(ByVal targetCell As Range)
     With targetCell.Worksheet
         .Range(.Cells(11, targetCell.Column), .Cells(16, targetCell.Column)).ClearContents
         .Range(.Cells(18, targetCell.Column), .Cells(23, targetCell.Column)).ClearContents
-        .Cells(BASIC_INFO_VENDOR_PERCENT_ROW, targetCell.Column).ClearContents
-        .Cells(BASIC_INFO_VENDOR_EXTRA_CLEAR_ROW, targetCell.Column).ClearContents
+        .Range(.Cells(BASIC_INFO_VENDOR_PERCENT_ROW, targetCell.Column), _
+               .Cells(BASIC_INFO_VENDOR_BLOCK_BOTTOM_ROW, targetCell.Column)).ClearContents
     End With
 End Sub
 
