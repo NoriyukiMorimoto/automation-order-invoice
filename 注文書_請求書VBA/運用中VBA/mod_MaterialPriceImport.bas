@@ -5,6 +5,7 @@ Option Explicit
 '  改修履歴: CHANGELOG.md 参照
 '==========================================================================
 Public SharedMasterData As Variant
+Private mClearingImportedLineNames As Boolean
 
 Private Type UnitPriceRequest
     Nendo As String
@@ -45,6 +46,7 @@ Private Const BASIC_INFO_PROJECT_NAME_CELL As String = "C21"
 Private Const BASIC_INFO_PRICE_KIND_CELL As String = "C22"
 Private Const BASIC_INFO_PRICE_KIND_FALLBACK_CELL As String = "B22"
 Private Const BASIC_INFO_IMPORTED_LINE_NAMES_CELL As String = "C24"
+Private Const BASIC_INFO_IMPORTED_LINE_NAMES_MONITOR_RANGE As String = "C24:C28"
 Private Const BASIC_INFO_WELDING_FLAG_CELL As String = "C23"
 Private Const PROJECT_NAME_LIST_COL As String = "AE"
 Private Const LINE_TYPE_LIST_COL As String = "AF"
@@ -52,7 +54,9 @@ Private Const PRICE_KIND_LIST_COL As String = "AG"
 Private Const LIST_START_ROW As Long = 2
 Private Const PROJECT_NAME_MASTER_START_ROW As Long = 2
 Private Const PROJECT_NAME_MASTER_LAST_ROW As Long = 1048576
-Private Const IMPORTED_SHEET_PROPERTY As String = "UnitPriceImported"
+Private Const IMPORTED_SHEET_MARKER_ADDRESS As String = "XFD1"
+Private Const IMPORTED_SHEET_LEGACY_MARKER_ADDRESS As String = "ZZ1"
+Private Const IMPORTED_SHEET_MARKER_VALUE As String = "UnitPriceImported"
 
 Private Const UNIT_PRICE_SHEET_TAB_R As Long = 165
 Private Const UNIT_PRICE_SHEET_TAB_G As Long = 171
@@ -70,6 +74,13 @@ Private Const WELDING_SHEET_TAB_R As Long = 252
 Private Const WELDING_SHEET_TAB_G As Long = 213
 Private Const WELDING_SHEET_TAB_B As Long = 180
 Private Const SOURCE_HEADER_ROW As Long = 1
+Private Const UNIT_PRICE_BLANK_FILL_DATA_START_ROW As Long = 7
+Private Const UNIT_PRICE_BLANK_FILL_LAST_ROW_COL As Long = 2
+Private Const UNIT_PRICE_BLANK_FILL_COL_START As Long = 5
+Private Const UNIT_PRICE_BLANK_FILL_COL_END As Long = 6
+Private Const UNIT_PRICE_BLANK_FILL_COLOR_R As Long = 128
+Private Const UNIT_PRICE_BLANK_FILL_COLOR_G As Long = 128
+Private Const UNIT_PRICE_BLANK_FILL_COLOR_B As Long = 128
 Private Const IMPORTED_LINE_NAME_BASE_FONT_SIZE As Double = 16
 Private Const IMPORTED_LINE_NAME_MIN_FONT_SIZE As Double = 5
 Private Const IMPORTED_LINE_NAME_LINE_HEIGHT_RATIO As Double = 1.25
@@ -1009,6 +1020,7 @@ Private Function ImportSelectedUnitPriceSheets(ByVal selectedSheetNames As Colle
             .Name = MakeUniqueWorksheetName(targetBook, targetSheetName, .Name)
             .Tab.Color = RGB(UNIT_PRICE_SHEET_TAB_R, UNIT_PRICE_SHEET_TAB_G, UNIT_PRICE_SHEET_TAB_B)
             MarkImportedUnitPriceSheet targetBook.Worksheets(.Name)
+            FillBlankUnitPriceEFCells targetBook.Worksheets(.Name)
             LogUP "シート作成完了 name=[" & .Name & "]"
         End With
 
@@ -1135,6 +1147,7 @@ Private Function ImportAndMergeWeldingUnitPriceSheets(ByVal sourceFilePath As St
     If Not newSheet Is Nothing Then
         newSheet.Tab.Color = RGB(WELDING_SHEET_TAB_R, WELDING_SHEET_TAB_G, WELDING_SHEET_TAB_B)
         MarkImportedUnitPriceSheet newSheet
+        FillBlankUnitPriceEFCells newSheet
     End If
 
     ImportAndMergeWeldingUnitPriceSheets = True
@@ -1610,15 +1623,48 @@ Public Sub SilentClearUnitPriceForBasicInfo(ByVal wsInfo As Worksheet)
     FormatImportedLineNamesCell wsInfo
 End Sub
 
+'--------------------------------------------------------------------------
+'  HandleImportedLineNamesCellChange
+'    基本情報シート Worksheet_Change から呼び出す。
+'    C24 が手動消去されたときに取り込み済み単価シートを削除する。
+'--------------------------------------------------------------------------
+Public Function IsClearingImportedLineNames() As Boolean
+    IsClearingImportedLineNames = mClearingImportedLineNames
+End Function
+
+Public Sub HandleImportedLineNamesCellChange(ByVal wsInfo As Worksheet, ByVal changedRange As Range)
+    If wsInfo Is Nothing Or changedRange Is Nothing Then Exit Sub
+    If mClearingImportedLineNames Then Exit Sub
+
+    If Not IsImportedLineNamesMonitorRangeChanged(wsInfo, changedRange) Then Exit Sub
+    If Not IsImportedLineNamesCellEmpty(wsInfo) Then Exit Sub
+
+    LogUP "C24 cleared -> delete imported unit price sheets changed=[" & changedRange.Address(False, False) & "]"
+    mClearingImportedLineNames = True
+    On Error GoTo FinallyExit
+    ClearUnitPriceSheets wsInfo.Parent
+    FormatImportedLineNamesCell wsInfo
+FinallyExit:
+    mClearingImportedLineNames = False
+End Sub
+
 Public Sub ClearUnitPriceSheets(Optional ByVal targetBook As Workbook)
     Dim savedErrNumber As Long, savedErrSource As String, savedErrDescription As String
     If targetBook Is Nothing Then Set targetBook = ThisWorkbook
     Dim previousDisplayAlerts As Boolean
+    Dim previousEnableEvents As Boolean
+    Dim previousScreenUpdating As Boolean
     previousDisplayAlerts = Application.DisplayAlerts
+    previousEnableEvents = Application.EnableEvents
+    previousScreenUpdating = Application.ScreenUpdating
     On Error GoTo ErrorHandler
     Application.DisplayAlerts = False
+    Application.EnableEvents = False
+    Application.ScreenUpdating = False
     DeleteImportedUnitPriceSheets targetBook
 Cleanup:
+    Application.ScreenUpdating = previousScreenUpdating
+    Application.EnableEvents = previousEnableEvents
     Application.DisplayAlerts = previousDisplayAlerts
     If savedErrNumber <> 0 Then Err.Raise savedErrNumber, savedErrSource, savedErrDescription
     Exit Sub
@@ -1631,11 +1677,17 @@ End Sub
 
 Private Sub DeleteImportedUnitPriceSheets(ByVal targetBook As Workbook)
     Dim i As Long
+    Dim deletedCount As Long
     For i = targetBook.Worksheets.Count To 1 Step -1
         If IsImportedUnitPriceSheet(targetBook.Worksheets(i)) Then
-            If targetBook.Worksheets.Count > 1 Then targetBook.Worksheets(i).Delete
+            If targetBook.Worksheets.Count > 1 Then
+                LogUP "DeleteImportedUnitPriceSheets: delete [" & targetBook.Worksheets(i).Name & "]"
+                targetBook.Worksheets(i).Delete
+                deletedCount = deletedCount + 1
+            End If
         End If
     Next i
+    LogUP "DeleteImportedUnitPriceSheets: deletedCount=" & CStr(deletedCount)
 End Sub
 
 Private Sub DeleteWorksheetIfExists(ByVal targetBook As Workbook, ByVal sheetName As String)
@@ -1649,21 +1701,104 @@ Private Sub DeleteWorksheetIfExists(ByVal targetBook As Workbook, ByVal sheetNam
 End Sub
 
 Private Function IsImportedUnitPriceSheet(ByVal targetSheet As Worksheet) As Boolean
+    If targetSheet Is Nothing Then Exit Function
+    If IsProtectedSystemWorksheet(targetSheet) Then Exit Function
+    If IsImportedUnitPriceSheetByMarker(targetSheet) Then
+        IsImportedUnitPriceSheet = True
+        Exit Function
+    End If
+    If IsImportedUnitPriceSheetByTabColor(targetSheet) Then
+        IsImportedUnitPriceSheet = True
+        Exit Function
+    End If
+    IsImportedUnitPriceSheet = IsImportedUnitPriceSheetByNameSuffix(targetSheet)
+End Function
+
+Private Function IsProtectedSystemWorksheet(ByVal targetSheet As Worksheet) As Boolean
+    Dim sheetName As String
+    sheetName = CommonNormalizeText(CStr(targetSheet.Name))
+    IsProtectedSystemWorksheet = _
+        (StrComp(sheetName, CommonNormalizeText(CommonBasicInfoSheetNameText()), vbTextCompare) = 0) Or _
+        (StrComp(sheetName, CommonNormalizeText(CommonCoverSheetNameText()), vbTextCompare) = 0) Or _
+        (StrComp(sheetName, "Cover", vbTextCompare) = 0) Or _
+        (StrComp(sheetName, "DebugLog", vbTextCompare) = 0)
+End Function
+
+Private Function IsImportedUnitPriceSheetByNameSuffix(ByVal targetSheet As Worksheet) As Boolean
+    Dim sheetName As String
+    sheetName = CommonNormalizeText(CStr(targetSheet.Name))
+    IsImportedUnitPriceSheetByNameSuffix = _
+        (InStr(1, sheetName, NormalizeMatchText(PURCHASE_SHEET_NAME_SUFFIX), vbTextCompare) > 0) Or _
+        (InStr(1, sheetName, NormalizeMatchText(WELDING_SHEET_NAME_SUFFIX), vbTextCompare) > 0)
+End Function
+
+Private Function IsImportedUnitPriceSheetByMarker(ByVal targetSheet As Worksheet) As Boolean
     On Error Resume Next
-    Dim prop As Object
-    For Each prop In targetSheet.CustomProperties
-        If StrComp(prop.Name, IMPORTED_SHEET_PROPERTY, vbTextCompare) = 0 Then
-            IsImportedUnitPriceSheet = (CStr(prop.Value) = "1")
-            Exit Function
-        End If
-    Next prop
+    IsImportedUnitPriceSheetByMarker = _
+        (CStr(targetSheet.Range(IMPORTED_SHEET_MARKER_ADDRESS).Value) = IMPORTED_SHEET_MARKER_VALUE) Or _
+        (CStr(targetSheet.Range(IMPORTED_SHEET_LEGACY_MARKER_ADDRESS).Value) = IMPORTED_SHEET_MARKER_VALUE)
     On Error GoTo 0
 End Function
 
-Private Sub MarkImportedUnitPriceSheet(ByVal targetSheet As Worksheet)
+Private Function IsImportedUnitPriceSheetByTabColor(ByVal targetSheet As Worksheet) As Boolean
     On Error Resume Next
-    targetSheet.CustomProperties.Add Name:=IMPORTED_SHEET_PROPERTY, Value:="1"
+    If targetSheet.Tab.ColorIndex = xlColorIndexNone Then Exit Function
     On Error GoTo 0
+
+    Dim tabColor As Long
+    tabColor = targetSheet.Tab.Color
+
+    IsImportedUnitPriceSheetByTabColor = _
+        (tabColor = RGB(UNIT_PRICE_SHEET_TAB_R, UNIT_PRICE_SHEET_TAB_G, UNIT_PRICE_SHEET_TAB_B)) Or _
+        (tabColor = RGB(PURCHASE_SHEET_TAB_R, PURCHASE_SHEET_TAB_G, PURCHASE_SHEET_TAB_B)) Or _
+        (tabColor = RGB(WELDING_SHEET_TAB_R, WELDING_SHEET_TAB_G, WELDING_SHEET_TAB_B))
+End Function
+
+Private Sub MarkImportedUnitPriceSheet(ByVal targetSheet As Worksheet)
+    If targetSheet Is Nothing Then Exit Sub
+    On Error Resume Next
+    targetSheet.Range(IMPORTED_SHEET_MARKER_ADDRESS).Value = IMPORTED_SHEET_MARKER_VALUE
+    On Error GoTo 0
+End Sub
+
+Private Function IsImportedLineNamesMonitorRangeChanged(ByVal wsInfo As Worksheet, ByVal changedRange As Range) As Boolean
+    Dim monitorRange As Range
+    Dim importedLineRange As Range
+
+    Set monitorRange = wsInfo.Range(BASIC_INFO_IMPORTED_LINE_NAMES_MONITOR_RANGE)
+    Set importedLineRange = wsInfo.Range(BASIC_INFO_IMPORTED_LINE_NAMES_CELL).MergeArea
+
+    IsImportedLineNamesMonitorRangeChanged = _
+        (Not Intersect(changedRange, monitorRange) Is Nothing) Or _
+        (Not Intersect(changedRange, importedLineRange) Is Nothing)
+End Function
+
+Private Function IsImportedLineNamesCellEmpty(ByVal wsInfo As Worksheet) As Boolean
+    IsImportedLineNamesCellEmpty = _
+        (Len(Trim$(CStr(wsInfo.Range(BASIC_INFO_IMPORTED_LINE_NAMES_CELL).MergeArea.Cells(1, 1).Value))) = 0)
+End Function
+
+Private Sub FillBlankUnitPriceEFCells(ByVal targetSheet As Worksheet)
+    If targetSheet Is Nothing Then Exit Sub
+    If IsPurchaseUnitPriceProjectName(CStr(targetSheet.Name)) Then Exit Sub
+
+    Dim lastRow As Long
+    lastRow = targetSheet.Cells(targetSheet.Rows.Count, UNIT_PRICE_BLANK_FILL_LAST_ROW_COL).End(xlUp).Row
+    If lastRow < UNIT_PRICE_BLANK_FILL_DATA_START_ROW Then Exit Sub
+
+    Dim rowIndex As Long
+    Dim colIndex As Long
+    For rowIndex = UNIT_PRICE_BLANK_FILL_DATA_START_ROW To lastRow
+        For colIndex = UNIT_PRICE_BLANK_FILL_COL_START To UNIT_PRICE_BLANK_FILL_COL_END
+            With targetSheet.Cells(rowIndex, colIndex)
+                If Len(Trim$(CStr(.Value))) = 0 Then
+                    .Interior.Color = RGB(UNIT_PRICE_BLANK_FILL_COLOR_R, _
+                                          UNIT_PRICE_BLANK_FILL_COLOR_G, _
+                                          UNIT_PRICE_BLANK_FILL_COLOR_B)
+                End If
+            End With
+        Next colIndex
+    Next rowIndex
 End Sub
 
 Private Function MakeUniqueWorksheetName(ByVal targetBook As Workbook, _
