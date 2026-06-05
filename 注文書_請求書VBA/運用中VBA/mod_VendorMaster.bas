@@ -18,11 +18,34 @@ Private Const BASIC_INFO_VENDOR_LABEL_COL_WIDTH As Double = 26.38
 Private Const BASIC_INFO_VENDOR_VALUE_COL_WIDTH As Double = 42.5
 Private Const BASIC_INFO_VENDOR_SPACER_COL_WIDTH As Double = 0.92
 Private Const BASIC_INFO_VENDOR_PERCENT_ROW As Long = 25
+Private Const BASIC_INFO_VENDOR_OUTSOURCE_RATIO_ROW As Long = 29
+Private Const BASIC_INFO_YEAR_CELL As String = "B4"
+Private Const BASIC_INFO_BILLING_COUNT_CELL As String = "F4"
 Private Const BASIC_INFO_VENDOR_COUNT_CELL As String = "F9"
+Private Const VENDOR_UNIT_PRICE_HEADER_ROW As Long = 4
+Private Const VENDOR_UNIT_PRICE_NAME_ROW As Long = 5
+Private Const VENDOR_UNIT_PRICE_LABEL_ROW As Long = 6
+Private Const VENDOR_UNIT_PRICE_DATA_START_ROW As Long = 7
+Private Const VENDOR_UNIT_PRICE_FIRST_DAY_COL As Long = 7
+Private Const VENDOR_UNIT_PRICE_REF_UNIT_COL As Long = 5
+Private Const VENDOR_UNIT_PRICE_REF_WIDTH_COL As Long = 6
+Private Const VENDOR_UNIT_PRICE_WORK_TYPE_COL As Long = 3
+Private Const VENDOR_UNIT_PRICE_LAST_ROW_COL As Long = 2
+Private Const VENDOR_UNIT_PRICE_FILL_COLOR_R As Long = 128
+Private Const VENDOR_UNIT_PRICE_FILL_COLOR_G As Long = 128
+Private Const VENDOR_UNIT_PRICE_FILL_COLOR_B As Long = 128
+
+Private Enum VendorWorkTypeFillPattern
+    VendorFillPatternNone = 0
+    VendorFillPatternNightOnly = 1
+    VendorFillPatternDayOnly = 2
+    VendorFillPatternBoth = 3
+End Enum
 Private Const MAX_VENDOR_BLOCK_COUNT As Long = 20
 Private Const VENDOR_SOURCE_START_ROW As Long = 2
 Private Const VENDOR_SOURCE_END_ROW As Long = 36
-Private Const VENDOR_MASTER_FIELD_INDEX_O As Long = 15
+Private Const VENDOR_MASTER_ADO_COLUMN_O_NAME As String = "F15"
+Private Const VENDOR_MASTER_EXCEL_COLUMN_O As Long = 15
 Private Const VENDOR_COMBO_NAME As String = "ComboBoxVendor"
 Private mVendorPromptTime As Date
 Private mVendorTargetAddress As String
@@ -399,6 +422,7 @@ End Sub
 Private Sub ApplyVendorRowToBasicInfo(ByVal targetCell As Range, ByVal rowData As Variant)
     mod_DebugLog.Log "[VendorMaster] ApplyVendorRow F10=[" & CStr(rowData(14)) & "] vendor=[" & CStr(rowData(0)) & "]"
     With targetCell.Worksheet
+        ApplyVendorRow10ValueCellFormat .Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, targetCell.Column)
         .Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, targetCell.Column).value = rowData(14)
         .Cells(11, targetCell.Column).value = rowData(0)
         .Cells(12, targetCell.Column).value = rowData(3)
@@ -415,6 +439,8 @@ Private Sub ApplyVendorRowToBasicInfo(ByVal targetCell As Range, ByVal rowData A
         .Cells(BASIC_INFO_VENDOR_PERCENT_ROW, targetCell.Column).NumberFormatLocal = "@"
         .Cells(BASIC_INFO_VENDOR_PERCENT_ROW, targetCell.Column).value = "100" & ChrW$(&HFF05)
     End With
+
+    RefreshVendorUnitPriceForValueColumn targetCell.Worksheet, targetCell.Column
 End Sub
 
 Public Function GetVendorNameRange(ByVal wsInfo As Worksheet) As Range
@@ -458,16 +484,463 @@ Public Sub SyncVendorBlocksFromCount(ByVal wsInfo As Worksheet)
         sourceBlock.Copy Destination:=destBlock
         destBlock.Cells(1, 1).value = VendorInfoHeaderText(i)
         ClearVendorInfoBlock VendorNameCellByIndex(wsInfo, i)
+        CopyVendorBlockFormatsFromTemplate wsInfo, i
     Next i
 
     ClearUnusedVendorBlocks wsInfo, vendorCount + 1
+
+    Dim formatIndex As Long
+    For formatIndex = 1 To vendorCount
+        ApplyVendorRow10ValueCellFormat wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, VendorValueColumnByIndex(formatIndex))
+    Next formatIndex
+
     Application.CutCopyMode = False
     RefreshVendorListForBasicInfo wsInfo
+    RefreshAllVendorUnitPricesForBasicInfo wsInfo
     Exit Sub
 
 ExitHandler:
     Application.CutCopyMode = False
 End Sub
+
+Public Function GetVendorUnitPriceMonitorRange(ByVal wsInfo As Worksheet) As Range
+    If wsInfo Is Nothing Then Exit Function
+
+    Dim vendorCount As Long
+    vendorCount = GetVendorBlockCount(wsInfo)
+
+    Dim result As Range
+    Dim i As Long
+    For i = 1 To vendorCount
+        Dim valueCol As Long
+        valueCol = VendorValueColumnByIndex(i)
+
+        Dim blockRange As Range
+        Set blockRange = Union(wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, valueCol), _
+                               wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, valueCol), _
+                               wsInfo.Cells(BASIC_INFO_VENDOR_OUTSOURCE_RATIO_ROW, valueCol))
+
+        If result Is Nothing Then
+            Set result = blockRange
+        Else
+            Set result = Union(result, blockRange)
+        End If
+    Next i
+
+    Set result = Union(result, wsInfo.Range(BASIC_INFO_YEAR_CELL & "," & BASIC_INFO_BILLING_COUNT_CELL))
+    Set GetVendorUnitPriceMonitorRange = result
+End Function
+
+Public Sub HandleVendorUnitPriceMonitorChange(ByVal wsInfo As Worksheet, ByVal changedRange As Range)
+    If wsInfo Is Nothing Then Exit Sub
+    If changedRange Is Nothing Then Exit Sub
+    If Intersect(changedRange, GetVendorUnitPriceMonitorRange(wsInfo)) Is Nothing Then Exit Sub
+
+    RefreshAllVendorUnitPricesForBasicInfo wsInfo
+End Sub
+
+Public Sub RefreshAllVendorUnitPricesForBasicInfo(Optional ByVal wsInfo As Worksheet)
+    If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet()
+    If wsInfo Is Nothing Then Exit Sub
+
+    Dim vendorCount As Long
+    vendorCount = GetVendorBlockCount(wsInfo)
+
+    Dim i As Long
+    For i = 1 To vendorCount
+        RefreshVendorUnitPriceForValueColumn wsInfo, VendorValueColumnByIndex(i)
+    Next i
+End Sub
+
+Private Sub RefreshVendorUnitPriceForValueColumn(ByVal wsInfo As Worksheet, ByVal valueColumn As Long)
+    If wsInfo Is Nothing Then Exit Sub
+
+    Dim targetBook As Workbook
+    Set targetBook = wsInfo.Parent
+
+    Dim wsUnitPrice As Worksheet
+    For Each wsUnitPrice In targetBook.Worksheets
+        If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) Then
+            ApplyVendorUnitPriceBlockToSheet wsUnitPrice, wsInfo, valueColumn
+        End If
+    Next wsUnitPrice
+End Sub
+
+Private Sub ApplyVendorUnitPriceBlockToSheet(ByVal wsUnitPrice As Worksheet, _
+                                             ByVal wsInfo As Worksheet, _
+                                             ByVal valueColumn As Long)
+    Dim dayCol As Long
+    Dim nightCol As Long
+    dayCol = VendorUnitPriceDayColumnByValueColumn(valueColumn)
+    nightCol = dayCol + 1
+
+    If Not IsRailConstructionVendorBlock(wsInfo, valueColumn) Or Not HasVendorOutsourceRatio(wsInfo, valueColumn) Then
+        ClearVendorUnitPriceBlockOnSheet wsUnitPrice, dayCol, nightCol
+        Exit Sub
+    End If
+
+    ApplyVendorUnitPriceColumnWidths wsUnitPrice, dayCol, nightCol
+    ApplyVendorUnitPriceMergedHeader wsUnitPrice, dayCol, nightCol, BuildVendorUnitPriceHeaderText(wsInfo)
+    ApplyVendorUnitPriceMergedVendorName wsUnitPrice, dayCol, nightCol, _
+        CStr(wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, valueColumn).value)
+
+    With wsUnitPrice
+        .Cells(VENDOR_UNIT_PRICE_LABEL_ROW, dayCol).value = VendorUnitPriceDayLabelText()
+        .Cells(VENDOR_UNIT_PRICE_LABEL_ROW, nightCol).value = VendorUnitPriceNightLabelText()
+        .Cells(VENDOR_UNIT_PRICE_LABEL_ROW, dayCol).HorizontalAlignment = xlCenter
+        .Cells(VENDOR_UNIT_PRICE_LABEL_ROW, dayCol).VerticalAlignment = xlCenter
+        .Cells(VENDOR_UNIT_PRICE_LABEL_ROW, nightCol).HorizontalAlignment = xlCenter
+        .Cells(VENDOR_UNIT_PRICE_LABEL_ROW, nightCol).VerticalAlignment = xlCenter
+    End With
+
+    ApplyVendorUnitPriceDataRows wsUnitPrice, wsInfo, valueColumn, dayCol, nightCol
+End Sub
+
+Private Sub ClearVendorUnitPriceBlockOnSheet(ByVal wsUnitPrice As Worksheet, _
+                                             ByVal dayCol As Long, _
+                                             ByVal nightCol As Long)
+    If wsUnitPrice Is Nothing Then Exit Sub
+
+    Dim lastRow As Long
+    lastRow = GetVendorUnitPriceLastDataRow(wsUnitPrice)
+    If lastRow < VENDOR_UNIT_PRICE_HEADER_ROW Then lastRow = VENDOR_UNIT_PRICE_DATA_START_ROW + 200
+
+    Dim clearRange As Range
+    Set clearRange = wsUnitPrice.Range(wsUnitPrice.Cells(VENDOR_UNIT_PRICE_HEADER_ROW, dayCol), _
+                                       wsUnitPrice.Cells(lastRow, nightCol))
+
+    SafeUnmergeRange clearRange
+    clearRange.ClearContents
+    clearRange.Interior.ColorIndex = xlColorIndexNone
+    clearRange.ShrinkToFit = False
+End Sub
+
+Private Sub ApplyVendorUnitPriceColumnWidths(ByVal wsUnitPrice As Worksheet, _
+                                               ByVal dayCol As Long, _
+                                               ByVal nightCol As Long)
+    wsUnitPrice.Columns(dayCol).ColumnWidth = wsUnitPrice.Columns(VENDOR_UNIT_PRICE_REF_UNIT_COL).ColumnWidth
+    wsUnitPrice.Columns(nightCol).ColumnWidth = wsUnitPrice.Columns(VENDOR_UNIT_PRICE_REF_WIDTH_COL).ColumnWidth
+End Sub
+
+Private Sub ApplyVendorUnitPriceMergedHeader(ByVal wsUnitPrice As Worksheet, _
+                                               ByVal dayCol As Long, _
+                                               ByVal nightCol As Long, _
+                                               ByVal headerText As String)
+    Dim headerRange As Range
+    Set headerRange = wsUnitPrice.Range(wsUnitPrice.Cells(VENDOR_UNIT_PRICE_HEADER_ROW, dayCol), _
+                                        wsUnitPrice.Cells(VENDOR_UNIT_PRICE_HEADER_ROW, nightCol))
+
+    SafeUnmergeRange headerRange
+    headerRange.Merge
+    With headerRange
+        .value = headerText
+        .HorizontalAlignment = xlCenter
+        .VerticalAlignment = xlCenter
+        .ShrinkToFit = False
+        .WrapText = False
+    End With
+End Sub
+
+Private Sub ApplyVendorUnitPriceMergedVendorName(ByVal wsUnitPrice As Worksheet, _
+                                                   ByVal dayCol As Long, _
+                                                   ByVal nightCol As Long, _
+                                                   ByVal vendorName As String)
+    Dim nameRange As Range
+    Set nameRange = wsUnitPrice.Range(wsUnitPrice.Cells(VENDOR_UNIT_PRICE_NAME_ROW, dayCol), _
+                                      wsUnitPrice.Cells(VENDOR_UNIT_PRICE_NAME_ROW, nightCol))
+
+    SafeUnmergeRange nameRange
+    nameRange.Merge
+    With nameRange
+        .value = vendorName
+        .HorizontalAlignment = xlCenter
+        .VerticalAlignment = xlCenter
+        .ShrinkToFit = True
+        .WrapText = False
+    End With
+End Sub
+
+Private Sub ApplyVendorUnitPriceDataRows(ByVal wsUnitPrice As Worksheet, _
+                                           ByVal wsInfo As Worksheet, _
+                                           ByVal valueColumn As Long, _
+                                           ByVal dayCol As Long, _
+                                           ByVal nightCol As Long)
+    Dim lastRow As Long
+    lastRow = GetVendorUnitPriceLastDataRow(wsUnitPrice)
+    If lastRow < VENDOR_UNIT_PRICE_DATA_START_ROW Then Exit Sub
+
+    Dim ratioAddress As String
+    ratioAddress = GetVendorOutsourceRatioAddress(wsInfo, valueColumn)
+
+    Dim rowIndex As Long
+    For rowIndex = VENDOR_UNIT_PRICE_DATA_START_ROW To lastRow
+        Dim workTypeName As String
+        workTypeName = CommonNormalizeText(CStr(wsUnitPrice.Cells(rowIndex, VENDOR_UNIT_PRICE_WORK_TYPE_COL).value))
+
+        Dim fillPattern As VendorWorkTypeFillPattern
+        fillPattern = GetVendorWorkTypeFillPattern(workTypeName)
+
+        ApplyVendorUnitPriceCell wsUnitPrice.Cells(rowIndex, dayCol), fillPattern, VendorFillPatternDayOnly, _
+                                 wsUnitPrice, rowIndex, ratioAddress
+        ApplyVendorUnitPriceCell wsUnitPrice.Cells(rowIndex, nightCol), fillPattern, VendorFillPatternNightOnly, _
+                                 wsUnitPrice, rowIndex, ratioAddress
+    Next rowIndex
+End Sub
+
+Private Sub ApplyVendorUnitPriceCell(ByVal targetCell As Range, _
+                                       ByVal fillPattern As VendorWorkTypeFillPattern, _
+                                       ByVal blockedPattern As VendorWorkTypeFillPattern, _
+                                       ByVal wsUnitPrice As Worksheet, _
+                                       ByVal rowIndex As Long, _
+                                       ByVal ratioAddress As String)
+    With targetCell
+        .ShrinkToFit = False
+        .Interior.ColorIndex = xlColorIndexNone
+
+        If fillPattern = VendorFillPatternBoth Or fillPattern = blockedPattern Then
+            .ClearContents
+            .Interior.Color = RGB(VENDOR_UNIT_PRICE_FILL_COLOR_R, _
+                                  VENDOR_UNIT_PRICE_FILL_COLOR_G, _
+                                  VENDOR_UNIT_PRICE_FILL_COLOR_B)
+        Else
+            .Formula = BuildVendorUnitPriceFormula(wsUnitPrice, rowIndex, ratioAddress)
+        End If
+    End With
+End Sub
+
+Private Function BuildVendorUnitPriceFormula(ByVal wsUnitPrice As Worksheet, _
+                                             ByVal rowIndex As Long, _
+                                             ByVal ratioAddress As String) As String
+    Dim unitCellRef As String
+    unitCellRef = wsUnitPrice.Cells(rowIndex, VENDOR_UNIT_PRICE_REF_UNIT_COL).Address(False, False)
+
+    BuildVendorUnitPriceFormula = "=ROUND(" & unitCellRef & "*(" & ratioAddress & ")," & _
+                                  "-INT(LOG10(" & unitCellRef & "*(" & ratioAddress & ")))+2)"
+End Function
+
+Private Function BuildVendorUnitPriceHeaderText(ByVal wsInfo As Worksheet) As String
+    BuildVendorUnitPriceHeaderText = Trim$(CStr(wsInfo.Range(BASIC_INFO_BILLING_COUNT_CELL).value)) & _
+                                     CommonExtractYear4Digits(CStr(wsInfo.Range(BASIC_INFO_YEAR_CELL).value)) & _
+                                     VendorUnitPriceOutsourceLabelText()
+End Function
+
+Private Function GetVendorOutsourceRatioAddress(ByVal wsInfo As Worksheet, ByVal valueColumn As Long) As String
+    GetVendorOutsourceRatioAddress = "'" & Replace$(wsInfo.Name, "'", "''") & "'!" & _
+                                     wsInfo.Cells(BASIC_INFO_VENDOR_OUTSOURCE_RATIO_ROW, valueColumn).Address(True, True)
+End Function
+
+Private Function GetVendorUnitPriceLastDataRow(ByVal wsUnitPrice As Worksheet) As Long
+    GetVendorUnitPriceLastDataRow = wsUnitPrice.Cells(wsUnitPrice.rows.Count, VENDOR_UNIT_PRICE_LAST_ROW_COL).End(xlUp).Row
+End Function
+
+Private Function VendorUnitPriceDayColumnByValueColumn(ByVal valueColumn As Long) As Long
+    Dim vendorIndex As Long
+    vendorIndex = GetVendorIndexFromValueColumn(valueColumn)
+    If vendorIndex < 1 Then vendorIndex = 1
+    VendorUnitPriceDayColumnByValueColumn = VENDOR_UNIT_PRICE_FIRST_DAY_COL + ((vendorIndex - 1) * 2)
+End Function
+
+Private Function GetVendorIndexFromValueColumn(ByVal valueColumn As Long) As Long
+    Dim i As Long
+    For i = 1 To MAX_VENDOR_BLOCK_COUNT
+        If VendorValueColumnByIndex(i) = valueColumn Then
+            GetVendorIndexFromValueColumn = i
+            Exit Function
+        End If
+    Next i
+End Function
+
+Private Function IsRailConstructionVendorBlock(ByVal wsInfo As Worksheet, ByVal valueColumn As Long) As Boolean
+    IsRailConstructionVendorBlock = _
+        (StrComp(CommonNormalizeText(CStr(wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, valueColumn).value)), _
+                 VendorRailConstructionText(), vbTextCompare) = 0)
+End Function
+
+Private Function HasVendorOutsourceRatio(ByVal wsInfo As Worksheet, ByVal valueColumn As Long) As Boolean
+    HasVendorOutsourceRatio = (Len(Trim$(CStr(wsInfo.Cells(BASIC_INFO_VENDOR_OUTSOURCE_RATIO_ROW, valueColumn).value))) > 0)
+End Function
+
+Private Function GetVendorWorkTypeFillPattern(ByVal workTypeName As String) As VendorWorkTypeFillPattern
+    workTypeName = CommonNormalizeText(workTypeName)
+    If workTypeName = "" Then Exit Function
+
+    If InStr(1, workTypeName, VendorWasteDisposalKeywordText(), vbTextCompare) > 0 Then
+        GetVendorWorkTypeFillPattern = VendorFillPatternBoth
+        Exit Function
+    End If
+
+    If ContainsVendorNightOnlyKeyword(workTypeName) Then
+        GetVendorWorkTypeFillPattern = VendorFillPatternNightOnly
+        Exit Function
+    End If
+
+    If ContainsVendorDayOnlyKeyword(workTypeName) Then
+        GetVendorWorkTypeFillPattern = VendorFillPatternDayOnly
+    End If
+End Function
+
+Private Function ContainsVendorNightOnlyKeyword(ByVal workTypeName As String) As Boolean
+    If InStr(1, workTypeName, VendorMachineKeywordText(), vbTextCompare) > 0 Then ContainsVendorNightOnlyKeyword = True: Exit Function
+    If InStr(1, workTypeName, VendorCrossingPavementKeywordText(), vbTextCompare) > 0 Then ContainsVendorNightOnlyKeyword = True: Exit Function
+    If InStr(1, workTypeName, VendorTrackLandKeywordText(), vbTextCompare) > 0 Then ContainsVendorNightOnlyKeyword = True: Exit Function
+    If InStr(1, workTypeName, VendorTrackBicycleKeywordText(), vbTextCompare) > 0 Then ContainsVendorNightOnlyKeyword = True: Exit Function
+    If InStr(1, workTypeName, VendorBallastRemovalKeywordText(), vbTextCompare) > 0 Then ContainsVendorNightOnlyKeyword = True: Exit Function
+    If InStr(1, workTypeName, VendorPartialSettingKeywordText(), vbTextCompare) > 0 Then ContainsVendorNightOnlyKeyword = True
+End Function
+
+Private Function ContainsVendorDayOnlyKeyword(ByVal workTypeName As String) As Boolean
+    If InStr(1, workTypeName, VendorBaseKeywordText(), vbTextCompare) > 0 Then ContainsVendorDayOnlyKeyword = True: Exit Function
+    If InStr(1, workTypeName, VendorDayInspectionKeywordText(), vbTextCompare) > 0 Then ContainsVendorDayOnlyKeyword = True: Exit Function
+    If ContainsVendorDaytimeKeyword(workTypeName) Then ContainsVendorDayOnlyKeyword = True: Exit Function
+    If InStr(1, workTypeName, VendorMachineWeedingKeywordText(), vbTextCompare) > 0 Then ContainsVendorDayOnlyKeyword = True: Exit Function
+    If InStr(1, workTypeName, VendorGrassRemovalKeywordText(), vbTextCompare) > 0 Then ContainsVendorDayOnlyKeyword = True: Exit Function
+    If InStr(1, workTypeName, VendorRailAntiContactKeywordText(), vbTextCompare) > 0 Then ContainsVendorDayOnlyKeyword = True
+End Function
+
+Private Function ContainsVendorDaytimeKeyword(ByVal workTypeName As String) As Boolean
+    Dim keyword As String
+    keyword = ChrW$(&H663C) & ChrW$(&H9593)
+    Dim pos As Long
+    pos = InStr(1, workTypeName, keyword, vbTextCompare)
+    Do While pos > 0
+        If pos + Len(keyword) - 1 = Len(workTypeName) Then
+            ContainsVendorDaytimeKeyword = True
+            Exit Function
+        End If
+
+        Dim chAfter As String
+        chAfter = Mid$(workTypeName, pos + Len(keyword), 1)
+        If chAfter = ")" Or chAfter = ChrW$(&HFF09) Then
+            ContainsVendorDaytimeKeyword = True
+            Exit Function
+        End If
+
+        If pos > 1 Then
+            Dim chBefore As String
+            chBefore = Mid$(workTypeName, pos - 1, 1)
+            If chBefore = "(" Or chBefore = ChrW$(&HFF08) Then
+                ContainsVendorDaytimeKeyword = True
+                Exit Function
+            End If
+        End If
+
+        pos = InStr(pos + Len(keyword), workTypeName, keyword, vbTextCompare)
+    Loop
+End Function
+
+Private Sub SafeUnmergeRange(ByVal targetRange As Range)
+    On Error Resume Next
+    If targetRange.MergeCells Then targetRange.UnMerge
+    On Error GoTo 0
+End Sub
+
+Private Function VendorRailConstructionText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = ChrW$(&H8ECC) & ChrW$(&H9053) & ChrW$(&H5DE5) & ChrW$(&H4E8B)
+    End If
+    VendorRailConstructionText = cached
+End Function
+
+Private Function VendorUnitPriceOutsourceLabelText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = ChrW$(&H5916) & ChrW$(&H6CE8) & ChrW$(&H5358) & ChrW$(&H4FA1)
+    End If
+    VendorUnitPriceOutsourceLabelText = cached
+End Function
+
+Private Function VendorUnitPriceDayLabelText() As String
+    Static cached As String
+    If cached = "" Then cached = ChrW$(&H663C) & ChrW$(&H9593)
+    VendorUnitPriceDayLabelText = cached
+End Function
+
+Private Function VendorUnitPriceNightLabelText() As String
+    Static cached As String
+    If cached = "" Then cached = ChrW$(&H591C) & ChrW$(&H9593)
+    VendorUnitPriceNightLabelText = cached
+End Function
+
+Private Function VendorWasteDisposalKeywordText() As String
+    Static cached As String
+    If cached = "" Then cached = ChrW$(&H7523) & ChrW$(&H5EC3) & ChrW$(&H51E6) & ChrW$(&H7406)
+    VendorWasteDisposalKeywordText = cached
+End Function
+
+Private Function VendorMachineKeywordText() As String
+    Static cached As String
+    If cached = "" Then cached = ChrW$(&H6A5F) & ChrW$(&H68B0)
+    VendorMachineKeywordText = cached
+End Function
+
+Private Function VendorCrossingPavementKeywordText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = ChrW$(&H8E0F) & ChrW$(&H5207) & ChrW$(&H92EA) & ChrW$(&H88C5) & ChrW$(&H64A4) & ChrW$(&H53BB) & _
+                 ChrW$(&H307E) & ChrW$(&H305F) & ChrW$(&H306F) & ChrW$(&H5FA9) & ChrW$(&H65E7)
+    End If
+    VendorCrossingPavementKeywordText = cached
+End Function
+
+Private Function VendorTrackLandKeywordText() As String
+    Static cached As String
+    If cached = "" Then cached = ChrW$(&H8ECC) & ChrW$(&H9678)
+    VendorTrackLandKeywordText = cached
+End Function
+
+Private Function VendorTrackBicycleKeywordText() As String
+    Static cached As String
+    If cached = "" Then cached = ChrW$(&H8ECC) & ChrW$(&H9053) & ChrW$(&H81EA) & ChrW$(&H8EE2) & ChrW$(&H8ECA)
+    VendorTrackBicycleKeywordText = cached
+End Function
+
+Private Function VendorBallastRemovalKeywordText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = ChrW$(&H9053) & ChrW$(&H5E8A) & ChrW$(&H30D0) & ChrW$(&H30E9) & ChrW$(&H30B9) & ChrW$(&H30C8) & _
+                 ChrW$(&H53D6) & ChrW$(&H5378)
+    End If
+    VendorBallastRemovalKeywordText = cached
+End Function
+
+Private Function VendorPartialSettingKeywordText() As String
+    Static cached As String
+    If cached = "" Then cached = ChrW$(&H90E8) & ChrW$(&H5206) & ChrW$(&H8A2D) & ChrW$(&H5B9A) & ChrW$(&H66FF)
+    VendorPartialSettingKeywordText = cached
+End Function
+
+Private Function VendorBaseKeywordText() As String
+    Static cached As String
+    If cached = "" Then cached = ChrW$(&H57FA) & ChrW$(&H5730)
+    VendorBaseKeywordText = cached
+End Function
+
+Private Function VendorDayInspectionKeywordText() As String
+    Static cached As String
+    If cached = "" Then cached = ChrW$(&H663C) & ChrW$(&H9593) & ChrW$(&H70B9) & ChrW$(&H6AA2)
+    VendorDayInspectionKeywordText = cached
+End Function
+
+Private Function VendorMachineWeedingKeywordText() As String
+    Static cached As String
+    If cached = "" Then cached = ChrW$(&H6A5F) & ChrW$(&H68B0) & ChrW$(&H9664) & ChrW$(&H8349)
+    VendorMachineWeedingKeywordText = cached
+End Function
+
+Private Function VendorGrassRemovalKeywordText() As String
+    Static cached As String
+    If cached = "" Then cached = ChrW$(&H8349) & ChrW$(&H642C) & ChrW$(&H51FA) & ChrW$(&H51E6) & ChrW$(&H7406)
+    VendorGrassRemovalKeywordText = cached
+End Function
+
+Private Function VendorRailAntiContactKeywordText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = ChrW$(&H30EC) & ChrW$(&H30FC) & ChrW$(&H9632) & ChrW$(&H89E6) & ChrW$(&H52A0) & ChrW$(&H5DE5)
+    End If
+    VendorRailAntiContactKeywordText = cached
+End Function
 
 Private Function GetVendorTargetCell(ByVal wsInfo As Worksheet, Optional ByVal targetCell As Range) As Range
     If Not targetCell Is Nothing Then
@@ -524,6 +997,33 @@ End Function
 Private Function VendorSpacerColumnByIndex(ByVal vendorIndex As Long) As Long
     VendorSpacerColumnByIndex = VendorLabelColumnByIndex(vendorIndex) + 2
 End Function
+
+Private Sub ApplyVendorRow10ValueCellFormat(ByVal valueCell As Range)
+    If valueCell Is Nothing Then Exit Sub
+
+    With valueCell
+        .HorizontalAlignment = xlCenter
+        .VerticalAlignment = xlCenter
+        .Font.Bold = True
+    End With
+End Sub
+
+Private Sub CopyVendorBlockFormatsFromTemplate(ByVal wsInfo As Worksheet, ByVal destVendorIndex As Long)
+    If wsInfo Is Nothing Then Exit Sub
+    If destVendorIndex < 2 Then Exit Sub
+
+    Dim rowCount As Long
+    rowCount = BASIC_INFO_VENDOR_BLOCK_BOTTOM_ROW - BASIC_INFO_VENDOR_BLOCK_TOP_ROW + 1
+
+    Dim sourceBlock As Range
+    Dim destBlock As Range
+    Set sourceBlock = wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, BASIC_INFO_VENDOR_BLOCK_LABEL_COL).Resize(rowCount, 2)
+    Set destBlock = wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, VendorLabelColumnByIndex(destVendorIndex)).Resize(rowCount, 2)
+
+    sourceBlock.Copy
+    destBlock.PasteSpecial Paste:=xlPasteFormats
+    Application.CutCopyMode = False
+End Sub
 
 Private Sub ApplyVendorBlockColumnWidths(ByVal wsInfo As Worksheet, ByVal vendorCount As Long)
     Dim i As Long
@@ -657,6 +1157,12 @@ Cleanup:
 End Function
 
 Private Function BuildVendorRowFromAdoRecord(ByVal recordset As Object, ByVal sheetName As String) As Variant
+    Dim columnOValue As String
+    columnOValue = GetVendorMasterColumnOValue(recordset, sheetName, _
+                                               CommonNzText(CommonGetAdoFieldValue(recordset, 1)))
+    mod_DebugLog.Log "[VendorMaster] BuildVendorRow Count=" & recordset.Fields.Count & _
+                     " O=[" & columnOValue & "] vendor=[" & CommonNzText(CommonGetAdoFieldValue(recordset, 1)) & "]"
+
     BuildVendorRowFromAdoRecord = Array(CommonNzText(CommonGetAdoFieldValue(recordset, 1)), _
                                         CommonNzText(CommonGetAdoFieldValue(recordset, 2)), _
                                         CommonNzText(CommonGetAdoFieldValue(recordset, 3)), _
@@ -671,7 +1177,86 @@ Private Function BuildVendorRowFromAdoRecord(ByVal recordset As Object, ByVal sh
                                         CommonNzText(CommonGetAdoFieldValue(recordset, 12)), _
                                         CommonNzText(CommonGetAdoFieldValue(recordset, 0)), _
                                         CommonNormalizeText(sheetName), _
-                                        CommonNzText(CommonGetAdoFieldValue(recordset, VENDOR_MASTER_FIELD_INDEX_O)))
+                                        columnOValue)
+End Function
+
+Private Function GetVendorMasterColumnOValue(ByVal recordset As Object, _
+                                             ByVal sheetName As String, _
+                                             ByVal vendorName As String) As String
+    Dim valueText As String
+
+    On Error Resume Next
+    valueText = CommonNzText(recordset.Fields(VENDOR_MASTER_ADO_COLUMN_O_NAME).Value)
+    If valueText = "" Then valueText = CommonNzText(recordset.Fields(VENDOR_MASTER_EXCEL_COLUMN_O - 1).Value)
+    If valueText = "" Then valueText = CommonNzText(recordset.Fields(VENDOR_MASTER_EXCEL_COLUMN_O).Value)
+    On Error GoTo 0
+
+    If valueText <> "" Then
+        GetVendorMasterColumnOValue = valueText
+        Exit Function
+    End If
+
+    GetVendorMasterColumnOValue = GetVendorMasterColumnOValueFromExcel(sheetName, vendorName)
+End Function
+
+Private Function GetVendorMasterColumnOValueFromExcel(ByVal sheetName As String, ByVal vendorName As String) As String
+    Dim sourceFilePath As String
+    Dim wb As Workbook
+    Dim ws As Worksheet
+    Dim rowIndex As Long
+    Dim normalizedVendorName As String
+    Dim wasAlreadyOpen As Boolean
+    Dim screenUpdating As Boolean
+
+    normalizedVendorName = CommonNormalizeText(vendorName)
+    If normalizedVendorName = "" Then Exit Function
+
+    Set wb = Nothing
+    sourceFilePath = GetVendorMasterFilePath()
+    If sourceFilePath = "" Then Exit Function
+
+    wasAlreadyOpen = False
+    screenUpdating = Application.ScreenUpdating
+    On Error GoTo Cleanup
+
+    Dim openWorkbook As Workbook
+    For Each openWorkbook In Application.Workbooks
+        If StrComp(openWorkbook.FullName, sourceFilePath, vbTextCompare) = 0 Then
+            Set wb = openWorkbook
+            wasAlreadyOpen = True
+            Exit For
+        End If
+    Next openWorkbook
+
+    If wb Is Nothing Then
+        Set wb = Application.Workbooks.Open( _
+            fileName:=sourceFilePath, _
+            UpdateLinks:=0, _
+            ReadOnly:=True, _
+            Notify:=False, _
+            AddToMru:=False)
+    End If
+
+    Set ws = Nothing
+    On Error Resume Next
+    Set ws = wb.Worksheets(sheetName)
+    On Error GoTo Cleanup
+    If ws Is Nothing Then GoTo Cleanup
+
+    For rowIndex = VENDOR_SOURCE_START_ROW To VENDOR_SOURCE_END_ROW
+        If StrComp(CommonNormalizeText(CStr(ws.Cells(rowIndex, 1).Value)), normalizedVendorName, vbTextCompare) = 0 Then
+            GetVendorMasterColumnOValueFromExcel = CommonNzText(ws.Cells(rowIndex, VENDOR_MASTER_EXCEL_COLUMN_O).Value)
+            Exit For
+        End If
+    Next rowIndex
+
+Cleanup:
+    On Error Resume Next
+    If Not wb Is Nothing Then
+        If Not wasAlreadyOpen Then wb.Close SaveChanges:=False
+    End If
+    Application.ScreenUpdating = screenUpdating
+    On Error GoTo 0
 End Function
 
 Private Function GetAdoWorksheetName(ByVal connection As Object, ByVal targetSheetName As String) As String

@@ -18,8 +18,12 @@ Private Sub Worksheet_Change(ByVal Target As Range)
     Dim vendorNameRange As Range
     Set vendorNameRange = mod_VendorMaster.GetVendorNameRange(Me)
 
+    Dim vendorUnitPriceMonitorRange As Range
+    Set vendorUnitPriceMonitorRange = mod_VendorMaster.GetVendorUnitPriceMonitorRange(Me)
+
     If Intersect(Target, Me.Range("B4,B6,C6,C10,C15:C16,F9,C20,C22,C23,C24,F2")) Is Nothing And _
-       Intersect(Target, vendorNameRange) Is Nothing Then
+       Intersect(Target, vendorNameRange) Is Nothing And _
+       Intersect(Target, vendorUnitPriceMonitorRange) Is Nothing Then
         mod_DebugLog.Log "[Sheet1] ŠÄŽ‹‘ÎÛŠO -> Exit"
         Exit Sub
     End If
@@ -91,6 +95,10 @@ Private Sub Worksheet_Change(ByVal Target As Range)
         mod_VendorMaster.FillVendorInfoToBasicInfo Me, Intersect(Target, vendorNameRange).Cells(1, 1)
         mod_VendorMaster.CancelScheduledVendorListDropdown
         mod_VendorMaster.HideVendorComboBox Me
+    End If
+
+    If Not Intersect(Target, vendorUnitPriceMonitorRange) Is Nothing Then
+        mod_VendorMaster.HandleVendorUnitPriceMonitorChange Me, Target
     End If
 
     mod_DebugLog.Log "[Sheet1] needComboPrompt=" & needComboPrompt

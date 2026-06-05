@@ -421,6 +421,8 @@ Private Sub ImportUnitPriceData(ByVal wsInfo As Worksheet)
     End If
     LogUP "ImportWeldingUnitPriceSheetsIfRequired -> True createdSheet=[" & weldingSheetName & "]"
 
+    mod_VendorMaster.RefreshAllVendorUnitPricesForBasicInfo wsInfo
+
     ' #19: 購入充当・溶接単価取込後も基本情報シートに戻す
     wsInfo.Activate
     LogUP "ImportUnitPriceData 完了"
@@ -1647,6 +1649,32 @@ Public Sub HandleImportedLineNamesCellChange(ByVal wsInfo As Worksheet, ByVal ch
 FinallyExit:
     mClearingImportedLineNames = False
 End Sub
+
+Public Function IsConstructionUnitPriceSheet(ByVal targetSheet As Worksheet) As Boolean
+    If targetSheet Is Nothing Then Exit Function
+    If IsProtectedSystemWorksheet(targetSheet) Then Exit Function
+    If IsSpecialImportedUnitPriceSheet(targetSheet) Then Exit Function
+
+    If IsImportedUnitPriceSheetByMarker(targetSheet) Then
+        IsConstructionUnitPriceSheet = True
+        Exit Function
+    End If
+
+    On Error Resume Next
+    If targetSheet.Tab.ColorIndex <> xlColorIndexNone Then
+        IsConstructionUnitPriceSheet = _
+            (targetSheet.Tab.Color = RGB(UNIT_PRICE_SHEET_TAB_R, UNIT_PRICE_SHEET_TAB_G, UNIT_PRICE_SHEET_TAB_B))
+    End If
+    On Error GoTo 0
+End Function
+
+Private Function IsSpecialImportedUnitPriceSheet(ByVal targetSheet As Worksheet) As Boolean
+    Dim sheetName As String
+    sheetName = CommonNormalizeText(CStr(targetSheet.Name))
+    IsSpecialImportedUnitPriceSheet = _
+        (InStr(1, sheetName, NormalizeMatchText(PURCHASE_SHEET_NAME_SUFFIX), vbTextCompare) > 0) Or _
+        (InStr(1, sheetName, NormalizeMatchText(WELDING_SHEET_NAME_SUFFIX), vbTextCompare) > 0)
+End Function
 
 Public Sub ClearUnitPriceSheets(Optional ByVal targetBook As Workbook)
     Dim savedErrNumber As Long, savedErrSource As String, savedErrDescription As String
