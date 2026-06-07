@@ -678,41 +678,88 @@ Private Sub ApplyVendorUnitPriceDataRows(ByVal wsUnitPrice As Worksheet, _
         workTypeName = CommonNormalizeText(CStr(wsUnitPrice.Cells(rowIndex, VENDOR_UNIT_PRICE_WORK_TYPE_COL).value))
 
         Dim fillPattern As VendorWorkTypeFillPattern
-        fillPattern = GetVendorWorkTypeFillPattern(workTypeName)
+        fillPattern = ResolveVendorWorkTypeFillPattern(workTypeName)
 
-        ApplyVendorUnitPriceCell wsUnitPrice.Cells(rowIndex, dayCol), fillPattern, VendorFillPatternDayOnly, _
+        ApplyVendorUnitPriceCell wsUnitPrice.Cells(rowIndex, dayCol), True, fillPattern, _
                                  wsUnitPrice, rowIndex, ratioAddress
-        ApplyVendorUnitPriceCell wsUnitPrice.Cells(rowIndex, nightCol), fillPattern, VendorFillPatternNightOnly, _
+        ApplyVendorUnitPriceCell wsUnitPrice.Cells(rowIndex, nightCol), False, fillPattern, _
                                  wsUnitPrice, rowIndex, ratioAddress
     Next rowIndex
 End Sub
 
+Private Function ResolveVendorWorkTypeFillPattern(ByVal workTypeName As String) As VendorWorkTypeFillPattern
+    workTypeName = CommonNormalizeText(workTypeName)
+    If workTypeName = "" Then Exit Function
+
+    If InStr(1, workTypeName, VendorBallastRemovalKeywordText(), vbTextCompare) > 0 Then Exit Function
+
+    ResolveVendorWorkTypeFillPattern = GetVendorWorkTypeFillPattern(workTypeName)
+End Function
+
 Private Sub ApplyVendorUnitPriceCell(ByVal targetCell As Range, _
+                                       ByVal isDayColumn As Boolean, _
                                        ByVal fillPattern As VendorWorkTypeFillPattern, _
-                                       ByVal blockedPattern As VendorWorkTypeFillPattern, _
                                        ByVal wsUnitPrice As Worksheet, _
                                        ByVal rowIndex As Long, _
                                        ByVal ratioAddress As String)
+    Dim sourceCol As Long
+    If isDayColumn Then
+        sourceCol = VENDOR_UNIT_PRICE_REF_UNIT_COL
+    Else
+        sourceCol = VENDOR_UNIT_PRICE_REF_WIDTH_COL
+    End If
+
     With targetCell
         .ShrinkToFit = False
         .Interior.ColorIndex = xlColorIndexNone
 
-        If fillPattern = VendorFillPatternBoth Or fillPattern = blockedPattern Then
-            .ClearContents
-            .Interior.Color = RGB(VENDOR_UNIT_PRICE_FILL_COLOR_R, _
-                                  VENDOR_UNIT_PRICE_FILL_COLOR_G, _
-                                  VENDOR_UNIT_PRICE_FILL_COLOR_B)
+        If IsVendorUnitPriceSourceBlank(wsUnitPrice, rowIndex, sourceCol) Then
+            ApplyVendorUnitPriceGreyFill targetCell
+            Exit Sub
+        End If
+
+        If ShouldGreyFillVendorUnitPriceCell(isDayColumn, fillPattern) Then
+            ApplyVendorUnitPriceGreyFill targetCell
         Else
-            .Formula = BuildVendorUnitPriceFormula(wsUnitPrice, rowIndex, ratioAddress)
+            .Formula = BuildVendorUnitPriceFormula(wsUnitPrice, rowIndex, sourceCol, ratioAddress)
         End If
     End With
 End Sub
 
+Private Sub ApplyVendorUnitPriceGreyFill(ByVal targetCell As Range)
+    With targetCell
+        .ClearContents
+        .Interior.Color = RGB(VENDOR_UNIT_PRICE_FILL_COLOR_R, _
+                              VENDOR_UNIT_PRICE_FILL_COLOR_G, _
+                              VENDOR_UNIT_PRICE_FILL_COLOR_B)
+    End With
+End Sub
+
+Private Function IsVendorUnitPriceSourceBlank(ByVal wsUnitPrice As Worksheet, _
+                                              ByVal rowIndex As Long, _
+                                              ByVal sourceCol As Long) As Boolean
+    IsVendorUnitPriceSourceBlank = _
+        (Len(Trim$(CStr(wsUnitPrice.Cells(rowIndex, sourceCol).value))) = 0)
+End Function
+
+Private Function ShouldGreyFillVendorUnitPriceCell(ByVal isDayColumn As Boolean, _
+                                                   ByVal fillPattern As VendorWorkTypeFillPattern) As Boolean
+    Select Case fillPattern
+        Case VendorFillPatternBoth
+            ShouldGreyFillVendorUnitPriceCell = True
+        Case VendorFillPatternNightOnly
+            ShouldGreyFillVendorUnitPriceCell = isDayColumn
+        Case VendorFillPatternDayOnly
+            ShouldGreyFillVendorUnitPriceCell = Not isDayColumn
+    End Select
+End Function
+
 Private Function BuildVendorUnitPriceFormula(ByVal wsUnitPrice As Worksheet, _
                                              ByVal rowIndex As Long, _
+                                             ByVal sourceCol As Long, _
                                              ByVal ratioAddress As String) As String
     Dim unitCellRef As String
-    unitCellRef = wsUnitPrice.Cells(rowIndex, VENDOR_UNIT_PRICE_REF_UNIT_COL).Address(False, False)
+    unitCellRef = wsUnitPrice.Cells(rowIndex, sourceCol).Address(False, False)
 
     BuildVendorUnitPriceFormula = "=ROUND(" & unitCellRef & "*(" & ratioAddress & ")," & _
                                   "-INT(LOG10(" & unitCellRef & "*(" & ratioAddress & ")))+2)"
@@ -784,7 +831,6 @@ Private Function ContainsVendorNightOnlyKeyword(ByVal workTypeName As String) As
     If InStr(1, workTypeName, VendorCrossingPavementKeywordText(), vbTextCompare) > 0 Then ContainsVendorNightOnlyKeyword = True: Exit Function
     If InStr(1, workTypeName, VendorTrackLandKeywordText(), vbTextCompare) > 0 Then ContainsVendorNightOnlyKeyword = True: Exit Function
     If InStr(1, workTypeName, VendorTrackBicycleKeywordText(), vbTextCompare) > 0 Then ContainsVendorNightOnlyKeyword = True: Exit Function
-    If InStr(1, workTypeName, VendorBallastRemovalKeywordText(), vbTextCompare) > 0 Then ContainsVendorNightOnlyKeyword = True: Exit Function
     If InStr(1, workTypeName, VendorPartialSettingKeywordText(), vbTextCompare) > 0 Then ContainsVendorNightOnlyKeyword = True
 End Function
 
@@ -798,34 +844,8 @@ Private Function ContainsVendorDayOnlyKeyword(ByVal workTypeName As String) As B
 End Function
 
 Private Function ContainsVendorDaytimeKeyword(ByVal workTypeName As String) As Boolean
-    Dim keyword As String
-    keyword = ChrW$(&H663C) & ChrW$(&H9593)
-    Dim pos As Long
-    pos = InStr(1, workTypeName, keyword, vbTextCompare)
-    Do While pos > 0
-        If pos + Len(keyword) - 1 = Len(workTypeName) Then
-            ContainsVendorDaytimeKeyword = True
-            Exit Function
-        End If
-
-        Dim chAfter As String
-        chAfter = Mid$(workTypeName, pos + Len(keyword), 1)
-        If chAfter = ")" Or chAfter = ChrW$(&HFF09) Then
-            ContainsVendorDaytimeKeyword = True
-            Exit Function
-        End If
-
-        If pos > 1 Then
-            Dim chBefore As String
-            chBefore = Mid$(workTypeName, pos - 1, 1)
-            If chBefore = "(" Or chBefore = ChrW$(&HFF08) Then
-                ContainsVendorDaytimeKeyword = True
-                Exit Function
-            End If
-        End If
-
-        pos = InStr(pos + Len(keyword), workTypeName, keyword, vbTextCompare)
-    Loop
+    ContainsVendorDaytimeKeyword = _
+        (InStr(1, workTypeName, ChrW$(&H663C) & ChrW$(&H9593), vbTextCompare) > 0)
 End Function
 
 Private Sub SafeUnmergeRange(ByVal targetRange As Range)
