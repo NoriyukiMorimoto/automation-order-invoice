@@ -527,7 +527,13 @@ Public Function GetVendorUnitPriceMonitorRange(ByVal wsInfo As Worksheet) As Ran
         End If
     Next i
 
-    Set result = Union(result, wsInfo.Range(BASIC_INFO_YEAR_CELL & "," & BASIC_INFO_BILLING_COUNT_CELL))
+    Dim yearBillingRange As Range
+    Set yearBillingRange = wsInfo.Range(BASIC_INFO_YEAR_CELL & "," & BASIC_INFO_BILLING_COUNT_CELL)
+    If result Is Nothing Then
+        Set result = yearBillingRange
+    Else
+        Set result = Union(result, yearBillingRange)
+    End If
     Set GetVendorUnitPriceMonitorRange = result
 End Function
 
