@@ -45,27 +45,27 @@ Public Sub FlushToSheet()
 
     Dim ws As Worksheet
     On Error Resume Next
-    Set ws = ThisWorkbook.Worksheets(LOG_SHEET_NAME)
+    Set ws = ThisWorkbook.worksheets(LOG_SHEET_NAME)
     On Error GoTo 0
 
     If ws Is Nothing Then
-        Set ws = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count))
+        Set ws = ThisWorkbook.worksheets.Add(After:=ThisWorkbook.worksheets(ThisWorkbook.worksheets.Count))
         ws.Name = LOG_SHEET_NAME
     End If
 
     ws.Cells.ClearContents
-    ws.Range("A1").Value = "Žž"
-    ws.Range("B1").Value = "ƒƒO"
+    ws.Range("A1").value = "Žž"
+    ws.Range("B1").value = "ƒƒO"
 
     Dim i As Long
     For i = 0 To mLogCount - 1
         Dim parts() As String
         parts = Split(mLogs(i), "  ", 2)
         If UBound(parts) >= 1 Then
-            ws.Cells(i + 2, 1).Value = parts(0)
-            ws.Cells(i + 2, 2).Value = parts(1)
+            ws.Cells(i + 2, 1).value = parts(0)
+            ws.Cells(i + 2, 2).value = parts(1)
         Else
-            ws.Cells(i + 2, 2).Value = mLogs(i)
+            ws.Cells(i + 2, 2).value = mLogs(i)
         End If
     Next i
 

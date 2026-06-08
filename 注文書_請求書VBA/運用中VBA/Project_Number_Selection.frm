@@ -52,7 +52,7 @@ Private Sub LoadMasterDataToMemory()
     Dim savedErrNumber As Long
     Dim savedErrDescription As String
 
-    previousScreenUpdating = Application.ScreenUpdating
+    previousScreenUpdating = Application.screenUpdating
     On Error GoTo ErrorHandler
 
     Dim folderPath As String: folderPath = GetProjectStatusDataFolderPath()
@@ -68,7 +68,7 @@ Private Sub LoadMasterDataToMemory()
     targetBranchOffice = GetProjectSelectionBranchOfficeSearchKey(targetBranch, targetOffice)
 
     Me.Caption = "工事現況表データを読込中...": DoEvents
-    Application.ScreenUpdating = False
+    Application.screenUpdating = False
 
     Dim sourceArr As Variant
     sourceArr = GetProjectStatusSourceArray(folderPath, CStr(targetYear), targetBranch)
@@ -124,7 +124,7 @@ ErrorHandler:
     savedErrDescription = Err.Description
 
 FinallyExit:
-    Application.ScreenUpdating = previousScreenUpdating
+    Application.screenUpdating = previousScreenUpdating
     If savedErrNumber <> 0 Then
         Me.Caption = "工事番号選択"
         MsgBox "工事現況表データの読み込みに失敗しました。" & vbCrLf & savedErrDescription, vbExclamation
@@ -150,9 +150,9 @@ Private Function ReadProjectStatusFileToArray(ByVal sourcePath As String, ByVal 
     Set sourceBook = Workbooks.Open(fileName:=sourcePath, ReadOnly:=True, UpdateLinks:=False)
 
     On Error Resume Next
-    Set sourceSheet = sourceBook.Worksheets(sheetName)
+    Set sourceSheet = sourceBook.worksheets(sheetName)
     On Error GoTo Cleanup
-    If sourceSheet Is Nothing Then Set sourceSheet = sourceBook.Worksheets(1)
+    If sourceSheet Is Nothing Then Set sourceSheet = sourceBook.worksheets(1)
 
     lastRow = sourceSheet.Cells(sourceSheet.rows.Count, "G").End(xlUp).Row
     If lastRow < sourceSheet.Cells(sourceSheet.rows.Count, "J").End(xlUp).Row Then lastRow = sourceSheet.Cells(sourceSheet.rows.Count, "J").End(xlUp).Row
@@ -266,7 +266,7 @@ Private Sub SetBasicInfoProjectSelection(ByVal projectNo As String, ByVal projec
 
     Dim targetWs As Worksheet
     On Error Resume Next
-    Set targetWs = ThisWorkbook.Worksheets(ProjectSelectionTargetSheetName)
+    Set targetWs = ThisWorkbook.worksheets(ProjectSelectionTargetSheetName)
     On Error GoTo 0
     If targetWs Is Nothing Then Set targetWs = ActiveCell.Worksheet
 

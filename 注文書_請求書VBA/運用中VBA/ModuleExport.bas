@@ -25,7 +25,7 @@ Public Sub Export_All_VBA_Components(Optional ByVal targetBook As Workbook)
     Dim fso As Object
 
     On Error GoTo EH
-    Application.ScreenUpdating = False
+    Application.screenUpdating = False
     Set fso = CreateObject("Scripting.FileSystemObject")
 
     If targetBook Is Nothing Then
@@ -66,7 +66,7 @@ EH:
            "Component: " & currentComponentName, vbCritical
 
 FinallyExit:
-    Application.ScreenUpdating = True
+    Application.screenUpdating = True
 End Sub
 
 Private Function GetExportRoot(ByVal wb As Workbook) As String
