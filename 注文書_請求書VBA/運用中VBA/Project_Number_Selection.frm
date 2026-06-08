@@ -1,12 +1,12 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} Project_Number_Selection 
-   Caption         =   "H–”Ô†‘I‘ğiÅV‡j"
+   Caption         =   "å·¥äº‹ç•ªå·é¸æŠï¼ˆæœ€æ–°é †ï¼‰"
    ClientHeight    =   13110
    ClientLeft      =   120
    ClientTop       =   465
    ClientWidth     =   10635
    OleObjectBlob   =   "Project_Number_Selection.frx":0000
-   StartUpPosition =   1  'ƒI[ƒi[ ƒtƒH[ƒ€‚Ì’†‰›
+   StartUpPosition =   1  'ã‚ªãƒ¼ãƒŠãƒ¼ ãƒ•ã‚©ãƒ¼ãƒ ã®ä¸­å¤®
 End
 Option Explicit
 
@@ -19,9 +19,9 @@ End Sub
 
 Private Sub UserForm_Initialize()
     SelectionConfirmed = False
-    ' ListView‚Ì‰Šúİ’è
+    ' ListViewã®åˆæœŸè¨­å®š
     SetupListView
-    ' •W€ƒ‚ƒWƒ…[ƒ‹‚ÌSharedMasterData‚ğƒ`ƒFƒbƒN
+    ' æ¨™æº–ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«ã®SharedMasterDataã‚’ãƒã‚§ãƒƒã‚¯
     If IsEmpty(SharedMasterData) Then
         LoadMasterDataToMemory
     Else
@@ -30,14 +30,14 @@ Private Sub UserForm_Initialize()
 End Sub
 
 '===========================================================
-' ƒtƒH[ƒ€•\¦Š®—¹Œã‚ÉTextBox1‚ÉƒtƒH[ƒJƒX
+' ãƒ•ã‚©ãƒ¼ãƒ è¡¨ç¤ºå®Œäº†å¾Œã«TextBox1ã«ãƒ•ã‚©ãƒ¼ã‚«ã‚¹
 '===========================================================
 Private Sub UserForm_Activate()
     Me.TextBox1.SetFocus
 End Sub
 
 '===========================================================
-' ListView‚Ì‰Šúİ’è
+' ListViewã®åˆæœŸè¨­å®š
 '===========================================================
 Private Sub SetupListView()
     With Me.ListView1
@@ -47,13 +47,13 @@ Private Sub SetupListView()
         .HideColumnHeaders = False
         .MultiSelect = False
         .ColumnHeaders.Clear
-        .ColumnHeaders.Add , , "", 0                            ' 1—ñ–ÚFƒ_ƒ~[i•0j
-        .ColumnHeaders.Add , , "H–”Ô†", 100, lvwColumnCenter ' 2—ñ–ÚF’†‰›‘µ‚¦
-        .ColumnHeaders.Add , , "H–Œ–¼", 500                 ' 3—ñ–ÚF¶‘µ‚¦
-        .ColumnHeaders.Add , , "", 0                           ' 4—ñ–ÚFC10—pi”ñ•\¦j
-        .ColumnHeaders.Add , , "", 0                           ' 5—ñ–ÚFC11—pi”ñ•\¦j
-        .ColumnHeaders.Add , , "", 0                           ' 6—ñ–ÚFC15—pi”ñ•\¦j
-        .ColumnHeaders.Add , , "", 0                           ' 7—ñ–ÚFC16—pi”ñ•\¦j
+        .ColumnHeaders.Add , , "", 0                            ' 1åˆ—ç›®ï¼šãƒ€ãƒŸãƒ¼ï¼ˆå¹…0ï¼‰
+        .ColumnHeaders.Add , , "å·¥äº‹ç•ªå·", 100, lvwColumnCenter ' 2åˆ—ç›®ï¼šä¸­å¤®æƒãˆ
+        .ColumnHeaders.Add , , "å·¥äº‹ä»¶å", 500                 ' 3åˆ—ç›®ï¼šå·¦æƒãˆ
+        .ColumnHeaders.Add , , "", 0                           ' 4åˆ—ç›®ï¼šC10ç”¨ï¼ˆéè¡¨ç¤ºï¼‰
+        .ColumnHeaders.Add , , "", 0                           ' 5åˆ—ç›®ï¼šC11ç”¨ï¼ˆéè¡¨ç¤ºï¼‰
+        .ColumnHeaders.Add , , "", 0                           ' 6åˆ—ç›®ï¼šC15ç”¨ï¼ˆéè¡¨ç¤ºï¼‰
+        .ColumnHeaders.Add , , "", 0                           ' 7åˆ—ç›®ï¼šC16ç”¨ï¼ˆéè¡¨ç¤ºï¼‰
     End With
 End Sub
 
@@ -70,7 +70,7 @@ Private Sub LoadMasterDataToMemory()
     Dim targetBranchOffice As String
     targetBranchOffice = GetProjectSelectionBranchOfficeSearchKey(targetBranch, targetOffice)
 
-    Me.Caption = "H–Œ»‹µ•\ƒf[ƒ^‚ğ“Ç’†...": DoEvents
+    Me.Caption = "å·¥äº‹ç¾æ³è¡¨ãƒ‡ãƒ¼ã‚¿ã‚’èª­è¾¼ä¸­...": DoEvents
     Application.ScreenUpdating = False
 
     Dim sourceArr As Variant
@@ -117,17 +117,17 @@ Private Sub LoadMasterDataToMemory()
 
     RefreshList ""
     If hitCount = 0 Then
-        MsgBox "ƒf[ƒ^‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB", vbInformation
+        MsgBox "ãƒ‡ãƒ¼ã‚¿ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚", vbInformation
     End If
-    Me.Caption = targetBranch & " " & targetOffice & " H–‘I‘ği’¼Ú“ü—Í‚Ìê‡‚ÍƒZƒ‹‚Ö“ü—Í‚µ‚Ä‚­‚¾‚³‚¢j"
+    Me.Caption = targetBranch & " " & targetOffice & " å·¥äº‹é¸æŠï¼ˆç›´æ¥å…¥åŠ›ã®å ´åˆã¯ã‚»ãƒ«ã¸å…¥åŠ›ã—ã¦ãã ã•ã„ï¼‰"
     Application.ScreenUpdating = True
 End Sub
 Private Function GetProjectStatusDataFolderPath() As String
-    GetProjectStatusDataFolderPath = "C:\Users\n-morimoto\‘å“SH‹ÆŠ”®‰ïĞ\’ •[7_x•¥‹àŠzŒvZƒV[ƒg - ’ •[7_x•¥‹àŠzŒvZƒV[ƒg\yŠex“XH–”Ô†ƒf[ƒ^z" & Chr$(92)
+    GetProjectStatusDataFolderPath = "C:\Users\n-morimoto\å¤§é‰„å·¥æ¥­æ ªå¼ä¼šç¤¾\å¸³ç¥¨7_æ”¯æ‰•é‡‘é¡è¨ˆç®—ã‚·ãƒ¼ãƒˆ - å¸³ç¥¨7_æ”¯æ‰•é‡‘é¡è¨ˆç®—ã‚·ãƒ¼ãƒˆ\ã€å„æ”¯åº—å·¥äº‹ç•ªå·ãƒ‡ãƒ¼ã‚¿ã€‘" & Chr$(92)
 End Function
 Private Function GetProjectStatusSourceArray(ByVal folderPath As String, ByVal targetYear As String, ByVal targetBranch As String) As Variant
     Dim sourcePath As String
-    sourcePath = folderPath & targetYear & "_" & GetProjectSelectionBranchNameForFile(targetBranch) & "_H–Œ»‹µ•\ƒf[ƒ^.xlsx"
+    sourcePath = folderPath & targetYear & "_" & GetProjectSelectionBranchNameForFile(targetBranch) & "_å·¥äº‹ç¾æ³è¡¨ãƒ‡ãƒ¼ã‚¿.xlsx"
 
     If Len(Dir(sourcePath, vbNormal)) = 0 Then Exit Function
     GetProjectStatusSourceArray = ReadProjectStatusFileToArray(sourcePath, "Sheet1")
@@ -313,10 +313,10 @@ Private Sub SetBasicInfoContractDateValue(ByVal targetCell As Range, ByVal contr
 
     If TryParseProjectContractDate(contractDate, parsedDate) Then
         targetCell.value = parsedDate
-        displayRange.NumberFormatLocal = "yyyy”NmŒd“ú"
+        displayRange.NumberFormatLocal = "yyyyå¹´mæœˆdæ—¥"
     Else
         targetCell.value = RemoveProjectContractWeekday(contractDate)
-        displayRange.NumberFormatLocal = "yyyy”NmŒd“ú"
+        displayRange.NumberFormatLocal = "yyyyå¹´mæœˆdæ—¥"
     End If
 End Sub
 
@@ -375,9 +375,9 @@ Private Function TryParseProjectContractDate(ByVal sourceText As String, ByRef p
 
     sourceText = Replace$(sourceText, ".", "/")
     sourceText = Replace$(sourceText, "-", "/")
-    sourceText = Replace$(sourceText, "”N", "/")
-    sourceText = Replace$(sourceText, "Œ", "/")
-    sourceText = Replace$(sourceText, "“ú", "")
+    sourceText = Replace$(sourceText, "å¹´", "/")
+    sourceText = Replace$(sourceText, "æœˆ", "/")
+    sourceText = Replace$(sourceText, "æ—¥", "")
     If IsDate(sourceText) Then
         parsedDate = CDate(sourceText)
         TryParseProjectContractDate = True
@@ -392,18 +392,18 @@ Private Function RemoveProjectContractWeekday(ByVal sourceText As String) As Str
     Dim p As Long
     sourceText = Trim$(sourceText)
 
-    ' ”¼ŠpŠ‡ŒÊ‚Ì—j“ú‚ğœ‹i—áF2024/4/1(Œ)j
+    ' åŠè§’æ‹¬å¼§ã®æ›œæ—¥ã‚’é™¤å»ï¼ˆä¾‹ï¼š2024/4/1(æœˆ)ï¼‰
     p = InStr(sourceText, "(")
     If p > 0 Then sourceText = Left$(sourceText, p - 1)
 
-    ' ‘SŠpŠ‡ŒÊ‚Ì—j“ú‚ğœ‹i—áF2024”N4Œ1“úiŒjj
-    p = InStr(sourceText, "i")
+    ' å…¨è§’æ‹¬å¼§ã®æ›œæ—¥ã‚’é™¤å»ï¼ˆä¾‹ï¼š2024å¹´4æœˆ1æ—¥ï¼ˆæœˆï¼‰ï¼‰
+    p = InStr(sourceText, "ï¼ˆ")
     If p > 0 Then sourceText = Left$(sourceText, p - 1)
 
-    ' uƒXƒy[ƒX{—j“ú–¼vŒ`®‚ğœ‹i—áF2026/03/06 ‹à—jA2026/03/06 ‹à—j“új
+    ' ã€Œã‚¹ãƒšãƒ¼ã‚¹ï¼‹æ›œæ—¥åã€å½¢å¼ã‚’é™¤å»ï¼ˆä¾‹ï¼š2026/03/06 é‡‘æ›œã€2026/03/06 é‡‘æ›œæ—¥ï¼‰
     Dim weekdayNames As Variant
-    weekdayNames = Array("Œ—j“ú", "‰Î—j“ú", "…—j“ú", "–Ø—j“ú", "‹à—j“ú", "“y—j“ú", "“ú—j“ú", _
-                         "Œ—j", "‰Î—j", "…—j", "–Ø—j", "‹à—j", "“y—j", "“ú—j")
+    weekdayNames = Array("æœˆæ›œæ—¥", "ç«æ›œæ—¥", "æ°´æ›œæ—¥", "æœ¨æ›œæ—¥", "é‡‘æ›œæ—¥", "åœŸæ›œæ—¥", "æ—¥æ›œæ—¥", _
+                         "æœˆæ›œ", "ç«æ›œ", "æ°´æ›œ", "æœ¨æ›œ", "é‡‘æ›œ", "åœŸæ›œ", "æ—¥æ›œ")
     Dim j As Long
     For j = 0 To UBound(weekdayNames)
         Dim suffixH As String
@@ -414,7 +414,7 @@ Private Function RemoveProjectContractWeekday(ByVal sourceText As String) As Str
             Exit For
         End If
         Dim suffixZ As String
-        suffixZ = "@" & weekdayNames(j)
+        suffixZ = "ã€€" & weekdayNames(j)
         If Right$(sourceText, Len(suffixZ)) = suffixZ Then
             sourceText = Left$(sourceText, Len(sourceText) - Len(suffixZ))
             sourceText = Trim$(sourceText)
@@ -422,9 +422,9 @@ Private Function RemoveProjectContractWeekday(ByVal sourceText As String) As Str
         End If
     Next j
 
-    ' Š‡ŒÊ‚È‚µ‚Å––”ö‚É—j“ú1•¶šiŒ‰Î…–Ø‹à“y“új‚ª•t‚­ƒP[ƒX‚àœ‹
+    ' æ‹¬å¼§ãªã—ã§æœ«å°¾ã«æ›œæ—¥1æ–‡å­—ï¼ˆæœˆç«æ°´æœ¨é‡‘åœŸæ—¥ï¼‰ãŒä»˜ãã‚±ãƒ¼ã‚¹ã‚‚é™¤å»
     Dim weekdays As Variant
-    weekdays = Array("Œ", "‰Î", "…", "–Ø", "‹à", "“y", "“ú")
+    weekdays = Array("æœˆ", "ç«", "æ°´", "æœ¨", "é‡‘", "åœŸ", "æ—¥")
     Dim i As Long
     For i = 0 To UBound(weekdays)
         Dim sLen As Long
@@ -449,10 +449,10 @@ Private Sub RefreshList(ByVal keyword As String)
     Me.ListView1.ListItems.Clear
     For i = 1 To UBound(SharedMasterData, 1)
         If (SharedMasterData(i, 1) & SharedMasterData(i, 2) <> "") And (keyword = "" Or InStr(1, SharedMasterData(i, 1) & SharedMasterData(i, 2), keyword, vbTextCompare) > 0) Then
-            Set itmX = Me.ListView1.ListItems.Add(, , "")  ' 1—ñ–ÚFƒ_ƒ~[
+            Set itmX = Me.ListView1.ListItems.Add(, , "")  ' 1åˆ—ç›®ï¼šãƒ€ãƒŸãƒ¼
             itmX.Tag = CStr(i)
-            itmX.SubItems(1) = SharedMasterData(i, 1)     ' 2—ñ–ÚFH–”Ô†
-            itmX.SubItems(2) = SharedMasterData(i, 2)     ' 3—ñ–ÚFH–Œ–¼
+            itmX.SubItems(1) = SharedMasterData(i, 1)     ' 2åˆ—ç›®ï¼šå·¥äº‹ç•ªå·
+            itmX.SubItems(2) = SharedMasterData(i, 2)     ' 3åˆ—ç›®ï¼šå·¥äº‹ä»¶å
             If UBound(SharedMasterData, 2) >= 3 Then itmX.SubItems(3) = CStr(SharedMasterData(i, 3))
             If UBound(SharedMasterData, 2) >= 4 Then itmX.SubItems(4) = CStr(SharedMasterData(i, 4))
             If UBound(SharedMasterData, 2) >= 5 Then itmX.SubItems(5) = CStr(SharedMasterData(i, 5))

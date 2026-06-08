@@ -1,15 +1,15 @@
 Option Explicit
 
 '==========================================================================
-'  Šî–{î•ñƒV[ƒg “ú•tƒ_ƒuƒ‹ƒNƒŠƒbƒN—pƒJƒŒƒ“ƒ_[•H–”Ô†‘I‘ğƒfƒBƒXƒpƒbƒ`
-'    ‰üC“à—eF
-'      #9  : ExtractYear4Digits / Šî–{î•ñƒV[ƒgæ“¾‚ğ mod_Common Œo—R‚É“ˆêB
-'            Œó•âƒV[ƒg–¼”z—ñ‚Ìd•¡’è‹`‚ğíŒ¸B
-'      #10 : DrawBasicInfoCalendar / DeleteBasicInfoCalendar ‚Ì‘OŒã‚Å
-'            ScreenUpdating ‚ğ OFF ‚É‚µAShape ‚Ì’Ç‰ÁEíœ‚Å‚¿‚ç‚Â‚«‚ª
-'            o‚È‚¢‚æ‚¤‚É‚·‚éi•`‰æ‚Ì‚à‚½‚Â‚«ŠÉ˜ajB
-'      #11 : C9 / “ú•tƒZƒ‹‚Ì‘ÎÛ”»’è‚Å Target.MergeArea ‚ª 1004 ‚ğo‚·
-'            ê‡‚É”õ‚¦AMergeArea ¶ãƒZƒ‹æ“¾‚ğˆÀ‘S‰»B
+'  åŸºæœ¬æƒ…å ±ã‚·ãƒ¼ãƒˆ æ—¥ä»˜ãƒ€ãƒ–ãƒ«ã‚¯ãƒªãƒƒã‚¯ç”¨ã‚«ãƒ¬ãƒ³ãƒ€ãƒ¼ï¼†å·¥äº‹ç•ªå·é¸æŠãƒ‡ã‚£ã‚¹ãƒ‘ãƒƒãƒ
+'    æ”¹ä¿®å†…å®¹ï¼š
+'      #9  : ExtractYear4Digits / åŸºæœ¬æƒ…å ±ã‚·ãƒ¼ãƒˆå–å¾—ã‚’ mod_Common çµŒç”±ã«çµ±ä¸€ã€‚
+'            å€™è£œã‚·ãƒ¼ãƒˆåé…åˆ—ã®é‡è¤‡å®šç¾©ã‚’å‰Šæ¸›ã€‚
+'      #10 : DrawBasicInfoCalendar / DeleteBasicInfoCalendar ã®å‰å¾Œã§
+'            ScreenUpdating ã‚’ OFF ã«ã—ã€Shape ã®è¿½åŠ ãƒ»å‰Šé™¤ã§ã¡ã‚‰ã¤ããŒ
+'            å‡ºãªã„ã‚ˆã†ã«ã™ã‚‹ï¼ˆæç”»ã®ã‚‚ãŸã¤ãç·©å’Œï¼‰ã€‚
+'      #11 : C9 / æ—¥ä»˜ã‚»ãƒ«ã®å¯¾è±¡åˆ¤å®šã§ Target.MergeArea ãŒ 1004 ã‚’å‡ºã™
+'            å ´åˆã«å‚™ãˆã€MergeArea å·¦ä¸Šã‚»ãƒ«å–å¾—ã‚’å®‰å…¨åŒ–ã€‚
 '==========================================================================
 
 Private Const CALENDAR_PREFIX As String = "BICal_"
@@ -120,9 +120,9 @@ Public Sub BasicInfoCalendarSelectDay()
 
     Dim selectedDate As Date
     If TryGetDateFromCallerName(callerName, selectedDate) Then
-        ' shape –¼‚É–„‚ß‚ñ‚¾“ú•t‚ğÌ—p
+        ' shape åã«åŸ‹ã‚è¾¼ã‚“ã æ—¥ä»˜ã‚’æ¡ç”¨
     ElseIf TryGetDateFromSelection(selectedDate) Then
-        ' ‘I‘ğ’†‚Ì shape ‚©‚ç“ú•tæ“¾
+        ' é¸æŠä¸­ã® shape ã‹ã‚‰æ—¥ä»˜å–å¾—
     Else
         selectedDate = DateFromIsoText(ws.Shapes(callerName).AlternativeText)
     End If
@@ -136,7 +136,7 @@ Public Sub BasicInfoCalendarSelectDay()
 
     With targetCell
         .value = selectedDate
-        .NumberFormatLocal = "yyyy”NmŒd“ú"
+        .NumberFormatLocal = "yyyyå¹´mæœˆdæ—¥"
     End With
 
     DeleteBasicInfoCalendar ws
@@ -145,7 +145,7 @@ Public Sub BasicInfoCalendarSelectDay()
     Exit Sub
 
 ErrorHandler:
-    MsgBox "“ú•t‚ğ“ü—Í‚Å‚«‚Ü‚¹‚ñ‚Å‚µ‚½B" & vbCrLf & _
+    MsgBox "æ—¥ä»˜ã‚’å…¥åŠ›ã§ãã¾ã›ã‚“ã§ã—ãŸã€‚" & vbCrLf & _
            "Caller: " & callerName & vbCrLf & _
            Err.Description, vbExclamation
 End Sub
@@ -185,10 +185,10 @@ ExitHandler:
 End Sub
 
 '--------------------------------------------------------------------------
-'  ƒJƒŒƒ“ƒ_[–{‘Ì•`‰æ
-'  ‰üCi#10jFShape ‚Ì¶¬Eíœ‚Å‚¿‚ç‚Â‚«‚ªo‚é‚½‚ß ScreenUpdating
-'                ‚ğ OFF ‚É‚µ‚ÄˆêŠ‡•`‰æBŒ³‚©‚çŒÄ‚Ño‚³‚ê‚é DeleteBasicInfoCalendar
-'                ‚Æ‚ÌƒlƒXƒg®‡‚Ì‚½‚ßAó‘Ô‚ğ•Û‘¶E•œŒ³‚·‚éB
+'  ã‚«ãƒ¬ãƒ³ãƒ€ãƒ¼æœ¬ä½“æç”»
+'  æ”¹ä¿®ï¼ˆ#10ï¼‰ï¼šShape ã®ç”Ÿæˆãƒ»å‰Šé™¤ã§ã¡ã‚‰ã¤ããŒå‡ºã‚‹ãŸã‚ ScreenUpdating
+'                ã‚’ OFF ã«ã—ã¦ä¸€æ‹¬æç”»ã€‚å…ƒã‹ã‚‰å‘¼ã³å‡ºã•ã‚Œã‚‹ DeleteBasicInfoCalendar
+'                ã¨ã®ãƒã‚¹ãƒˆæ•´åˆã®ãŸã‚ã€çŠ¶æ…‹ã‚’ä¿å­˜ãƒ»å¾©å…ƒã™ã‚‹ã€‚
 '--------------------------------------------------------------------------
 Private Sub DrawBasicInfoCalendar(ByVal ws As Worksheet, ByVal targetCell As Range, ByVal displayMonth As Date, ByVal baseDate As Date)
     Dim previousScreenUpdating As Boolean
@@ -217,11 +217,11 @@ Private Sub DrawBasicInfoCalendar(ByVal ws As Worksheet, ByVal targetCell As Ran
 
     AddCalendarShape ws, "Prev", msoShapeRectangle, leftPos + 8, topPos + 8, 28, 24, "<", RGB(226, 232, 240), RGB(100, 116, 139), 1, "'" & ThisWorkbook.Name & "'!BasicInfoCalendarPreviousMonth"
     AddCalendarShape ws, "Next", msoShapeRectangle, leftPos + calendarW - 36, topPos + 8, 28, 24, ">", RGB(226, 232, 240), RGB(100, 116, 139), 1, "'" & ThisWorkbook.Name & "'!BasicInfoCalendarNextMonth"
-    AddCalendarShape ws, "Close", msoShapeRectangle, leftPos + calendarW - 36, topPos + footerTop, 28, 22, "~", RGB(241, 245, 249), RGB(148, 163, 184), 1, "'" & ThisWorkbook.Name & "'!BasicInfoCalendarClose"
-    AddCalendarShape ws, "Title", msoShapeRectangle, leftPos + 42, topPos + 8, calendarW - 84, 24, Format$(displayMonth, "yyyy”NmŒ"), RGB(248, 250, 252), RGB(248, 250, 252), 0
+    AddCalendarShape ws, "Close", msoShapeRectangle, leftPos + calendarW - 36, topPos + footerTop, 28, 22, "Ã—", RGB(241, 245, 249), RGB(148, 163, 184), 1, "'" & ThisWorkbook.Name & "'!BasicInfoCalendarClose"
+    AddCalendarShape ws, "Title", msoShapeRectangle, leftPos + 42, topPos + 8, calendarW - 84, 24, Format$(displayMonth, "yyyyå¹´mæœˆ"), RGB(248, 250, 252), RGB(248, 250, 252), 0
 
     Dim weekNames As Variant
-    weekNames = Array("“ú", "Œ", "‰Î", "…", "–Ø", "‹à", "“y")
+    weekNames = Array("æ—¥", "æœˆ", "ç«", "æ°´", "æœ¨", "é‡‘", "åœŸ")
 
     Dim i As Long
     For i = 0 To 6
@@ -270,7 +270,7 @@ Private Sub DrawBasicInfoCalendar(ByVal ws As Worksheet, ByVal targetCell As Ran
     Dim fiscalToday As Date
     fiscalToday = GetFiscalToday(GetYearFromB4(ws))
     AddCalendarShape ws, "Footer", msoShapeRectangle, leftPos + 8, topPos + footerTop, calendarW - 48, 22, _
-                     "Šî€“ú " & Format$(fiscalToday, "yyyy”NmŒd“ú"), RGB(248, 250, 252), RGB(248, 250, 252), 0
+                     "åŸºæº–æ—¥ " & Format$(fiscalToday, "yyyyå¹´mæœˆdæ—¥"), RGB(248, 250, 252), RGB(248, 250, 252), 0
 
     Application.ScreenUpdating = previousScreenUpdating
 End Sub
@@ -476,7 +476,7 @@ Private Function GetYearFromB4(ByVal ws As Worksheet) As Long
     If yearText <> "" Then GetYearFromB4 = CLng(yearText)
 End Function
 
-' Šî–{î•ñƒV[ƒg–¼‚ğ•Ô‚·i‘¶İ‚µ‚È‚¢ê‡‚Í‹ó•¶šjB
+' åŸºæœ¬æƒ…å ±ã‚·ãƒ¼ãƒˆåã‚’è¿”ã™ï¼ˆå­˜åœ¨ã—ãªã„å ´åˆã¯ç©ºæ–‡å­—ï¼‰ã€‚
 Private Function GetBasicInfoWorksheetName() As String
     Dim ws As Worksheet
     Set ws = CommonGetBasicInfoWorksheet()
