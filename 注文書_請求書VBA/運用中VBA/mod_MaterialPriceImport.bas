@@ -423,6 +423,11 @@ Private Sub ImportUnitPriceData(ByVal wsInfo As Worksheet)
 
     mod_VendorMaster.RefreshAllVendorUnitPricesForBasicInfo wsInfo
 
+    Application.Calculation = xlCalculationAutomatic
+    On Error Resume Next
+    wsInfo.Parent.Calculate
+    On Error GoTo 0
+
     ' #19: 購入充当・溶接単価取込後も基本情報シートに戻す
     wsInfo.Activate
     LogUP "ImportUnitPriceData 完了"
