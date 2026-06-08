@@ -38,6 +38,7 @@ Private Const VENDOR_UNIT_PRICE_LAST_ROW_COL As Long = 2
 Private Const VENDOR_UNIT_PRICE_FILL_COLOR_R As Long = 128
 Private Const VENDOR_UNIT_PRICE_FILL_COLOR_G As Long = 128
 Private Const VENDOR_UNIT_PRICE_FILL_COLOR_B As Long = 128
+Private Const VENDOR_UNIT_PRICE_NUMBER_FORMAT As String = "#,##0"
 
 Private Const MAX_VENDOR_BLOCK_COUNT As Long = 20
 Private Const VENDOR_SOURCE_START_ROW As Long = 2
@@ -813,12 +814,14 @@ Private Sub ApplyVendorUnitPriceCell(ByVal targetCell As Range, _
         End If
 
         .Formula = BuildVendorUnitPriceFormula(wsUnitPrice, rowIndex, sourceCol, ratioAddress)
+        .NumberFormat = VENDOR_UNIT_PRICE_NUMBER_FORMAT
     End With
 End Sub
 
 Private Sub ApplyVendorUnitPriceGreyFill(ByVal targetCell As Range)
     With targetCell
         .ClearContents
+        .NumberFormat = "General"
         .Interior.Color = RGB(VENDOR_UNIT_PRICE_FILL_COLOR_R, _
                               VENDOR_UNIT_PRICE_FILL_COLOR_G, _
                               VENDOR_UNIT_PRICE_FILL_COLOR_B)
@@ -855,9 +858,9 @@ Private Sub ApplyVendorUnitPriceBorders(ByVal wsUnitPrice As Worksheet, _
     Set borderRange = wsUnitPrice.Range(wsUnitPrice.Cells(VENDOR_UNIT_PRICE_HEADER_ROW, dayCol), _
                                         wsUnitPrice.Cells(lastRow, nightCol))
 
-    With borderRange.Borders
-        .LineStyle = xlContinuous
-        .Weight = xlThin
+    With borderRange
+        .Borders.LineStyle = xlNone
+        .BorderAround LineStyle:=xlContinuous, Weight:=xlMedium
     End With
 End Sub
 
