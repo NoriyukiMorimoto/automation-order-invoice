@@ -20,7 +20,7 @@ desktop.ini
 *.log
 logs/
 
-# ワークスペースファイル
+# ワークスペ�?�スファイル
 *.code-workspace
 
 # PowerShellスクリプト
@@ -29,13 +29,14 @@ logs/
 # Wordファイル
 *.docx
 
-# テキストファイル
+# �?キストファイル
 *.txt
 
-# 旧VBAエクスポートフォルダ
+# 旧VBAエクスポ�?�トフォルダ
 VBA_Export_*/
 search.exclude/
-注文書元コード/
+注�?書�?コー�?/
 
-# その他
+# そ�?��?
 AGENTS.md
+.cursor/
