@@ -1643,7 +1643,7 @@ Public Sub ConfirmAndClearUnitPriceForBasicInfo(ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Exit Sub
     If MsgBox(UiMsgUnitPriceClearConfirmPromptText() & vbCrLf & _
               UiMsgUnitPriceClearConfirmYesLineText() & vbCrLf & _
-              UiMsgUnitPriceClearConfirmNoLineText(), vbQuestion + vbYesNo, UiMsgUnitPriceClearConfirmTitleText() <> vbYes Then Exit Sub
+              UiMsgUnitPriceClearConfirmNoLineText(), vbQuestion + vbYesNo, UiMsgUnitPriceClearConfirmTitleText()) <> vbYes Then Exit Sub
     ClearUnitPriceSheets wsInfo.Parent
     wsInfo.Range(BASIC_INFO_IMPORTED_LINE_NAMES_CELL).MergeArea.ClearContents
     FormatImportedLineNamesCell wsInfo

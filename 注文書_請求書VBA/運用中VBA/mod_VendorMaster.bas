@@ -860,7 +860,14 @@ Private Sub ApplyVendorUnitPriceBorders(ByVal wsUnitPrice As Worksheet, _
 
     With borderRange
         .Borders.LineStyle = xlNone
-        .BorderAround LineStyle:=xlContinuous, Weight:=xlMedium
+        With .Borders
+            .LineStyle = xlContinuous
+            .Weight = xlThin
+        End With
+        .Borders(xlEdgeLeft).Weight = xlMedium
+        .Borders(xlEdgeTop).Weight = xlMedium
+        .Borders(xlEdgeRight).Weight = xlMedium
+        .Borders(xlEdgeBottom).Weight = xlMedium
     End With
 End Sub
 
