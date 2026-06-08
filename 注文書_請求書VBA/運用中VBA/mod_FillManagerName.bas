@@ -1,8 +1,8 @@
 Option Explicit
 
 '==========================================================================
-'  Âá∫ÂºµÊâÄÈï∑Âêç Ëá™ÂãïÂÖ•ÂäõÔºèÊîØÂ∫ó„ÉªÂá∫ÂºµÊâÄ„Éê„É™„Éá„Éº„Ç∑„Éß„É≥ÂÜçÊßãÁØâ„É¢„Ç∏„É•„Éº„É´
-'  Êîπ‰øÆÂ±•Ê≠¥: CHANGELOG.md ÂèÇÁÖß
+'  èoí£èäí∑ñº é©ìÆì¸óÕÅ^éxìXÅEèoí£èäÉoÉäÉfÅ[ÉVÉáÉìçƒç\ízÉÇÉWÉÖÅ[Éã
+'  â¸èCóöó: CHANGELOG.md éQè∆
 '==========================================================================
 
 Private Const LIST_BRANCH_COL As String = "AA"
@@ -13,6 +13,7 @@ Private Const OFFICE_COMBO_WIDTH_POINTS As Double = 310.5
 
 Private mSuppressC6Change As Boolean
 Private mInPromptOffice As Boolean
+Private mOfficePromptTime As Date
 
 Public Function IsSuppressingC6Change() As Boolean
     IsSuppressingC6Change = mSuppressC6Change
@@ -26,14 +27,14 @@ Public Sub FillManagerNameToBasicInfo()
     Dim wsInfo As Worksheet
     Set wsInfo = CommonGetBasicInfoWorksheet()
     If wsInfo Is Nothing Then
-        MsgBox "Âü∫Êú¨ÊÉÖÂ†±„Ç∑„Éº„Éà„ÅåË¶ã„Å§„Åã„Çä„Åæ„Åõ„Çì„ÄÇ„Ç∑„Éº„ÉàÂêç„ÇíÁ¢∫Ë™ç„Åó„Å¶„Åè„Å†„Åï„ÅÑ„ÄÇ", vbExclamation
+        MsgBox "äÓñ{èÓïÒÉVÅ[ÉgÇ™å©Ç¬Ç©ÇËÇ‹ÇπÇÒÅBÉVÅ[ÉgñºÇämîFÇµÇƒÇ≠ÇæÇ≥Ç¢ÅB", vbExclamation
         Exit Sub
     End If
 
     Dim yearText As String
     yearText = CommonExtractYear4Digits(Trim$(CStr(wsInfo.Range("B4").Value)))
     If yearText = "" Then
-        MsgBox "Âü∫Êú¨ÊÉÖÂ†±„Ç∑„Éº„Éà B4 „Å´4Ê°Å„ÅÆÂπ¥Â∫¶„ÅåË¶ã„Å§„Åã„Çä„Åæ„Åõ„Çì„ÄÇ‰æã: 2026", vbExclamation
+        MsgBox "äÓñ{èÓïÒÉVÅ[Ég B4 Ç…4åÖÇÃîNìxÇ™å©Ç¬Ç©ÇËÇ‹ÇπÇÒÅBó·: 2026", vbExclamation
         Exit Sub
     End If
 
@@ -41,7 +42,7 @@ Public Sub FillManagerNameToBasicInfo()
     BranchName = CommonNormalizeText(CStr(wsInfo.Range("B6").Value))
     OfficeName = CommonNormalizeText(CStr(wsInfo.Range("C6").Value))
     If BranchName = "" Or OfficeName = "" Then
-        MsgBox "Âü∫Êú¨ÊÉÖÂ†±„Ç∑„Éº„Éà B6 „Åæ„Åü„ÅØ C6 „ÅåÁ©∫„Åß„Åô„ÄÇÊîØÂ∫óÂêç„ÉªÂá∫ÂºµÊâÄÂêç„ÇíÁ¢∫Ë™ç„Åó„Å¶„Åè„Å†„Åï„ÅÑ„ÄÇ", vbExclamation
+        MsgBox "äÓñ{èÓïÒÉVÅ[Ég B6 Ç‹ÇΩÇÕ C6 Ç™ãÛÇ≈Ç∑ÅBéxìXñºÅEèoí£èäñºÇämîFÇµÇƒÇ≠ÇæÇ≥Ç¢ÅB", vbExclamation
         Exit Sub
     End If
 
@@ -52,7 +53,7 @@ Public Sub FillManagerNameToBasicInfo()
     Dim rows As Collection
     Set rows = LoadManagerListRows(sourceFilePath)
     If rows Is Nothing Then
-        MsgBox "Âá∫ÂºµÊâÄÈï∑„É™„Çπ„Éà„Éï„Ç°„Ç§„É´„ÇíÂèÇÁÖß„Åß„Åç„Åæ„Åõ„Çì„Åß„Åó„Åü„ÄÇ" & vbCrLf & sourceFilePath, vbExclamation
+        MsgBox "èoí£èäí∑ÉäÉXÉgÉtÉ@ÉCÉãÇéQè∆Ç≈Ç´Ç‹ÇπÇÒÇ≈ÇµÇΩÅB" & vbCrLf & sourceFilePath, vbExclamation
         Exit Sub
     End If
 
@@ -67,9 +68,9 @@ Public Sub FillManagerNameToBasicInfo()
     Next rowData
 
     If foundName = "" Then
-        MsgBox "Ë©≤ÂΩì„Åô„ÇãÊîØÂ∫óÂêç„ÉªÂá∫ÂºµÊâÄÂêç„ÅåË¶ã„Å§„Åã„Çä„Åæ„Åõ„Çì„Åß„Åó„Åü„ÄÇ" & vbCrLf & _
-               "ÊîØÂ∫óÂêçÔºö" & BranchName & vbCrLf & _
-               "Âá∫ÂºµÊâÄÂêçÔºö" & OfficeName, vbExclamation
+        MsgBox "äYìñÇ∑ÇÈéxìXñºÅEèoí£èäñºÇ™å©Ç¬Ç©ÇËÇ‹ÇπÇÒÇ≈ÇµÇΩÅB" & vbCrLf & _
+               "éxìXñºÅF" & BranchName & vbCrLf & _
+               "èoí£èäñºÅF" & OfficeName, vbExclamation
     Else
         wsInfo.Range("F6").Value = foundName
     End If
@@ -77,20 +78,20 @@ End Sub
 
 Public Function RefreshBranchOfficeValidation(Optional ByVal keepOffice As Boolean = True) As Boolean
     RefreshBranchOfficeValidation = False
-    mod_DebugLog.Log "[FillMgr] RefreshBranchOfficeValidation ÈñãÂßã keepOffice=" & keepOffice
+    mod_DebugLog.Log "[FillMgr] RefreshBranchOfficeValidation äJén keepOffice=" & keepOffice
 
     Dim wsInfo As Worksheet
     Set wsInfo = CommonGetBasicInfoWorksheet()
     If wsInfo Is Nothing Then
-        MsgBox "Âü∫Êú¨ÊÉÖÂ†±„Ç∑„Éº„Éà„ÅåË¶ã„Å§„Åã„Çä„Åæ„Åõ„Çì„ÄÇ„Ç∑„Éº„ÉàÂêç„ÇíÁ¢∫Ë™ç„Åó„Å¶„Åè„Å†„Åï„ÅÑ„ÄÇ", vbExclamation
+        MsgBox "äÓñ{èÓïÒÉVÅ[ÉgÇ™å©Ç¬Ç©ÇËÇ‹ÇπÇÒÅBÉVÅ[ÉgñºÇämîFÇµÇƒÇ≠ÇæÇ≥Ç¢ÅB", vbExclamation
         Exit Function
     End If
 
     Dim yearText As String
     yearText = CommonExtractYear4Digits(Trim$(CStr(wsInfo.Range("B4").Value)))
     If yearText = "" Then
-        mod_DebugLog.Log "[FillMgr] RefreshBranchOfficeValidation: yearText Á©∫ -> Exit"
-        MsgBox "Âü∫Êú¨ÊÉÖÂ†±„Ç∑„Éº„Éà B4 „Å´4Ê°Å„ÅÆÂπ¥Â∫¶„ÅåË¶ã„Å§„Åã„Çä„Åæ„Åõ„Çì„ÄÇ‰æã: 2026", vbExclamation
+        mod_DebugLog.Log "[FillMgr] RefreshBranchOfficeValidation: yearText ãÛ -> Exit"
+        MsgBox "äÓñ{èÓïÒÉVÅ[Ég B4 Ç…4åÖÇÃîNìxÇ™å©Ç¬Ç©ÇËÇ‹ÇπÇÒÅBó·: 2026", vbExclamation
         Exit Function
     End If
 
@@ -98,7 +99,7 @@ Public Function RefreshBranchOfficeValidation(Optional ByVal keepOffice As Boole
     sourceFilePath = GetManagerListFilePath(yearText)
     mod_DebugLog.Log "[FillMgr] RefreshBranchOfficeValidation: sourceFilePath=[" & sourceFilePath & "]"
     If sourceFilePath = "" Then
-        mod_DebugLog.Log "[FillMgr] RefreshBranchOfficeValidation: sourceFilePath Á©∫ -> Exit"
+        mod_DebugLog.Log "[FillMgr] RefreshBranchOfficeValidation: sourceFilePath ãÛ -> Exit"
         Exit Function
     End If
 
@@ -106,7 +107,7 @@ Public Function RefreshBranchOfficeValidation(Optional ByVal keepOffice As Boole
     Set rows = LoadManagerListRows(sourceFilePath)
     If rows Is Nothing Then
         mod_DebugLog.Log "[FillMgr] RefreshBranchOfficeValidation: rows Is Nothing -> Exit"
-        MsgBox "Âá∫ÂºµÊâÄÈï∑„É™„Çπ„Éà„Éï„Ç°„Ç§„É´„ÇíÂèÇÁÖß„Åß„Åç„Åæ„Åõ„Çì„Åß„Åó„Åü„ÄÇ" & vbCrLf & sourceFilePath, vbExclamation
+        MsgBox "èoí£èäí∑ÉäÉXÉgÉtÉ@ÉCÉãÇéQè∆Ç≈Ç´Ç‹ÇπÇÒÇ≈ÇµÇΩÅB" & vbCrLf & sourceFilePath, vbExclamation
         Exit Function
     End If
     mod_DebugLog.Log "[FillMgr] RefreshBranchOfficeValidation: rows.Count=" & rows.Count
@@ -137,7 +138,7 @@ Public Function RefreshBranchOfficeValidation(Optional ByVal keepOffice As Boole
         End If
     Next rowData
 
-    mod_DebugLog.Log "[FillMgr] RefreshBranchOfficeValidation: ÈõÜË®àÂÆå‰∫Ü branchList=" & branchList.Count & " officeList=" & officeList.Count & " -> WriteValidationLists Âëº„Å≥Âá∫„Åó"
+    mod_DebugLog.Log "[FillMgr] RefreshBranchOfficeValidation: èWåväÆóπ branchList=" & branchList.Count & " officeList=" & officeList.Count & " -> WriteValidationLists åƒÇ—èoÇµ"
     RefreshBranchOfficeValidation = WriteValidationLists(wsInfo, branchList, officeList, keepOffice)
 End Function
 
@@ -175,7 +176,7 @@ Private Function WriteValidationLists(ByVal wsInfo As Worksheet, _
     wsInfo.Columns(branchCol & ":" & officeCol).Hidden = True
 
     If Not keepOffice And officeList.Count > 0 Then
-        mod_DebugLog.Log "[FillMgr] WriteValidationLists -> TrueÔºà„Ç≥„É≥„ÉúË°®Á§∫Ë¶ÅÔºâ"
+        mod_DebugLog.Log "[FillMgr] WriteValidationLists -> TrueÅiÉRÉìÉ{ï\é¶óvÅj"
         WriteValidationLists = True
     Else
         mod_DebugLog.Log "[FillMgr] WriteValidationLists -> False (keepOffice=" & keepOffice & " officeCount=" & officeList.Count & ")"
@@ -215,17 +216,33 @@ Private Sub ResetListValidation(ByVal targetCell As Range, ByVal listRange As Ra
 End Sub
 
 Public Sub ScheduleOfficeComboBoxPrompt()
+    CancelScheduledOfficeComboBoxPrompt
+    mOfficePromptTime = Now + TimeSerial(0, 0, 1)
+
     On Error Resume Next
-    Application.OnTime Now + TimeSerial(0, 0, 1), "'" & ThisWorkbook.Name & "'!PromptOfficeComboBox"
+    Application.OnTime mOfficePromptTime, "'" & ThisWorkbook.Name & "'!PromptOfficeComboBox"
     If Err.Number <> 0 Then
         Err.Clear
+        mOfficePromptTime = 0
         PromptOfficeComboBox
     End If
     On Error GoTo 0
 End Sub
 
+Public Sub CancelScheduledOfficeComboBoxPrompt()
+    If mOfficePromptTime = 0 Then Exit Sub
+
+    On Error Resume Next
+    Application.OnTime mOfficePromptTime, _
+                       "'" & ThisWorkbook.Name & "'!PromptOfficeComboBox", _
+                       Schedule:=False
+    On Error GoTo 0
+    mOfficePromptTime = 0
+End Sub
+
 Public Sub PromptOfficeComboBox()
-    mod_DebugLog.Log "[FillMgr] PromptOfficeComboBox ÈñãÂßã EnableEvents=" & Application.EnableEvents
+    mOfficePromptTime = 0
+    mod_DebugLog.Log "[FillMgr] PromptOfficeComboBox äJén EnableEvents=" & Application.EnableEvents
     Dim wsInfo As Worksheet
     Set wsInfo = CommonGetBasicInfoWorksheet()
     If wsInfo Is Nothing Then
@@ -244,7 +261,7 @@ Public Sub PromptOfficeComboBox()
 
     Dim prevEnableEvents As Boolean
     prevEnableEvents = Application.EnableEvents
-    mod_DebugLog.Log "[FillMgr] PromptOfficeComboBox: prevEnableEvents=" & prevEnableEvents & " -> EnableEvents=True „Å´„Åó„Å¶ ShowOfficeComboBox Âëº„Å≥Âá∫„Åó"
+    mod_DebugLog.Log "[FillMgr] PromptOfficeComboBox: prevEnableEvents=" & prevEnableEvents & " -> EnableEvents=True Ç…ÇµÇƒ ShowOfficeComboBox åƒÇ—èoÇµ"
 
     On Error GoTo ExitHandler
     mInPromptOffice = True
@@ -252,7 +269,7 @@ Public Sub PromptOfficeComboBox()
     ShowOfficeComboBox wsInfo
 
 ExitHandler:
-    mod_DebugLog.Log "[FillMgr] PromptOfficeComboBox ÁµÇ‰∫Ü Err=" & Err.Number & " mInPromptOffice=" & mInPromptOffice
+    mod_DebugLog.Log "[FillMgr] PromptOfficeComboBox èIóπ Err=" & Err.Number & " mInPromptOffice=" & mInPromptOffice
     mInPromptOffice = False
     Application.EnableEvents = prevEnableEvents
 End Sub
@@ -305,28 +322,28 @@ ExitHandler:
 End Sub
 
 Private Sub ShowOfficeComboBox(ByVal wsInfo As Worksheet)
-    mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox ÈñãÂßã EnableEvents=" & Application.EnableEvents
+    mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox äJén EnableEvents=" & Application.EnableEvents
     On Error GoTo ErrorHandler
 
     Dim ole As OLEObject
     Set ole = GetOfficeComboBox(wsInfo)
     If ole Is Nothing Then
-        mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: ole Is Nothing -> ValidationDropdown „Å∏"
+        mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: ole Is Nothing -> ValidationDropdown Ç÷"
         ShowC6ValidationDropdown wsInfo
         Exit Sub
     End If
 
-    mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: FitOfficeComboBoxToC6 ÈñãÂßã"
+    mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: FitOfficeComboBoxToC6 äJén"
     FitOfficeComboBoxToC6 wsInfo, ole
-    mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: wsInfo.Activate ÈñãÂßã"
+    mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: wsInfo.Activate äJén"
     wsInfo.Activate
-    mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: C6.Select ÈñãÂßã"
+    mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: C6.Select äJén"
     wsInfo.Range("C6").Select
-    mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: OLEObject.LinkedCell="""" ÈñãÂßã"
+    mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: OLEObject.LinkedCell="""" äJén"
     ClearOfficeComboBoxLinkedCell ole
-    mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: ListCount „ÉÅ„Çß„ÉÉ„ÇØ"
+    mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: ListCount É`ÉFÉbÉN"
     If ole.Object.ListCount = 0 Then
-        mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: ListCount=0 -> ValidationDropdown „Å∏"
+        mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: ListCount=0 -> ValidationDropdown Ç÷"
         HideOfficeComboBox wsInfo
         ShowC6ValidationDropdown wsInfo
         Exit Sub
@@ -342,11 +359,11 @@ Private Sub ShowOfficeComboBox(ByVal wsInfo As Worksheet)
     dropDownDesc = Err.Description
     On Error GoTo ErrorHandler
     If dropDownErr <> 0 Then
-        mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: DropDown Err=" & dropDownErr & " " & dropDownDesc & " -> SendKeysÊú™‰ΩøÁî®„ÅßË°®Á§∫Á∂≠ÊåÅ"
+        mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: DropDown Err=" & dropDownErr & " " & dropDownDesc & " -> SendKeysñ¢égópÇ≈ï\é¶à€éù"
         ole.Visible = True
         ole.Activate
     Else
-        mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: DropDown ÂÆå‰∫Ü"
+        mod_DebugLog.Log "[FillMgr] ShowOfficeComboBox: DropDown äÆóπ"
     End If
     Exit Sub
 
@@ -397,7 +414,7 @@ Private Sub ShowC6ValidationDropdown(ByVal wsInfo As Worksheet)
     On Error Resume Next
     wsInfo.Activate
     wsInfo.Range("C6").Select
-    mod_DebugLog.Log "[FillMgr] ShowC6ValidationDropdown: SendKeysÊú™‰ΩøÁî®ÔºàNumLock‰øùË≠∑Ôºâ"
+    mod_DebugLog.Log "[FillMgr] ShowC6ValidationDropdown: SendKeysñ¢égópÅiNumLockï€åÏÅj"
     On Error GoTo 0
 End Sub
 
@@ -437,18 +454,18 @@ Private Sub UpdateOfficeComboBox(ByVal wsInfo As Worksheet, ByVal officeList As 
 End Sub
 
 Private Function LoadManagerListRows(ByVal sourceFilePath As String) As Collection
-    mod_DebugLog.Log "[FillMgr] LoadManagerListRows: ADOË©¶Ë°å path=[" & sourceFilePath & "]"
+    mod_DebugLog.Log "[FillMgr] LoadManagerListRows: ADOééçs path=[" & sourceFilePath & "]"
     Set LoadManagerListRows = LoadManagerListRowsFromAdo(sourceFilePath)
     If LoadManagerListRows Is Nothing Then
-        mod_DebugLog.Log "[FillMgr] LoadManagerListRows: ADOÂ§±Êïó -> Workbook.OpenË©¶Ë°å"
+        mod_DebugLog.Log "[FillMgr] LoadManagerListRows: ADOé∏îs -> Workbook.Openééçs"
         Set LoadManagerListRows = LoadManagerListRowsFromWorkbook(sourceFilePath)
         If LoadManagerListRows Is Nothing Then
-            mod_DebugLog.Log "[FillMgr] LoadManagerListRows: Workbook.Open „ÇÇÂ§±Êïó"
+            mod_DebugLog.Log "[FillMgr] LoadManagerListRows: Workbook.Open Ç‡é∏îs"
         Else
-            mod_DebugLog.Log "[FillMgr] LoadManagerListRows: Workbook.Open ÊàêÂäü Count=" & LoadManagerListRows.Count
+            mod_DebugLog.Log "[FillMgr] LoadManagerListRows: Workbook.Open ê¨å˜ Count=" & LoadManagerListRows.Count
         End If
     Else
-        mod_DebugLog.Log "[FillMgr] LoadManagerListRows: ADOÊàêÂäü Count=" & LoadManagerListRows.Count
+        mod_DebugLog.Log "[FillMgr] LoadManagerListRows: ADOê¨å˜ Count=" & LoadManagerListRows.Count
     End If
 End Function
 
@@ -556,15 +573,15 @@ Private Function GetManagerListFilePath(ByVal yearText As String) As String
     If Right$(folderPath, 1) <> Chr$(92) Then folderPath = folderPath & Chr$(92)
     mod_DebugLog.Log "[FillMgr] GetManagerListFilePath: folderPath=[" & folderPath & "]"
     If Dir(folderPath, vbDirectory) = "" Then
-        mod_DebugLog.Log "[FillMgr] GetManagerListFilePath: „Éï„Ç©„É´„ÉÄ‰∏çÂ≠òÂú® -> Exit"
-        MsgBox "Âá∫ÂºµÊâÄÈï∑„É™„Çπ„Éà„Éï„Ç©„É´„ÉÄ„ÅåË¶ã„Å§„Åã„Çä„Åæ„Åõ„Çì„ÄÇ" & vbCrLf & folderPath, vbExclamation
+        mod_DebugLog.Log "[FillMgr] GetManagerListFilePath: ÉtÉHÉãÉ_ïsë∂ç› -> Exit"
+        MsgBox "èoí£èäí∑ÉäÉXÉgÉtÉHÉãÉ_Ç™å©Ç¬Ç©ÇËÇ‹ÇπÇÒÅB" & vbCrLf & folderPath, vbExclamation
         Exit Function
     End If
     GetManagerListFilePath = FindManagerListFile(folderPath, yearText)
-    mod_DebugLog.Log "[FillMgr] GetManagerListFilePath: ÁµêÊûú=[" & GetManagerListFilePath & "]"
+    mod_DebugLog.Log "[FillMgr] GetManagerListFilePath: åãâ =[" & GetManagerListFilePath & "]"
     If GetManagerListFilePath = "" Then
-        mod_DebugLog.Log "[FillMgr] GetManagerListFilePath: „Éï„Ç°„Ç§„É´‰∏çÂ≠òÂú® -> Exit"
-        MsgBox yearText & " Âπ¥„ÅÆÂá∫ÂºµÊâÄÈï∑„É™„Çπ„Éà„Éï„Ç°„Ç§„É´„ÅåË¶ã„Å§„Åã„Çä„Åæ„Åõ„Çì„ÄÇ„Éï„Ç°„Ç§„É´Âêç„Å´Âπ¥Â∫¶„ÅåÂê´„Åæ„Çå„Å¶„ÅÑ„Çã„ÅãÁ¢∫Ë™ç„Åó„Å¶„Åè„Å†„Åï„ÅÑ„ÄÇ", vbExclamation
+        mod_DebugLog.Log "[FillMgr] GetManagerListFilePath: ÉtÉ@ÉCÉãïsë∂ç› -> Exit"
+        MsgBox yearText & " îNÇÃèoí£èäí∑ÉäÉXÉgÉtÉ@ÉCÉãÇ™å©Ç¬Ç©ÇËÇ‹ÇπÇÒÅBÉtÉ@ÉCÉãñºÇ…îNìxÇ™ä‹Ç‹ÇÍÇƒÇ¢ÇÈÇ©ämîFÇµÇƒÇ≠ÇæÇ≥Ç¢ÅB", vbExclamation
     End If
 End Function
 
@@ -593,7 +610,7 @@ Private Function GetManagerListFolderPath() As String
 
     Dim resolvedPath As String
     resolvedPath = FirstExistingManagerListFolderPath(candidates)
-    mod_DebugLog.Log "[FillMgr] GetManagerListFolderPath: ÁµêÊûú=[" & resolvedPath & "]"
+    mod_DebugLog.Log "[FillMgr] GetManagerListFolderPath: åãâ =[" & resolvedPath & "]"
     GetManagerListFolderPath = resolvedPath
 End Function
 
@@ -613,7 +630,7 @@ Private Function FirstExistingManagerListFolderPath(ByVal candidates As Collecti
     For Each candidate In candidates
         If Len(CStr(candidate)) > 0 Then
             If Left$(CStr(candidate), 8) = "https://" Then
-                mod_DebugLog.Log "[FillMgr] FirstExistingPath: [" & CStr(candidate) & "] -> https „Çπ„Ç≠„ÉÉ„Éó"
+                mod_DebugLog.Log "[FillMgr] FirstExistingPath: [" & CStr(candidate) & "] -> https ÉXÉLÉbÉv"
             Else
                 Dim existResult As String
                 On Error Resume Next
@@ -627,7 +644,7 @@ Private Function FirstExistingManagerListFolderPath(ByVal candidates As Collecti
             End If
         End If
     Next candidate
-    mod_DebugLog.Log "[FillMgr] FirstExistingPath: ÂÖ®ÂÄôË£ú„ÅåÂ≠òÂú®„Åó„Å™„ÅÑ"
+    mod_DebugLog.Log "[FillMgr] FirstExistingPath: ëSåÛï‚Ç™ë∂ç›ÇµÇ»Ç¢"
 End Function
 
 Private Function FindManagerListFile(ByVal folderPath As String, ByVal yearText As String) As String

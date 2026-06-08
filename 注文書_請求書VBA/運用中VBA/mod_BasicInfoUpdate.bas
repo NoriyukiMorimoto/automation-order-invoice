@@ -1,8 +1,8 @@
 Option Explicit
 
 '==========================================================================
-'  åŸºæœ¬æƒ…å ±ã‚·ãƒ¼ãƒˆ æœŸé–“ï¼è«‹æ±‚å›æ•°æ›´æ–°ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«
-'  æ”¹ä¿®å±¥æ­´: CHANGELOG.md å‚ç…§
+'  Šî–{î•ñƒV[ƒg ŠúŠÔ^¿‹‰ñ”XVƒ‚ƒWƒ…[ƒ‹
+'  ‰üC—š—ğ: CHANGELOG.md QÆ
 '==========================================================================
 
 Private Const BASIC_INFO_START_DATE_CELL As String = "F2"
@@ -24,6 +24,8 @@ Public Sub UpdateBasicInfoPeriod()
 
     Dim savedErrNum As Long
     Dim savedErrDesc As String
+    Dim previousScreenUpdating As Boolean
+    previousScreenUpdating = Application.ScreenUpdating
 
     On Error GoTo ErrorHandler
     Application.ScreenUpdating = False
@@ -59,7 +61,7 @@ ErrorHandler:
 
 FinallyExit:
     If Not wsInfo Is Nothing Then HideOfficeComboBoxForUpdate wsInfo
-    Application.ScreenUpdating = True
+    Application.ScreenUpdating = previousScreenUpdating
     If savedErrNum <> 0 Then
         MsgBox "Basic information update failed." & vbCrLf & savedErrDesc, vbExclamation
     End If
@@ -114,7 +116,7 @@ End Sub
 
 '--------------------------------------------------------------------------
 '  ClearBasicInfo
-'    ãƒœã‚¿ãƒ³æŠ¼ä¸‹ç”¨ã€‚ç¢ºèªãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚ã‚Šãƒ»å˜ä¾¡ã‚¯ãƒªã‚¢ç¢ºèªã‚ã‚Šã€‚
+'    ƒ{ƒ^ƒ“‰Ÿ‰º—pBŠm”FƒƒbƒZ[ƒW‚ ‚èE’P‰¿ƒNƒŠƒAŠm”F‚ ‚èB
 '--------------------------------------------------------------------------
 Public Sub ClearBasicInfo()
     Dim wsInfo As Worksheet
@@ -127,7 +129,9 @@ Public Sub ClearBasicInfo()
     Dim savedErrNum As Long
     Dim savedErrDesc As String
     Dim prevEnableEvents As Boolean
+    Dim previousScreenUpdating As Boolean
     prevEnableEvents = Application.EnableEvents
+    previousScreenUpdating = Application.ScreenUpdating
 
     On Error GoTo ErrorHandler
     Application.ScreenUpdating = False
@@ -144,9 +148,9 @@ ErrorHandler:
     savedErrDesc = Err.Description
 
 FinallyExit:
-    ' (#21) å‘¼ã³å‡ºã—å…ƒã® EnableEvents çŠ¶æ…‹ã‚’å¾©å…ƒã™ã‚‹ã€‚
+    ' (#21) ŒÄ‚Ño‚µŒ³‚Ì EnableEvents ó‘Ô‚ğ•œŒ³‚·‚éB
     Application.EnableEvents = prevEnableEvents
-    Application.ScreenUpdating = True
+    Application.ScreenUpdating = previousScreenUpdating
     If savedErrNum <> 0 Then
         MsgBox "Basic information clear failed." & vbCrLf & savedErrDesc, vbExclamation
     End If
@@ -154,9 +158,9 @@ End Sub
 
 '--------------------------------------------------------------------------
 '  SilentClearBasicInfo
-'    B6/C6 å¤‰æ›´æ™‚ã®è‡ªå‹•ã‚¯ãƒªã‚¢ç”¨ã€‚ç¢ºèªãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ãªã—ã€‚
-'    (#21) Worksheet_Change ãªã©ã‹ã‚‰å‘¼ã°ã‚ŒãŸã¨ã EnableEvents ã‚’
-'    ä¸Šæ›¸ãã—ãªã„ã‚ˆã†ã€ä¿å­˜ãƒ»å¾©å…ƒã™ã‚‹ã‚ˆã†ã«å¤‰æ›´ã€‚
+'    B6/C6 •ÏX‚Ì©“®ƒNƒŠƒA—pBŠm”FƒƒbƒZ[ƒW‚È‚µB
+'    (#21) Worksheet_Change ‚È‚Ç‚©‚çŒÄ‚Î‚ê‚½‚Æ‚« EnableEvents ‚ğ
+'    ã‘‚«‚µ‚È‚¢‚æ‚¤A•Û‘¶E•œŒ³‚·‚é‚æ‚¤‚É•ÏXB
 '--------------------------------------------------------------------------
 Public Sub SilentClearBasicInfo(ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Exit Sub
@@ -164,7 +168,9 @@ Public Sub SilentClearBasicInfo(ByVal wsInfo As Worksheet)
     Dim savedErrNum As Long
     Dim savedErrDesc As String
     Dim prevEnableEvents As Boolean
+    Dim previousScreenUpdating As Boolean
     prevEnableEvents = Application.EnableEvents
+    previousScreenUpdating = Application.ScreenUpdating
 
     On Error GoTo ErrorHandler
     Application.ScreenUpdating = False
@@ -182,7 +188,7 @@ ErrorHandler:
 
 FinallyExit:
     Application.EnableEvents = prevEnableEvents
-    Application.ScreenUpdating = True
+    Application.ScreenUpdating = previousScreenUpdating
     If savedErrNum <> 0 Then
         MsgBox "Basic information silent clear failed." & vbCrLf & savedErrDesc, vbExclamation
     End If

@@ -170,5 +170,3 @@ Private Sub RemoveAttributeLines(ByVal fso As Object, ByVal filePath As String)
     If fso.FileExists(filePath) Then fso.DeleteFile filePath, True
     fso.MoveFile tempPath, filePath
 End Sub
-
-

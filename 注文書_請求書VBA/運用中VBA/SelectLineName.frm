@@ -1,13 +1,3 @@
-VERSION 5.00
-Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} SelectLineName 
-   Caption         =   "対応積算線区選択"
-   ClientHeight    =   6300
-   ClientLeft      =   120
-   ClientTop       =   465
-   ClientWidth     =   6360
-   OleObjectBlob   =   "SelectLineName.frx":0000
-   StartUpPosition =   1  'オーナー フォームの中央
-End
 Option Explicit
 
 Private mSelectedLineNames As Collection
@@ -322,5 +312,3 @@ Private Function CancelButtonText() As String
     End If
     CancelButtonText = cached
 End Function
-
-
