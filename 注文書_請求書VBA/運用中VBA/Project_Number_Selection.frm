@@ -1,13 +1,3 @@
-VERSION 5.00
-Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} Project_Number_Selection 
-   Caption         =   "工事番号選択（最新順）"
-   ClientHeight    =   13110
-   ClientLeft      =   120
-   ClientTop       =   465
-   ClientWidth     =   10635
-   OleObjectBlob   =   "Project_Number_Selection.frx":0000
-   StartUpPosition =   1  'オーナー フォームの中央
-End
 Option Explicit
 
 Public SelectionConfirmed As Boolean
@@ -58,6 +48,13 @@ Private Sub SetupListView()
 End Sub
 
 Private Sub LoadMasterDataToMemory()
+    Dim previousScreenUpdating As Boolean
+    Dim savedErrNumber As Long
+    Dim savedErrDescription As String
+
+    previousScreenUpdating = Application.screenUpdating
+    On Error GoTo ErrorHandler
+
     Dim folderPath As String: folderPath = GetProjectStatusDataFolderPath()
     Dim targetYear As Long
     Dim targetBranch As String
@@ -71,7 +68,7 @@ Private Sub LoadMasterDataToMemory()
     targetBranchOffice = GetProjectSelectionBranchOfficeSearchKey(targetBranch, targetOffice)
 
     Me.Caption = "工事現況表データを読込中...": DoEvents
-    Application.ScreenUpdating = False
+    Application.screenUpdating = False
 
     Dim sourceArr As Variant
     sourceArr = GetProjectStatusSourceArray(folderPath, CStr(targetYear), targetBranch)
@@ -105,8 +102,8 @@ Private Sub LoadMasterDataToMemory()
             If targetBranchOffice = "" Or _
                InStr(1, RemoveProjectSelectionSpaces(GetProjectSourceValue(sourceArr, i, 7)), targetBranchOffice, vbTextCompare) > 0 Then
                 SharedMasterData(writeIndex, 1) = GetProjectSourceValue(sourceArr, i, 10)
-                SharedMasterData(writeIndex, 2) = GetProjectSourceValue(sourceArr, i, 29) & " " & GetProjectSourceValue(sourceArr, i, 30)
-                SharedMasterData(writeIndex, 3) = RemoveProjectSelectionSpaces(GetProjectSourceValue(sourceArr, i, 29) & GetProjectSourceValue(sourceArr, i, 30))
+                SharedMasterData(writeIndex, 2) = RemoveProjectSelectionSpaces(GetProjectSourceValue(sourceArr, i, 29) & GetProjectSourceValue(sourceArr, i, 30))
+                SharedMasterData(writeIndex, 3) = SharedMasterData(writeIndex, 2)
                 SharedMasterData(writeIndex, 4) = GetProjectSourceValue(sourceArr, i, 69)
                 SharedMasterData(writeIndex, 5) = GetProjectSourceRawValue(sourceArr, i, 34)
                 SharedMasterData(writeIndex, 6) = GetProjectSourceRawValue(sourceArr, i, 35)
@@ -120,10 +117,22 @@ Private Sub LoadMasterDataToMemory()
         MsgBox "データが見つかりません。", vbInformation
     End If
     Me.Caption = targetBranch & " " & targetOffice & " 工事選択（直接入力の場合はセルへ入力してください）"
-    Application.ScreenUpdating = True
+    GoTo FinallyExit
+
+ErrorHandler:
+    savedErrNumber = Err.Number
+    savedErrDescription = Err.Description
+
+FinallyExit:
+    Application.screenUpdating = previousScreenUpdating
+    If savedErrNumber <> 0 Then
+        Me.Caption = "工事番号選択"
+        MsgBox "工事現況表データの読み込みに失敗しました。" & vbCrLf & savedErrDescription, vbExclamation
+    End If
 End Sub
 Private Function GetProjectStatusDataFolderPath() As String
-    GetProjectStatusDataFolderPath = "C:\Users\n-morimoto\大鉄工業株式会社\帳票7_支払金額計算シート - 帳票7_支払金額計算シート\【各支店工事番号データ】" & Chr$(92)
+    GetProjectStatusDataFolderPath = Environ$("USERPROFILE") & _
+        "\大鉄工業株式会社\帳票7_支払金額計算シート - 帳票7_支払金額計算シート\【各支店工事番号データ】" & Chr$(92)
 End Function
 Private Function GetProjectStatusSourceArray(ByVal folderPath As String, ByVal targetYear As String, ByVal targetBranch As String) As Variant
     Dim sourcePath As String
@@ -141,9 +150,9 @@ Private Function ReadProjectStatusFileToArray(ByVal sourcePath As String, ByVal 
     Set sourceBook = Workbooks.Open(fileName:=sourcePath, ReadOnly:=True, UpdateLinks:=False)
 
     On Error Resume Next
-    Set sourceSheet = sourceBook.Worksheets(sheetName)
+    Set sourceSheet = sourceBook.worksheets(sheetName)
     On Error GoTo Cleanup
-    If sourceSheet Is Nothing Then Set sourceSheet = sourceBook.Worksheets(1)
+    If sourceSheet Is Nothing Then Set sourceSheet = sourceBook.worksheets(1)
 
     lastRow = sourceSheet.Cells(sourceSheet.rows.Count, "G").End(xlUp).Row
     If lastRow < sourceSheet.Cells(sourceSheet.rows.Count, "J").End(xlUp).Row Then lastRow = sourceSheet.Cells(sourceSheet.rows.Count, "J").End(xlUp).Row
@@ -248,9 +257,16 @@ Private Function RemoveProjectSelectionSpaces(ByVal value As String) As String
 End Function
 
 Private Sub SetBasicInfoProjectSelection(ByVal projectNo As String, ByVal projectName As String, ByVal dataIndex As Long, Optional ByVal selectedProjectDetail As String = "", Optional ByVal selectedContractDate As String = "", Optional ByVal selectedWorkStartDate As Variant, Optional ByVal selectedWorkEndDate As Variant)
+    Dim previousEnableEvents As Boolean
+    Dim savedErrNumber As Long
+    Dim savedErrDescription As String
+
+    previousEnableEvents = Application.EnableEvents
+    On Error GoTo ErrorHandler
+
     Dim targetWs As Worksheet
     On Error Resume Next
-    Set targetWs = ThisWorkbook.Worksheets(ProjectSelectionTargetSheetName)
+    Set targetWs = ThisWorkbook.worksheets(ProjectSelectionTargetSheetName)
     On Error GoTo 0
     If targetWs Is Nothing Then Set targetWs = ActiveCell.Worksheet
 
@@ -300,10 +316,18 @@ Private Sub SetBasicInfoProjectSelection(ByVal projectNo As String, ByVal projec
     SetBasicInfoDateValueLikeCell targetWs.Range("C15"), workStartDate, targetWs.Range("C11")
     SetBasicInfoDateValueLikeCell targetWs.Range("C16"), workEndDate, targetWs.Range("C11")
     mod_BasicInfoUpdate.ApplyWorkDaysFromWorkDates targetWs
-    Application.EnableEvents = True
+    Application.EnableEvents = previousEnableEvents
 
     SelectionConfirmed = True
     Unload Me
+    Exit Sub
+
+ErrorHandler:
+    savedErrNumber = Err.Number
+    savedErrDescription = Err.Description
+    Application.EnableEvents = previousEnableEvents
+    MsgBox "工事情報を基本情報シートへ反映できませんでした。" & vbCrLf & _
+           "Err " & CStr(savedErrNumber) & ": " & savedErrDescription, vbExclamation
 End Sub
 
 Private Sub SetBasicInfoContractDateValue(ByVal targetCell As Range, ByVal contractDate As String)
@@ -479,7 +503,3 @@ Private Sub SetSelectedValue()
                                  Me.ListView1.SelectedItem.SubItems(5), _
                                  Me.ListView1.SelectedItem.SubItems(6)
 End Sub
-
-
-
-

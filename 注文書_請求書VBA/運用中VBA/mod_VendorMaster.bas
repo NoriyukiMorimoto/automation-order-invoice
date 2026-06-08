@@ -1,8 +1,8 @@
 Option Explicit
 
 '==========================================================================
-'  ?????}?X?^?Q???^?????I?????W???[??
-'  ???C????: CHANGELOG.md ?Q??
+'  ã∆é“É}ÉXÉ^éQè∆ÅEã∆é“èÓïÒëIëÉÇÉWÉÖÅ[Éã
+'  â¸èCóöó: CHANGELOG.md éQè∆
 '==========================================================================
 
 Private Const VENDOR_LIST_COL As String = "AD"
@@ -312,7 +312,7 @@ Private Sub FitVendorComboBoxToTarget(ByVal targetCell As Range, ByVal ole As OL
 End Sub
 
 '--------------------------------------------------------------------------
-'  ComboBox ?p ???????A?C?e?Ä?????i#8: ?z?????????[?v?????X?j
+'  ComboBox ópÇÃã∆é“åÛï‚ÇîzóÒÇ©ÇÁê›íË
 '--------------------------------------------------------------------------
 Private Sub LoadVendorComboBoxItems(ByVal wsInfo As Worksheet, ByVal ole As OLEObject, ByVal targetCell As Range)
     Dim lastRow As Long
@@ -346,7 +346,7 @@ Private Sub LoadVendorComboBoxItems(ByVal wsInfo As Worksheet, ByVal ole As OLEO
 End Sub
 
 '--------------------------------------------------------------------------
-'  ?????o???f?[?V???????X?g?????i#7: 2?????z???{Range ?????????j
+'  ã∆é“ñºÇÃì¸óÕãKë•ÉäÉXÉgÇîÒï\é¶óÒÇ÷çÏê¨
 '--------------------------------------------------------------------------
 Private Sub WriteVendorValidationList(ByVal wsInfo As Worksheet, ByVal vendorRows As Collection)
     wsInfo.Columns(VENDOR_LIST_COL & ":" & VENDOR_LIST_COL).Hidden = False
@@ -480,7 +480,7 @@ Public Sub SyncVendorBlocksFromCount(ByVal wsInfo As Worksheet)
     Dim i As Long
     For i = 2 To vendorCount
         Dim destBlock As Range
-        Set destBlock = wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, VendorLabelColumnByIndex(i)).Resize(sourceBlock.Rows.Count, sourceBlock.Columns.Count)
+        Set destBlock = wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, VendorLabelColumnByIndex(i)).Resize(sourceBlock.rows.Count, sourceBlock.Columns.Count)
         sourceBlock.Copy Destination:=destBlock
         destBlock.Cells(1, 1).value = VendorInfoHeaderText(i)
         ClearVendorInfoBlock VendorNameCellByIndex(wsInfo, i)
@@ -565,7 +565,7 @@ Private Sub RefreshVendorUnitPriceForValueColumn(ByVal wsInfo As Worksheet, ByVa
     Set targetBook = wsInfo.Parent
 
     Dim wsUnitPrice As Worksheet
-    For Each wsUnitPrice In targetBook.Worksheets
+    For Each wsUnitPrice In targetBook.worksheets
         If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) Then
             ApplyVendorUnitPriceBlockToSheet wsUnitPrice, wsInfo, valueColumn
         End If
@@ -1212,9 +1212,9 @@ Private Function GetVendorMasterColumnOValue(ByVal recordset As Object, _
     Dim valueText As String
 
     On Error Resume Next
-    valueText = CommonNzText(recordset.Fields(VENDOR_MASTER_ADO_COLUMN_O_NAME).Value)
-    If valueText = "" Then valueText = CommonNzText(recordset.Fields(VENDOR_MASTER_EXCEL_COLUMN_O - 1).Value)
-    If valueText = "" Then valueText = CommonNzText(recordset.Fields(VENDOR_MASTER_EXCEL_COLUMN_O).Value)
+    valueText = CommonNzText(recordset.Fields(VENDOR_MASTER_ADO_COLUMN_O_NAME).value)
+    If valueText = "" Then valueText = CommonNzText(recordset.Fields(VENDOR_MASTER_EXCEL_COLUMN_O - 1).value)
+    If valueText = "" Then valueText = CommonNzText(recordset.Fields(VENDOR_MASTER_EXCEL_COLUMN_O).value)
     On Error GoTo 0
 
     If valueText <> "" Then
@@ -1242,7 +1242,7 @@ Private Function GetVendorMasterColumnOValueFromExcel(ByVal sheetName As String,
     If sourceFilePath = "" Then Exit Function
 
     wasAlreadyOpen = False
-    screenUpdating = Application.ScreenUpdating
+    screenUpdating = Application.screenUpdating
     On Error GoTo Cleanup
 
     Dim openWorkbook As Workbook
@@ -1265,13 +1265,13 @@ Private Function GetVendorMasterColumnOValueFromExcel(ByVal sheetName As String,
 
     Set ws = Nothing
     On Error Resume Next
-    Set ws = wb.Worksheets(sheetName)
+    Set ws = wb.worksheets(sheetName)
     On Error GoTo Cleanup
     If ws Is Nothing Then GoTo Cleanup
 
     For rowIndex = VENDOR_SOURCE_START_ROW To VENDOR_SOURCE_END_ROW
-        If StrComp(CommonNormalizeText(CStr(ws.Cells(rowIndex, 1).Value)), normalizedVendorName, vbTextCompare) = 0 Then
-            GetVendorMasterColumnOValueFromExcel = CommonNzText(ws.Cells(rowIndex, VENDOR_MASTER_EXCEL_COLUMN_O).Value)
+        If StrComp(CommonNormalizeText(CStr(ws.Cells(rowIndex, 1).value)), normalizedVendorName, vbTextCompare) = 0 Then
+            GetVendorMasterColumnOValueFromExcel = CommonNzText(ws.Cells(rowIndex, VENDOR_MASTER_EXCEL_COLUMN_O).value)
             Exit For
         End If
     Next rowIndex
@@ -1281,7 +1281,7 @@ Cleanup:
     If Not wb Is Nothing Then
         If Not wasAlreadyOpen Then wb.Close SaveChanges:=False
     End If
-    Application.ScreenUpdating = screenUpdating
+    Application.screenUpdating = screenUpdating
     On Error GoTo 0
 End Function
 

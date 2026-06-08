@@ -12,7 +12,8 @@ Private Const BASIC_INFO_WORK_START_DATE_CELL As String = "C15"
 Private Const BASIC_INFO_WORK_END_DATE_CELL As String = "C16"
 Private Const BASIC_INFO_WORK_DAYS_CELL As String = "C17"
 Private Const OFFICE_COMBO_NAME As String = "ComboBox1"
-Private Const BASIC_INFO_CLEAR_RANGES As String = "C2,C9:C12,C15:C17,C20:C23,C24:C28,F2:F4,F11:F16,F18:F23,F25,F27"
+Private Const BASIC_INFO_CLEAR_RANGES As String = "C2,C9:C12,C15:C17,C20:C23,C24:C28,F2:F4,F11:F16,F18:F23,F25,F27,F29,F31"
+Private Const BASIC_INFO_BILLING_SEQUENCE_CELL As String = "F9"
 
 Public Sub UpdateBasicInfoPeriod()
     Dim wsInfo As Worksheet
@@ -24,32 +25,34 @@ Public Sub UpdateBasicInfoPeriod()
 
     Dim savedErrNum As Long
     Dim savedErrDesc As String
+    Dim previousScreenUpdating As Boolean
+    previousScreenUpdating = Application.screenUpdating
 
     On Error GoTo ErrorHandler
-    Application.ScreenUpdating = False
+    Application.screenUpdating = False
 
-    If Not IsDate(wsInfo.Range(BASIC_INFO_START_DATE_CELL).Value) Then
+    If Not IsDate(wsInfo.Range(BASIC_INFO_START_DATE_CELL).value) Then
         Err.Raise vbObjectError + 515, , "Start date is not a valid date."
     End If
-    If Not IsDate(wsInfo.Range(BASIC_INFO_END_DATE_CELL).Value) Then
+    If Not IsDate(wsInfo.Range(BASIC_INFO_END_DATE_CELL).value) Then
         Err.Raise vbObjectError + 516, , "End date is not a valid date."
     End If
 
     Dim oldStartDate As Date
-    oldStartDate = CDate(wsInfo.Range(BASIC_INFO_START_DATE_CELL).Value)
+    oldStartDate = CDate(wsInfo.Range(BASIC_INFO_START_DATE_CELL).value)
 
     Dim oldEndDate As Date
-    oldEndDate = CDate(wsInfo.Range(BASIC_INFO_END_DATE_CELL).Value)
+    oldEndDate = CDate(wsInfo.Range(BASIC_INFO_END_DATE_CELL).value)
 
     Dim nextBillingCount As Long
-    nextBillingCount = GetNextBillingCount(wsInfo.Range(BASIC_INFO_BILLING_COUNT_CELL).Value)
+    nextBillingCount = GetNextBillingCount(wsInfo.Range(BASIC_INFO_BILLING_COUNT_CELL).value)
 
-    wsInfo.Range(BASIC_INFO_START_DATE_CELL).Value = GetNextStartDate(oldStartDate)
-    wsInfo.Range(BASIC_INFO_END_DATE_CELL).Value = GetNextEndDate(oldEndDate)
+    wsInfo.Range(BASIC_INFO_START_DATE_CELL).value = GetNextStartDate(oldStartDate)
+    wsInfo.Range(BASIC_INFO_END_DATE_CELL).value = GetNextEndDate(oldEndDate)
     ApplyJapaneseDateFormat wsInfo.Range(BASIC_INFO_START_DATE_CELL)
     ApplyJapaneseDateFormat wsInfo.Range(BASIC_INFO_END_DATE_CELL)
 
-    wsInfo.Range(BASIC_INFO_BILLING_COUNT_CELL).Value = nextBillingCount
+    wsInfo.Range(BASIC_INFO_BILLING_COUNT_CELL).value = nextBillingCount
 
     GoTo FinallyExit
 
@@ -59,7 +62,7 @@ ErrorHandler:
 
 FinallyExit:
     If Not wsInfo Is Nothing Then HideOfficeComboBoxForUpdate wsInfo
-    Application.ScreenUpdating = True
+    Application.screenUpdating = previousScreenUpdating
     If savedErrNum <> 0 Then
         MsgBox "Basic information update failed." & vbCrLf & savedErrDesc, vbExclamation
     End If
@@ -69,13 +72,13 @@ Public Sub ApplyInitialBillingPeriodFromStartDate(ByVal wsInfo As Worksheet)
     On Error GoTo ErrorHandler
 
     If wsInfo Is Nothing Then Exit Sub
-    If Not IsDate(wsInfo.Range(BASIC_INFO_START_DATE_CELL).Value) Then Exit Sub
+    If Not IsDate(wsInfo.Range(BASIC_INFO_START_DATE_CELL).value) Then Exit Sub
 
     Dim startDate As Date
-    startDate = CDate(wsInfo.Range(BASIC_INFO_START_DATE_CELL).Value)
+    startDate = CDate(wsInfo.Range(BASIC_INFO_START_DATE_CELL).value)
 
-    wsInfo.Range(BASIC_INFO_END_DATE_CELL).Value = DateSerial(Year(startDate), Month(startDate) + 1, 16)
-    wsInfo.Range(BASIC_INFO_BILLING_COUNT_CELL).Value = 1
+    wsInfo.Range(BASIC_INFO_END_DATE_CELL).value = DateSerial(Year(startDate), Month(startDate) + 1, 16)
+    wsInfo.Range(BASIC_INFO_BILLING_COUNT_CELL).value = 1
 
     ApplyJapaneseDateFormat wsInfo.Range(BASIC_INFO_START_DATE_CELL)
     ApplyJapaneseDateFormat wsInfo.Range(BASIC_INFO_END_DATE_CELL)
@@ -90,21 +93,21 @@ Public Sub ApplyWorkDaysFromWorkDates(ByVal wsInfo As Worksheet)
 
     If wsInfo Is Nothing Then Exit Sub
 
-    If Not IsDate(wsInfo.Range(BASIC_INFO_WORK_START_DATE_CELL).Value) Or _
-       Not IsDate(wsInfo.Range(BASIC_INFO_WORK_END_DATE_CELL).Value) Then
+    If Not IsDate(wsInfo.Range(BASIC_INFO_WORK_START_DATE_CELL).value) Or _
+       Not IsDate(wsInfo.Range(BASIC_INFO_WORK_END_DATE_CELL).value) Then
         wsInfo.Range(BASIC_INFO_WORK_DAYS_CELL).ClearContents
         Exit Sub
     End If
 
     Dim startDate As Date
-    startDate = CDate(wsInfo.Range(BASIC_INFO_WORK_START_DATE_CELL).Value)
+    startDate = CDate(wsInfo.Range(BASIC_INFO_WORK_START_DATE_CELL).value)
 
     Dim endDate As Date
-    endDate = CDate(wsInfo.Range(BASIC_INFO_WORK_END_DATE_CELL).Value)
+    endDate = CDate(wsInfo.Range(BASIC_INFO_WORK_END_DATE_CELL).value)
 
     With wsInfo.Range(BASIC_INFO_WORK_DAYS_CELL)
         .NumberFormatLocal = "0" & ChrW$(&H65E5)
-        .Value = DateDiff("d", startDate, endDate) + 1
+        .value = DateDiff("d", startDate, endDate) + 1
     End With
     Exit Sub
 
@@ -127,15 +130,20 @@ Public Sub ClearBasicInfo()
     Dim savedErrNum As Long
     Dim savedErrDesc As String
     Dim prevEnableEvents As Boolean
+    Dim previousScreenUpdating As Boolean
     prevEnableEvents = Application.EnableEvents
+    previousScreenUpdating = Application.screenUpdating
 
     On Error GoTo ErrorHandler
-    Application.ScreenUpdating = False
+    Application.screenUpdating = False
     Application.EnableEvents = False
 
     HideOfficeComboBoxForUpdate wsInfo
     mod_MaterialPriceImport.ConfirmAndClearUnitPriceForBasicInfo wsInfo
     wsInfo.Range(BASIC_INFO_CLEAR_RANGES).ClearContents
+    wsInfo.Range(BASIC_INFO_BILLING_SEQUENCE_CELL).value = 1
+    ' F9 を 1 に戻したので、前回増えていた業者ブロック列をクリア・再塗色する。
+    mod_VendorMaster.SyncVendorBlocksFromCount wsInfo
 
     GoTo FinallyExit
 
@@ -146,7 +154,7 @@ ErrorHandler:
 FinallyExit:
     ' (#21) 呼び出し元の EnableEvents 状態を復元する。
     Application.EnableEvents = prevEnableEvents
-    Application.ScreenUpdating = True
+    Application.screenUpdating = previousScreenUpdating
     If savedErrNum <> 0 Then
         MsgBox "Basic information clear failed." & vbCrLf & savedErrDesc, vbExclamation
     End If
@@ -164,15 +172,20 @@ Public Sub SilentClearBasicInfo(ByVal wsInfo As Worksheet)
     Dim savedErrNum As Long
     Dim savedErrDesc As String
     Dim prevEnableEvents As Boolean
+    Dim previousScreenUpdating As Boolean
     prevEnableEvents = Application.EnableEvents
+    previousScreenUpdating = Application.screenUpdating
 
     On Error GoTo ErrorHandler
-    Application.ScreenUpdating = False
+    Application.screenUpdating = False
     Application.EnableEvents = False
 
     HideOfficeComboBoxForUpdate wsInfo
     mod_MaterialPriceImport.SilentClearUnitPriceForBasicInfo wsInfo
     wsInfo.Range(BASIC_INFO_CLEAR_RANGES).ClearContents
+    wsInfo.Range(BASIC_INFO_BILLING_SEQUENCE_CELL).value = 1
+    ' F9 を 1 に戻したので、前回増えていた業者ブロック列をクリア・再塗色する。
+    mod_VendorMaster.SyncVendorBlocksFromCount wsInfo
 
     GoTo FinallyExit
 
@@ -182,7 +195,7 @@ ErrorHandler:
 
 FinallyExit:
     Application.EnableEvents = prevEnableEvents
-    Application.ScreenUpdating = True
+    Application.screenUpdating = previousScreenUpdating
     If savedErrNum <> 0 Then
         MsgBox "Basic information silent clear failed." & vbCrLf & savedErrDesc, vbExclamation
     End If
@@ -195,7 +208,7 @@ Private Sub HideOfficeComboBoxForUpdate(ByVal wsInfo As Worksheet)
     Set ole = wsInfo.OLEObjects(OFFICE_COMBO_NAME)
     If ole Is Nothing Then Exit Sub
 
-    ole.Object.Value = CStr(wsInfo.Range("C6").Value)
+    ole.Object.value = CStr(wsInfo.Range("C6").value)
     ole.Visible = False
 
     On Error GoTo 0

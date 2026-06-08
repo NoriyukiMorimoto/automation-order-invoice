@@ -20,7 +20,7 @@ Private Type UnitPriceMasterRow
     BranchName As String
     OfficeName As String
     BranchGroupName As String
-    SectionName As String
+    sectionName As String
     UnitPriceSectionName As String
 End Type
 
@@ -138,7 +138,7 @@ Public Sub AutoFillLineTypeFromWorkName(ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Exit Sub
 
     Dim workName As String
-    workName = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_WORK_NAME_CELL).Value))
+    workName = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_WORK_NAME_CELL).value))
     If workName = "" Then Exit Sub
 
     Dim masterFilePath As String
@@ -149,9 +149,9 @@ Public Sub AutoFillLineTypeFromWorkName(ByVal wsInfo As Worksheet)
     lineType = LookupLineTypeByWorkName(masterFilePath, workName)
     If lineType = "" Then Exit Sub
 
-    If StrComp(CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_LINE_TYPE_CELL).Value)), lineType, vbTextCompare) = 0 Then Exit Sub
+    If StrComp(CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_LINE_TYPE_CELL).value)), lineType, vbTextCompare) = 0 Then Exit Sub
 
-    wsInfo.Range(BASIC_INFO_LINE_TYPE_CELL).Value = lineType
+    wsInfo.Range(BASIC_INFO_LINE_TYPE_CELL).value = lineType
 End Sub
 
 Public Sub AutoFillUnitPriceFieldsFromWorkName(ByVal wsInfo As Worksheet)
@@ -166,11 +166,11 @@ Public Sub AutoFillProjectNameFromWorkName(ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Exit Sub
 
     Dim workName As String
-    workName = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_WORK_NAME_CELL).Value))
+    workName = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_WORK_NAME_CELL).value))
     If workName = "" Then Exit Sub
 
     Dim lineType As String
-    lineType = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_LINE_TYPE_CELL).Value))
+    lineType = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_LINE_TYPE_CELL).value))
     If lineType = "" Then Exit Sub
 
     Dim masterFilePath As String
@@ -186,9 +186,9 @@ Public Sub AutoFillProjectNameFromWorkName(ByVal wsInfo As Worksheet)
     projectName = LookupProjectNameByWorkName(masterFilePath, sheetName, workName)
     If projectName = "" Then Exit Sub
 
-    If StrComp(CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_PROJECT_NAME_CELL).Value)), projectName, vbTextCompare) = 0 Then Exit Sub
+    If StrComp(CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_PROJECT_NAME_CELL).value)), projectName, vbTextCompare) = 0 Then Exit Sub
 
-    wsInfo.Range(BASIC_INFO_PROJECT_NAME_CELL).Value = projectName
+    wsInfo.Range(BASIC_INFO_PROJECT_NAME_CELL).value = projectName
 End Sub
 
 Private Function LookupProjectNameByWorkName(ByVal masterFilePath As String, _
@@ -299,7 +299,7 @@ Public Sub RefreshUnitPriceProjectNameValidation(Optional ByVal wsInfo As Worksh
     WriteUnitPriceKindValidation wsInfo
 
     Dim lineType As String
-    lineType = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_LINE_TYPE_CELL).Value))
+    lineType = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_LINE_TYPE_CELL).value))
     Dim projectNames As Collection
     Set projectNames = LoadUnitPriceProjectNamesForBasicInfo(GetMasterFilePath(), lineType)
     If projectNames Is Nothing Then
@@ -432,14 +432,14 @@ End Sub
 
 Private Function TryReadUnitPriceRequest(ByVal wsInfo As Worksheet, ByRef request As UnitPriceRequest) As Boolean
     LogUP "TryReadUnitPriceRequest 開始"
-    request.Nendo = CommonExtractYear4Digits(CStr(wsInfo.Range(BASIC_INFO_YEAR_CELL).Value))
-    request.BranchName = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_BRANCH_CELL).Value))
-    request.OfficeName = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_OFFICE_CELL).Value))
-    request.lineType = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_LINE_TYPE_CELL).Value))
-    request.projectName = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_PROJECT_NAME_CELL).Value))
-    request.UnitPriceKind = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_PRICE_KIND_CELL).Value))
+    request.Nendo = CommonExtractYear4Digits(CStr(wsInfo.Range(BASIC_INFO_YEAR_CELL).value))
+    request.BranchName = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_BRANCH_CELL).value))
+    request.OfficeName = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_OFFICE_CELL).value))
+    request.lineType = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_LINE_TYPE_CELL).value))
+    request.projectName = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_PROJECT_NAME_CELL).value))
+    request.UnitPriceKind = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_PRICE_KIND_CELL).value))
     If request.UnitPriceKind = "" Then
-        request.UnitPriceKind = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_PRICE_KIND_FALLBACK_CELL).Value))
+        request.UnitPriceKind = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_PRICE_KIND_FALLBACK_CELL).value))
     End If
     If InStr(1, NormalizeMatchText(request.UnitPriceKind), NormalizeMatchText("単価適用区分"), vbTextCompare) > 0 Then
         request.UnitPriceKind = ""
@@ -552,7 +552,7 @@ Private Function TryLoadUnitPriceMasterRow(ByRef request As UnitPriceRequest, _
         If bestScore > 1 Or matchedCount = 1 Then
             masterRow = bestRow
             LogUP "masterRow確定 BranchGroup=[" & masterRow.BranchGroupName & _
-                  "] Section=[" & masterRow.SectionName & "] UnitPriceSection=[" & masterRow.UnitPriceSectionName & "]"
+                  "] Section=[" & masterRow.sectionName & "] UnitPriceSection=[" & masterRow.UnitPriceSectionName & "]"
             TryLoadUnitPriceMasterRow = True
             GoTo Cleanup
         End If
@@ -601,10 +601,10 @@ Private Function TryLoadUnitPriceMasterRowFromWorkbook(ByVal sourceFilePath As S
 
     On Error GoTo ErrorHandler
     previousDisplayAlerts = Application.DisplayAlerts
-    previousScreenUpdating = Application.ScreenUpdating
+    previousScreenUpdating = Application.screenUpdating
     previousCalculation = Application.Calculation
     Application.DisplayAlerts = False
-    Application.ScreenUpdating = False
+    Application.screenUpdating = False
     Application.Calculation = xlCalculationManual
 
     Set sourceBook = Workbooks.Open(fileName:=sourceFilePath, ReadOnly:=True, UpdateLinks:=False, AddToMru:=False)
@@ -612,7 +612,7 @@ Private Function TryLoadUnitPriceMasterRowFromWorkbook(ByVal sourceFilePath As S
     If sourceSheet Is Nothing Then GoTo Cleanup
 
     Dim lastRow As Long
-    lastRow = sourceSheet.Cells(sourceSheet.Rows.Count, 2).End(xlUp).Row
+    lastRow = sourceSheet.Cells(sourceSheet.rows.Count, 2).End(xlUp).Row
     If lastRow < 2 Then GoTo Cleanup
 
     Dim matchedCount As Long
@@ -621,8 +621,8 @@ Private Function TryLoadUnitPriceMasterRowFromWorkbook(ByVal sourceFilePath As S
 
     Dim rr As Long
     For rr = 2 To lastRow
-        If MasterTextMatches(CommonNzText(sourceSheet.Cells(rr, 2).Value), request.BranchName) And _
-           MasterTextMatches(CommonNzText(sourceSheet.Cells(rr, 3).Value), request.OfficeName) Then
+        If MasterTextMatches(CommonNzText(sourceSheet.Cells(rr, 2).value), request.BranchName) And _
+           MasterTextMatches(CommonNzText(sourceSheet.Cells(rr, 3).value), request.OfficeName) Then
             Dim candidateRow As UnitPriceMasterRow
             FillUnitPriceMasterRowFromWorksheet sourceSheet, rr, candidateRow
 
@@ -648,7 +648,7 @@ Cleanup:
     On Error Resume Next
     If Not sourceBook Is Nothing Then sourceBook.Close SaveChanges:=False
     Application.DisplayAlerts = previousDisplayAlerts
-    Application.ScreenUpdating = previousScreenUpdating
+    Application.screenUpdating = previousScreenUpdating
     Application.Calculation = previousCalculation
     On Error GoTo 0
     Exit Function
@@ -665,14 +665,14 @@ Private Function FindWorksheetByName(ByVal sourceBook As Workbook, ByVal expecte
     normalizedExpected = NormalizeMatchText(expectedSheetName)
 
     Dim ws As Worksheet
-    For Each ws In sourceBook.Worksheets
+    For Each ws In sourceBook.worksheets
         If StrComp(NormalizeMatchText(ws.Name), normalizedExpected, vbTextCompare) = 0 Then
             Set FindWorksheetByName = ws
             Exit Function
         End If
     Next ws
 
-    For Each ws In sourceBook.Worksheets
+    For Each ws In sourceBook.worksheets
         If InStr(1, NormalizeMatchText(ws.Name), normalizedExpected, vbTextCompare) > 0 Then
             Set FindWorksheetByName = ws
             Exit Function
@@ -713,18 +713,18 @@ Private Sub FillUnitPriceMasterRowFromRecordset(ByVal rs As Object, _
     masterRow.BranchName = CommonNzText(CommonGetAdoFieldValue(rs, 0))
     masterRow.OfficeName = CommonNzText(CommonGetAdoFieldValue(rs, 1))
     masterRow.BranchGroupName = CommonNzText(CommonGetAdoFieldValue(rs, 2))
-    masterRow.SectionName = CommonNzText(CommonGetAdoFieldValue(rs, 3))
+    masterRow.sectionName = CommonNzText(CommonGetAdoFieldValue(rs, 3))
     masterRow.UnitPriceSectionName = CommonNzText(CommonGetAdoFieldValue(rs, 4))
 End Sub
 
 Private Sub FillUnitPriceMasterRowFromWorksheet(ByVal sourceSheet As Worksheet, _
                                                 ByVal rowIndex As Long, _
                                                 ByRef masterRow As UnitPriceMasterRow)
-    masterRow.BranchName = CommonNzText(sourceSheet.Cells(rowIndex, 2).Value)
-    masterRow.OfficeName = CommonNzText(sourceSheet.Cells(rowIndex, 3).Value)
-    masterRow.BranchGroupName = CommonNzText(sourceSheet.Cells(rowIndex, 4).Value)
-    masterRow.SectionName = CommonNzText(sourceSheet.Cells(rowIndex, 5).Value)
-    masterRow.UnitPriceSectionName = CommonNzText(sourceSheet.Cells(rowIndex, 6).Value)
+    masterRow.BranchName = CommonNzText(sourceSheet.Cells(rowIndex, 2).value)
+    masterRow.OfficeName = CommonNzText(sourceSheet.Cells(rowIndex, 3).value)
+    masterRow.BranchGroupName = CommonNzText(sourceSheet.Cells(rowIndex, 4).value)
+    masterRow.sectionName = CommonNzText(sourceSheet.Cells(rowIndex, 5).value)
+    masterRow.UnitPriceSectionName = CommonNzText(sourceSheet.Cells(rowIndex, 6).value)
 End Sub
 
 Private Function GetUnitPriceMasterRowScore(ByRef request As UnitPriceRequest, _
@@ -759,7 +759,7 @@ End Function
 Private Function UnitPriceMasterRowTextMatchesLineType(ByVal lineType As String, _
                                                        ByRef candidateRow As UnitPriceMasterRow) As Boolean
     Dim rowText As String
-    rowText = NormalizeMatchText(candidateRow.SectionName & candidateRow.UnitPriceSectionName)
+    rowText = NormalizeMatchText(candidateRow.sectionName & candidateRow.UnitPriceSectionName)
 
     Select Case CommonNormalizeText(lineType)
         Case SHINKANSEN_NAME
@@ -884,12 +884,12 @@ Private Function LoadWorksheetNamesFromWorkbook(ByVal sourceFilePath As String) 
     Dim previousScreenUpdating As Boolean
 
     On Error GoTo ErrorHandler
-    previousScreenUpdating = Application.ScreenUpdating
-    Application.ScreenUpdating = False
+    previousScreenUpdating = Application.screenUpdating
+    Application.screenUpdating = False
 
     Set sourceBook = Workbooks.Open(fileName:=sourceFilePath, ReadOnly:=True, UpdateLinks:=False, AddToMru:=False)
     Set result = New Collection
-    For Each sourceSheet In sourceBook.Worksheets
+    For Each sourceSheet In sourceBook.worksheets
         result.Add sourceSheet.Name
     Next sourceSheet
     Set LoadWorksheetNamesFromWorkbook = result
@@ -897,7 +897,7 @@ Private Function LoadWorksheetNamesFromWorkbook(ByVal sourceFilePath As String) 
 Cleanup:
     On Error Resume Next
     If Not sourceBook Is Nothing Then sourceBook.Close SaveChanges:=False
-    Application.ScreenUpdating = previousScreenUpdating
+    Application.screenUpdating = previousScreenUpdating
     On Error GoTo 0
     Exit Function
 
@@ -992,23 +992,26 @@ Private Function ImportSelectedUnitPriceSheets(ByVal selectedSheetNames As Colle
                                                ByVal sheetSourceFileMap As Object, _
                                                ByVal sheetSourceSheetMap As Object) As Boolean
     Dim sourceBook As Workbook
+    Dim stagedSheets As Collection
+    Dim targetSheetNames As Collection
     Dim previousDisplayAlerts As Boolean
     Dim previousScreenUpdating As Boolean
 
+    Set stagedSheets = New Collection
+    Set targetSheetNames = New Collection
+
     On Error GoTo ErrorHandler
     previousDisplayAlerts = Application.DisplayAlerts
-    previousScreenUpdating = Application.ScreenUpdating
+    previousScreenUpdating = Application.screenUpdating
     Application.DisplayAlerts = False
-    Application.ScreenUpdating = False
-
-    LogUP "ImportSelectedUnitPriceSheets: 既存シート削除"
-    DeleteImportedUnitPriceSheets targetBook
+    Application.screenUpdating = False
 
     Dim displayName As Variant
     For Each displayName In selectedSheetNames
         Dim sourceFilePath As String
         Dim sourceSheetName As String
         Dim targetSheetName As String
+        Dim stagedSheet As Worksheet
         sourceFilePath = CStr(sheetSourceFileMap(CStr(displayName)))
         sourceSheetName = CStr(sheetSourceSheetMap(CStr(displayName)))
         targetSheetName = CStr(displayName)
@@ -1016,27 +1019,40 @@ Private Function ImportSelectedUnitPriceSheets(ByVal selectedSheetNames As Colle
               "] srcFile=[" & sourceFilePath & "]"
 
         Set sourceBook = Workbooks.Open(fileName:=sourceFilePath, ReadOnly:=True, UpdateLinks:=False, AddToMru:=False)
-        DeleteWorksheetIfExists targetBook, targetSheetName
-        sourceBook.Worksheets(sourceSheetName).Copy After:=targetBook.Worksheets(targetBook.Worksheets.Count)
-        With targetBook.Worksheets(targetBook.Worksheets.Count)
-            .Name = MakeUniqueWorksheetName(targetBook, targetSheetName, .Name)
+        sourceBook.worksheets(sourceSheetName).Copy After:=targetBook.worksheets(targetBook.worksheets.Count)
+        Set stagedSheet = targetBook.worksheets(targetBook.worksheets.Count)
+        stagedSheet.Name = MakeUniqueWorksheetName(targetBook, "__UP_NEW_" & CStr(stagedSheets.Count + 1), stagedSheet.Name)
+        With stagedSheet
             .Tab.Color = RGB(UNIT_PRICE_SHEET_TAB_R, UNIT_PRICE_SHEET_TAB_G, UNIT_PRICE_SHEET_TAB_B)
-            MarkImportedUnitPriceSheet targetBook.Worksheets(.Name)
-            FillBlankUnitPriceEFCells targetBook.Worksheets(.Name)
-            LogUP "シート作成完了 name=[" & .Name & "]"
+            MarkImportedUnitPriceSheet stagedSheet
+            FillBlankUnitPriceEFCells stagedSheet
+            LogUP "一時シート作成完了 name=[" & .Name & "]"
         End With
+        stagedSheets.Add stagedSheet
+        targetSheetNames.Add targetSheetName
 
         sourceBook.Close SaveChanges:=False
         Set sourceBook = Nothing
     Next displayName
+
+    LogUP "ImportSelectedUnitPriceSheets: 新規シート作成成功、既存シートを入替"
+    DeleteImportedUnitPriceSheetsExcept targetBook, stagedSheets
+
+    Dim i As Long
+    For i = 1 To stagedSheets.Count
+        Set stagedSheet = stagedSheets(i)
+        stagedSheet.Name = MakeUniqueWorksheetName(targetBook, CStr(targetSheetNames(i)), stagedSheet.Name)
+        LogUP "シート確定 name=[" & stagedSheet.Name & "]"
+    Next i
 
     ImportSelectedUnitPriceSheets = True
 
 Cleanup:
     On Error Resume Next
     If Not sourceBook Is Nothing Then sourceBook.Close SaveChanges:=False
+    If Not ImportSelectedUnitPriceSheets Then DeleteStagedWorksheets stagedSheets
     Application.DisplayAlerts = previousDisplayAlerts
-    Application.ScreenUpdating = previousScreenUpdating
+    Application.screenUpdating = previousScreenUpdating
     CommonGetBasicInfoWorksheet(targetBook).Activate
     On Error GoTo 0
     Exit Function
@@ -1058,13 +1074,12 @@ Private Function ImportAndMergePurchaseUnitPriceSheets(ByVal sourceFilePath As S
 
     On Error GoTo ErrorHandler
     previousDisplayAlerts = Application.DisplayAlerts
-    previousScreenUpdating = Application.ScreenUpdating
+    previousScreenUpdating = Application.screenUpdating
     previousCalculation = Application.Calculation
     Application.DisplayAlerts = False
-    Application.ScreenUpdating = False
+    Application.screenUpdating = False
     Application.Calculation = xlCalculationManual
 
-    DeleteWorksheetIfExists targetBook, newSheetName
     Set sourceBook = Workbooks.Open(fileName:=sourceFilePath, ReadOnly:=True, UpdateLinks:=False, AddToMru:=False)
 
     Dim isFirst As Boolean
@@ -1073,12 +1088,12 @@ Private Function ImportAndMergePurchaseUnitPriceSheets(ByVal sourceFilePath As S
     Dim sheetName As Variant
     For Each sheetName In selectedSheetNames
         Dim srcSheet As Worksheet
-        Set srcSheet = sourceBook.Worksheets(CStr(sheetName))
+        Set srcSheet = sourceBook.worksheets(CStr(sheetName))
 
         If isFirst Then
-            srcSheet.Copy After:=targetBook.Worksheets(targetBook.Worksheets.Count)
-            Set newSheet = targetBook.Worksheets(targetBook.Worksheets.Count)
-            newSheet.Name = MakeUniqueWorksheetName(targetBook, newSheetName, newSheet.Name)
+            srcSheet.Copy After:=targetBook.worksheets(targetBook.worksheets.Count)
+            Set newSheet = targetBook.worksheets(targetBook.worksheets.Count)
+            newSheet.Name = MakeUniqueWorksheetName(targetBook, "__UP_PURCHASE_NEW", newSheet.Name)
             isFirst = False
         Else
             AppendSheetDataExcludingHeader srcSheet, newSheet
@@ -1088,6 +1103,8 @@ Private Function ImportAndMergePurchaseUnitPriceSheets(ByVal sourceFilePath As S
     If Not newSheet Is Nothing Then
         newSheet.Tab.Color = RGB(PURCHASE_SHEET_TAB_R, PURCHASE_SHEET_TAB_G, PURCHASE_SHEET_TAB_B)
         MarkImportedUnitPriceSheet newSheet
+        DeleteWorksheetIfExists targetBook, newSheetName, newSheet
+        newSheet.Name = MakeUniqueWorksheetName(targetBook, newSheetName, newSheet.Name)
     End If
 
     ImportAndMergePurchaseUnitPriceSheets = True
@@ -1095,8 +1112,11 @@ Private Function ImportAndMergePurchaseUnitPriceSheets(ByVal sourceFilePath As S
 Cleanup:
     On Error Resume Next
     If Not sourceBook Is Nothing Then sourceBook.Close SaveChanges:=False
+    If Not ImportAndMergePurchaseUnitPriceSheets Then
+        If Not newSheet Is Nothing Then newSheet.Delete
+    End If
     Application.DisplayAlerts = previousDisplayAlerts
-    Application.ScreenUpdating = previousScreenUpdating
+    Application.screenUpdating = previousScreenUpdating
     Application.Calculation = previousCalculation
     Application.CutCopyMode = False
     On Error GoTo 0
@@ -1119,13 +1139,12 @@ Private Function ImportAndMergeWeldingUnitPriceSheets(ByVal sourceFilePath As St
 
     On Error GoTo ErrorHandler
     previousDisplayAlerts = Application.DisplayAlerts
-    previousScreenUpdating = Application.ScreenUpdating
+    previousScreenUpdating = Application.screenUpdating
     previousCalculation = Application.Calculation
     Application.DisplayAlerts = False
-    Application.ScreenUpdating = False
+    Application.screenUpdating = False
     Application.Calculation = xlCalculationManual
 
-    DeleteWorksheetIfExists targetBook, newSheetName
     Set sourceBook = Workbooks.Open(fileName:=sourceFilePath, ReadOnly:=True, UpdateLinks:=False, AddToMru:=False)
 
     Dim isFirst As Boolean
@@ -1134,12 +1153,12 @@ Private Function ImportAndMergeWeldingUnitPriceSheets(ByVal sourceFilePath As St
     Dim sheetName As Variant
     For Each sheetName In selectedSheetNames
         Dim srcSheet As Worksheet
-        Set srcSheet = sourceBook.Worksheets(CStr(sheetName))
+        Set srcSheet = sourceBook.worksheets(CStr(sheetName))
 
         If isFirst Then
-            srcSheet.Copy After:=targetBook.Worksheets(targetBook.Worksheets.Count)
-            Set newSheet = targetBook.Worksheets(targetBook.Worksheets.Count)
-            newSheet.Name = MakeUniqueWorksheetName(targetBook, newSheetName, newSheet.Name)
+            srcSheet.Copy After:=targetBook.worksheets(targetBook.worksheets.Count)
+            Set newSheet = targetBook.worksheets(targetBook.worksheets.Count)
+            newSheet.Name = MakeUniqueWorksheetName(targetBook, "__UP_WELDING_NEW", newSheet.Name)
             isFirst = False
         Else
             AppendSheetDataExcludingHeader srcSheet, newSheet
@@ -1150,6 +1169,8 @@ Private Function ImportAndMergeWeldingUnitPriceSheets(ByVal sourceFilePath As St
         newSheet.Tab.Color = RGB(WELDING_SHEET_TAB_R, WELDING_SHEET_TAB_G, WELDING_SHEET_TAB_B)
         MarkImportedUnitPriceSheet newSheet
         FillBlankUnitPriceEFCells newSheet
+        DeleteWorksheetIfExists targetBook, newSheetName, newSheet
+        newSheet.Name = MakeUniqueWorksheetName(targetBook, newSheetName, newSheet.Name)
     End If
 
     ImportAndMergeWeldingUnitPriceSheets = True
@@ -1157,8 +1178,11 @@ Private Function ImportAndMergeWeldingUnitPriceSheets(ByVal sourceFilePath As St
 Cleanup:
     On Error Resume Next
     If Not sourceBook Is Nothing Then sourceBook.Close SaveChanges:=False
+    If Not ImportAndMergeWeldingUnitPriceSheets Then
+        If Not newSheet Is Nothing Then newSheet.Delete
+    End If
     Application.DisplayAlerts = previousDisplayAlerts
-    Application.ScreenUpdating = previousScreenUpdating
+    Application.screenUpdating = previousScreenUpdating
     Application.Calculation = previousCalculation
     Application.CutCopyMode = False
     On Error GoTo 0
@@ -1175,7 +1199,7 @@ Private Sub AppendSheetDataExcludingHeader(ByVal srcSheet As Worksheet, ByVal de
     If srcUsed Is Nothing Then Exit Sub
 
     Dim srcLastRow As Long, srcLastCol As Long
-    srcLastRow = srcUsed.Row + srcUsed.Rows.Count - 1
+    srcLastRow = srcUsed.Row + srcUsed.rows.Count - 1
     srcLastCol = srcUsed.Column + srcUsed.Columns.Count - 1
     If srcLastRow <= SOURCE_HEADER_ROW Then Exit Sub
 
@@ -1332,7 +1356,7 @@ Private Function IsWeldingUnitPriceRequired(ByVal wsInfo As Worksheet) As Boolea
     Set targetCell = wsInfo.Range(BASIC_INFO_WELDING_FLAG_CELL).MergeArea.Cells(1, 1)
 
     Dim normalizedFlag As String
-    normalizedFlag = NormalizeMatchText(CStr(targetCell.Value))
+    normalizedFlag = NormalizeMatchText(CStr(targetCell.value))
     IsWeldingUnitPriceRequired = (StrComp(normalizedFlag, NormalizeMatchText(WELDING_REQUIRED_VALUE), vbTextCompare) = 0 Or _
                                   (InStr(1, normalizedFlag, NormalizeMatchText("溶接"), vbTextCompare) > 0 And _
                                    InStr(1, normalizedFlag, NormalizeMatchText("あり"), vbTextCompare) > 0))
@@ -1522,7 +1546,7 @@ Private Sub WriteSelectedLineNames(ByVal wsInfo As Worksheet, ByVal selectedShee
     Dim joinedText As String
     joinedText = JoinCollectionText(selectedSheetNames, ChrW$(&H3001))
     LogUP "WriteSelectedLineNames C24=[" & joinedText & "]"
-    wsInfo.Range(BASIC_INFO_IMPORTED_LINE_NAMES_CELL).Value = joinedText
+    wsInfo.Range(BASIC_INFO_IMPORTED_LINE_NAMES_CELL).value = joinedText
     FormatImportedLineNamesCell wsInfo
 End Sub
 
@@ -1533,22 +1557,22 @@ Public Sub FormatImportedLineNamesCell(ByVal wsInfo As Worksheet)
     Set targetCell = wsInfo.Range(BASIC_INFO_IMPORTED_LINE_NAMES_CELL).MergeArea.Cells(1, 1)
 
     Dim formattedText As String
-    formattedText = NormalizeImportedLineNameText(CStr(targetCell.Value))
-    If CStr(targetCell.Value) <> formattedText Then targetCell.Value = formattedText
+    formattedText = NormalizeImportedLineNameText(CStr(targetCell.value))
+    If CStr(targetCell.value) <> formattedText Then targetCell.value = formattedText
 
     targetCell.MergeArea.WrapText = True
     targetCell.MergeArea.VerticalAlignment = xlVAlignCenter
     targetCell.MergeArea.Font.Size = CalculateImportedLineNameFontSize(targetCell.MergeArea, formattedText)
 End Sub
 
-Private Function CalculateImportedLineNameFontSize(ByVal targetArea As Range, ByVal lineNameText As String) As Double
+Private Function CalculateImportedLineNameFontSize(ByVal targetArea As Range, ByVal LineNameText As String) As Double
     If targetArea Is Nothing Then
         CalculateImportedLineNameFontSize = IMPORTED_LINE_NAME_BASE_FONT_SIZE
         Exit Function
     End If
 
     Dim lineCount As Long
-    lineCount = CountImportedLineNameLines(lineNameText)
+    lineCount = CountImportedLineNameLines(LineNameText)
     If lineCount < 1 Then lineCount = 1
 
     Dim availableHeight As Double
@@ -1585,16 +1609,16 @@ Private Function NormalizeImportedLineNameText(ByVal sourceText As String) As St
     NormalizeImportedLineNameText = result
 End Function
 
-Private Function CountImportedLineNameLines(ByVal lineNameText As String) As Long
-    If lineNameText = "" Then
+Private Function CountImportedLineNameLines(ByVal LineNameText As String) As Long
+    If LineNameText = "" Then
         CountImportedLineNameLines = 1
         Exit Function
     End If
 
     Dim i As Long
     CountImportedLineNameLines = 1
-    For i = 1 To Len(lineNameText)
-        If Mid$(lineNameText, i, 1) = vbLf Then CountImportedLineNameLines = CountImportedLineNameLines + 1
+    For i = 1 To Len(LineNameText)
+        If Mid$(LineNameText, i, 1) = vbLf Then CountImportedLineNameLines = CountImportedLineNameLines + 1
     Next i
 End Function
 
@@ -1684,33 +1708,39 @@ Public Sub ClearUnitPriceSheets(Optional ByVal targetBook As Workbook)
     Dim previousScreenUpdating As Boolean
     previousDisplayAlerts = Application.DisplayAlerts
     previousEnableEvents = Application.EnableEvents
-    previousScreenUpdating = Application.ScreenUpdating
+    previousScreenUpdating = Application.screenUpdating
     On Error GoTo ErrorHandler
     Application.DisplayAlerts = False
     Application.EnableEvents = False
-    Application.ScreenUpdating = False
+    Application.screenUpdating = False
     DeleteImportedUnitPriceSheets targetBook
 Cleanup:
-    Application.ScreenUpdating = previousScreenUpdating
+    Application.screenUpdating = previousScreenUpdating
     Application.EnableEvents = previousEnableEvents
     Application.DisplayAlerts = previousDisplayAlerts
     If savedErrNumber <> 0 Then Err.Raise savedErrNumber, savedErrSource, savedErrDescription
     Exit Sub
 ErrorHandler:
     savedErrNumber = Err.Number
-    savedErrSource = Err.Source
+    savedErrSource = Err.source
     savedErrDescription = Err.Description
     Resume Cleanup
 End Sub
 
 Private Sub DeleteImportedUnitPriceSheets(ByVal targetBook As Workbook)
+    DeleteImportedUnitPriceSheetsExcept targetBook, Nothing
+End Sub
+
+Private Sub DeleteImportedUnitPriceSheetsExcept(ByVal targetBook As Workbook, _
+                                                ByVal keepSheets As Collection)
     Dim i As Long
     Dim deletedCount As Long
-    For i = targetBook.Worksheets.Count To 1 Step -1
-        If IsImportedUnitPriceSheet(targetBook.Worksheets(i)) Then
-            If targetBook.Worksheets.Count > 1 Then
-                LogUP "DeleteImportedUnitPriceSheets: delete [" & targetBook.Worksheets(i).Name & "]"
-                targetBook.Worksheets(i).Delete
+    For i = targetBook.worksheets.Count To 1 Step -1
+        If IsImportedUnitPriceSheet(targetBook.worksheets(i)) Then
+            If Not WorksheetIsInCollection(targetBook.worksheets(i), keepSheets) And _
+               targetBook.worksheets.Count > 1 Then
+                LogUP "DeleteImportedUnitPriceSheets: delete [" & targetBook.worksheets(i).Name & "]"
+                targetBook.worksheets(i).Delete
                 deletedCount = deletedCount + 1
             End If
         End If
@@ -1718,13 +1748,43 @@ Private Sub DeleteImportedUnitPriceSheets(ByVal targetBook As Workbook)
     LogUP "DeleteImportedUnitPriceSheets: deletedCount=" & CStr(deletedCount)
 End Sub
 
-Private Sub DeleteWorksheetIfExists(ByVal targetBook As Workbook, ByVal sheetName As String)
+Private Sub DeleteStagedWorksheets(ByVal stagedSheets As Collection)
+    If stagedSheets Is Nothing Then Exit Sub
+
+    Dim i As Long
+    On Error Resume Next
+    For i = stagedSheets.Count To 1 Step -1
+        stagedSheets(i).Delete
+    Next i
+    On Error GoTo 0
+End Sub
+
+Private Function WorksheetIsInCollection(ByVal targetSheet As Worksheet, _
+                                         ByVal worksheets As Collection) As Boolean
+    If targetSheet Is Nothing Or worksheets Is Nothing Then Exit Function
+
+    Dim item As Worksheet
+    For Each item In worksheets
+        If item Is targetSheet Then
+            WorksheetIsInCollection = True
+            Exit Function
+        End If
+    Next item
+End Function
+
+Private Sub DeleteWorksheetIfExists(ByVal targetBook As Workbook, _
+                                    ByVal sheetName As String, _
+                                    Optional ByVal keepSheet As Worksheet)
     Dim targetSheet As Worksheet
     On Error Resume Next
-    Set targetSheet = targetBook.Worksheets(sheetName)
+    Set targetSheet = targetBook.worksheets(sheetName)
     On Error GoTo 0
     If targetSheet Is Nothing Then Exit Sub
-    If targetBook.Worksheets.Count <= 1 Then Exit Sub
+    If Not keepSheet Is Nothing Then
+        If targetSheet Is keepSheet Then Exit Sub
+    End If
+    If targetBook.worksheets.Count <= 1 Then Exit Sub
+    If Not IsImportedUnitPriceSheet(targetSheet) Then Exit Sub
     targetSheet.Delete
 End Sub
 
@@ -1732,10 +1792,6 @@ Private Function IsImportedUnitPriceSheet(ByVal targetSheet As Worksheet) As Boo
     If targetSheet Is Nothing Then Exit Function
     If IsProtectedSystemWorksheet(targetSheet) Then Exit Function
     If IsImportedUnitPriceSheetByMarker(targetSheet) Then
-        IsImportedUnitPriceSheet = True
-        Exit Function
-    End If
-    If IsImportedUnitPriceSheetByTabColor(targetSheet) Then
         IsImportedUnitPriceSheet = True
         Exit Function
     End If
@@ -1756,15 +1812,20 @@ Private Function IsImportedUnitPriceSheetByNameSuffix(ByVal targetSheet As Works
     Dim sheetName As String
     sheetName = CommonNormalizeText(CStr(targetSheet.Name))
     IsImportedUnitPriceSheetByNameSuffix = _
-        (InStr(1, sheetName, NormalizeMatchText(PURCHASE_SHEET_NAME_SUFFIX), vbTextCompare) > 0) Or _
-        (InStr(1, sheetName, NormalizeMatchText(WELDING_SHEET_NAME_SUFFIX), vbTextCompare) > 0)
+        TextEndsWith(sheetName, NormalizeMatchText(PURCHASE_SHEET_NAME_SUFFIX)) Or _
+        TextEndsWith(sheetName, NormalizeMatchText(WELDING_SHEET_NAME_SUFFIX))
+End Function
+
+Private Function TextEndsWith(ByVal sourceText As String, ByVal suffixText As String) As Boolean
+    If suffixText = "" Or Len(sourceText) < Len(suffixText) Then Exit Function
+    TextEndsWith = (StrComp(Right$(sourceText, Len(suffixText)), suffixText, vbTextCompare) = 0)
 End Function
 
 Private Function IsImportedUnitPriceSheetByMarker(ByVal targetSheet As Worksheet) As Boolean
     On Error Resume Next
     IsImportedUnitPriceSheetByMarker = _
-        (CStr(targetSheet.Range(IMPORTED_SHEET_MARKER_ADDRESS).Value) = IMPORTED_SHEET_MARKER_VALUE) Or _
-        (CStr(targetSheet.Range(IMPORTED_SHEET_LEGACY_MARKER_ADDRESS).Value) = IMPORTED_SHEET_MARKER_VALUE)
+        (CStr(targetSheet.Range(IMPORTED_SHEET_MARKER_ADDRESS).value) = IMPORTED_SHEET_MARKER_VALUE) Or _
+        (CStr(targetSheet.Range(IMPORTED_SHEET_LEGACY_MARKER_ADDRESS).value) = IMPORTED_SHEET_MARKER_VALUE)
     On Error GoTo 0
 End Function
 
@@ -1785,7 +1846,7 @@ End Function
 Private Sub MarkImportedUnitPriceSheet(ByVal targetSheet As Worksheet)
     If targetSheet Is Nothing Then Exit Sub
     On Error Resume Next
-    targetSheet.Range(IMPORTED_SHEET_MARKER_ADDRESS).Value = IMPORTED_SHEET_MARKER_VALUE
+    targetSheet.Range(IMPORTED_SHEET_MARKER_ADDRESS).value = IMPORTED_SHEET_MARKER_VALUE
     On Error GoTo 0
 End Sub
 
@@ -1803,7 +1864,7 @@ End Function
 
 Private Function IsImportedLineNamesCellEmpty(ByVal wsInfo As Worksheet) As Boolean
     IsImportedLineNamesCellEmpty = _
-        (Len(Trim$(CStr(wsInfo.Range(BASIC_INFO_IMPORTED_LINE_NAMES_CELL).MergeArea.Cells(1, 1).Value))) = 0)
+        (Len(Trim$(CStr(wsInfo.Range(BASIC_INFO_IMPORTED_LINE_NAMES_CELL).MergeArea.Cells(1, 1).value))) = 0)
 End Function
 
 Private Sub FillBlankUnitPriceEFCells(ByVal targetSheet As Worksheet)
@@ -1811,7 +1872,7 @@ Private Sub FillBlankUnitPriceEFCells(ByVal targetSheet As Worksheet)
     If IsPurchaseUnitPriceProjectName(CStr(targetSheet.Name)) Then Exit Sub
 
     Dim lastRow As Long
-    lastRow = targetSheet.Cells(targetSheet.Rows.Count, UNIT_PRICE_BLANK_FILL_LAST_ROW_COL).End(xlUp).Row
+    lastRow = targetSheet.Cells(targetSheet.rows.Count, UNIT_PRICE_BLANK_FILL_LAST_ROW_COL).End(xlUp).Row
     If lastRow < UNIT_PRICE_BLANK_FILL_DATA_START_ROW Then Exit Sub
 
     Dim rowIndex As Long
@@ -1819,7 +1880,7 @@ Private Sub FillBlankUnitPriceEFCells(ByVal targetSheet As Worksheet)
     For rowIndex = UNIT_PRICE_BLANK_FILL_DATA_START_ROW To lastRow
         For colIndex = UNIT_PRICE_BLANK_FILL_COL_START To UNIT_PRICE_BLANK_FILL_COL_END
             With targetSheet.Cells(rowIndex, colIndex)
-                If Len(Trim$(CStr(.Value))) = 0 Then
+                If Len(Trim$(CStr(.value))) = 0 Then
                     .Interior.Color = RGB(UNIT_PRICE_BLANK_FILL_COLOR_R, _
                                           UNIT_PRICE_BLANK_FILL_COLOR_G, _
                                           UNIT_PRICE_BLANK_FILL_COLOR_B)
@@ -1869,7 +1930,7 @@ End Function
 Private Function WorksheetExists(ByVal targetBook As Workbook, ByVal sheetName As String) As Boolean
     Dim targetSheet As Worksheet
     On Error Resume Next
-    Set targetSheet = targetBook.Worksheets(sheetName)
+    Set targetSheet = targetBook.worksheets(sheetName)
     WorksheetExists = Not targetSheet Is Nothing
     On Error GoTo 0
 End Function
@@ -2004,8 +2065,8 @@ Private Sub WriteUnitPriceLineTypeValidation(ByVal wsInfo As Worksheet)
     Set listRange = wsInfo.Range(LINE_TYPE_LIST_COL & LIST_START_ROW).Resize(2, 1)
     wsInfo.Columns(LINE_TYPE_LIST_COL & ":" & LINE_TYPE_LIST_COL).Hidden = False
     listRange.ClearContents
-    listRange.Cells(1, 1).Value = ZAIRAISEN_NAME
-    listRange.Cells(2, 1).Value = SHINKANSEN_NAME
+    listRange.Cells(1, 1).value = ZAIRAISEN_NAME
+    listRange.Cells(2, 1).value = SHINKANSEN_NAME
     ResetUnitPriceValidation wsInfo.Range(BASIC_INFO_LINE_TYPE_CELL), listRange
     wsInfo.Columns(LINE_TYPE_LIST_COL & ":" & LINE_TYPE_LIST_COL).Hidden = True
 End Sub
@@ -2015,8 +2076,8 @@ Private Sub WriteUnitPriceKindValidation(ByVal wsInfo As Worksheet)
     Set listRange = wsInfo.Range(PRICE_KIND_LIST_COL & LIST_START_ROW).Resize(2, 1)
     wsInfo.Columns(PRICE_KIND_LIST_COL & ":" & PRICE_KIND_LIST_COL).Hidden = False
     listRange.ClearContents
-    listRange.Cells(1, 1).Value = INITIAL_PRICE_NAME
-    listRange.Cells(2, 1).Value = DESIGN_CHANGE_PRICE_NAME
+    listRange.Cells(1, 1).value = INITIAL_PRICE_NAME
+    listRange.Cells(2, 1).value = DESIGN_CHANGE_PRICE_NAME
     ResetUnitPriceValidation wsInfo.Range(BASIC_INFO_PRICE_KIND_CELL), listRange
     wsInfo.Columns(PRICE_KIND_LIST_COL & ":" & PRICE_KIND_LIST_COL).Hidden = True
 End Sub
@@ -2030,14 +2091,14 @@ Private Sub WriteUnitPriceProjectNameValidation(ByVal wsInfo As Worksheet, _
     Set listRange = wsInfo.Range(PROJECT_NAME_LIST_COL & LIST_START_ROW).Resize(maxRows, 1)
 
     Dim currentProjectName As String
-    currentProjectName = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_PROJECT_NAME_CELL).Value))
+    currentProjectName = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_PROJECT_NAME_CELL).value))
 
     wsInfo.Columns(PROJECT_NAME_LIST_COL & ":" & PROJECT_NAME_LIST_COL).Hidden = False
     wsInfo.Range(PROJECT_NAME_LIST_COL & ":" & PROJECT_NAME_LIST_COL).ClearContents
 
     Dim i As Long
     For i = 1 To projectNames.Count
-        listRange.Cells(i, 1).Value = projectNames(i)
+        listRange.Cells(i, 1).value = projectNames(i)
     Next i
 
     ResetUnitPriceValidation wsInfo.Range(BASIC_INFO_PROJECT_NAME_CELL), _

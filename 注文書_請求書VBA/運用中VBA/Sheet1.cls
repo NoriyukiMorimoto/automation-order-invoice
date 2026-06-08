@@ -13,17 +13,17 @@ ExitHandler:
     Application.EnableEvents = True
 End Sub
 
-Private Sub Worksheet_Change(ByVal Target As Range)
-    mod_DebugLog.Log "[Sheet1] Worksheet_Change 発火: " & Target.Address & " Value=[" & GetTargetValueText(Target) & "] EnableEvents=" & Application.EnableEvents
+Private Sub Worksheet_Change(ByVal target As Range)
+    mod_DebugLog.Log "[Sheet1] Worksheet_Change 発火: " & target.Address & " Value=[" & GetTargetValueText(target) & "] EnableEvents=" & Application.EnableEvents
     Dim vendorNameRange As Range
     Set vendorNameRange = mod_VendorMaster.GetVendorNameRange(Me)
 
     Dim vendorUnitPriceMonitorRange As Range
     Set vendorUnitPriceMonitorRange = mod_VendorMaster.GetVendorUnitPriceMonitorRange(Me)
 
-    If Intersect(Target, Me.Range("B4,B6,C6,C10,C15:C16,F9,C20,C22,C23,C24,F2")) Is Nothing And _
-       Intersect(Target, vendorNameRange) Is Nothing And _
-       Intersect(Target, vendorUnitPriceMonitorRange) Is Nothing Then
+    If Intersect(target, Me.Range("B4,B6,C6,C10,C15:C16,F9,C20,C22,C23,C24,F2")) Is Nothing And _
+       Intersect(target, vendorNameRange) Is Nothing And _
+       Intersect(target, vendorUnitPriceMonitorRange) Is Nothing Then
         mod_DebugLog.Log "[Sheet1] 監視対象外 -> Exit"
         Exit Sub
     End If
@@ -34,23 +34,23 @@ Private Sub Worksheet_Change(ByVal Target As Range)
     Dim needComboPrompt As Boolean
     needComboPrompt = False
 
-    If Not Intersect(Target, Me.Range("B4,B6")) Is Nothing Then
+    If Not Intersect(target, Me.Range("B4,B6")) Is Nothing Then
         mod_DebugLog.Log "[Sheet1] B4/B6変更 -> RefreshBranchOfficeValidation(False) 呼び出し"
         needComboPrompt = mod_FillManagerName.RefreshBranchOfficeValidation(False)
         mod_DebugLog.Log "[Sheet1] RefreshBranchOfficeValidation 戻り値 needComboPrompt=" & needComboPrompt
     End If
 
-    If Not Intersect(Target, Me.Range("B6")) Is Nothing Then
+    If Not Intersect(target, Me.Range("B6")) Is Nothing Then
         mod_VendorMaster.RefreshVendorListForBasicInfo Me
     End If
 
-    If Not Intersect(Target, Me.Range("F9")) Is Nothing Then
+    If Not Intersect(target, Me.Range("F9")) Is Nothing Then
         mod_VendorMaster.SyncVendorBlocksFromCount Me
         Set vendorNameRange = mod_VendorMaster.GetVendorNameRange(Me)
     End If
 
     ' B6 または C6 が変更された場合：確認なしで基本情報・単価シートをクリア
-    If Not Intersect(Target, Me.Range("B6,C6")) Is Nothing Then
+    If Not Intersect(target, Me.Range("B6,C6")) Is Nothing Then
         mod_DebugLog.Log "[Sheet1] B6/C6変更 IsSuppressing=" & mod_FillManagerName.IsSuppressingC6Change()
         If Not mod_FillManagerName.IsSuppressingC6Change() Then
             mod_DebugLog.Log "[Sheet1] SilentClearBasicInfo 呼び出し"
@@ -59,46 +59,49 @@ Private Sub Worksheet_Change(ByVal Target As Range)
         End If
     End If
 
-    If Not Intersect(Target, Me.Range("C6")) Is Nothing Then
+    If Not Intersect(target, Me.Range("C6")) Is Nothing Then
         If Not mod_FillManagerName.IsSuppressingC6Change() Then
             mod_FillManagerName.FillManagerNameToBasicInfo
         End If
     End If
 
-    If Not Intersect(Target, Me.Range("C10")) Is Nothing Then
+    If Not Intersect(target, Me.Range("C10")) Is Nothing Then
         mod_MaterialPriceImport.AutoFillUnitPriceFieldsFromWorkName Me
     End If
 
-    If Not Intersect(Target, Me.Range("F2")) Is Nothing Then
+    If Not Intersect(target, Me.Range("F2")) Is Nothing Then
         mod_BasicInfoUpdate.ApplyInitialBillingPeriodFromStartDate Me
     End If
 
-    If Not Intersect(Target, Me.Range("C15:C16")) Is Nothing Then
+    If Not Intersect(target, Me.Range("C15:C16")) Is Nothing Then
         mod_BasicInfoUpdate.ApplyWorkDaysFromWorkDates Me
     End If
 
-    If Not Intersect(Target, Me.Range("C20")) Is Nothing Then
+    If Not Intersect(target, Me.Range("C20")) Is Nothing Then
         mod_MaterialPriceImport.RefreshUnitPriceProjectNameValidation Me, False
     End If
 
-    If Not Intersect(Target, Me.Range("C24")) Is Nothing Then
-        mod_MaterialPriceImport.FormatImportedLineNamesCell Me
+    If Not Intersect(target, Me.Range("C24")) Is Nothing Then
+        mod_MaterialPriceImport.HandleImportedLineNamesCellChange Me, target
+        If Len(Trim$(CStr(Me.Range("C24").MergeArea.Cells(1, 1).value))) > 0 Then
+            mod_MaterialPriceImport.FormatImportedLineNamesCell Me
+        End If
     End If
 
-    If Not Intersect(Target, Me.Range("C22,C23")) Is Nothing Then
-        If Trim$(CStr(Me.Range("C24").Value)) <> "" Then
+    If Not Intersect(target, Me.Range("C22,C23")) Is Nothing Then
+        If Trim$(CStr(Me.Range("C24").value)) <> "" Then
             mod_MaterialPriceImport.SilentClearUnitPriceForBasicInfo Me
         End If
     End If
 
-    If Not Intersect(Target, vendorNameRange) Is Nothing Then
-        mod_VendorMaster.FillVendorInfoToBasicInfo Me, Intersect(Target, vendorNameRange).Cells(1, 1)
+    If Not Intersect(target, vendorNameRange) Is Nothing Then
+        mod_VendorMaster.FillVendorInfoToBasicInfo Me, Intersect(target, vendorNameRange).Cells(1, 1)
         mod_VendorMaster.CancelScheduledVendorListDropdown
         mod_VendorMaster.HideVendorComboBox Me
     End If
 
-    If Not Intersect(Target, vendorUnitPriceMonitorRange) Is Nothing Then
-        mod_VendorMaster.HandleVendorUnitPriceMonitorChange Me, Target
+    If Not Intersect(target, vendorUnitPriceMonitorRange) Is Nothing Then
+        mod_VendorMaster.HandleVendorUnitPriceMonitorChange Me, target
     End If
 
     mod_DebugLog.Log "[Sheet1] needComboPrompt=" & needComboPrompt
@@ -113,8 +116,8 @@ ExitHandler:
     Application.EnableEvents = True
 End Sub
 
-Private Sub Worksheet_BeforeDoubleClick(ByVal Target As Range, Cancel As Boolean)
-    If IsUnitPriceImportDoubleClickTarget(Target) Then
+Private Sub Worksheet_BeforeDoubleClick(ByVal target As Range, Cancel As Boolean)
+    If IsUnitPriceImportDoubleClickTarget(target) Then
         Cancel = True
         mod_MaterialPriceImport.ImportConstructionUnitPriceForBasicInfo
         Exit Sub
@@ -123,28 +126,28 @@ Private Sub Worksheet_BeforeDoubleClick(ByVal Target As Range, Cancel As Boolean
     Dim vendorNameRange As Range
     Set vendorNameRange = mod_VendorMaster.GetVendorNameRange(Me)
 
-    If Not Intersect(Target, vendorNameRange) Is Nothing Then
+    If Not Intersect(target, vendorNameRange) Is Nothing Then
         Cancel = True
         mod_VendorMaster.CancelScheduledVendorListDropdown
         mod_VendorMaster.HideVendorComboBox Me
-        mod_VendorMaster.ShowAllVendorSelection Me, Intersect(Target, vendorNameRange).Cells(1, 1)
+        mod_VendorMaster.ShowAllVendorSelection Me, Intersect(target, vendorNameRange).Cells(1, 1)
         Exit Sub
     End If
 
-    mod_BasicInfoCalendar.HandleBasicInfoProjectNameDoubleClick Target, Cancel
+    mod_BasicInfoCalendar.HandleBasicInfoProjectNameDoubleClick target, Cancel
     If Cancel Then Exit Sub
 
-    mod_BasicInfoCalendar.HandleBasicInfoDateDoubleClick Target, Cancel
+    mod_BasicInfoCalendar.HandleBasicInfoDateDoubleClick target, Cancel
 End Sub
 
-Private Function IsUnitPriceImportDoubleClickTarget(ByVal Target As Range) As Boolean
-    If Target Is Nothing Then Exit Function
+Private Function IsUnitPriceImportDoubleClickTarget(ByVal target As Range) As Boolean
+    If target Is Nothing Then Exit Function
 
     Dim targetArea As Range
     On Error Resume Next
-    Set targetArea = Target.MergeArea
+    Set targetArea = target.MergeArea
     On Error GoTo 0
-    If targetArea Is Nothing Then Set targetArea = Target
+    If targetArea Is Nothing Then Set targetArea = target
 
     IsUnitPriceImportDoubleClickTarget = _
         (targetArea.Cells(1, 1).Address(False, False) = Me.Range("C24").Address(False, False) And _
@@ -152,13 +155,13 @@ Private Function IsUnitPriceImportDoubleClickTarget(ByVal Target As Range) As Bo
          targetArea.Columns.Count = 1)
 End Function
 
-Private Sub Worksheet_SelectionChange(ByVal Target As Range)
-    mod_DebugLog.Log "[Sheet1] SelectionChange: " & Target.Address & " IsPrompting=" & mod_FillManagerName.IsPromptingOfficeComboBox()
-    mod_BasicInfoCalendar.HandleBasicInfoSelectionChange Target
+Private Sub Worksheet_SelectionChange(ByVal target As Range)
+    mod_DebugLog.Log "[Sheet1] SelectionChange: " & target.Address & " IsPrompting=" & mod_FillManagerName.IsPromptingOfficeComboBox()
+    mod_BasicInfoCalendar.HandleBasicInfoSelectionChange target
 
     ' (#22) PromptOfficeComboBox 処理中はコンボを消さない
     If Not mod_FillManagerName.IsPromptingOfficeComboBox() Then
-        If Intersect(Target, Me.Range("C6")) Is Nothing Then
+        If Intersect(target, Me.Range("C6")) Is Nothing Then
             mod_DebugLog.Log "[Sheet1] SelectionChange: C6以外 -> HideOfficeComboBox"
             mod_FillManagerName.HideOfficeComboBox Me
         End If
@@ -166,14 +169,14 @@ Private Sub Worksheet_SelectionChange(ByVal Target As Range)
         mod_DebugLog.Log "[Sheet1] SelectionChange: IsPrompting=True -> HideスキップII"
     End If
 
-    If Not Intersect(Target, Me.Range("C21")) Is Nothing Then
+    If Not Intersect(target, Me.Range("C21")) Is Nothing Then
         mod_MaterialPriceImport.RefreshUnitPriceProjectNameValidation Me, True
     End If
 
     Dim vendorNameRange As Range
     Set vendorNameRange = mod_VendorMaster.GetVendorNameRange(Me)
 
-    If Not Intersect(Target, vendorNameRange) Is Nothing Then
+    If Not Intersect(target, vendorNameRange) Is Nothing Then
         mod_VendorMaster.RefreshVendorListForBasicInfo Me
         mod_VendorMaster.ScheduleVendorListDropdown Me
     Else
@@ -221,21 +224,21 @@ Private Sub btnClearBasicInfo_Click()
     mod_BasicInfoUpdate.ClearBasicInfo
 End Sub
 
-Private Function GetTargetValueText(ByVal Target As Range) As String
+Private Function GetTargetValueText(ByVal target As Range) As String
     On Error GoTo ErrorHandler
 
-    If Target Is Nothing Then
+    If target Is Nothing Then
         GetTargetValueText = ""
         Exit Function
     End If
 
-    If Target.Cells.CountLarge > 1 Then
+    If target.Cells.CountLarge > 1 Then
         GetTargetValueText = "(multi-cell)"
         Exit Function
     End If
 
     Dim cellValue As Variant
-    cellValue = Target.Value
+    cellValue = target.value
 
     If IsError(cellValue) Then
         GetTargetValueText = "(error)"

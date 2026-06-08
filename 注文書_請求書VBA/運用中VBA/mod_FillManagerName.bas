@@ -13,6 +13,7 @@ Private Const OFFICE_COMBO_WIDTH_POINTS As Double = 310.5
 
 Private mSuppressC6Change As Boolean
 Private mInPromptOffice As Boolean
+Private mOfficePromptTime As Date
 
 Public Function IsSuppressingC6Change() As Boolean
     IsSuppressingC6Change = mSuppressC6Change
@@ -31,15 +32,15 @@ Public Sub FillManagerNameToBasicInfo()
     End If
 
     Dim yearText As String
-    yearText = CommonExtractYear4Digits(Trim$(CStr(wsInfo.Range("B4").Value)))
+    yearText = CommonExtractYear4Digits(Trim$(CStr(wsInfo.Range("B4").value)))
     If yearText = "" Then
         MsgBox "基本情報シート B4 に4桁の年度が見つかりません。例: 2026", vbExclamation
         Exit Sub
     End If
 
     Dim BranchName As String, OfficeName As String
-    BranchName = CommonNormalizeText(CStr(wsInfo.Range("B6").Value))
-    OfficeName = CommonNormalizeText(CStr(wsInfo.Range("C6").Value))
+    BranchName = CommonNormalizeText(CStr(wsInfo.Range("B6").value))
+    OfficeName = CommonNormalizeText(CStr(wsInfo.Range("C6").value))
     If BranchName = "" Or OfficeName = "" Then
         MsgBox "基本情報シート B6 または C6 が空です。支店名・出張所名を確認してください。", vbExclamation
         Exit Sub
@@ -71,7 +72,7 @@ Public Sub FillManagerNameToBasicInfo()
                "支店名：" & BranchName & vbCrLf & _
                "出張所名：" & OfficeName, vbExclamation
     Else
-        wsInfo.Range("F6").Value = foundName
+        wsInfo.Range("F6").value = foundName
     End If
 End Sub
 
@@ -87,7 +88,7 @@ Public Function RefreshBranchOfficeValidation(Optional ByVal keepOffice As Boole
     End If
 
     Dim yearText As String
-    yearText = CommonExtractYear4Digits(Trim$(CStr(wsInfo.Range("B4").Value)))
+    yearText = CommonExtractYear4Digits(Trim$(CStr(wsInfo.Range("B4").value)))
     If yearText = "" Then
         mod_DebugLog.Log "[FillMgr] RefreshBranchOfficeValidation: yearText 空 -> Exit"
         MsgBox "基本情報シート B4 に4桁の年度が見つかりません。例: 2026", vbExclamation
@@ -118,7 +119,7 @@ Public Function RefreshBranchOfficeValidation(Optional ByVal keepOffice As Boole
     officeList.CompareMode = vbTextCompare
 
     Dim selectedBranch As String
-    selectedBranch = CommonNormalizeText(CStr(wsInfo.Range("B6").Value))
+    selectedBranch = CommonNormalizeText(CStr(wsInfo.Range("B6").value))
     mod_DebugLog.Log "[FillMgr] RefreshBranchOfficeValidation: selectedBranch=[" & selectedBranch & "]"
 
     Dim rowData As Variant, BranchName As String, OfficeName As String
@@ -166,7 +167,7 @@ Private Function WriteValidationLists(ByVal wsInfo As Worksheet, _
     If branchList.Count = 0 Then wsInfo.Range("B6").ClearContents
 
     Dim currentOffice As String
-    currentOffice = CommonNormalizeText(CStr(wsInfo.Range("C6").Value))
+    currentOffice = CommonNormalizeText(CStr(wsInfo.Range("C6").value))
     If Not keepOffice Or currentOffice = "" Or Not officeList.Exists(currentOffice) Then
         wsInfo.Range("C6").ClearContents
     End If
@@ -200,7 +201,7 @@ Private Sub WriteDictionaryKeysToColumn(ByVal wsInfo As Worksheet, _
         outArr(i + 1, 1) = keysArr(i)
     Next i
 
-    wsInfo.Range(colLetter & LIST_START_ROW).Resize(total, 1).Value = outArr
+    wsInfo.Range(colLetter & LIST_START_ROW).Resize(total, 1).value = outArr
 End Sub
 
 Private Sub ResetListValidation(ByVal targetCell As Range, ByVal listRange As Range)
@@ -215,16 +216,32 @@ Private Sub ResetListValidation(ByVal targetCell As Range, ByVal listRange As Ra
 End Sub
 
 Public Sub ScheduleOfficeComboBoxPrompt()
+    CancelScheduledOfficeComboBoxPrompt
+    mOfficePromptTime = Now + TimeSerial(0, 0, 1)
+
     On Error Resume Next
-    Application.OnTime Now + TimeSerial(0, 0, 1), "'" & ThisWorkbook.Name & "'!PromptOfficeComboBox"
+    Application.OnTime mOfficePromptTime, "'" & ThisWorkbook.Name & "'!PromptOfficeComboBox"
     If Err.Number <> 0 Then
         Err.Clear
+        mOfficePromptTime = 0
         PromptOfficeComboBox
     End If
     On Error GoTo 0
 End Sub
 
+Public Sub CancelScheduledOfficeComboBoxPrompt()
+    If mOfficePromptTime = 0 Then Exit Sub
+
+    On Error Resume Next
+    Application.OnTime mOfficePromptTime, _
+                       "'" & ThisWorkbook.Name & "'!PromptOfficeComboBox", _
+                       Schedule:=False
+    On Error GoTo 0
+    mOfficePromptTime = 0
+End Sub
+
 Public Sub PromptOfficeComboBox()
+    mOfficePromptTime = 0
     mod_DebugLog.Log "[FillMgr] PromptOfficeComboBox 開始 EnableEvents=" & Application.EnableEvents
     Dim wsInfo As Worksheet
     Set wsInfo = CommonGetBasicInfoWorksheet()
@@ -266,7 +283,7 @@ Public Sub HideOfficeComboBox(Optional ByVal wsInfo As Worksheet)
     Set ole = wsInfo.OLEObjects(OFFICE_COMBO_NAME)
     If Not ole Is Nothing Then
         ClearOfficeComboBoxLinkedCell ole
-        ole.Object.Value = CStr(wsInfo.Range("C6").Value)
+        ole.Object.value = CStr(wsInfo.Range("C6").value)
         ole.Visible = False
     End If
     On Error GoTo 0
@@ -284,12 +301,12 @@ Public Sub CommitOfficeComboBoxSelection(Optional ByVal selectC6 As Boolean = Tr
     If ole Is Nothing Then GoTo ExitHandler
 
     Dim selectedOffice As String
-    selectedOffice = CommonNormalizeText(CStr(ole.Object.Value))
+    selectedOffice = CommonNormalizeText(CStr(ole.Object.value))
     If selectedOffice = "" Then GoTo ExitHandler
 
     mSuppressC6Change = True
     ClearOfficeComboBoxLinkedCell ole
-    wsInfo.Range("C6").Value = selectedOffice
+    wsInfo.Range("C6").value = selectedOffice
     mSuppressC6Change = False
 
     FillManagerNameToBasicInfo
@@ -429,7 +446,7 @@ Private Sub UpdateOfficeComboBox(ByVal wsInfo As Worksheet, ByVal officeList As 
         End If
         .ListRows = Application.Max(1, Application.Min(12, officeList.Count))
         .MatchRequired = False
-        .Value = CStr(wsInfo.Range("C6").Value)
+        .value = CStr(wsInfo.Range("C6").value)
     End With
     ClearOfficeComboBoxLinkedCell ole
     ole.Visible = False
@@ -473,9 +490,9 @@ Private Function LoadManagerListRowsFromAdo(ByVal sourceFilePath As String) As C
 
     If Not rs.EOF Then rs.MoveNext
     Do Until rs.EOF
-        rows.Add Array(CommonNzText(rs.Fields(0).Value), _
-                       CommonNzText(rs.Fields(1).Value), _
-                       CommonNzText(rs.Fields(2).Value))
+        rows.Add Array(CommonNzText(rs.Fields(0).value), _
+                       CommonNzText(rs.Fields(1).value), _
+                       CommonNzText(rs.Fields(2).value))
         rs.MoveNext
     Loop
 
@@ -500,25 +517,25 @@ Private Function LoadManagerListRowsFromWorkbook(ByVal sourceFilePath As String)
     On Error GoTo ErrorHandler
     Application.DisplayAlerts = False
 
-    Set sourceBook = Application.Workbooks.Open(Filename:=sourceFilePath, _
+    Set sourceBook = Application.Workbooks.Open(fileName:=sourceFilePath, _
                                                 UpdateLinks:=False, _
                                                 ReadOnly:=True, _
                                                 AddToMru:=False)
 
     Dim sourceSheet As Worksheet
-    Set sourceSheet = sourceBook.Worksheets(1)
+    Set sourceSheet = sourceBook.worksheets(1)
 
     Dim rows As Collection
     Set rows = New Collection
 
     Dim lastRow As Long
-    lastRow = sourceSheet.Cells(sourceSheet.Rows.Count, 2).End(xlUp).Row
+    lastRow = sourceSheet.Cells(sourceSheet.rows.Count, 2).End(xlUp).Row
 
     Dim rr As Long
     For rr = 2 To lastRow
-        rows.Add Array(CommonNzText(sourceSheet.Cells(rr, 2).Value), _
-                       CommonNzText(sourceSheet.Cells(rr, 3).Value), _
-                       CommonNzText(sourceSheet.Cells(rr, 6).Value))
+        rows.Add Array(CommonNzText(sourceSheet.Cells(rr, 2).value), _
+                       CommonNzText(sourceSheet.Cells(rr, 3).value), _
+                       CommonNzText(sourceSheet.Cells(rr, 6).value))
     Next rr
 
     Set LoadManagerListRowsFromWorkbook = rows

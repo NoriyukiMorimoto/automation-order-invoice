@@ -31,24 +31,24 @@ Private mCalendarTargetSheetName As String
 Private mCalendarTargetAddress As String
 Private mCalendarDisplayMonth As Date
 
-Public Sub HandleBasicInfoDateDoubleClick(ByVal Target As Range, ByRef Cancel As Boolean)
-    If Target Is Nothing Then Exit Sub
-    If Target.Worksheet.Name <> GetBasicInfoWorksheetName() Then Exit Sub
+Public Sub HandleBasicInfoDateDoubleClick(ByVal target As Range, ByRef Cancel As Boolean)
+    If target Is Nothing Then Exit Sub
+    If target.Worksheet.Name <> GetBasicInfoWorksheetName() Then Exit Sub
 
     Dim targetCell As Range
-    Set targetCell = GetDateTargetCell(Target)
+    Set targetCell = GetDateTargetCell(target)
     If targetCell Is Nothing Then Exit Sub
 
     Cancel = True
     ShowBasicInfoDateCalendar targetCell
 End Sub
 
-Public Sub HandleBasicInfoProjectNameDoubleClick(ByVal Target As Range, ByRef Cancel As Boolean)
-    If Target Is Nothing Then Exit Sub
-    If Target.Worksheet.Name <> GetBasicInfoWorksheetName() Then Exit Sub
+Public Sub HandleBasicInfoProjectNameDoubleClick(ByVal target As Range, ByRef Cancel As Boolean)
+    If target Is Nothing Then Exit Sub
+    If target.Worksheet.Name <> GetBasicInfoWorksheetName() Then Exit Sub
 
     Dim targetCell As Range
-    Set targetCell = GetBasicInfoProjectNameTargetCell(Target)
+    Set targetCell = GetBasicInfoProjectNameTargetCell(target)
     If targetCell Is Nothing Then Exit Sub
 
     Cancel = True
@@ -80,13 +80,13 @@ Public Sub ClearProjectSelectionState()
     ProjectSelectionOfficeName = ""
 End Sub
 
-Public Sub HandleBasicInfoSelectionChange(ByVal Target As Range)
-    If Target Is Nothing Then Exit Sub
+Public Sub HandleBasicInfoSelectionChange(ByVal target As Range)
+    If target Is Nothing Then Exit Sub
 
     Dim ws As Worksheet
     Set ws = GetStoredCalendarWorksheet()
     If ws Is Nothing Then Exit Sub
-    If Target.Worksheet.Name <> ws.Name Then Exit Sub
+    If target.Worksheet.Name <> ws.Name Then Exit Sub
 
     Dim targetAddress As String
     targetAddress = GetCalendarTargetAddress()
@@ -94,7 +94,7 @@ Public Sub HandleBasicInfoSelectionChange(ByVal Target As Range)
 
     Dim calendarTarget As Range
     Set calendarTarget = ws.Range(targetAddress)
-    If Intersect(Target, calendarTarget.MergeArea) Is Nothing Then
+    If Intersect(target, calendarTarget.MergeArea) Is Nothing Then
         DeleteBasicInfoCalendar ws
     End If
 End Sub
@@ -192,8 +192,9 @@ End Sub
 '--------------------------------------------------------------------------
 Private Sub DrawBasicInfoCalendar(ByVal ws As Worksheet, ByVal targetCell As Range, ByVal displayMonth As Date, ByVal baseDate As Date)
     Dim previousScreenUpdating As Boolean
-    previousScreenUpdating = Application.ScreenUpdating
-    Application.ScreenUpdating = False
+    previousScreenUpdating = Application.screenUpdating
+    On Error GoTo FinallyExit
+    Application.screenUpdating = False
 
     DeleteBasicInfoCalendar ws
 
@@ -272,7 +273,8 @@ Private Sub DrawBasicInfoCalendar(ByVal ws As Worksheet, ByVal targetCell As Ran
     AddCalendarShape ws, "Footer", msoShapeRectangle, leftPos + 8, topPos + footerTop, calendarW - 48, 22, _
                      "äÓèÄì˙ " & Format$(fiscalToday, "yyyyîNmåédì˙"), RGB(248, 250, 252), RGB(248, 250, 252), 0
 
-    Application.ScreenUpdating = previousScreenUpdating
+FinallyExit:
+    Application.screenUpdating = previousScreenUpdating
 End Sub
 
 Private Function AddCalendarShape(ByVal ws As Worksheet, ByVal suffix As String, ByVal shapeType As MsoAutoShapeType, _
@@ -285,8 +287,8 @@ Private Function AddCalendarShape(ByVal ws As Worksheet, ByVal suffix As String,
     With shp
         .Name = CALENDAR_PREFIX & suffix
         .Fill.ForeColor.RGB = fillColor
-        .Line.ForeColor.RGB = lineColor
-        .Line.Weight = lineWeight
+        .line.ForeColor.RGB = lineColor
+        .line.Weight = lineWeight
         .Placement = xlMove
         If macroName <> "" Then .OnAction = macroName
         With .TextFrame2
@@ -327,12 +329,12 @@ Private Function IsCalendarShapeName(ByVal shapeName As String) As Boolean
                           (Left$(shapeName, Len(LEGACY_CALENDAR_PREFIX)) = LEGACY_CALENDAR_PREFIX)
 End Function
 
-Private Function GetBasicInfoProjectNameTargetCell(ByVal Target As Range) As Range
+Private Function GetBasicInfoProjectNameTargetCell(ByVal target As Range) As Range
     Dim ws As Worksheet
-    Set ws = Target.Worksheet
+    Set ws = target.Worksheet
 
     Dim topLeftCell As Range
-    Set topLeftCell = GetMergeAreaTopLeftCell(Target)
+    Set topLeftCell = GetMergeAreaTopLeftCell(target)
     If topLeftCell Is Nothing Then Exit Function
 
     Dim candidate As Range
@@ -342,7 +344,7 @@ Private Function GetBasicInfoProjectNameTargetCell(ByVal Target As Range) As Ran
         Exit Function
     End If
 
-    Set candidate = Intersect(Target, ws.Range("C9"))
+    Set candidate = Intersect(target, ws.Range("C9"))
     If Not candidate Is Nothing Then Set GetBasicInfoProjectNameTargetCell = candidate.Cells(1, 1)
 End Function
 
@@ -370,12 +372,12 @@ Private Function FukuchiyamaOfficeSearchNameText() As String
     FukuchiyamaOfficeSearchNameText = cached
 End Function
 
-Private Function GetDateTargetCell(ByVal Target As Range) As Range
+Private Function GetDateTargetCell(ByVal target As Range) As Range
     Dim ws As Worksheet
-    Set ws = Target.Worksheet
+    Set ws = target.Worksheet
 
     Dim topLeftCell As Range
-    Set topLeftCell = GetMergeAreaTopLeftCell(Target)
+    Set topLeftCell = GetMergeAreaTopLeftCell(target)
     If topLeftCell Is Nothing Then Exit Function
 
     Dim candidate As Range
@@ -385,7 +387,7 @@ Private Function GetDateTargetCell(ByVal Target As Range) As Range
         Exit Function
     End If
 
-    Set candidate = Intersect(Target, ws.Range(BASIC_INFO_DATE_CELLS))
+    Set candidate = Intersect(target, ws.Range(BASIC_INFO_DATE_CELLS))
     If Not candidate Is Nothing Then Set GetDateTargetCell = candidate.Cells(1, 1)
 End Function
 
@@ -529,11 +531,9 @@ End Function
 Private Function GetStoredCalendarWorksheet() As Worksheet
     On Error Resume Next
     If mCalendarTargetSheetName <> "" Then
-        Set GetStoredCalendarWorksheet = ThisWorkbook.Worksheets(mCalendarTargetSheetName)
+        Set GetStoredCalendarWorksheet = ThisWorkbook.worksheets(mCalendarTargetSheetName)
     Else
-        Set GetStoredCalendarWorksheet = ThisWorkbook.Worksheets(GetStoredText(CALENDAR_TARGET_SHEET_NAME))
+        Set GetStoredCalendarWorksheet = ThisWorkbook.worksheets(GetStoredText(CALENDAR_TARGET_SHEET_NAME))
     End If
     On Error GoTo 0
 End Function
-
-

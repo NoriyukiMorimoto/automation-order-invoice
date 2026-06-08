@@ -127,7 +127,7 @@ Public Function CommonGetBasicInfoWorksheet(Optional ByVal wb As Workbook = Noth
     For i = LBound(candidateNames) To UBound(candidateNames)
         Set ws = Nothing
         On Error Resume Next
-        Set ws = wb.Worksheets(CStr(candidateNames(i)))
+        Set ws = wb.worksheets(CStr(candidateNames(i)))
         On Error GoTo 0
         If Not ws Is Nothing Then
             Set CommonGetBasicInfoWorksheet = ws
@@ -209,7 +209,7 @@ Public Function CommonGetAdoWorksheetNames(ByVal cn As Object) As Collection
 
     Do Until schemaRows.EOF
         Dim tableName As String
-        tableName = CommonNzText(schemaRows.fields("TABLE_NAME").value)
+        tableName = CommonNzText(schemaRows.Fields("TABLE_NAME").value)
         If CommonIsAdoWorksheetTableName(tableName) Then
             sheetNames.Add CommonCleanAdoWorksheetName(tableName)
         End If
@@ -240,9 +240,9 @@ End Function
 Public Function CommonGetAdoFieldValue(ByVal rs As Object, ByVal fieldIndex As Long) As Variant
     On Error Resume Next
     If fieldIndex >= 1 And fieldIndex <= rs.Fields.Count Then
-        CommonGetAdoFieldValue = rs.Fields(fieldIndex).Value
+        CommonGetAdoFieldValue = rs.Fields(fieldIndex).value
     ElseIf fieldIndex = 0 And rs.Fields.Count > 0 Then
-        CommonGetAdoFieldValue = rs.Fields(0).Value
+        CommonGetAdoFieldValue = rs.Fields(0).value
     End If
     On Error GoTo 0
 End Function
