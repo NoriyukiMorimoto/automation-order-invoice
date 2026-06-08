@@ -1,4 +1,3 @@
-Attribute VB_Name = "mod_Construction_Order_Import"
 Option Explicit
 
 '==========================================================================
@@ -75,14 +74,14 @@ Public Sub ImportConstructionDocument()
     Dim scrn As Boolean, calc As XlCalculation, evt As Boolean, alerts As Boolean
 
     ' 元のアプリ状態を保存
-    scrn = Application.screenUpdating
+    scrn = Application.ScreenUpdating
     calc = Application.Calculation
     evt = Application.EnableEvents
     alerts = Application.DisplayAlerts
 
     On Error GoTo Cleanup
 
-    Application.screenUpdating = False
+    Application.ScreenUpdating = False
     Application.Calculation = xlCalculationManual
     Application.EnableEvents = False
     Application.DisplayAlerts = False
@@ -120,7 +119,7 @@ Public Sub ImportConstructionDocument()
 
     '--- データ最終行(取込元の整理番号=A列) ---------------------------------
     Dim lastRow As Long
-    lastRow = srcWs.Cells(srcWs.rows.Count, "A").End(xlUp).Row
+    lastRow = srcWs.Cells(srcWs.Rows.Count, "A").End(xlUp).Row
     If lastRow < DATA_START_ROW Then
         MsgBox "取込対象データ(" & DATA_START_ROW & "行目以降)が見つかりません。", vbExclamation
         GoTo Cleanup
@@ -274,7 +273,7 @@ Public Sub ImportConstructionDocument()
     wsWorks.Activate
     wsWorks.Range("A1").Select
 
-    Application.screenUpdating = scrn
+    Application.ScreenUpdating = scrn
     Application.Calculation = calc
     Application.EnableEvents = evt
     Application.DisplayAlerts = alerts
@@ -295,7 +294,7 @@ Cleanup:
     If masterOpenedHere And Not masterWb Is Nothing Then masterWb.Close SaveChanges:=False
     On Error GoTo 0
 
-    Application.screenUpdating = scrn
+    Application.ScreenUpdating = scrn
     Application.Calculation = calc
     Application.EnableEvents = evt
     Application.DisplayAlerts = alerts
@@ -442,7 +441,7 @@ Private Function BuildManagerRoomSet(ByRef masterWb As Workbook, _
     Set dict = CreateObject("Scripting.Dictionary")
 
     Dim mLast As Long, r As Long
-    mLast = wsMaster.Cells(wsMaster.rows.Count, MGR_MASTER_BRANCH_COL).End(xlUp).Row
+    mLast = wsMaster.Cells(wsMaster.Rows.Count, MGR_MASTER_BRANCH_COL).End(xlUp).Row
 
     Dim b As String, c As String, room As String
     For r = MGR_MASTER_START_ROW To mLast
@@ -641,12 +640,12 @@ Private Sub SortWorksSheet(ByVal ws As Worksheet)
 
     With ws.Sort
         .SortFields.Clear
-        .SortFields.Add key:=ws.Range(ws.Cells(2, COL_FLAG_SIDE), ws.Cells(lastRow, COL_FLAG_SIDE)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal ' 側線フラグ
-        .SortFields.Add key:=ws.Range(ws.Cells(2, COL_LINE), ws.Cells(lastRow, COL_LINE)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal ' 契約線区名
-        .SortFields.Add key:=ws.Range(ws.Cells(2, COL_FLAG_WELD), ws.Cells(lastRow, COL_FLAG_WELD)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal ' レール溶接フラグ
-        .SortFields.Add key:=ws.Range(ws.Cells(2, COL_KIND), ws.Cells(lastRow, COL_KIND)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal ' 工種分類
-        .SortFields.Add key:=ws.Range(ws.Cells(2, COL_DAYNIGHT), ws.Cells(lastRow, COL_DAYNIGHT)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal ' 昼夜別
-        .SortFields.Add key:=ws.Range(ws.Cells(2, COL_SEIRI), ws.Cells(lastRow, COL_SEIRI)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal ' 整理番号
+        .SortFields.Add Key:=ws.Range(ws.Cells(2, COL_FLAG_SIDE), ws.Cells(lastRow, COL_FLAG_SIDE)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal ' 側線フラグ
+        .SortFields.Add Key:=ws.Range(ws.Cells(2, COL_LINE), ws.Cells(lastRow, COL_LINE)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal ' 契約線区名
+        .SortFields.Add Key:=ws.Range(ws.Cells(2, COL_FLAG_WELD), ws.Cells(lastRow, COL_FLAG_WELD)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal ' レール溶接フラグ
+        .SortFields.Add Key:=ws.Range(ws.Cells(2, COL_KIND), ws.Cells(lastRow, COL_KIND)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal ' 工種分類
+        .SortFields.Add Key:=ws.Range(ws.Cells(2, COL_DAYNIGHT), ws.Cells(lastRow, COL_DAYNIGHT)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal ' 昼夜別
+        .SortFields.Add Key:=ws.Range(ws.Cells(2, COL_SEIRI), ws.Cells(lastRow, COL_SEIRI)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal ' 整理番号
         .SetRange ws.Range(ws.Cells(1, 1), ws.Cells(lastRow, COL_FLAG_WELD))
         .Header = xlYes
         .MatchCase = False
@@ -667,7 +666,7 @@ Private Sub SortPurchaseSheet(ByVal ws As Worksheet)
 
     With ws.Sort
         .SortFields.Clear
-        .SortFields.Add key:=ws.Range(ws.Cells(2, COL_SEIRI), ws.Cells(lastRow, COL_SEIRI)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+        .SortFields.Add Key:=ws.Range(ws.Cells(2, COL_SEIRI), ws.Cells(lastRow, COL_SEIRI)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
         .SetRange ws.Range(ws.Cells(1, 1), ws.Cells(lastRow, COL_KIND))
         .Header = xlYes
         .MatchCase = False
@@ -711,9 +710,9 @@ Private Sub FormatSheet(ByVal ws As Worksheet)
     ' 行の高さ(シート全体 18)
     ws.Cells.RowHeight = 18
 
-    ' 中央揃え(D=昼夜別, E=単位, G=契約線区名, H=管理室, M=工種分類)
+    ' 中央揃え(B=整理番号, D=昼夜別, E=単位, G=契約線区名, H=管理室, M=工種分類)
     Dim centerCols As Variant, cv As Variant
-    centerCols = Array(COL_DAYNIGHT, COL_UNIT, COL_LINE, COL_MGR, COL_KIND)
+    centerCols = Array(COL_SEIRI, COL_DAYNIGHT, COL_UNIT, COL_LINE, COL_MGR, COL_KIND)
     For Each cv In centerCols
         ws.Range(ws.Cells(1, CLng(cv)), ws.Cells(lastRow, CLng(cv))).HorizontalAlignment = xlCenter
     Next cv
@@ -723,7 +722,7 @@ End Sub
 '  出力シートのデータ最終行(整理番号=B列で判定。A列=施工業者は空白のため)
 '==========================================================================
 Private Function GetLastDataRow(ByVal ws As Worksheet) As Long
-    GetLastDataRow = ws.Cells(ws.rows.Count, COL_SEIRI).End(xlUp).Row
+    GetLastDataRow = ws.Cells(ws.Rows.Count, COL_SEIRI).End(xlUp).Row
 End Function
 
 '==========================================================================
@@ -763,5 +762,3 @@ End Function
 Private Sub LogCI(ByVal msg As String)
     Debug.Print "[ConstructionImport] " & Format(Now, "hh:mm:ss") & "  " & msg
 End Sub
-
-
