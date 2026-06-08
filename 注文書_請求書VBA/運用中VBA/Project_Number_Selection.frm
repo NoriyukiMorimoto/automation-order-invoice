@@ -102,8 +102,8 @@ Private Sub LoadMasterDataToMemory()
             If targetBranchOffice = "" Or _
                InStr(1, RemoveProjectSelectionSpaces(GetProjectSourceValue(sourceArr, i, 7)), targetBranchOffice, vbTextCompare) > 0 Then
                 SharedMasterData(writeIndex, 1) = GetProjectSourceValue(sourceArr, i, 10)
-                SharedMasterData(writeIndex, 2) = GetProjectSourceValue(sourceArr, i, 29) & " " & GetProjectSourceValue(sourceArr, i, 30)
-                SharedMasterData(writeIndex, 3) = RemoveProjectSelectionSpaces(GetProjectSourceValue(sourceArr, i, 29) & GetProjectSourceValue(sourceArr, i, 30))
+                SharedMasterData(writeIndex, 2) = RemoveProjectSelectionSpaces(GetProjectSourceValue(sourceArr, i, 29) & GetProjectSourceValue(sourceArr, i, 30))
+                SharedMasterData(writeIndex, 3) = SharedMasterData(writeIndex, 2)
                 SharedMasterData(writeIndex, 4) = GetProjectSourceValue(sourceArr, i, 69)
                 SharedMasterData(writeIndex, 5) = GetProjectSourceRawValue(sourceArr, i, 34)
                 SharedMasterData(writeIndex, 6) = GetProjectSourceRawValue(sourceArr, i, 35)
