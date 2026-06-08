@@ -12,7 +12,8 @@ Private Const BASIC_INFO_WORK_START_DATE_CELL As String = "C15"
 Private Const BASIC_INFO_WORK_END_DATE_CELL As String = "C16"
 Private Const BASIC_INFO_WORK_DAYS_CELL As String = "C17"
 Private Const OFFICE_COMBO_NAME As String = "ComboBox1"
-Private Const BASIC_INFO_CLEAR_RANGES As String = "C2,C9:C12,C15:C17,C20:C23,C24:C28,F2:F4,F11:F16,F18:F23,F25,F27"
+Private Const BASIC_INFO_CLEAR_RANGES As String = "C2,C9:C12,C15:C17,C20:C23,C24:C28,F2:F4,F11:F16,F18:F23,F25,F27,F29,F31"
+Private Const BASIC_INFO_BILLING_SEQUENCE_CELL As String = "F9"
 
 Public Sub UpdateBasicInfoPeriod()
     Dim wsInfo As Worksheet
@@ -140,6 +141,9 @@ Public Sub ClearBasicInfo()
     HideOfficeComboBoxForUpdate wsInfo
     mod_MaterialPriceImport.ConfirmAndClearUnitPriceForBasicInfo wsInfo
     wsInfo.Range(BASIC_INFO_CLEAR_RANGES).ClearContents
+    wsInfo.Range(BASIC_INFO_BILLING_SEQUENCE_CELL).value = 1
+    ' F9 を 1 に戻したので、前回増えていた業者ブロック列をクリア・再塗色する。
+    mod_VendorMaster.SyncVendorBlocksFromCount wsInfo
 
     GoTo FinallyExit
 
@@ -179,6 +183,9 @@ Public Sub SilentClearBasicInfo(ByVal wsInfo As Worksheet)
     HideOfficeComboBoxForUpdate wsInfo
     mod_MaterialPriceImport.SilentClearUnitPriceForBasicInfo wsInfo
     wsInfo.Range(BASIC_INFO_CLEAR_RANGES).ClearContents
+    wsInfo.Range(BASIC_INFO_BILLING_SEQUENCE_CELL).value = 1
+    ' F9 を 1 に戻したので、前回増えていた業者ブロック列をクリア・再塗色する。
+    mod_VendorMaster.SyncVendorBlocksFromCount wsInfo
 
     GoTo FinallyExit
 
