@@ -266,3 +266,12 @@ Public Sub CommonSortLongArrayAsc(ByRef arr() As Long, ByVal itemCount As Long)
         arr(j + 1) = key
     Next i
 End Sub
+
+Public Function CommonTextFromChars(ParamArray charCodes() As Variant) As String
+    Dim i As Long
+    Dim result As String
+    For i = LBound(charCodes) To UBound(charCodes)
+        result = result & ChrW$(CLng(charCodes(i)))
+    Next i
+    CommonTextFromChars = result
+End Function
