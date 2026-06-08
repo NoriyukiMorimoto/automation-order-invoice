@@ -35,12 +35,6 @@ Private Const VENDOR_UNIT_PRICE_FILL_COLOR_R As Long = 128
 Private Const VENDOR_UNIT_PRICE_FILL_COLOR_G As Long = 128
 Private Const VENDOR_UNIT_PRICE_FILL_COLOR_B As Long = 128
 
-Private Enum VendorWorkTypeFillPattern
-    VendorFillPatternNone = 0
-    VendorFillPatternNightOnly = 1
-    VendorFillPatternDayOnly = 2
-    VendorFillPatternBoth = 3
-End Enum
 Private Const MAX_VENDOR_BLOCK_COUNT As Long = 20
 Private Const VENDOR_SOURCE_START_ROW As Long = 2
 Private Const VENDOR_SOURCE_END_ROW As Long = 36
@@ -688,31 +682,15 @@ Private Sub ApplyVendorUnitPriceDataRows(ByVal wsUnitPrice As Worksheet, _
 
     Dim rowIndex As Long
     For rowIndex = VENDOR_UNIT_PRICE_DATA_START_ROW To lastRow
-        Dim workTypeName As String
-        workTypeName = CommonNormalizeText(CStr(wsUnitPrice.Cells(rowIndex, VENDOR_UNIT_PRICE_WORK_TYPE_COL).value))
-
-        Dim fillPattern As VendorWorkTypeFillPattern
-        fillPattern = ResolveVendorWorkTypeFillPattern(workTypeName)
-
-        ApplyVendorUnitPriceCell wsUnitPrice.Cells(rowIndex, dayCol), True, fillPattern, _
+        ApplyVendorUnitPriceCell wsUnitPrice.Cells(rowIndex, dayCol), True, _
                                  wsUnitPrice, rowIndex, ratioAddress
-        ApplyVendorUnitPriceCell wsUnitPrice.Cells(rowIndex, nightCol), False, fillPattern, _
+        ApplyVendorUnitPriceCell wsUnitPrice.Cells(rowIndex, nightCol), False, _
                                  wsUnitPrice, rowIndex, ratioAddress
     Next rowIndex
 End Sub
 
-Private Function ResolveVendorWorkTypeFillPattern(ByVal workTypeName As String) As VendorWorkTypeFillPattern
-    workTypeName = CommonNormalizeText(workTypeName)
-    If workTypeName = "" Then Exit Function
-
-    If InStr(1, workTypeName, VendorBallastRemovalKeywordText(), vbTextCompare) > 0 Then Exit Function
-
-    ResolveVendorWorkTypeFillPattern = GetVendorWorkTypeFillPattern(workTypeName)
-End Function
-
 Private Sub ApplyVendorUnitPriceCell(ByVal targetCell As Range, _
                                        ByVal isDayColumn As Boolean, _
-                                       ByVal fillPattern As VendorWorkTypeFillPattern, _
                                        ByVal wsUnitPrice As Worksheet, _
                                        ByVal rowIndex As Long, _
                                        ByVal ratioAddress As String)
@@ -740,11 +718,7 @@ Private Sub ApplyVendorUnitPriceCell(ByVal targetCell As Range, _
             Exit Sub
         End If
 
-        If ShouldGreyFillVendorUnitPriceCell(isDayColumn, fillPattern) Then
-            ApplyVendorUnitPriceGreyFill targetCell
-        Else
-            .Formula = BuildVendorUnitPriceFormula(wsUnitPrice, rowIndex, sourceCol, ratioAddress)
-        End If
+        .Formula = BuildVendorUnitPriceFormula(wsUnitPrice, rowIndex, sourceCol, ratioAddress)
     End With
 End Sub
 
@@ -808,18 +782,6 @@ Private Function IsVendorUnitPriceSourceBlank(ByVal wsUnitPrice As Worksheet, _
         (Len(Trim$(CStr(wsUnitPrice.Cells(rowIndex, sourceCol).value))) = 0)
 End Function
 
-Private Function ShouldGreyFillVendorUnitPriceCell(ByVal isDayColumn As Boolean, _
-                                                   ByVal fillPattern As VendorWorkTypeFillPattern) As Boolean
-    Select Case fillPattern
-        Case VendorFillPatternBoth
-            ShouldGreyFillVendorUnitPriceCell = True
-        Case VendorFillPatternNightOnly
-            ShouldGreyFillVendorUnitPriceCell = isDayColumn
-        Case VendorFillPatternDayOnly
-            ShouldGreyFillVendorUnitPriceCell = Not isDayColumn
-    End Select
-End Function
-
 Private Function BuildVendorUnitPriceFormula(ByVal wsUnitPrice As Worksheet, _
                                              ByVal rowIndex As Long, _
                                              ByVal sourceCol As Long, _
@@ -873,47 +835,6 @@ Private Function HasVendorOutsourceRatio(ByVal wsInfo As Worksheet, ByVal valueC
     HasVendorOutsourceRatio = (Len(Trim$(CStr(wsInfo.Cells(BASIC_INFO_VENDOR_OUTSOURCE_RATIO_ROW, valueColumn).value))) > 0)
 End Function
 
-Private Function GetVendorWorkTypeFillPattern(ByVal workTypeName As String) As VendorWorkTypeFillPattern
-    workTypeName = CommonNormalizeText(workTypeName)
-    If workTypeName = "" Then Exit Function
-
-    If InStr(1, workTypeName, VendorWasteDisposalKeywordText(), vbTextCompare) > 0 Then
-        GetVendorWorkTypeFillPattern = VendorFillPatternBoth
-        Exit Function
-    End If
-
-    If ContainsVendorNightOnlyKeyword(workTypeName) Then
-        GetVendorWorkTypeFillPattern = VendorFillPatternNightOnly
-        Exit Function
-    End If
-
-    If ContainsVendorDayOnlyKeyword(workTypeName) Then
-        GetVendorWorkTypeFillPattern = VendorFillPatternDayOnly
-    End If
-End Function
-
-Private Function ContainsVendorNightOnlyKeyword(ByVal workTypeName As String) As Boolean
-    If InStr(1, workTypeName, VendorMachineKeywordText(), vbTextCompare) > 0 Then ContainsVendorNightOnlyKeyword = True: Exit Function
-    If InStr(1, workTypeName, VendorCrossingPavementKeywordText(), vbTextCompare) > 0 Then ContainsVendorNightOnlyKeyword = True: Exit Function
-    If InStr(1, workTypeName, VendorTrackLandKeywordText(), vbTextCompare) > 0 Then ContainsVendorNightOnlyKeyword = True: Exit Function
-    If InStr(1, workTypeName, VendorTrackBicycleKeywordText(), vbTextCompare) > 0 Then ContainsVendorNightOnlyKeyword = True: Exit Function
-    If InStr(1, workTypeName, VendorPartialSettingKeywordText(), vbTextCompare) > 0 Then ContainsVendorNightOnlyKeyword = True
-End Function
-
-Private Function ContainsVendorDayOnlyKeyword(ByVal workTypeName As String) As Boolean
-    If InStr(1, workTypeName, VendorBaseKeywordText(), vbTextCompare) > 0 Then ContainsVendorDayOnlyKeyword = True: Exit Function
-    If InStr(1, workTypeName, VendorDayInspectionKeywordText(), vbTextCompare) > 0 Then ContainsVendorDayOnlyKeyword = True: Exit Function
-    If ContainsVendorDaytimeKeyword(workTypeName) Then ContainsVendorDayOnlyKeyword = True: Exit Function
-    If InStr(1, workTypeName, VendorMachineWeedingKeywordText(), vbTextCompare) > 0 Then ContainsVendorDayOnlyKeyword = True: Exit Function
-    If InStr(1, workTypeName, VendorGrassRemovalKeywordText(), vbTextCompare) > 0 Then ContainsVendorDayOnlyKeyword = True: Exit Function
-    If InStr(1, workTypeName, VendorRailAntiContactKeywordText(), vbTextCompare) > 0 Then ContainsVendorDayOnlyKeyword = True
-End Function
-
-Private Function ContainsVendorDaytimeKeyword(ByVal workTypeName As String) As Boolean
-    ContainsVendorDaytimeKeyword = _
-        (InStr(1, workTypeName, ChrW$(&H663C) & ChrW$(&H9593), vbTextCompare) > 0)
-End Function
-
 Private Sub SafeUnmergeRange(ByVal targetRange As Range)
     On Error Resume Next
     If targetRange.MergeCells Then targetRange.UnMerge
@@ -960,80 +881,6 @@ Private Function VendorWasteDisposalKeywordText() As String
     Static cached As String
     If cached = "" Then cached = ChrW$(&H7523) & ChrW$(&H5EC3) & ChrW$(&H51E6) & ChrW$(&H7406)
     VendorWasteDisposalKeywordText = cached
-End Function
-
-Private Function VendorMachineKeywordText() As String
-    Static cached As String
-    If cached = "" Then cached = ChrW$(&H6A5F) & ChrW$(&H68B0)
-    VendorMachineKeywordText = cached
-End Function
-
-Private Function VendorCrossingPavementKeywordText() As String
-    Static cached As String
-    If cached = "" Then
-        cached = ChrW$(&H8E0F) & ChrW$(&H5207) & ChrW$(&H92EA) & ChrW$(&H88C5) & ChrW$(&H64A4) & ChrW$(&H53BB) & _
-                 ChrW$(&H307E) & ChrW$(&H305F) & ChrW$(&H306F) & ChrW$(&H5FA9) & ChrW$(&H65E7)
-    End If
-    VendorCrossingPavementKeywordText = cached
-End Function
-
-Private Function VendorTrackLandKeywordText() As String
-    Static cached As String
-    If cached = "" Then cached = ChrW$(&H8ECC) & ChrW$(&H9678)
-    VendorTrackLandKeywordText = cached
-End Function
-
-Private Function VendorTrackBicycleKeywordText() As String
-    Static cached As String
-    If cached = "" Then cached = ChrW$(&H8ECC) & ChrW$(&H9053) & ChrW$(&H81EA) & ChrW$(&H8EE2) & ChrW$(&H8ECA)
-    VendorTrackBicycleKeywordText = cached
-End Function
-
-Private Function VendorBallastRemovalKeywordText() As String
-    Static cached As String
-    If cached = "" Then
-        cached = ChrW$(&H9053) & ChrW$(&H5E8A) & ChrW$(&H30D0) & ChrW$(&H30E9) & ChrW$(&H30B9) & ChrW$(&H30C8) & _
-                 ChrW$(&H53D6) & ChrW$(&H5378)
-    End If
-    VendorBallastRemovalKeywordText = cached
-End Function
-
-Private Function VendorPartialSettingKeywordText() As String
-    Static cached As String
-    If cached = "" Then cached = ChrW$(&H90E8) & ChrW$(&H5206) & ChrW$(&H8A2D) & ChrW$(&H5B9A) & ChrW$(&H66FF)
-    VendorPartialSettingKeywordText = cached
-End Function
-
-Private Function VendorBaseKeywordText() As String
-    Static cached As String
-    If cached = "" Then cached = ChrW$(&H57FA) & ChrW$(&H5730)
-    VendorBaseKeywordText = cached
-End Function
-
-Private Function VendorDayInspectionKeywordText() As String
-    Static cached As String
-    If cached = "" Then cached = ChrW$(&H663C) & ChrW$(&H9593) & ChrW$(&H70B9) & ChrW$(&H6AA2)
-    VendorDayInspectionKeywordText = cached
-End Function
-
-Private Function VendorMachineWeedingKeywordText() As String
-    Static cached As String
-    If cached = "" Then cached = ChrW$(&H6A5F) & ChrW$(&H68B0) & ChrW$(&H9664) & ChrW$(&H8349)
-    VendorMachineWeedingKeywordText = cached
-End Function
-
-Private Function VendorGrassRemovalKeywordText() As String
-    Static cached As String
-    If cached = "" Then cached = ChrW$(&H8349) & ChrW$(&H642C) & ChrW$(&H51FA) & ChrW$(&H51E6) & ChrW$(&H7406)
-    VendorGrassRemovalKeywordText = cached
-End Function
-
-Private Function VendorRailAntiContactKeywordText() As String
-    Static cached As String
-    If cached = "" Then
-        cached = ChrW$(&H30EC) & ChrW$(&H30FC) & ChrW$(&H9632) & ChrW$(&H89E6) & ChrW$(&H52A0) & ChrW$(&H5DE5)
-    End If
-    VendorRailAntiContactKeywordText = cached
 End Function
 
 Private Function GetVendorTargetCell(ByVal wsInfo As Worksheet, Optional ByVal targetCell As Range) As Range
