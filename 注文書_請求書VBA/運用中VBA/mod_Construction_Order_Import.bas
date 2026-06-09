@@ -46,6 +46,7 @@ Private Const COL_AUTO_PRICE As Long = 15 ' 参照単価(O列)
 Private Const COL_AUTO_AMOUNT As Long = 16 ' 参照単価金額(P列)
 Private Const COL_PRICE_COMPARE As Long = 17 ' 単価比較(Q列)
 Private Const COL_PRICE_GUIDANCE As Long = 18 ' 単価不一致時の案内(R列)
+Private Const PRICE_GUIDANCE_COLUMN_WIDTH As Double = 59# ' 案内表示時のR列幅
 Private Const COL_FLAG_SIDE As Long = 27  ' 補助:側線フラグ(AA列)
 Private Const COL_FLAG_WELD As Long = 28  ' 補助:レール溶接フラグ(AB列)
 Private Const OUTPUT_COL_COUNT As Long = 13
@@ -303,6 +304,7 @@ Public Sub ImportConstructionDocument()
     WriteAdditionalHeaders wsWorks
     FillReferenceUnitPrices wsWorks, guidanceDocumentName
     FormatSheet wsWorks
+    ApplyPriceGuidanceColumnLayout wsWorks
 
     '--- 購入充当側シート作成・書込み・ソート(該当行がある場合のみ) ---------
     If purchRows.Count > 0 Then
@@ -1312,6 +1314,29 @@ Private Sub FormatSheet(ByVal ws As Worksheet, _
     For Each cv In centerCols
         ws.Range(ws.Cells(1, CLng(cv)), ws.Cells(lastRow, CLng(cv))).HorizontalAlignment = xlCenter
     Next cv
+End Sub
+
+'==========================================================================
+'  工事側シートの案内列(R列)をメッセージ有無に応じて表示切替
+'==========================================================================
+Private Sub ApplyPriceGuidanceColumnLayout(ByVal ws As Worksheet)
+    Dim lastRow As Long
+    lastRow = GetLastDataRow(ws)
+
+    Dim hasGuidance As Boolean
+    Dim r As Long
+    For r = 2 To lastRow
+        If CommonNzText(ws.Cells(r, COL_PRICE_COMPARE).value) = "単価不一致" And _
+           CommonNzText(ws.Cells(r, COL_PRICE_GUIDANCE).value) <> "" Then
+            hasGuidance = True
+            Exit For
+        End If
+    Next r
+
+    With ws.Columns(COL_PRICE_GUIDANCE)
+        .Hidden = Not hasGuidance
+        If hasGuidance Then .ColumnWidth = PRICE_GUIDANCE_COLUMN_WIDTH
+    End With
 End Sub
 
 '==========================================================================
