@@ -42,6 +42,9 @@ Private Const COL_JR_AMOUNT As Long = 10  ' JR金額
 Private Const COL_OUT_PRICE As Long = 11  ' 外注単価(空白)
 Private Const COL_OUT_AMOUNT As Long = 12 ' 外注金額(空白)
 Private Const COL_KIND As Long = 13       ' 工種分類
+Private Const COL_AUTO_PRICE As Long = 15 ' 参照単価(O列)
+Private Const COL_AUTO_AMOUNT As Long = 16 ' 参照単価金額(P列)
+Private Const COL_PRICE_COMPARE As Long = 17 ' 単価比較(Q列)
 Private Const COL_FLAG_SIDE As Long = 27  ' 補助:側線フラグ(AA列)
 Private Const COL_FLAG_WELD As Long = 28  ' 補助:レール溶接フラグ(AB列)
 Private Const OUTPUT_COL_COUNT As Long = 13
@@ -63,6 +66,15 @@ Private Const BASIC_INFO_BRANCH_CELL As String = "B6"
 Private Const BASIC_INFO_OFFICE_CELL As String = "C6"
 Private Const BASIC_INFO_PUBLIC_CELL As String = "B4"
 Private Const BASIC_INFO_AMOUNT_CELL As String = "C22"
+Private Const BASIC_INFO_LINE_TYPE_CELL As String = "C20"
+Private Const BASIC_INFO_PROJECT_NAME_CELL As String = "C21"
+
+' 工事件名別マスタ(F列=積算線区、G列=施工指示書記載線区名)
+Private Const PROJECT_MASTER_START_ROW As Long = 2
+Private Const PROJECT_MASTER_UNIT_PRICE_LINE_COL As Long = 6
+Private Const PROJECT_MASTER_SOURCE_LINE_COL As Long = 7
+Private Const PROJECT_MASTER_FOLDER As String = "工事件名別マスタ"
+Private Const UNIT_PRICE_DATA_START_ROW As Long = 7
 
 ' 取込ブックのシート名取得元セル
 Private Const SOURCE_SHEET_NAME_CELL As String = "A3"
@@ -255,6 +267,7 @@ Public Sub ImportConstructionDocument()
     WriteRecordsToSheet wsWorks, worksRows
     SortWorksSheet wsWorks
     WriteAdditionalHeaders wsWorks
+    FillReferenceUnitPrices wsWorks
     FormatSheet wsWorks
 
     '--- 購入充当側シート作成・書込み・ソート(該当行がある場合のみ) ---------
@@ -271,7 +284,7 @@ Public Sub ImportConstructionDocument()
             If docType = DOC_NOTICE Then wsPurch.Tab.Color = RGB(255, 255, 0)
             WriteRecordsToSheet wsPurch, purchRows
             SortPurchaseSheet wsPurch
-            If docType = DOC_NOTICE Then WriteAdditionalHeaders wsPurch
+            If docType = DOC_NOTICE Then WriteAdditionalHeaders wsPurch, False
             FormatSheet wsPurch
         End If
     End If
@@ -626,9 +639,10 @@ Private Sub WriteRecordsToSheet(ByVal ws As Worksheet, ByVal rows As Collection)
 End Sub
 
 '==========================================================================
-'  追加ヘッダー(O列・P列)
+'  追加ヘッダー(O列・P列・Q列)
 '==========================================================================
-Private Sub WriteAdditionalHeaders(ByVal ws As Worksheet)
+Private Sub WriteAdditionalHeaders(ByVal ws As Worksheet, _
+                                   Optional ByVal includePriceComparison As Boolean = True)
     Dim wsInfo As Worksheet
     Set wsInfo = CommonGetBasicInfoWorksheet(ThisWorkbook)
     If wsInfo Is Nothing Then
@@ -640,17 +654,346 @@ Private Sub WriteAdditionalHeaders(ByVal ws As Worksheet)
     amountName = CommonNzText(wsInfo.Range(BASIC_INFO_AMOUNT_CELL).value)
     ws.Range("O1").value = CommonNzText(wsInfo.Range(BASIC_INFO_PUBLIC_CELL).value) & "公開" & amountName
     ws.Range("P1").value = amountName & "金額"
+    If includePriceComparison Then ws.Range("Q1").value = "単価比較"
 End Sub
 
 '==========================================================================
-'  出力表の最終列(追加ヘッダーがある場合はP列)
+'  出力表の最終列(単価比較がある場合はQ列)
 '==========================================================================
 Private Function GetOutputLastColumn(ByVal ws As Worksheet) As Long
-    If CommonNzText(ws.Range("P1").value) <> "" Then
+    If CommonNzText(ws.Range("Q1").value) <> "" Then
+        GetOutputLastColumn = ws.Range("Q1").Column
+    ElseIf CommonNzText(ws.Range("P1").value) <> "" Then
         GetOutputLastColumn = ws.Range("P1").Column
     Else
         GetOutputLastColumn = COL_KIND
     End If
+End Function
+
+'==========================================================================
+'  工事側シートの参照単価・金額・比較結果を設定
+'==========================================================================
+Private Sub FillReferenceUnitPrices(ByVal ws As Worksheet)
+    Dim lastRow As Long
+    lastRow = GetLastDataRow(ws)
+    If lastRow < 2 Then Exit Sub
+
+    Dim lineSheetMap As Object
+    Set lineSheetMap = BuildConstructionLineSheetMap()
+
+    Dim sheetPriceCaches As Object
+    Set sheetPriceCaches = CreateObject("Scripting.Dictionary")
+    sheetPriceCaches.CompareMode = vbTextCompare
+
+    Dim matchedCount As Long, unresolvedLineCount As Long, missingRecordCount As Long
+    Dim r As Long
+    For r = 2 To lastRow
+        Dim unitPriceSheetName As String
+        unitPriceSheetName = ResolveUnitPriceSheetName(lineSheetMap, CommonNzText(ws.Cells(r, COL_LINE).value))
+
+        Dim referencePrice As Variant
+        referencePrice = Empty
+
+        If unitPriceSheetName = "" Then
+            unresolvedLineCount = unresolvedLineCount + 1
+        Else
+            Dim priceRows As Object
+            Set priceRows = GetUnitPriceRows(unitPriceSheetName, sheetPriceCaches)
+
+            Dim recordKey As String
+            recordKey = NormalizeRecordKey(ws.Cells(r, COL_SEIRI).value)
+
+            If priceRows Is Nothing Or recordKey = "" Then
+                missingRecordCount = missingRecordCount + 1
+            ElseIf priceRows.Exists(recordKey) Then
+                Dim dayNightPrices As Variant
+                dayNightPrices = priceRows(recordKey)
+                referencePrice = SelectDayNightPrice(CommonNzText(ws.Cells(r, COL_DAYNIGHT).value), dayNightPrices)
+                If Not IsEmpty(referencePrice) Then matchedCount = matchedCount + 1
+            Else
+                missingRecordCount = missingRecordCount + 1
+            End If
+        End If
+
+        If Not IsEmpty(referencePrice) Then ws.Cells(r, COL_AUTO_PRICE).value = referencePrice
+        WritePriceComparison ws, r
+    Next r
+
+    ws.Range(ws.Cells(2, COL_AUTO_AMOUNT), ws.Cells(lastRow, COL_AUTO_AMOUNT)).FormulaR1C1 = _
+        "=IF(OR(RC[-1]="""",RC[-10]=""""),"""",RC[-1]*RC[-10])"
+
+    With ws.Range(ws.Cells(2, COL_AUTO_PRICE), ws.Cells(lastRow, COL_AUTO_AMOUNT))
+        .NumberFormatLocal = ChrW$(&HA5) & "#,##0;[赤]-" & ChrW$(&HA5) & "#,##0"
+    End With
+    ws.Range(ws.Cells(1, COL_PRICE_COMPARE), ws.Cells(lastRow, COL_PRICE_COMPARE)).HorizontalAlignment = xlCenter
+
+    LogCI "参照単価一致=" & matchedCount & _
+          " / 線区未解決=" & unresolvedLineCount & _
+          " / 整理番号未一致=" & missingRecordCount
+End Sub
+
+'==========================================================================
+'  工事件名別マスタのF/G列から、施工指示書線区名→単価シート名を構築
+'==========================================================================
+Private Function BuildConstructionLineSheetMap() As Object
+    Dim result As Object
+    Set result = CreateObject("Scripting.Dictionary")
+    result.CompareMode = vbTextCompare
+
+    ' マスタが取得できない場合も、施工指示書線区名と単価シート名が同じなら参照できる。
+    Dim targetSheet As Worksheet
+    For Each targetSheet In ThisWorkbook.worksheets
+        If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(targetSheet) Then
+            AddLineSheetAliases result, targetSheet.Name, targetSheet.Name
+        End If
+    Next targetSheet
+
+    Dim masterPath As String
+    masterPath = ResolveProjectLineMasterPath()
+    If masterPath = "" Then
+        LogCI "工事件名別マスタ未検出 -> 単価シート名の直接照合のみ"
+        Set BuildConstructionLineSheetMap = result
+        Exit Function
+    End If
+
+    Dim masterBook As Workbook, openedHere As Boolean
+    Set masterBook = OpenWorkbookReadOnly(masterPath, openedHere)
+    If masterBook Is Nothing Then
+        LogCI "工事件名別マスタを開けない path=[" & masterPath & "]"
+        Set BuildConstructionLineSheetMap = result
+        Exit Function
+    End If
+
+    On Error GoTo Cleanup
+
+    Dim masterSheet As Worksheet
+    For Each masterSheet In masterBook.worksheets
+        Dim lastRow As Long
+        lastRow = masterSheet.Cells(masterSheet.Rows.Count, PROJECT_MASTER_UNIT_PRICE_LINE_COL).End(xlUp).Row
+
+        Dim r As Long
+        For r = PROJECT_MASTER_START_ROW To lastRow
+            Dim unitPriceLineName As String
+            Dim sourceLineName As String
+            Dim actualSheetName As String
+
+            unitPriceLineName = CommonNzText(masterSheet.Cells(r, PROJECT_MASTER_UNIT_PRICE_LINE_COL).value)
+            If Trim$(unitPriceLineName) <> "" Then
+                actualSheetName = FindImportedUnitPriceSheetName(unitPriceLineName)
+                If actualSheetName <> "" Then
+                    sourceLineName = CommonNzText(masterSheet.Cells(r, PROJECT_MASTER_SOURCE_LINE_COL).value)
+                    If Trim$(sourceLineName) = "" Then sourceLineName = unitPriceLineName
+
+                    AddLineSheetAliases result, sourceLineName, actualSheetName
+                    AddLineSheetAliases result, unitPriceLineName, actualSheetName
+                End If
+            End If
+        Next r
+    Next masterSheet
+
+Cleanup:
+    If Err.Number <> 0 Then LogCI "線区名マスタ読込エラー Err " & Err.Number & ": " & Err.Description
+    On Error Resume Next
+    If openedHere And Not masterBook Is Nothing Then masterBook.Close SaveChanges:=False
+    On Error GoTo 0
+
+    LogCI "線区名→単価シート対応数=" & result.Count & " master=[" & masterPath & "]"
+    Set BuildConstructionLineSheetMap = result
+End Function
+
+Private Sub AddLineSheetAliases(ByVal lineSheetMap As Object, _
+                                ByVal sourceLineName As String, _
+                                ByVal unitPriceSheetName As String)
+    AddLineSheetAlias lineSheetMap, "E|" & NormalizeLineLookupText(sourceLineName, False), unitPriceSheetName
+    AddLineSheetAlias lineSheetMap, "S|" & NormalizeLineLookupText(sourceLineName, True), unitPriceSheetName
+End Sub
+
+Private Sub AddLineSheetAlias(ByVal lineSheetMap As Object, _
+                              ByVal key As String, _
+                              ByVal unitPriceSheetName As String)
+    If lineSheetMap Is Nothing Or Len(key) <= 2 Then Exit Sub
+    If Not lineSheetMap.Exists(key) Then
+        lineSheetMap.Add key, unitPriceSheetName
+    ElseIf StrComp(CStr(lineSheetMap(key)), unitPriceSheetName, vbTextCompare) <> 0 Then
+        LogCI "線区名対応が重複 key=[" & key & "] first=[" & CStr(lineSheetMap(key)) & _
+              "] ignored=[" & unitPriceSheetName & "]"
+    End If
+End Sub
+
+Private Function ResolveUnitPriceSheetName(ByVal lineSheetMap As Object, _
+                                           ByVal importedLineName As String) As String
+    If lineSheetMap Is Nothing Then Exit Function
+
+    Dim key As String
+    key = "E|" & NormalizeLineLookupText(importedLineName, False)
+    If Len(key) > 2 And lineSheetMap.Exists(key) Then
+        ResolveUnitPriceSheetName = CStr(lineSheetMap(key))
+        Exit Function
+    End If
+
+    key = "S|" & NormalizeLineLookupText(importedLineName, True)
+    If Len(key) > 2 And lineSheetMap.Exists(key) Then
+        ResolveUnitPriceSheetName = CStr(lineSheetMap(key))
+    End If
+End Function
+
+Private Function NormalizeLineLookupText(ByVal sourceText As String, _
+                                         ByVal removeParenthetical As Boolean) As String
+    Dim result As String
+    result = CommonNormalizeText(sourceText)
+    result = Replace$(result, ChrW$(&HFF65), ChrW$(&H30FB))
+    If removeParenthetical Then result = RemoveParentheticalText(result)
+    NormalizeLineLookupText = CommonRemoveAllSpaces(result)
+End Function
+
+Private Function RemoveParentheticalText(ByVal sourceText As String) As String
+    Dim result As String, depth As Long
+    Dim i As Long, ch As String
+
+    For i = 1 To Len(sourceText)
+        ch = Mid$(sourceText, i, 1)
+        If ch = "(" Or ch = ChrW$(&HFF08) Then
+            depth = depth + 1
+        ElseIf ch = ")" Or ch = ChrW$(&HFF09) Then
+            If depth > 0 Then
+                depth = depth - 1
+            Else
+                result = result & ch
+            End If
+        ElseIf depth = 0 Then
+            result = result & ch
+        End If
+    Next i
+
+    RemoveParentheticalText = result
+End Function
+
+Private Function ResolveProjectLineMasterPath() As String
+    Dim wsInfo As Worksheet
+    Set wsInfo = CommonGetBasicInfoWorksheet(ThisWorkbook)
+    If wsInfo Is Nothing Or Len(ThisWorkbook.Path) = 0 Then Exit Function
+
+    Dim lineType As String, projectName As String
+    lineType = CommonNormalizeText(CommonNzText(wsInfo.Range(BASIC_INFO_LINE_TYPE_CELL).value))
+    projectName = CommonNormalizeText(CommonNzText(wsInfo.Range(BASIC_INFO_PROJECT_NAME_CELL).value))
+    If lineType = "" Or projectName = "" Then Exit Function
+
+    If LCase$(Right$(projectName, 5)) <> ".xlsx" Then projectName = projectName & ".xlsx"
+
+    Dim fso As Object
+    Set fso = CreateObject("Scripting.FileSystemObject")
+
+    Dim documentRoot As String
+    documentRoot = fso.GetParentFolderName(ThisWorkbook.Path)
+
+    Dim candidates As Collection
+    Set candidates = New Collection
+    candidates.Add fso.BuildPath(documentRoot, "単価マスタ\" & PROJECT_MASTER_FOLDER & "\" & lineType & "\" & projectName)
+    candidates.Add fso.BuildPath(documentRoot, "マスタデータ\" & lineType & "\" & projectName)
+
+    Dim candidate As Variant
+    For Each candidate In candidates
+        If fso.FileExists(CStr(candidate)) Then
+            ResolveProjectLineMasterPath = CStr(candidate)
+            Exit Function
+        End If
+    Next candidate
+End Function
+
+Private Function FindImportedUnitPriceSheetName(ByVal expectedSheetName As String) As String
+    Dim normalizedExpected As String
+    normalizedExpected = NormalizeLineLookupText(expectedSheetName, False)
+    If normalizedExpected = "" Then Exit Function
+
+    Dim ws As Worksheet
+    For Each ws In ThisWorkbook.worksheets
+        If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(ws) Then
+            If StrComp(NormalizeLineLookupText(ws.Name, False), normalizedExpected, vbTextCompare) = 0 Then
+                FindImportedUnitPriceSheetName = ws.Name
+                Exit Function
+            End If
+        End If
+    Next ws
+End Function
+
+Private Function GetUnitPriceRows(ByVal unitPriceSheetName As String, _
+                                  ByVal sheetPriceCaches As Object) As Object
+    If sheetPriceCaches.Exists(unitPriceSheetName) Then
+        Set GetUnitPriceRows = sheetPriceCaches(unitPriceSheetName)
+        Exit Function
+    End If
+
+    Dim priceSheet As Worksheet
+    On Error Resume Next
+    Set priceSheet = ThisWorkbook.worksheets(unitPriceSheetName)
+    On Error GoTo 0
+    If priceSheet Is Nothing Then Exit Function
+
+    Dim result As Object
+    Set result = CreateObject("Scripting.Dictionary")
+    result.CompareMode = vbTextCompare
+
+    Dim lastRow As Long
+    lastRow = priceSheet.Cells(priceSheet.Rows.Count, COL_SEIRI).End(xlUp).Row
+
+    Dim r As Long
+    For r = UNIT_PRICE_DATA_START_ROW To lastRow
+        Dim recordKey As String
+        recordKey = NormalizeRecordKey(priceSheet.Cells(r, COL_SEIRI).value)
+        If recordKey <> "" And Not result.Exists(recordKey) Then
+            result.Add recordKey, Array(priceSheet.Cells(r, 5).value, priceSheet.Cells(r, 6).value)
+        End If
+    Next r
+
+    sheetPriceCaches.Add unitPriceSheetName, result
+    Set GetUnitPriceRows = result
+End Function
+
+Private Function NormalizeRecordKey(ByVal value As Variant) As String
+    NormalizeRecordKey = CommonRemoveAllSpaces(CommonNzText(value))
+End Function
+
+Private Function SelectDayNightPrice(ByVal dayNightText As String, _
+                                     ByVal dayNightPrices As Variant) As Variant
+    Dim normalized As String
+    normalized = CommonRemoveAllSpaces(CommonNormalizeText(dayNightText))
+
+    If InStr(1, normalized, "昼", vbTextCompare) > 0 Then
+        SelectDayNightPrice = dayNightPrices(0)
+    ElseIf InStr(1, normalized, "夜", vbTextCompare) > 0 Then
+        SelectDayNightPrice = dayNightPrices(1)
+    Else
+        SelectDayNightPrice = Empty
+    End If
+End Function
+
+Private Sub WritePriceComparison(ByVal ws As Worksheet, ByVal rowIndex As Long)
+    Dim priceMatches As Boolean
+    priceMatches = UnitPriceValuesMatch(ws.Cells(rowIndex, COL_AUTO_PRICE).value, _
+                                        ws.Cells(rowIndex, COL_JR_PRICE).value)
+
+    With ws.Cells(rowIndex, COL_PRICE_COMPARE)
+        .HorizontalAlignment = xlCenter
+        .VerticalAlignment = xlCenter
+        If priceMatches Then
+            .value = "単価一致"
+            .Interior.Color = RGB(0, 255, 0)
+            .Font.Color = RGB(0, 0, 255)
+        Else
+            .value = "単価不一致"
+            .Interior.Color = RGB(255, 255, 0)
+            .Font.Color = RGB(255, 0, 0)
+        End If
+    End With
+End Sub
+
+Private Function UnitPriceValuesMatch(ByVal leftValue As Variant, _
+                                      ByVal rightValue As Variant) As Boolean
+    If IsError(leftValue) Or IsError(rightValue) Then Exit Function
+    If Len(Trim$(CommonNzText(leftValue))) = 0 Or Len(Trim$(CommonNzText(rightValue))) = 0 Then Exit Function
+    If Not IsNumeric(leftValue) Or Not IsNumeric(rightValue) Then Exit Function
+
+    UnitPriceValuesMatch = (Abs(CDbl(leftValue) - CDbl(rightValue)) < 0.0000001)
 End Function
 
 '==========================================================================
