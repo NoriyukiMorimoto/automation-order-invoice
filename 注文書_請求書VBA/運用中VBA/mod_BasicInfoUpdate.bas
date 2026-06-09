@@ -15,6 +15,11 @@ Private Const OFFICE_COMBO_NAME As String = "ComboBox1"
 Private Const BASIC_INFO_CLEAR_RANGES As String = "C2,C9:C12,C15:C17,C20:C23,C24:C28,F2:F4,F11:F16,F18:F23,F25,F27,F29,F31"
 Private Const BASIC_INFO_BILLING_SEQUENCE_CELL As String = "F9"
 
+' 施工取込シートの識別定数
+Private Const CONSTRUCTION_TAB_COLOR As Long = 65535  ' RGB(255,255,0) 黄色
+Private Const PURCHASE_ORDER_SHEET_NAME As String = "購入充当指示"
+Private Const PURCHASE_NOTICE_SHEET_NAME As String = "購入充当通知"
+
 Public Sub UpdateBasicInfoPeriod()
     Dim wsInfo As Worksheet
     Set wsInfo = CommonGetBasicInfoWorksheet()
@@ -142,8 +147,13 @@ Public Sub ClearBasicInfo()
     mod_MaterialPriceImport.ConfirmAndClearUnitPriceForBasicInfo wsInfo
     wsInfo.Range(BASIC_INFO_CLEAR_RANGES).ClearContents
     wsInfo.Range(BASIC_INFO_BILLING_SEQUENCE_CELL).value = 1
-    ' F9 を 1 に戻したので、前回増えていた業者ブロック列をクリア・再塗色する。
+    ' F9 を1 に戻したので、前回増えていた業者ブロック列をクリア・再塗色する。
     mod_VendorMaster.SyncVendorBlocksFromCount wsInfo
+
+    ' 施工指示書・施工通知書・購入充当取込シートの削除
+    Application.EnableEvents = prevEnableEvents  ' ダイアログ表示前に EnableEvents を復元
+    DeleteConstructionImportSheets
+    Application.EnableEvents = False             ' 削除後の続き処理向けに再無効化
 
     GoTo FinallyExit
 
@@ -165,6 +175,7 @@ End Sub
 '    B6/C6 変更時の自動クリア用。確認メッセージなし。
 '    (#21) Worksheet_Change などから呼ばれたとき EnableEvents を
 '    上書きしないよう、保存・復元するように変更。
+'    シート削除は行わない（ボタンによる明示操作のみ対象）。
 '--------------------------------------------------------------------------
 Public Sub SilentClearBasicInfo(ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Exit Sub
@@ -184,7 +195,7 @@ Public Sub SilentClearBasicInfo(ByVal wsInfo As Worksheet)
     mod_MaterialPriceImport.SilentClearUnitPriceForBasicInfo wsInfo
     wsInfo.Range(BASIC_INFO_CLEAR_RANGES).ClearContents
     wsInfo.Range(BASIC_INFO_BILLING_SEQUENCE_CELL).value = 1
-    ' F9 を 1 に戻したので、前回増えていた業者ブロック列をクリア・再塗色する。
+    ' F9 を1 に戻したので、前回増えていた業者ブロック列をクリア・再塗色する。
     mod_VendorMaster.SyncVendorBlocksFromCount wsInfo
 
     GoTo FinallyExit
@@ -199,6 +210,73 @@ FinallyExit:
     If savedErrNum <> 0 Then
         MsgBox "Basic information silent clear failed." & vbCrLf & savedErrDesc, vbExclamation
     End If
+End Sub
+
+'--------------------------------------------------------------------------
+'  DeleteConstructionImportSheets
+'    施工指示書・施工通知書・購入充当取込時に作成されたシートを削除する。
+'    対象: 黄色タブ（RGB 255,255,0）のシート（取込工事側）
+'          + 「購入充当指示」「購入充当通知」（施工指示書取込時はタブ色なしのため固定判定）
+'    基本情報シートは常にスキップ。
+'--------------------------------------------------------------------------
+Private Sub DeleteConstructionImportSheets()
+    Dim wsInfo As Worksheet
+    Set wsInfo = CommonGetBasicInfoWorksheet()
+
+    ' 削除対象シートを収集
+    Dim targets As Collection
+    Set targets = New Collection
+
+    Dim ws As Worksheet
+    For Each ws In ThisWorkbook.Worksheets
+        ' 基本情報シートは除外
+        If Not wsInfo Is Nothing Then
+            If ws Is wsInfo Then GoTo NextSheet
+        End If
+
+        Dim hit As Boolean
+        hit = False
+
+        ' 黄色タブ（取込工事側・購入充当通知）
+        Dim tabColor As Long
+        On Error Resume Next
+        tabColor = ws.Tab.Color
+        On Error GoTo 0
+        If tabColor = CONSTRUCTION_TAB_COLOR Then hit = True
+
+        ' 固定名（購入充当指示／購入充当通知）
+        If ws.Name = PURCHASE_ORDER_SHEET_NAME Then hit = True
+        If ws.Name = PURCHASE_NOTICE_SHEET_NAME Then hit = True
+
+        If hit Then targets.Add ws
+
+NextSheet:
+    Next ws
+
+    If targets.Count = 0 Then Exit Sub
+
+    ' 削除対象シート名を列挙して確認
+    Dim nameList As String
+    Dim i As Long
+    For i = 1 To targets.Count
+        nameList = nameList & "  ・" & targets(i).Name & vbCrLf
+    Next i
+
+    Dim ans As VbMsgBoxResult
+    ans = MsgBox("以下の施工指示書・通知書シートを削除します。よろしいですか？" & vbCrLf & vbCrLf & nameList, _
+                 vbYesNo + vbQuestion + vbDefaultButton2, "シート削除の確認")
+    If ans <> vbYes Then Exit Sub
+
+    ' 削除実行（DisplayAlerts = False でExcel自身の再確認ダイアログを抑制）
+    Dim prevAlerts As Boolean
+    prevAlerts = Application.DisplayAlerts
+    Application.DisplayAlerts = False
+    On Error Resume Next
+    For i = 1 To targets.Count
+        targets(i).Delete
+    Next i
+    On Error GoTo 0
+    Application.DisplayAlerts = prevAlerts
 End Sub
 
 Private Sub HideOfficeComboBoxForUpdate(ByVal wsInfo As Worksheet)
