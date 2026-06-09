@@ -487,7 +487,7 @@ Private Function ResolveMasterFilePath() As String
     If Len(Trim$(up)) > 0 Then
         Dim cand As String
         cand = up & "\" & CommonCompanyNameText() & "\" & _
-               "線路出張所用_注文書_請求書アクセスサイト - ドキュメント\単価マスタ\工事件名別マスタ\出張所別_単価適用線区.xlsx"
+               "線路出張所用_注文書_請求書アクセスサイト - ドキュメント\マスタデータ\出張所別_単価適用線区.xlsx"
         If fso.FileExists(cand) Then ResolveMasterFilePath = cand
     End If
 End Function
