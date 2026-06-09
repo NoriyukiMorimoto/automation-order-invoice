@@ -42,8 +42,8 @@ Private Const COL_JR_AMOUNT As Long = 10  ' JR金額
 Private Const COL_OUT_PRICE As Long = 11  ' 外注単価(空白)
 Private Const COL_OUT_AMOUNT As Long = 12 ' 外注金額(空白)
 Private Const COL_KIND As Long = 13       ' 工種分類
-Private Const COL_FLAG_SIDE As Long = 17  ' 補助:側線フラグ(Q列)
-Private Const COL_FLAG_WELD As Long = 18  ' 補助:レール溶接フラグ(R列)
+Private Const COL_FLAG_SIDE As Long = 27  ' 補助:側線フラグ(AA列)
+Private Const COL_FLAG_WELD As Long = 28  ' 補助:レール溶接フラグ(AB列)
 Private Const OUTPUT_COL_COUNT As Long = 13
 
 ' 管理室マスタ(出張所別_単価適用線区.xlsx)
