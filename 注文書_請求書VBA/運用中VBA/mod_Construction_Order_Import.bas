@@ -69,6 +69,11 @@ Private Const BASIC_INFO_AMOUNT_CELL As String = "C22"
 Private Const BASIC_INFO_LINE_TYPE_CELL As String = "C20"
 Private Const BASIC_INFO_PROJECT_NAME_CELL As String = "C21"
 
+' 参照シート(取込元)H9 -> 基本情報 C12 転記
+Private Const REF_VALUE_SOURCE_CELL As String = "H9"
+Private Const BASIC_INFO_REF_VALUE_CELL As String = "C12"
+Private Const BASIC_INFO_REF_FONT_NAME As String = "BIZ UDゴシック"
+
 ' 工事件名別マスタ(F列=積算線区、G列=施工指示書記載線区名)
 Private Const PROJECT_MASTER_START_ROW As Long = 2
 Private Const PROJECT_MASTER_UNIT_PRICE_LINE_COL As Long = 6
@@ -123,6 +128,11 @@ Public Sub ImportConstructionDocument()
     Set srcWs = srcWb.ActiveSheet               ' ※ 取込ブックのアクティブシートを対象とする
 
     '--- 新規シート名(A3) ---------------------------------------------------
+    '--- 参照シート H9 の値を取得(基本情報 C12 への転記用) -------------------
+    Dim refValueH9 As Variant
+    refValueH9 = srcWs.Range(REF_VALUE_SOURCE_CELL).value
+    LogCI "参照シート " & REF_VALUE_SOURCE_CELL & "=[" & CommonNzText(refValueH9) & "]"
+
     Dim baseSheetName As String
     baseSheetName = SanitizeSheetName(CommonNzText(srcWs.Range(SOURCE_SHEET_NAME_CELL).value))
     If baseSheetName = "" Then
@@ -260,6 +270,9 @@ Public Sub ImportConstructionDocument()
     Set masterWb = Nothing: masterOpenedHere = False
 
     '--- 工事側シート作成・書込み・ソート -----------------------------------
+    '--- 参照シート H9 を 基本情報 C12 へ転記(中央揃え・BIZ UDゴシック) -------
+    WriteReferenceValueToBasicInfo refValueH9
+
     Dim wsWorks As Worksheet
     Set wsWorks = CreateOrReplaceSheet(baseSheetName)
     If wsWorks Is Nothing Then GoTo Cleanup
@@ -1231,4 +1244,21 @@ Private Sub LogCI(ByVal msg As String)
     Debug.Print "[ConstructionImport] " & Format(Now, "hh:mm:ss") & "  " & msg
 End Sub
 
+'==========================================================================
+'  参照シート H9 の値を 基本情報 C12 へ転記(中央揃え・BIZ UDゴシック)
+'==========================================================================
+Private Sub WriteReferenceValueToBasicInfo(ByVal refValue As Variant)
+    Dim wsInfo As Worksheet
+    Set wsInfo = CommonGetBasicInfoWorksheet(ThisWorkbook)
+    If wsInfo Is Nothing Then
+        LogCI "基本情報シートが見つからないため " & BASIC_INFO_REF_VALUE_CELL & " への転記をスキップ"
+        Exit Sub
+    End If
 
+    With wsInfo.Range(BASIC_INFO_REF_VALUE_CELL)
+        .value = refValue
+        .HorizontalAlignment = xlCenter
+        .Font.Name = BASIC_INFO_REF_FONT_NAME
+    End With
+    LogCI BASIC_INFO_REF_VALUE_CELL & " に参照シート " & REF_VALUE_SOURCE_CELL & " を転記"
+End Sub
