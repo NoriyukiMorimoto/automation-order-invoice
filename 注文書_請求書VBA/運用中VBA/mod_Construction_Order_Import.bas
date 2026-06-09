@@ -92,7 +92,8 @@ Private Const PURCHASE_PRICE_SHEET_SUFFIX As String = "_購入充当単価"
 Private Const PURCHASE_PRICE_KEY_COL As Long = 1    ' 単価シート A列(照合キー)
 Private Const PURCHASE_PRICE_VALUE_COL As Long = 6  ' 単価シート F列(単価)
 Private Const PURCHASE_PRICE_DATA_START_ROW As Long = 2
-Private Const PURCHASE_PRICE_LOOKUP_COL As Long = 1 ' 購入充当通知 A列(照合キー)
+Private Const PURCHASE_NOTICE_SEIRI_COL As Long = 1     ' 購入充当通知 A列(整理番号)
+Private Const PURCHASE_PRICE_LOOKUP_COL As Long = PURCHASE_NOTICE_SEIRI_COL
 
 ' 取込ブックのシート名取得元セル
 Private Const SOURCE_SHEET_NAME_CELL As String = "A3"
@@ -146,13 +147,20 @@ Public Sub ImportConstructionDocument()
     refValueH9 = srcWs.Range(REF_VALUE_SOURCE_CELL).value
     LogCI "参照シート " & REF_VALUE_SOURCE_CELL & "=[" & CommonNzText(refValueH9) & "]"
 
+    Dim sourceA3Text As String
+    sourceA3Text = CommonNzText(srcWs.Range(SOURCE_SHEET_NAME_CELL).value)
+
     Dim baseSheetName As String
-    baseSheetName = SanitizeSheetName(CommonNzText(srcWs.Range(SOURCE_SHEET_NAME_CELL).value))
+    baseSheetName = SanitizeSheetName(sourceA3Text)
     If baseSheetName = "" Then
         MsgBox "取込ブックの " & SOURCE_SHEET_NAME_CELL & " が空のため、シート名を決定できません。", vbExclamation
         GoTo Cleanup
     End If
     LogCI "baseSheetName=[" & baseSheetName & "]"
+
+    Dim guidanceDocumentName As String
+    guidanceDocumentName = ResolveGuidanceDocumentName(sourceA3Text, docType)
+    LogCI "再取込み案内文書名=[" & guidanceDocumentName & "] A3=[" & sourceA3Text & "]"
 
     '--- データ最終行(取込元の整理番号=A列) ---------------------------------
     Dim lastRow As Long
@@ -293,7 +301,7 @@ Public Sub ImportConstructionDocument()
     WriteRecordsToSheet wsWorks, worksRows
     SortWorksSheet wsWorks
     WriteAdditionalHeaders wsWorks
-    FillReferenceUnitPrices wsWorks
+    FillReferenceUnitPrices wsWorks, guidanceDocumentName
     FormatSheet wsWorks
 
     '--- 購入充当側シート作成・書込み・ソート(該当行がある場合のみ) ---------
@@ -309,11 +317,17 @@ Public Sub ImportConstructionDocument()
         If Not wsPurch Is Nothing Then
             If docType = DOC_NOTICE Then wsPurch.Tab.Color = RGB(255, 255, 0)
             WriteRecordsToSheet wsPurch, purchRows
-            SortPurchaseSheet wsPurch
-            If docType = DOC_NOTICE Then WriteAdditionalHeaders wsPurch, False
-            If docType = DOC_NOTICE Then FillPurchaseUnitPrices wsPurch
-            FormatSheet wsPurch
-            If docType = DOC_NOTICE Then ApplyPurchaseNoticeColumnExclusions wsPurch
+            If docType = DOC_NOTICE Then
+                ApplyPurchaseNoticeLayout wsPurch
+                SortPurchaseSheet wsPurch, PURCHASE_NOTICE_SEIRI_COL
+                WriteAdditionalHeaders wsPurch
+                FillPurchaseUnitPrices wsPurch
+                FormatSheet wsPurch, PURCHASE_NOTICE_SEIRI_COL
+                ApplyPurchaseNoticeColumnExclusions wsPurch
+            Else
+                SortPurchaseSheet wsPurch
+                FormatSheet wsPurch
+            End If
         End If
     End If
 
@@ -667,6 +681,18 @@ Private Sub WriteRecordsToSheet(ByVal ws As Worksheet, ByVal rows As Collection)
 End Sub
 
 '==========================================================================
+'  購入充当通知専用レイアウト
+'    A列(施工業者)を削除して整理番号をA列へ移動する。
+'    B列を空白列として挿入し、数量F列以降の共通列位置は維持する。
+'==========================================================================
+Private Sub ApplyPurchaseNoticeLayout(ByVal ws As Worksheet)
+    ws.Columns(COL_VENDOR).Delete Shift:=xlToLeft
+    ws.Columns(COL_SEIRI).Insert Shift:=xlToRight
+    ws.Cells(1, PURCHASE_NOTICE_SEIRI_COL).value = "整理番号"
+    ws.Cells(1, COL_SEIRI).ClearContents
+End Sub
+
+'==========================================================================
 '  追加ヘッダー(O列・P列・Q列)
 '==========================================================================
 Private Sub WriteAdditionalHeaders(ByVal ws As Worksheet, _
@@ -701,7 +727,8 @@ End Function
 '==========================================================================
 '  工事側シートの参照単価・金額・比較結果を設定
 '==========================================================================
-Private Sub FillReferenceUnitPrices(ByVal ws As Worksheet)
+Private Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
+                                    ByVal guidanceDocumentName As String)
     Dim lastRow As Long
     lastRow = GetLastDataRow(ws)
     If lastRow < 2 Then Exit Sub
@@ -744,7 +771,7 @@ Private Sub FillReferenceUnitPrices(ByVal ws As Worksheet)
         End If
 
         If Not IsEmpty(referencePrice) Then ws.Cells(r, COL_AUTO_PRICE).value = referencePrice
-        WritePriceComparison ws, r, unitPriceSheetName
+        WritePriceComparison ws, r, unitPriceSheetName, True, guidanceDocumentName
     Next r
 
     ws.Range(ws.Cells(2, COL_AUTO_AMOUNT), ws.Cells(lastRow, COL_AUTO_AMOUNT)).FormulaR1C1 = _
@@ -1087,7 +1114,9 @@ Private Function SelectDayNightPrice(ByVal dayNightText As String, _
 End Function
 
 Private Sub WritePriceComparison(ByVal ws As Worksheet, ByVal rowIndex As Long, _
-                                 ByVal unitPriceSheetName As String)
+                                 ByVal unitPriceSheetName As String, _
+                                 Optional ByVal includeGuidance As Boolean = True, _
+                                 Optional ByVal guidanceDocumentName As String = "")
     Dim priceMatches As Boolean
     priceMatches = UnitPriceValuesMatch(ws.Cells(rowIndex, COL_AUTO_PRICE).value, _
                                         ws.Cells(rowIndex, COL_JR_PRICE).value)
@@ -1106,20 +1135,42 @@ Private Sub WritePriceComparison(ByVal ws As Worksheet, ByVal rowIndex As Long, 
             .Interior.Color = RGB(255, 255, 0)
             .Font.Color = RGB(255, 0, 0)
 
-            Dim guidanceSheetName As String
-            guidanceSheetName = unitPriceSheetName
-            If guidanceSheetName = "" Then
-                guidanceSheetName = CommonNzText(ws.Cells(rowIndex, COL_LINE).value)
+            If includeGuidance Then
+                Dim guidanceSheetName As String
+                guidanceSheetName = unitPriceSheetName
+                If guidanceSheetName = "" Then
+                    guidanceSheetName = CommonNzText(ws.Cells(rowIndex, COL_LINE).value)
+                End If
+                If guidanceDocumentName = "" Then guidanceDocumentName = "施工通知書"
+                With ws.Cells(rowIndex, COL_PRICE_GUIDANCE)
+                    .value = "独自工種の内容を" & guidanceSheetName & "シートに入力してください。" & vbLf & _
+                             "入力後、基本情報シートで" & guidanceDocumentName & "の再取込みを行ってください。"
+                    .WrapText = True
+                    .VerticalAlignment = xlCenter
+                End With
             End If
-            With ws.Cells(rowIndex, COL_PRICE_GUIDANCE)
-                .value = "独自工種の内容を(" & guidanceSheetName & ")に入力してください。" & vbLf & _
-                         "入力後、基本情報シートで施工通知書(取込データによっては施工指示書)の再取込みを行ってください。"
-                .WrapText = True
-                .VerticalAlignment = xlCenter
-            End With
         End If
     End With
 End Sub
+
+'==========================================================================
+'  取込元A3から再取込み案内に表示する文書名を決定する
+'==========================================================================
+Private Function ResolveGuidanceDocumentName(ByVal sourceA3Text As String, _
+                                             ByVal docType As Long) As String
+    Dim normalized As String
+    normalized = CommonRemoveAllSpaces(CommonNormalizeText(sourceA3Text))
+
+    If InStr(1, normalized, "通知", vbTextCompare) > 0 Then
+        ResolveGuidanceDocumentName = "施工通知書"
+    ElseIf InStr(1, normalized, "指示", vbTextCompare) > 0 Then
+        ResolveGuidanceDocumentName = "施工指示書"
+    ElseIf docType = DOC_ORDER Then
+        ResolveGuidanceDocumentName = "施工指示書"
+    Else
+        ResolveGuidanceDocumentName = "施工通知書"
+    End If
+End Function
 
 Private Function UnitPriceValuesMatch(ByVal leftValue As Variant, _
                                       ByVal rightValue As Variant) As Boolean
@@ -1170,14 +1221,15 @@ End Sub
 '==========================================================================
 '  購入充当側シートのソート(整理番号のみ)
 '==========================================================================
-Private Sub SortPurchaseSheet(ByVal ws As Worksheet)
+Private Sub SortPurchaseSheet(ByVal ws As Worksheet, _
+                              Optional ByVal seiriColumn As Long = COL_SEIRI)
     Dim lastRow As Long
-    lastRow = GetLastDataRow(ws)
+    lastRow = GetLastDataRow(ws, seiriColumn)
     If lastRow < 2 Then Exit Sub
 
     With ws.Sort
         .SortFields.Clear
-        .SortFields.Add key:=ws.Range(ws.Cells(2, COL_SEIRI), ws.Cells(lastRow, COL_SEIRI)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+        .SortFields.Add key:=ws.Range(ws.Cells(2, seiriColumn), ws.Cells(lastRow, seiriColumn)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
         .SetRange ws.Range(ws.Cells(1, 1), ws.Cells(lastRow, COL_KIND))
         .Header = xlYes
         .MatchCase = False
@@ -1189,9 +1241,10 @@ End Sub
 '==========================================================================
 '  書式設定(ヘッダー装飾・罫線・数値書式・列幅自動調整)
 '==========================================================================
-Private Sub FormatSheet(ByVal ws As Worksheet)
+Private Sub FormatSheet(ByVal ws As Worksheet, _
+                        Optional ByVal dataKeyColumn As Long = COL_SEIRI)
     Dim lastRow As Long
-    lastRow = GetLastDataRow(ws)
+    lastRow = GetLastDataRow(ws, dataKeyColumn)
     If lastRow < 1 Then lastRow = 1
 
     ' ヘッダー装飾(黒地・白文字・中央揃え・太字)
@@ -1234,10 +1287,11 @@ Private Sub FormatSheet(ByVal ws As Worksheet)
     ' 列幅自動調整(取込文字列にフィット)
     ws.Range(ws.Cells(1, 1), ws.Cells(1, GetOutputLastColumn(ws))).EntireColumn.AutoFit
 
-    ' 参照単価列(O列): 縮小表示を解除し、P列と同じ列幅にする
+    ' 参照単価列(O列): P列と同じ列幅にし、ヘッダーだけ縮小表示する
     If CommonNzText(ws.Cells(1, COL_AUTO_AMOUNT).value) <> "" Then
         ws.Columns(COL_AUTO_PRICE).ShrinkToFit = False
         ws.Columns(COL_AUTO_PRICE).ColumnWidth = ws.Columns(COL_AUTO_AMOUNT).ColumnWidth
+        ws.Cells(1, COL_AUTO_PRICE).ShrinkToFit = True
     End If
 
     ' 行の高さ(シート全体 18)
@@ -1245,15 +1299,16 @@ Private Sub FormatSheet(ByVal ws As Worksheet)
     If CommonNzText(ws.Cells(1, COL_PRICE_COMPARE).value) <> "" Then
         Dim r As Long
         For r = 2 To lastRow
-            If CommonNzText(ws.Cells(r, COL_PRICE_COMPARE).value) = "単価不一致" Then
+            If CommonNzText(ws.Cells(r, COL_PRICE_COMPARE).value) = "単価不一致" And _
+               CommonNzText(ws.Cells(r, COL_PRICE_GUIDANCE).value) <> "" Then
                 ws.rows(r).RowHeight = 36
             End If
         Next r
     End If
 
-    ' 中央揃え(B=整理番号, D=昼夜別, E=単位, G=契約線区名, H=管理室, M=工種分類)
+    ' 中央揃え(整理番号, 昼夜別, 単位, 契約線区名, 管理室, 工種分類)
     Dim centerCols As Variant, cv As Variant
-    centerCols = Array(COL_SEIRI, COL_DAYNIGHT, COL_UNIT, COL_LINE, COL_MGR, COL_KIND)
+    centerCols = Array(dataKeyColumn, COL_DAYNIGHT, COL_UNIT, COL_LINE, COL_MGR, COL_KIND)
     For Each cv In centerCols
         ws.Range(ws.Cells(1, CLng(cv)), ws.Cells(lastRow, CLng(cv))).HorizontalAlignment = xlCenter
     Next cv
@@ -1264,8 +1319,7 @@ End Sub
 '==========================================================================
 Private Sub ApplyPurchaseNoticeColumnExclusions(ByVal ws As Worksheet)
     Dim excludedColumns As Range
-    Set excludedColumns = Application.Union(ws.Columns(COL_VENDOR), _
-                                            ws.Columns(COL_MGR), _
+    Set excludedColumns = Application.Union(ws.Columns(COL_MGR), _
                                             ws.Columns(COL_OUT_PRICE), _
                                             ws.Columns(COL_OUT_AMOUNT))
     excludedColumns.EntireColumn.Hidden = True
@@ -1274,8 +1328,9 @@ End Sub
 '==========================================================================
 '  出力シートのデータ最終行(整理番号=B列で判定。A列=施工業者は空白のため)
 '==========================================================================
-Private Function GetLastDataRow(ByVal ws As Worksheet) As Long
-    GetLastDataRow = ws.Cells(ws.rows.Count, COL_SEIRI).End(xlUp).Row
+Private Function GetLastDataRow(ByVal ws As Worksheet, _
+                                Optional ByVal dataKeyColumn As Long = COL_SEIRI) As Long
+    GetLastDataRow = ws.Cells(ws.rows.Count, dataKeyColumn).End(xlUp).Row
 End Function
 
 '==========================================================================
@@ -1321,13 +1376,15 @@ End Sub
 '==========================================================================
 '==========================================================================
 '  購入充当通知シートへ単価(F列)を O列へ取込み
-'    照合元: 購入充当通知 A列  <->  名称_購入充当単価 A列
+'    照合元: 購入充当通知 A列(整理番号)  <->  名称_購入充当単価 A列
 '    取込値: 名称_購入充当単価 F列  ->  購入充当通知 O列
-'    行範囲: 2 ~ B列(整理番号)の最終行
+'    P列: O列(参照単価) * F列(数量)
+'    Q列: O列(参照単価) と I列(JR単価)の比較結果
+'    行範囲: 2 ~ A列(整理番号)の最終行
 '==========================================================================
 Private Sub FillPurchaseUnitPrices(ByVal ws As Worksheet)
     Dim lastRow As Long
-    lastRow = ws.Cells(ws.rows.Count, COL_SEIRI).End(xlUp).Row   ' B列(整理番号)で最終行判定
+    lastRow = ws.Cells(ws.rows.Count, PURCHASE_NOTICE_SEIRI_COL).End(xlUp).Row
     If lastRow < 2 Then Exit Sub
 
     ' 基本情報 B6/C6 -> 単価適用線区マスタ -> 名称_購入充当単価 シート名
@@ -1363,22 +1420,38 @@ Private Sub FillPurchaseUnitPrices(ByVal ws As Worksheet)
         End If
     Next pr
 
-    ' 購入充当通知 A列 と照合し O列へ転記
-    Dim matched As Long, r As Long, lookupKey As String
+    ' 購入充当通知 A列(整理番号) と照合し O列へ転記
+    Dim matched As Long, lookupCount As Long, unmatched As Long
+    Dim r As Long, lookupKey As String
     For r = 2 To lastRow
-        lookupKey = CommonRemoveAllSpaces(CommonNzText(ws.Cells(r, PURCHASE_PRICE_LOOKUP_COL).value))
+        lookupKey = NormalizeRecordKey(ws.Cells(r, PURCHASE_PRICE_LOOKUP_COL).value)
         If lookupKey <> "" Then
+            lookupCount = lookupCount + 1
             If priceMap.Exists(lookupKey) Then
                 ws.Cells(r, COL_AUTO_PRICE).value = priceMap(lookupKey)
                 matched = matched + 1
+            Else
+                unmatched = unmatched + 1
             End If
         End If
     Next r
 
     ' O列の数値書式(桁区切り・通貨・円記号なし)
-    ws.Range(ws.Cells(2, COL_AUTO_PRICE), ws.Cells(lastRow, COL_AUTO_PRICE)).NumberFormatLocal = "#,##0"
+    ws.Range(ws.Cells(2, COL_AUTO_AMOUNT), ws.Cells(lastRow, COL_AUTO_AMOUNT)).FormulaR1C1 = _
+        "=RC[-1]*RC[-10]"
 
-    LogCI "購入充当単価転記: " & matched & " 件 (単価シート=" & priceSheetName & ")"
+    For r = 2 To lastRow
+        WritePriceComparison ws, r, priceSheetName, False
+    Next r
+
+    With ws.Range(ws.Cells(2, COL_AUTO_PRICE), ws.Cells(lastRow, COL_AUTO_AMOUNT))
+        .NumberFormatLocal = "#,##0;[赤]-#,##0"
+    End With
+    ws.Range(ws.Cells(1, COL_PRICE_COMPARE), _
+             ws.Cells(lastRow, COL_PRICE_COMPARE)).HorizontalAlignment = xlCenter
+
+    LogCI "購入充当単価転記: " & matched & " 件 / 照合対象=" & lookupCount & _
+          " / 未一致=" & unmatched & " (単価シート=" & priceSheetName & ")"
 End Sub
 
 '==========================================================================
