@@ -82,6 +82,18 @@ Private Const PROJECT_MASTER_SOURCE_LINE_COL As Long = 7
 Private Const PROJECT_MASTER_FOLDER As String = "工事件名別マスタ"
 Private Const UNIT_PRICE_DATA_START_ROW As Long = 7
 
+' 購入充当単価 取込(単価適用線区シート + 名称_購入充当単価シート)
+Private Const PRICE_LINE_SHEET As String = "単価適用線区"
+Private Const PRICE_LINE_BRANCH_COL As Long = 2     ' B列 支店
+Private Const PRICE_LINE_OFFICE_COL As Long = 3     ' C列 出張所
+Private Const PRICE_LINE_NAME_COL As Long = 5       ' E列 名称
+Private Const PRICE_LINE_START_ROW As Long = 2
+Private Const PURCHASE_PRICE_SHEET_SUFFIX As String = "_購入充当単価"
+Private Const PURCHASE_PRICE_KEY_COL As Long = 1    ' 単価シート A列(照合キー)
+Private Const PURCHASE_PRICE_VALUE_COL As Long = 6  ' 単価シート F列(単価)
+Private Const PURCHASE_PRICE_DATA_START_ROW As Long = 2
+Private Const PURCHASE_PRICE_LOOKUP_COL As Long = 1 ' 購入充当通知 A列(照合キー)
+
 ' 取込ブックのシート名取得元セル
 Private Const SOURCE_SHEET_NAME_CELL As String = "A3"
 
@@ -299,6 +311,7 @@ Public Sub ImportConstructionDocument()
             WriteRecordsToSheet wsPurch, purchRows
             SortPurchaseSheet wsPurch
             If docType = DOC_NOTICE Then WriteAdditionalHeaders wsPurch, False
+            If docType = DOC_NOTICE Then FillPurchaseUnitPrices wsPurch
             FormatSheet wsPurch
             If docType = DOC_NOTICE Then ApplyPurchaseNoticeColumnExclusions wsPurch
         End If
@@ -1306,6 +1319,120 @@ End Sub
 '==========================================================================
 '  参照シート H9 の値を 基本情報 C12 へ転記(中央揃え・BIZ UDゴシック)
 '==========================================================================
+'==========================================================================
+'  購入充当通知シートへ単価(F列)を O列へ取込み
+'    照合元: 購入充当通知 A列  <->  名称_購入充当単価 A列
+'    取込値: 名称_購入充当単価 F列  ->  購入充当通知 O列
+'    行範囲: 2 ~ B列(整理番号)の最終行
+'==========================================================================
+Private Sub FillPurchaseUnitPrices(ByVal ws As Worksheet)
+    Dim lastRow As Long
+    lastRow = ws.Cells(ws.rows.Count, COL_SEIRI).End(xlUp).Row   ' B列(整理番号)で最終行判定
+    If lastRow < 2 Then Exit Sub
+
+    ' 基本情報 B6/C6 -> 単価適用線区マスタ -> 名称_購入充当単価 シート名
+    Dim priceSheetName As String
+    priceSheetName = ResolvePurchasePriceSheetName()
+    If priceSheetName = "" Then
+        LogCI "購入充当単価: シート名の解決に失敗(基本情報B6/C6 または 単価適用線区マスタ未一致)"
+        Exit Sub
+    End If
+
+    Dim priceSheet As Worksheet
+    On Error Resume Next
+    Set priceSheet = ThisWorkbook.worksheets(priceSheetName)
+    On Error GoTo 0
+    If priceSheet Is Nothing Then
+        LogCI "購入充当単価: シート「" & priceSheetName & "」が見つかりません"
+        MsgBox "単価シート「" & priceSheetName & "」が見つかりませんでした。" & vbCrLf & _
+               "購入充当単価の取込みをスキップします。", vbExclamation
+        Exit Sub
+    End If
+
+    ' 名称_購入充当単価 シートの A列(キー) -> F列(単価) 辞書を構築
+    Dim priceMap As Object
+    Set priceMap = CreateObject("Scripting.Dictionary")
+    priceMap.CompareMode = vbTextCompare
+
+    Dim pLast As Long, pr As Long, key As String
+    pLast = priceSheet.Cells(priceSheet.rows.Count, PURCHASE_PRICE_KEY_COL).End(xlUp).Row
+    For pr = PURCHASE_PRICE_DATA_START_ROW To pLast
+        key = CommonRemoveAllSpaces(CommonNzText(priceSheet.Cells(pr, PURCHASE_PRICE_KEY_COL).value))
+        If key <> "" And Not priceMap.Exists(key) Then
+            priceMap.Add key, priceSheet.Cells(pr, PURCHASE_PRICE_VALUE_COL).value
+        End If
+    Next pr
+
+    ' 購入充当通知 A列 と照合し O列へ転記
+    Dim matched As Long, r As Long, lookupKey As String
+    For r = 2 To lastRow
+        lookupKey = CommonRemoveAllSpaces(CommonNzText(ws.Cells(r, PURCHASE_PRICE_LOOKUP_COL).value))
+        If lookupKey <> "" Then
+            If priceMap.Exists(lookupKey) Then
+                ws.Cells(r, COL_AUTO_PRICE).value = priceMap(lookupKey)
+                matched = matched + 1
+            End If
+        End If
+    Next r
+
+    ' O列の数値書式(桁区切り・通貨・円記号なし)
+    ws.Range(ws.Cells(2, COL_AUTO_PRICE), ws.Cells(lastRow, COL_AUTO_PRICE)).NumberFormatLocal = "#,##0"
+
+    LogCI "購入充当単価転記: " & matched & " 件 (単価シート=" & priceSheetName & ")"
+End Sub
+
+'==========================================================================
+'  基本情報 B6(支店)/C6(出張所) -> 単価適用線区マスタ E列(名称)
+'    -> 「名称_購入充当単価」シート名を返す
+'==========================================================================
+Private Function ResolvePurchasePriceSheetName() As String
+    Dim wsInfo As Worksheet
+    Set wsInfo = CommonGetBasicInfoWorksheet(ThisWorkbook)
+    If wsInfo Is Nothing Then Exit Function
+
+    Dim branchName As String, officeName As String
+    branchName = CommonRemoveAllSpaces(CommonNzText(wsInfo.Range(BASIC_INFO_BRANCH_CELL).value))
+    officeName = CommonRemoveAllSpaces(CommonNzText(wsInfo.Range(BASIC_INFO_OFFICE_CELL).value))
+    If branchName = "" Or officeName = "" Then Exit Function
+
+    Dim masterPath As String
+    masterPath = ResolveMasterFilePath()
+    If masterPath = "" Then Exit Function
+
+    Dim openedHere As Boolean
+    Dim masterWb As Workbook
+    Set masterWb = OpenWorkbookReadOnly(masterPath, openedHere)
+    If masterWb Is Nothing Then Exit Function
+
+    Dim wsMaster As Worksheet
+    On Error Resume Next
+    Set wsMaster = masterWb.worksheets(PRICE_LINE_SHEET)
+    On Error GoTo 0
+
+    Dim resultName As String
+    If wsMaster Is Nothing Then
+        LogCI "購入充当単価: マスタに「" & PRICE_LINE_SHEET & "」シートがありません"
+    Else
+        Dim mLast As Long, r As Long, b As String, c As String, nameText As String
+        mLast = wsMaster.Cells(wsMaster.rows.Count, PRICE_LINE_BRANCH_COL).End(xlUp).Row
+        For r = PRICE_LINE_START_ROW To mLast
+            b = CommonRemoveAllSpaces(CommonNzText(wsMaster.Cells(r, PRICE_LINE_BRANCH_COL).value))
+            c = CommonRemoveAllSpaces(CommonNzText(wsMaster.Cells(r, PRICE_LINE_OFFICE_COL).value))
+            If b = branchName And c = officeName Then
+                nameText = CommonRemoveAllSpaces(CommonNzText(wsMaster.Cells(r, PRICE_LINE_NAME_COL).value))
+                If nameText <> "" Then
+                    resultName = nameText & PURCHASE_PRICE_SHEET_SUFFIX
+                    Exit For
+                End If
+            End If
+        Next r
+    End If
+
+    If openedHere And Not masterWb Is Nothing Then masterWb.Close SaveChanges:=False
+
+    ResolvePurchasePriceSheetName = resultName
+End Function
+
 Private Sub WriteReferenceValueToBasicInfo(ByVal refValue As Variant)
     Dim wsInfo As Worksheet
     Set wsInfo = CommonGetBasicInfoWorksheet(ThisWorkbook)
