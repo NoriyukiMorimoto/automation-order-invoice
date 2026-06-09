@@ -305,6 +305,7 @@ Public Sub ImportConstructionDocument()
     FillReferenceUnitPrices wsWorks, guidanceDocumentName
     FormatSheet wsWorks
     ApplyPriceGuidanceColumnLayout wsWorks
+    mod_SubcontractorSelector.ApplySubcontractorDropdowns wsWorks   ' A—ñ(Ž{H‹ÆŽÒ)‚ÉŽ{H‰ïŽÐƒhƒƒbƒvƒ_ƒEƒ“‚ð•t—^
 
     '--- w“ü[“–‘¤ƒV[ƒgì¬E‘ž‚ÝEƒ\[ƒg(ŠY“–s‚ª‚ ‚éê‡‚Ì‚Ý) ---------
     If purchRows.Count > 0 Then
