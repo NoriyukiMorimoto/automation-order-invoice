@@ -1143,7 +1143,7 @@ Private Sub WritePriceComparison(ByVal ws As Worksheet, ByVal rowIndex As Long, 
                 End If
                 If guidanceDocumentName = "" Then guidanceDocumentName = "施工通知書"
                 With ws.Cells(rowIndex, COL_PRICE_GUIDANCE)
-                    .value = "独自工種の内容を(" & guidanceSheetName & ")に入力してください。" & vbLf & _
+                    .value = "独自工種の内容を" & guidanceSheetName & "シートに入力してください。" & vbLf & _
                              "入力後、基本情報シートで" & guidanceDocumentName & "の再取込みを行ってください。"
                     .WrapText = True
                     .VerticalAlignment = xlCenter
