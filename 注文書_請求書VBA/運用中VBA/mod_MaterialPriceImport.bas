@@ -28,7 +28,6 @@ Private Const MASTER_SHEET_NAME As String = "単価適用線区"
 Private Const PROJECT_MASTER_SHEET_NAME As String = "単価適用工事件名マスタ"
 Private Const ZAIRAISEN_DISTINCTION_SHEET_NAME As String = "在幹区分"
 Private Const UNIT_PRICE_DATA_FOLDER As String = "単価データ"
-Private Const UNIT_PRICE_REFERENCE_FOLDER As String = "工事件名別マスタ"
 Private Const UNIT_PRICE_MASTER_FILE As String = "出張所別_単価適用線区.xlsx"
 
 Private Const ZAIRAISEN_NAME As String = "在来線"
@@ -117,9 +116,8 @@ Public Function GetMasterFilePath() As String
 
     If Len(ThisWorkbook.Path) > 0 Then
         candidates.Add fso.BuildPath(fso.GetParentFolderName(ThisWorkbook.Path), _
-                       UnitPriceMasterFolderText() & "\" & UNIT_PRICE_REFERENCE_FOLDER & "\" & UNIT_PRICE_MASTER_FILE)
-        candidates.Add fso.BuildPath(ThisWorkbook.Path, _
-                       UNIT_PRICE_REFERENCE_FOLDER & "\" & UNIT_PRICE_MASTER_FILE)
+                       MasterDataFolderText() & "\" & UNIT_PRICE_MASTER_FILE)
+        candidates.Add fso.BuildPath(ThisWorkbook.Path, UNIT_PRICE_MASTER_FILE)
     End If
 
     Dim userProfilePath As String
@@ -127,8 +125,7 @@ Public Function GetMasterFilePath() As String
     If Len(Trim$(userProfilePath)) = 0 Then userProfilePath = Environ$("HOMEDRIVE") & Environ$("HOMEPATH")
     If Len(Trim$(userProfilePath)) > 0 Then
         candidates.Add userProfilePath & "\" & CommonCompanyNameText() & "\" & _
-                       OrderInvoiceDocumentFolderText() & "\" & UnitPriceMasterFolderText() & "\" & _
-                       UNIT_PRICE_REFERENCE_FOLDER & "\" & UNIT_PRICE_MASTER_FILE
+                       OrderInvoiceDocumentFolderText() & "\" & MasterDataFolderText() & "\" & UNIT_PRICE_MASTER_FILE
     End If
 
     GetMasterFilePath = FirstExistingFilePath(candidates)
@@ -2310,7 +2307,8 @@ Private Function GetUnitPriceDataRootPath() As String
     Dim masterFilePath As String
     masterFilePath = GetMasterFilePath()
     If masterFilePath <> "" Then
-        GetUnitPriceDataRootPath = fso.BuildPath(fso.GetParentFolderName(fso.GetParentFolderName(masterFilePath)), UNIT_PRICE_DATA_FOLDER)
+        GetUnitPriceDataRootPath = fso.BuildPath(fso.GetParentFolderName(fso.GetParentFolderName(masterFilePath)), _
+                                   UnitPriceMasterFolderText() & "\" & UNIT_PRICE_DATA_FOLDER)
         Exit Function
     End If
     If Len(ThisWorkbook.Path) > 0 Then
@@ -2350,6 +2348,12 @@ Private Function OrderInvoiceDocumentFolderText() As String
     Static cached As String
     If cached = "" Then cached = "線路出張所用_注文書_請求書アクセスサイト - ドキュメント"
     OrderInvoiceDocumentFolderText = cached
+End Function
+
+Private Function MasterDataFolderText() As String
+    Static cached As String
+    If cached = "" Then cached = "マスタデータ"
+    MasterDataFolderText = cached
 End Function
 
 Private Function UnitPriceMasterFolderText() As String

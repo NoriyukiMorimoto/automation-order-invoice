@@ -42,8 +42,8 @@ Private Const COL_JR_AMOUNT As Long = 10  ' JR金額
 Private Const COL_OUT_PRICE As Long = 11  ' 外注単価(空白)
 Private Const COL_OUT_AMOUNT As Long = 12 ' 外注金額(空白)
 Private Const COL_KIND As Long = 13       ' 工種分類
-Private Const COL_FLAG_SIDE As Long = 14  ' 補助:側線フラグ
-Private Const COL_FLAG_WELD As Long = 15  ' 補助:レール溶接フラグ
+Private Const COL_FLAG_SIDE As Long = 17  ' 補助:側線フラグ(Q列)
+Private Const COL_FLAG_WELD As Long = 18  ' 補助:レール溶接フラグ(R列)
 Private Const OUTPUT_COL_COUNT As Long = 13
 
 ' 管理室マスタ(出張所別_単価適用線区.xlsx)
@@ -487,7 +487,7 @@ Private Function ResolveMasterFilePath() As String
     If Len(Trim$(up)) > 0 Then
         Dim cand As String
         cand = up & "\" & CommonCompanyNameText() & "\" & _
-               "線路出張所用_注文書_請求書アクセスサイト - ドキュメント\単価マスタ\工事件名別マスタ\出張所別_単価適用線区.xlsx"
+               "線路出張所用_注文書_請求書アクセスサイト - ドキュメント\マスタデータ\出張所別_単価適用線区.xlsx"
         If fso.FileExists(cand) Then ResolveMasterFilePath = cand
     End If
 End Function

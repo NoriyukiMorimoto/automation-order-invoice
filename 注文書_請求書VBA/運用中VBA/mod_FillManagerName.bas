@@ -618,8 +618,7 @@ Private Function BuildManagerListFolderPath(ByVal documentRootPath As String, _
                                             ByVal fso As Object) As String
     If Len(Trim$(documentRootPath)) = 0 Then Exit Function
     Dim folderPath As String
-    folderPath = fso.BuildPath(documentRootPath, UnitPriceMasterFolderText())
-    folderPath = fso.BuildPath(folderPath, UnitPriceReferenceFolderText())
+    folderPath = fso.BuildPath(documentRootPath, MasterDataFolderText())
     folderPath = fso.BuildPath(folderPath, ManagerNameFolderText())
     BuildManagerListFolderPath = folderPath & Chr$(92)
     mod_DebugLog.Log "[FillMgr] BuildManagerListFolderPath: root=[" & documentRootPath & "] -> [" & BuildManagerListFolderPath & "]"
@@ -692,19 +691,13 @@ Private Function OrderInvoiceDocumentFolderText() As String
     OrderInvoiceDocumentFolderText = cached
 End Function
 
-Private Function UnitPriceMasterFolderText() As String
-    Static cached As String
-    If cached = "" Then cached = ChrW$(&H5358) & ChrW$(&H4FA1) & ChrW$(&H30DE) & ChrW$(&H30B9) & ChrW$(&H30BF)
-    UnitPriceMasterFolderText = cached
-End Function
-
-Private Function UnitPriceReferenceFolderText() As String
+Private Function MasterDataFolderText() As String
     Static cached As String
     If cached = "" Then
-        cached = ChrW$(&H5DE5) & ChrW$(&H4E8B) & ChrW$(&H4EF6) & ChrW$(&H540D) & _
-                 ChrW$(&H5225) & ChrW$(&H30DE) & ChrW$(&H30B9) & ChrW$(&H30BF)
+        cached = ChrW$(&H30DE) & ChrW$(&H30B9) & ChrW$(&H30BF) & ChrW$(&H30C7) & _
+                 ChrW$(&H30FC) & ChrW$(&H30BF)
     End If
-    UnitPriceReferenceFolderText = cached
+    MasterDataFolderText = cached
 End Function
 
 Private Function ManagerNameFolderText() As String
