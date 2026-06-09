@@ -871,34 +871,125 @@ End Function
 Private Function ResolveProjectLineMasterPath() As String
     Dim wsInfo As Worksheet
     Set wsInfo = CommonGetBasicInfoWorksheet(ThisWorkbook)
-    If wsInfo Is Nothing Or Len(ThisWorkbook.Path) = 0 Then Exit Function
+    If wsInfo Is Nothing Then
+        LogCI "工事件名別マスタ解決: 基本情報シートなし"
+        Exit Function
+    End If
 
     Dim lineType As String, projectName As String
     lineType = CommonNormalizeText(CommonNzText(wsInfo.Range(BASIC_INFO_LINE_TYPE_CELL).value))
     projectName = CommonNormalizeText(CommonNzText(wsInfo.Range(BASIC_INFO_PROJECT_NAME_CELL).value))
-    If lineType = "" Or projectName = "" Then Exit Function
-
-    If LCase$(Right$(projectName, 5)) <> ".xlsx" Then projectName = projectName & ".xlsx"
+    LogCI "工事件名別マスタ解決 lineType=[" & lineType & "] projectName=[" & projectName & _
+          "] workbookPath=[" & ThisWorkbook.Path & "]"
+    If lineType = "" Or projectName = "" Then
+        LogCI "工事件名別マスタ解決: C20またはC21が空"
+        Exit Function
+    End If
 
     Dim fso As Object
     Set fso = CreateObject("Scripting.FileSystemObject")
 
-    Dim documentRoot As String
-    documentRoot = fso.GetParentFolderName(ThisWorkbook.Path)
+    Dim documentRoots As Collection
+    Set documentRoots = New Collection
 
-    Dim candidates As Collection
-    Set candidates = New Collection
-    candidates.Add fso.BuildPath(documentRoot, "単価マスタ\" & PROJECT_MASTER_FOLDER & "\" & lineType & "\" & projectName)
-    candidates.Add fso.BuildPath(documentRoot, "マスタデータ\" & lineType & "\" & projectName)
+    If Len(ThisWorkbook.Path) > 0 Then
+        AddUniqueText documentRoots, ThisWorkbook.Path
+        AddUniqueText documentRoots, fso.GetParentFolderName(ThisWorkbook.Path)
+    End If
 
-    Dim candidate As Variant
-    For Each candidate In candidates
-        If fso.FileExists(CStr(candidate)) Then
-            ResolveProjectLineMasterPath = CStr(candidate)
-            Exit Function
-        End If
-    Next candidate
+    Dim managerMasterPath As String
+    managerMasterPath = ResolveMasterFilePath()
+    If managerMasterPath <> "" Then
+        AddUniqueText documentRoots, fso.GetParentFolderName(fso.GetParentFolderName(managerMasterPath))
+    End If
+
+    Dim userProfilePath As String
+    userProfilePath = Environ$("USERPROFILE")
+    If Len(Trim$(userProfilePath)) = 0 Then
+        userProfilePath = Environ$("HOMEDRIVE") & Environ$("HOMEPATH")
+    End If
+    If Len(Trim$(userProfilePath)) > 0 Then
+        AddUniqueText documentRoots, userProfilePath & "\" & CommonCompanyNameText() & "\" & _
+                     "線路出張所用_注文書_請求書アクセスサイト - ドキュメント"
+    End If
+
+    Dim documentRoot As Variant
+    For Each documentRoot In documentRoots
+        Dim masterFolders As Collection
+        Set masterFolders = New Collection
+        AddUniqueText masterFolders, fso.BuildPath(CStr(documentRoot), _
+                      "単価マスタ\" & PROJECT_MASTER_FOLDER & "\" & lineType)
+        AddUniqueText masterFolders, fso.BuildPath(CStr(documentRoot), _
+                      "マスタデータ\" & lineType)
+
+        Dim masterFolder As Variant
+        For Each masterFolder In masterFolders
+            LogCI "工事件名別マスタ探索 folder=[" & CStr(masterFolder) & "]"
+            ResolveProjectLineMasterPath = FindProjectMasterFile(CStr(masterFolder), projectName)
+            If ResolveProjectLineMasterPath <> "" Then
+                LogCI "工事件名別マスタ解決 path=[" & ResolveProjectLineMasterPath & "]"
+                Exit Function
+            End If
+        Next masterFolder
+    Next documentRoot
+
+    LogCI "工事件名別マスタ解決失敗 lineType=[" & lineType & "] projectName=[" & projectName & "]"
 End Function
+
+Private Function FindProjectMasterFile(ByVal masterFolder As String, _
+                                       ByVal projectName As String) As String
+    Dim fso As Object
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If Not fso.FolderExists(masterFolder) Then Exit Function
+
+    Dim requestedFileName As String
+    requestedFileName = projectName
+    If LCase$(Right$(requestedFileName, 5)) <> ".xlsx" Then
+        requestedFileName = requestedFileName & ".xlsx"
+    End If
+
+    Dim exactPath As String
+    exactPath = fso.BuildPath(masterFolder, requestedFileName)
+    If fso.FileExists(exactPath) Then
+        FindProjectMasterFile = exactPath
+        Exit Function
+    End If
+
+    Dim requestedKey As String
+    requestedKey = NormalizeProjectMasterName(projectName)
+    If requestedKey = "" Then Exit Function
+
+    Dim sourceFile As Object
+    For Each sourceFile In fso.GetFolder(masterFolder).Files
+        If LCase$(fso.GetExtensionName(sourceFile.Name)) = "xlsx" Then
+            If StrComp(NormalizeProjectMasterName(fso.GetBaseName(sourceFile.Name)), _
+                       requestedKey, vbTextCompare) = 0 Then
+                FindProjectMasterFile = sourceFile.Path
+                Exit Function
+            End If
+        End If
+    Next sourceFile
+End Function
+
+Private Function NormalizeProjectMasterName(ByVal sourceText As String) As String
+    Dim result As String
+    result = CommonRemoveAllSpaces(CommonNormalizeText(sourceText))
+    If LCase$(Right$(result, 5)) = ".xlsx" Then result = Left$(result, Len(result) - 5)
+    result = Replace$(result, ChrW$(&H30FB), "")
+    result = Replace$(result, ChrW$(&HFF65), "")
+    NormalizeProjectMasterName = result
+End Function
+
+Private Sub AddUniqueText(ByVal values As Collection, ByVal newValue As String)
+    If values Is Nothing Or Len(Trim$(newValue)) = 0 Then Exit Sub
+
+    Dim item As Variant
+    For Each item In values
+        If StrComp(CStr(item), newValue, vbTextCompare) = 0 Then Exit Sub
+    Next item
+
+    values.Add newValue
+End Sub
 
 Private Function FindImportedUnitPriceSheetName(ByVal expectedSheetName As String) As String
     Dim normalizedExpected As String
