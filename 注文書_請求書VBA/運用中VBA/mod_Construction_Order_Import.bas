@@ -281,7 +281,7 @@ Public Sub ImportConstructionDocument()
     SortWorksSheet wsWorks
     WriteAdditionalHeaders wsWorks
     FillReferenceUnitPrices wsWorks
-    FormatSheet wsWorks
+    FormatSheet wsWorks, True
 
     '--- 購入充当側シート作成・書込み・ソート(該当行がある場合のみ) ---------
     If purchRows.Count > 0 Then
@@ -736,7 +736,7 @@ Private Sub FillReferenceUnitPrices(ByVal ws As Worksheet)
         "=IF(OR(RC[-1]="""",RC[-10]=""""),"""",RC[-1]*RC[-10])"
 
     With ws.Range(ws.Cells(2, COL_AUTO_PRICE), ws.Cells(lastRow, COL_AUTO_AMOUNT))
-        .NumberFormatLocal = ChrW$(&HA5) & "#,##0;[赤]-" & ChrW$(&HA5) & "#,##0"
+        .NumberFormatLocal = "#,##0;[赤]-#,##0"
     End With
     ws.Range(ws.Cells(1, COL_PRICE_COMPARE), ws.Cells(lastRow, COL_PRICE_COMPARE)).HorizontalAlignment = xlCenter
 
@@ -1159,7 +1159,8 @@ End Sub
 '==========================================================================
 '  書式設定(ヘッダー装飾・罫線・数値書式・列幅自動調整)
 '==========================================================================
-Private Sub FormatSheet(ByVal ws As Worksheet)
+Private Sub FormatSheet(ByVal ws As Worksheet, _
+                        Optional ByVal fitReferenceColumn As Boolean = False)
     Dim lastRow As Long
     lastRow = GetLastDataRow(ws)
     If lastRow < 1 Then lastRow = 1
@@ -1187,6 +1188,14 @@ Private Sub FormatSheet(ByVal ws As Worksheet)
 
     ' 列幅自動調整(取込文字列にフィット)
     ws.Range(ws.Cells(1, 1), ws.Cells(1, GetOutputLastColumn(ws))).EntireColumn.AutoFit
+
+    ' 参照単価列(O列): ヘッダーO1は縮小して表示し、列幅はO2以降の数値に合わせる
+    If fitReferenceColumn Then
+        ws.Cells(1, COL_AUTO_PRICE).ShrinkToFit = True
+        If lastRow >= 2 Then
+            ws.Range(ws.Cells(2, COL_AUTO_PRICE), ws.Cells(lastRow, COL_AUTO_PRICE)).Columns.AutoFit
+        End If
+    End If
 
     ' 行の高さ(シート全体 18)
     ws.Cells.RowHeight = 18
