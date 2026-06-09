@@ -61,6 +61,8 @@ Private Const WELDING_KEYWORD As String = "レール溶接"
 ' 基本情報セル
 Private Const BASIC_INFO_BRANCH_CELL As String = "B6"
 Private Const BASIC_INFO_OFFICE_CELL As String = "C6"
+Private Const BASIC_INFO_PUBLIC_CELL As String = "B4"
+Private Const BASIC_INFO_AMOUNT_CELL As String = "C22"
 
 ' 取込ブックのシート名取得元セル
 Private Const SOURCE_SHEET_NAME_CELL As String = "A3"
@@ -249,8 +251,10 @@ Public Sub ImportConstructionDocument()
     Dim wsWorks As Worksheet
     Set wsWorks = CreateOrReplaceSheet(baseSheetName)
     If wsWorks Is Nothing Then GoTo Cleanup
+    wsWorks.Tab.Color = RGB(255, 255, 0)
     WriteRecordsToSheet wsWorks, worksRows
     SortWorksSheet wsWorks
+    WriteAdditionalHeaders wsWorks
     FormatSheet wsWorks
 
     '--- 購入充当側シート作成・書込み・ソート(該当行がある場合のみ) ---------
@@ -264,8 +268,10 @@ Public Sub ImportConstructionDocument()
         Dim wsPurch As Worksheet
         Set wsPurch = CreateOrReplaceSheet(purchName)
         If Not wsPurch Is Nothing Then
+            If docType = DOC_NOTICE Then wsPurch.Tab.Color = RGB(255, 255, 0)
             WriteRecordsToSheet wsPurch, purchRows
             SortPurchaseSheet wsPurch
+            If docType = DOC_NOTICE Then WriteAdditionalHeaders wsPurch
             FormatSheet wsPurch
         End If
     End If
@@ -620,6 +626,34 @@ Private Sub WriteRecordsToSheet(ByVal ws As Worksheet, ByVal rows As Collection)
 End Sub
 
 '==========================================================================
+'  追加ヘッダー(O列・P列)
+'==========================================================================
+Private Sub WriteAdditionalHeaders(ByVal ws As Worksheet)
+    Dim wsInfo As Worksheet
+    Set wsInfo = CommonGetBasicInfoWorksheet(ThisWorkbook)
+    If wsInfo Is Nothing Then
+        MsgBox "基本情報シートが見つからないため、追加ヘッダーを設定できませんでした。", vbExclamation
+        Exit Sub
+    End If
+
+    Dim amountName As String
+    amountName = CommonNzText(wsInfo.Range(BASIC_INFO_AMOUNT_CELL).value)
+    ws.Range("O1").value = CommonNzText(wsInfo.Range(BASIC_INFO_PUBLIC_CELL).value) & "公開" & amountName
+    ws.Range("P1").value = amountName & "金額"
+End Sub
+
+'==========================================================================
+'  出力表の最終列(追加ヘッダーがある場合はP列)
+'==========================================================================
+Private Function GetOutputLastColumn(ByVal ws As Worksheet) As Long
+    If CommonNzText(ws.Range("P1").value) <> "" Then
+        GetOutputLastColumn = ws.Range("P1").Column
+    Else
+        GetOutputLastColumn = COL_KIND
+    End If
+End Function
+
+'==========================================================================
 '  工事側シートのソート
 '    1.契約線区名(側線は最後)  2.工種分類(レール溶接は最後)
 '    3.昼夜別  4.整理番号
@@ -684,7 +718,7 @@ Private Sub FormatSheet(ByVal ws As Worksheet)
     If lastRow < 1 Then lastRow = 1
 
     ' ヘッダー装飾(黒地・白文字・中央揃え・太字)
-    With ws.Range(ws.Cells(1, 1), ws.Cells(1, COL_KIND))
+    With ws.Range(ws.Cells(1, 1), ws.Cells(1, GetOutputLastColumn(ws)))
         .Font.Bold = True
         .Font.Color = RGB(255, 255, 255)
         .Interior.Color = RGB(0, 0, 0)
@@ -698,14 +732,14 @@ Private Sub FormatSheet(ByVal ws As Worksheet)
     End If
 
     ' 罫線(表全体)
-    With ws.Range(ws.Cells(1, 1), ws.Cells(lastRow, COL_KIND)).Borders
+    With ws.Range(ws.Cells(1, 1), ws.Cells(lastRow, GetOutputLastColumn(ws))).Borders
         .LineStyle = xlContinuous
         .Weight = xlThin
         .Color = RGB(150, 150, 150)
     End With
 
     ' 列幅自動調整(取込文字列にフィット)
-    ws.Range(ws.Cells(1, 1), ws.Cells(1, COL_KIND)).EntireColumn.AutoFit
+    ws.Range(ws.Cells(1, 1), ws.Cells(1, GetOutputLastColumn(ws))).EntireColumn.AutoFit
 
     ' 行の高さ(シート全体 18)
     ws.Cells.RowHeight = 18
