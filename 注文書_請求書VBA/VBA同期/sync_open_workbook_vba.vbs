@@ -39,6 +39,7 @@ componentNames = Array( _
     "mod_DebugLog", _
     "mod_FillManagerName", _
     "mod_MaterialPriceImport", _
+    "mod_UiMessages", _
     "mod_VendorMaster", _
     "AllVenderSelection", _
     "Project_Number_Selection", _
@@ -54,6 +55,7 @@ sourceFiles = Array( _
     "mod_DebugLog.bas", _
     "mod_FillManagerName.bas", _
     "mod_MaterialPriceImport.bas", _
+    "mod_UiMessages.bas", _
     "mod_VendorMaster.bas", _
     "AllVenderSelection.frm", _
     "Project_Number_Selection.frm", _

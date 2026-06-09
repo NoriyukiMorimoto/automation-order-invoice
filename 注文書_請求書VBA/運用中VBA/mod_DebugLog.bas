@@ -39,7 +39,7 @@ End Sub
 '--------------------------------------------------------------------------
 Public Sub FlushToSheet()
     If mLogCount = 0 Then
-        MsgBox "ログはありません。", vbInformation
+        MsgBox UiMsgDebugLogEmptyText(), vbInformation
         Exit Sub
     End If
 
@@ -71,7 +71,7 @@ Public Sub FlushToSheet()
 
     ws.Columns("A:B").AutoFit
     ws.Activate
-    MsgBox mLogCount & " 件のログをシートに出力しました。", vbInformation
+    MsgBox mLogCount & UiMsgDebugLogFlushSuffixText(), vbInformation
 End Sub
 
 '--------------------------------------------------------------------------

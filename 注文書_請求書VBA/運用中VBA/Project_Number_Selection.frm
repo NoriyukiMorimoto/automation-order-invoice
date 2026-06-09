@@ -67,7 +67,7 @@ Private Sub LoadMasterDataToMemory()
     Dim targetBranchOffice As String
     targetBranchOffice = GetProjectSelectionBranchOfficeSearchKey(targetBranch, targetOffice)
 
-    Me.Caption = "工事現況表データを読込中...": DoEvents
+    Me.Caption = UiMsgProjectStatusLoadingCaptionText(): DoEvents
     Application.screenUpdating = False
 
     Dim sourceArr As Variant
@@ -114,9 +114,9 @@ Private Sub LoadMasterDataToMemory()
 
     RefreshList ""
     If hitCount = 0 Then
-        MsgBox "データが見つかりません。", vbInformation
+        MsgBox UiMsgProjectDataNotFoundText(), vbInformation
     End If
-    Me.Caption = targetBranch & " " & targetOffice & " 工事選択（直接入力の場合はセルへ入力してください）"
+    Me.Caption = targetBranch & " " & targetOffice & UiMsgProjectSelectionCaptionSuffixText()
     GoTo FinallyExit
 
 ErrorHandler:
@@ -126,8 +126,8 @@ ErrorHandler:
 FinallyExit:
     Application.screenUpdating = previousScreenUpdating
     If savedErrNumber <> 0 Then
-        Me.Caption = "工事番号選択"
-        MsgBox "工事現況表データの読み込みに失敗しました。" & vbCrLf & savedErrDescription, vbExclamation
+        Me.Caption = UiMsgProjectNumberSelectionCaptionText()
+        MsgBox UiMsgProjectStatusLoadFailedText() & vbCrLf & savedErrDescription, vbExclamation
     End If
 End Sub
 Private Function GetProjectStatusDataFolderPath() As String
@@ -326,7 +326,7 @@ ErrorHandler:
     savedErrNumber = Err.Number
     savedErrDescription = Err.Description
     Application.EnableEvents = previousEnableEvents
-    MsgBox "工事情報を基本情報シートへ反映できませんでした。" & vbCrLf & _
+    MsgBox UiMsgProjectApplyToBasicInfoFailedText() & vbCrLf & _
            "Err " & CStr(savedErrNumber) & ": " & savedErrDescription, vbExclamation
 End Sub
 

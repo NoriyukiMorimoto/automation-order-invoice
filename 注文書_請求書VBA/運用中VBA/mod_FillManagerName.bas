@@ -27,14 +27,14 @@ Public Sub FillManagerNameToBasicInfo()
     Dim wsInfo As Worksheet
     Set wsInfo = CommonGetBasicInfoWorksheet()
     If wsInfo Is Nothing Then
-        MsgBox "基本情報シートが見つかりません。シート名を確認してください。", vbExclamation
+        MsgBox UiMsgBasicInfoSheetNotFoundCheckNameText(), vbExclamation
         Exit Sub
     End If
 
     Dim yearText As String
     yearText = CommonExtractYear4Digits(Trim$(CStr(wsInfo.Range("B4").value)))
     If yearText = "" Then
-        MsgBox "基本情報シート B4 に4桁の年度が見つかりません。例: 2026", vbExclamation
+        MsgBox UiMsgBasicInfoYearNotFoundB4ExampleText(), vbExclamation
         Exit Sub
     End If
 
@@ -42,7 +42,7 @@ Public Sub FillManagerNameToBasicInfo()
     BranchName = CommonNormalizeText(CStr(wsInfo.Range("B6").value))
     OfficeName = CommonNormalizeText(CStr(wsInfo.Range("C6").value))
     If BranchName = "" Or OfficeName = "" Then
-        MsgBox "基本情報シート B6 または C6 が空です。支店名・出張所名を確認してください。", vbExclamation
+        MsgBox UiMsgBasicInfoBranchOfficeEmptyText(), vbExclamation
         Exit Sub
     End If
 
@@ -53,7 +53,7 @@ Public Sub FillManagerNameToBasicInfo()
     Dim rows As Collection
     Set rows = LoadManagerListRows(sourceFilePath)
     If rows Is Nothing Then
-        MsgBox "出張所長リストファイルを参照できませんでした。" & vbCrLf & sourceFilePath, vbExclamation
+        MsgBox UiMsgManagerListFileUnreadableText() & vbCrLf & sourceFilePath, vbExclamation
         Exit Sub
     End If
 
@@ -68,9 +68,9 @@ Public Sub FillManagerNameToBasicInfo()
     Next rowData
 
     If foundName = "" Then
-        MsgBox "該当する支店名・出張所名が見つかりませんでした。" & vbCrLf & _
-               "支店名：" & BranchName & vbCrLf & _
-               "出張所名：" & OfficeName, vbExclamation
+        MsgBox UiMsgManagerBranchOfficeNotFoundText() & vbCrLf & _
+               UiMsgBranchNameLabelText() & BranchName & vbCrLf & _
+               UiMsgOfficeNameLabelText() & OfficeName, vbExclamation
     Else
         wsInfo.Range("F6").value = foundName
     End If
@@ -83,7 +83,7 @@ Public Function RefreshBranchOfficeValidation(Optional ByVal keepOffice As Boole
     Dim wsInfo As Worksheet
     Set wsInfo = CommonGetBasicInfoWorksheet()
     If wsInfo Is Nothing Then
-        MsgBox "基本情報シートが見つかりません。シート名を確認してください。", vbExclamation
+        MsgBox UiMsgBasicInfoSheetNotFoundCheckNameText(), vbExclamation
         Exit Function
     End If
 
@@ -91,7 +91,7 @@ Public Function RefreshBranchOfficeValidation(Optional ByVal keepOffice As Boole
     yearText = CommonExtractYear4Digits(Trim$(CStr(wsInfo.Range("B4").value)))
     If yearText = "" Then
         mod_DebugLog.Log "[FillMgr] RefreshBranchOfficeValidation: yearText 空 -> Exit"
-        MsgBox "基本情報シート B4 に4桁の年度が見つかりません。例: 2026", vbExclamation
+        MsgBox UiMsgBasicInfoYearNotFoundB4ExampleText(), vbExclamation
         Exit Function
     End If
 
@@ -107,7 +107,7 @@ Public Function RefreshBranchOfficeValidation(Optional ByVal keepOffice As Boole
     Set rows = LoadManagerListRows(sourceFilePath)
     If rows Is Nothing Then
         mod_DebugLog.Log "[FillMgr] RefreshBranchOfficeValidation: rows Is Nothing -> Exit"
-        MsgBox "出張所長リストファイルを参照できませんでした。" & vbCrLf & sourceFilePath, vbExclamation
+        MsgBox UiMsgManagerListFileUnreadableText() & vbCrLf & sourceFilePath, vbExclamation
         Exit Function
     End If
     mod_DebugLog.Log "[FillMgr] RefreshBranchOfficeValidation: rows.Count=" & rows.Count
@@ -574,14 +574,14 @@ Private Function GetManagerListFilePath(ByVal yearText As String) As String
     mod_DebugLog.Log "[FillMgr] GetManagerListFilePath: folderPath=[" & folderPath & "]"
     If Dir(folderPath, vbDirectory) = "" Then
         mod_DebugLog.Log "[FillMgr] GetManagerListFilePath: フォルダ不存在 -> Exit"
-        MsgBox "出張所長リストフォルダが見つかりません。" & vbCrLf & folderPath, vbExclamation
+        MsgBox UiMsgManagerListFolderNotFoundText() & vbCrLf & folderPath, vbExclamation
         Exit Function
     End If
     GetManagerListFilePath = FindManagerListFile(folderPath, yearText)
     mod_DebugLog.Log "[FillMgr] GetManagerListFilePath: 結果=[" & GetManagerListFilePath & "]"
     If GetManagerListFilePath = "" Then
         mod_DebugLog.Log "[FillMgr] GetManagerListFilePath: ファイル不存在 -> Exit"
-        MsgBox yearText & " 年の出張所長リストファイルが見つかりません。ファイル名に年度が含まれているか確認してください。", vbExclamation
+        MsgBox yearText & UiMsgManagerListFileNotFoundSuffixText(), vbExclamation
     End If
 End Function
 

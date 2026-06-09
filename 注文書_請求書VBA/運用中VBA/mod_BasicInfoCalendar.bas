@@ -145,7 +145,7 @@ Public Sub BasicInfoCalendarSelectDay()
     Exit Sub
 
 ErrorHandler:
-    MsgBox "“ú•t‚ğ“ü—Í‚Å‚«‚Ü‚¹‚ñ‚Å‚µ‚½B" & vbCrLf & _
+    MsgBox UiMsgDateInputFailedText() & vbCrLf & _
            "Caller: " & callerName & vbCrLf & _
            Err.Description, vbExclamation
 End Sub
