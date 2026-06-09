@@ -45,6 +45,7 @@ Private Const COL_KIND As Long = 13       ' 工種分類
 Private Const COL_AUTO_PRICE As Long = 15 ' 参照単価(O列)
 Private Const COL_AUTO_AMOUNT As Long = 16 ' 参照単価金額(P列)
 Private Const COL_PRICE_COMPARE As Long = 17 ' 単価比較(Q列)
+Private Const COL_PRICE_GUIDANCE As Long = 18 ' 単価不一致時の案内(R列)
 Private Const COL_FLAG_SIDE As Long = 27  ' 補助:側線フラグ(AA列)
 Private Const COL_FLAG_WELD As Long = 28  ' 補助:レール溶接フラグ(AB列)
 Private Const OUTPUT_COL_COUNT As Long = 13
@@ -293,7 +294,7 @@ Public Sub ImportConstructionDocument()
     SortWorksSheet wsWorks
     WriteAdditionalHeaders wsWorks
     FillReferenceUnitPrices wsWorks
-    FormatSheet wsWorks, True
+    FormatSheet wsWorks
 
     '--- 購入充当側シート作成・書込み・ソート(該当行がある場合のみ) ---------
     If purchRows.Count > 0 Then
@@ -311,7 +312,8 @@ Public Sub ImportConstructionDocument()
             SortPurchaseSheet wsPurch
             If docType = DOC_NOTICE Then WriteAdditionalHeaders wsPurch, False
             If docType = DOC_NOTICE Then FillPurchaseUnitPrices wsPurch
-            FormatSheet wsPurch, (docType = DOC_NOTICE)
+            FormatSheet wsPurch
+            If docType = DOC_NOTICE Then ApplyPurchaseNoticeColumnExclusions wsPurch
         End If
     End If
 
@@ -684,11 +686,11 @@ Private Sub WriteAdditionalHeaders(ByVal ws As Worksheet, _
 End Sub
 
 '==========================================================================
-'  出力表の最終列(単価比較がある場合はQ列)
+'  出力表の最終列(単価比較がある場合は案内欄のR列)
 '==========================================================================
 Private Function GetOutputLastColumn(ByVal ws As Worksheet) As Long
     If CommonNzText(ws.Range("Q1").value) <> "" Then
-        GetOutputLastColumn = ws.Range("Q1").Column
+        GetOutputLastColumn = COL_PRICE_GUIDANCE
     ElseIf CommonNzText(ws.Range("P1").value) <> "" Then
         GetOutputLastColumn = ws.Range("P1").Column
     Else
@@ -742,7 +744,7 @@ Private Sub FillReferenceUnitPrices(ByVal ws As Worksheet)
         End If
 
         If Not IsEmpty(referencePrice) Then ws.Cells(r, COL_AUTO_PRICE).value = referencePrice
-        WritePriceComparison ws, r
+        WritePriceComparison ws, r, unitPriceSheetName
     Next r
 
     ws.Range(ws.Cells(2, COL_AUTO_AMOUNT), ws.Cells(lastRow, COL_AUTO_AMOUNT)).FormulaR1C1 = _
@@ -1084,10 +1086,13 @@ Private Function SelectDayNightPrice(ByVal dayNightText As String, _
     End If
 End Function
 
-Private Sub WritePriceComparison(ByVal ws As Worksheet, ByVal rowIndex As Long)
+Private Sub WritePriceComparison(ByVal ws As Worksheet, ByVal rowIndex As Long, _
+                                 ByVal unitPriceSheetName As String)
     Dim priceMatches As Boolean
     priceMatches = UnitPriceValuesMatch(ws.Cells(rowIndex, COL_AUTO_PRICE).value, _
                                         ws.Cells(rowIndex, COL_JR_PRICE).value)
+
+    ws.Cells(rowIndex, COL_PRICE_GUIDANCE).ClearContents
 
     With ws.Cells(rowIndex, COL_PRICE_COMPARE)
         .HorizontalAlignment = xlCenter
@@ -1100,6 +1105,18 @@ Private Sub WritePriceComparison(ByVal ws As Worksheet, ByVal rowIndex As Long)
             .value = "単価不一致"
             .Interior.Color = RGB(255, 255, 0)
             .Font.Color = RGB(255, 0, 0)
+
+            Dim guidanceSheetName As String
+            guidanceSheetName = unitPriceSheetName
+            If guidanceSheetName = "" Then
+                guidanceSheetName = CommonNzText(ws.Cells(rowIndex, COL_LINE).value)
+            End If
+            With ws.Cells(rowIndex, COL_PRICE_GUIDANCE)
+                .value = "独自工種の内容を(" & guidanceSheetName & ")に入力してください。" & vbLf & _
+                         "入力後、基本情報シートで施工通知書(取込データによっては施工指示書)の再取込みを行ってください。"
+                .WrapText = True
+                .VerticalAlignment = xlCenter
+            End With
         End If
     End With
 End Sub
@@ -1172,8 +1189,7 @@ End Sub
 '==========================================================================
 '  書式設定(ヘッダー装飾・罫線・数値書式・列幅自動調整)
 '==========================================================================
-Private Sub FormatSheet(ByVal ws As Worksheet, _
-                        Optional ByVal fitReferenceColumn As Boolean = False)
+Private Sub FormatSheet(ByVal ws As Worksheet)
     Dim lastRow As Long
     lastRow = GetLastDataRow(ws)
     If lastRow < 1 Then lastRow = 1
@@ -1192,26 +1208,48 @@ Private Sub FormatSheet(ByVal ws As Worksheet, _
         ws.Range(ws.Cells(2, COL_JR_PRICE), ws.Cells(lastRow, COL_OUT_AMOUNT)).NumberFormatLocal = "#,##0"
     End If
 
-    ' 罫線(表全体)
-    With ws.Range(ws.Cells(1, 1), ws.Cells(lastRow, GetOutputLastColumn(ws))).Borders
+    ' 罫線(N列は空白の区切り列、R列は案内欄のため対象外)
+    With ws.Range(ws.Cells(1, 1), ws.Cells(lastRow, COL_KIND)).Borders
         .LineStyle = xlContinuous
         .Weight = xlThin
         .Color = RGB(150, 150, 150)
     End With
+    If CommonNzText(ws.Cells(1, COL_AUTO_AMOUNT).value) <> "" Then
+        Dim borderLastColumn As Long
+        borderLastColumn = COL_AUTO_AMOUNT
+        If CommonNzText(ws.Cells(1, COL_PRICE_COMPARE).value) <> "" Then
+            borderLastColumn = COL_PRICE_COMPARE
+        End If
+        With ws.Range(ws.Cells(1, COL_AUTO_PRICE), ws.Cells(lastRow, borderLastColumn)).Borders
+            .LineStyle = xlContinuous
+            .Weight = xlThin
+            .Color = RGB(150, 150, 150)
+        End With
+        If borderLastColumn = COL_PRICE_COMPARE Then
+            ws.Range(ws.Cells(1, COL_PRICE_GUIDANCE), _
+                     ws.Cells(lastRow, COL_PRICE_GUIDANCE)).Borders.LineStyle = xlNone
+        End If
+    End If
 
     ' 列幅自動調整(取込文字列にフィット)
     ws.Range(ws.Cells(1, 1), ws.Cells(1, GetOutputLastColumn(ws))).EntireColumn.AutoFit
 
-    ' 参照単価列(O列): ヘッダーO1は縮小して表示し、列幅はO2以降の数値に合わせる
-    If fitReferenceColumn Then
-        ws.Cells(1, COL_AUTO_PRICE).ShrinkToFit = True
-        If lastRow >= 2 Then
-            ws.Range(ws.Cells(2, COL_AUTO_PRICE), ws.Cells(lastRow, COL_AUTO_PRICE)).Columns.AutoFit
-        End If
+    ' 参照単価列(O列): 縮小表示を解除し、P列と同じ列幅にする
+    If CommonNzText(ws.Cells(1, COL_AUTO_AMOUNT).value) <> "" Then
+        ws.Columns(COL_AUTO_PRICE).ShrinkToFit = False
+        ws.Columns(COL_AUTO_PRICE).ColumnWidth = ws.Columns(COL_AUTO_AMOUNT).ColumnWidth
     End If
 
     ' 行の高さ(シート全体 18)
     ws.Cells.RowHeight = 18
+    If CommonNzText(ws.Cells(1, COL_PRICE_COMPARE).value) <> "" Then
+        Dim r As Long
+        For r = 2 To lastRow
+            If CommonNzText(ws.Cells(r, COL_PRICE_COMPARE).value) = "単価不一致" Then
+                ws.rows(r).RowHeight = 36
+            End If
+        Next r
+    End If
 
     ' 中央揃え(B=整理番号, D=昼夜別, E=単位, G=契約線区名, H=管理室, M=工種分類)
     Dim centerCols As Variant, cv As Variant
@@ -1219,6 +1257,18 @@ Private Sub FormatSheet(ByVal ws As Worksheet, _
     For Each cv In centerCols
         ws.Range(ws.Cells(1, CLng(cv)), ws.Cells(lastRow, CLng(cv))).HorizontalAlignment = xlCenter
     Next cv
+End Sub
+
+'==========================================================================
+'  購入充当通知では後工程で使用しない列を非表示にする
+'==========================================================================
+Private Sub ApplyPurchaseNoticeColumnExclusions(ByVal ws As Worksheet)
+    Dim excludedColumns As Range
+    Set excludedColumns = Application.Union(ws.Columns(COL_VENDOR), _
+                                            ws.Columns(COL_MGR), _
+                                            ws.Columns(COL_OUT_PRICE), _
+                                            ws.Columns(COL_OUT_AMOUNT))
+    excludedColumns.EntireColumn.Hidden = True
 End Sub
 
 '==========================================================================
