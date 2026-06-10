@@ -1523,7 +1523,7 @@ End Function
 Private Function VendorMasterFolderNameText() As String
     Static cached As String
     If cached = "" Then
-        cached = ChrW$(&H696D) & ChrW$(&H8005) & ChrW$(&H30DE) & ChrW$(&H30B9) & ChrW$(&H30BF)
+        cached = ChrW$(&H30DE) & ChrW$(&H30B9) & ChrW$(&H30BF) & ChrW$(&H30C7) & ChrW$(&H30FC) & ChrW$(&H30BF)
     End If
     VendorMasterFolderNameText = cached
 End Function
@@ -1531,7 +1531,8 @@ End Function
 Private Function VendorMasterFileNameText() As String
     Static cached As String
     If cached = "" Then
-        cached = VendorMasterFolderNameText() & "(" & ChrW$(&H5168) & ChrW$(&H793E) & ChrW$(&H7248) & ").xlsx"
+        cached = ChrW$(&H696D) & ChrW$(&H8005) & ChrW$(&H30DE) & ChrW$(&H30B9) & ChrW$(&H30BF) & _
+                 "(" & ChrW$(&H5168) & ChrW$(&H793E) & ChrW$(&H7248) & ").xlsx"
     End If
     VendorMasterFileNameText = cached
 End Function
