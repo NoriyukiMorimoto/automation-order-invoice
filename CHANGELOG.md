@@ -158,6 +158,10 @@
   ApplyVendorRowToBasicInfo: F9→F23 範囲を対応更新
   FitVendorComboBoxToF9 → FitVendorComboBoxToF11
 
+### #29
+- 適用積算線区の単価シートに表示する施工会社名を、基本情報 B6 の支店シートにある
+  業者マスタ B列の会社名で照合し、対応する A列の値へ変換するよう変更。
+
 ---
 
 ## mod_BasicInfoUpdate.bas（基本情報シート 期間／請求回数更新モジュール）

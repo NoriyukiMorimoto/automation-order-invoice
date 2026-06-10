@@ -46,6 +46,8 @@ Private Const VENDOR_UNIT_PRICE_NUMBER_FORMAT As String = "#,##0"
 Private Const MAX_VENDOR_BLOCK_COUNT As Long = 20
 Private Const VENDOR_SOURCE_START_ROW As Long = 2
 Private Const VENDOR_SOURCE_END_ROW As Long = 36
+Private Const VENDOR_ROW_NAME_INDEX As Long = 0
+Private Const VENDOR_ROW_UNIT_PRICE_NAME_INDEX As Long = 12
 Private Const VENDOR_MASTER_ADO_COLUMN_O_NAME As String = "F15"
 Private Const VENDOR_MASTER_EXCEL_COLUMN_O As Long = 15
 Private Const VENDOR_COMBO_NAME As String = "ComboBoxVendor"
@@ -601,10 +603,13 @@ Public Sub RefreshAllVendorUnitPricesForBasicInfo(Optional ByVal wsInfo As Works
     Dim vendorCount As Long
     vendorCount = GetVendorBlockCount(wsInfo)
 
+    Dim vendorUnitPriceNameMap As Object
+    Set vendorUnitPriceNameMap = BuildVendorUnitPriceNameMap(wsInfo)
+
     Dim wsUnitPrice As Worksheet
     For Each wsUnitPrice In targetBook.worksheets
         If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) Then
-            RefreshVendorUnitPriceBlocksOnSheet wsUnitPrice, wsInfo, vendorCount
+            RefreshVendorUnitPriceBlocksOnSheet wsUnitPrice, wsInfo, vendorCount, vendorUnitPriceNameMap
         End If
     Next wsUnitPrice
 
@@ -624,11 +629,14 @@ Private Sub RefreshVendorUnitPriceForValueColumn(ByVal wsInfo As Worksheet, ByVa
     dayCol = VendorUnitPriceDayColumnByValueColumn(valueColumn)
     nightCol = dayCol + 1
 
+    Dim vendorUnitPriceNameMap As Object
+    Set vendorUnitPriceNameMap = BuildVendorUnitPriceNameMap(wsInfo)
+
     Dim wsUnitPrice As Worksheet
     For Each wsUnitPrice In targetBook.worksheets
         If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) Then
             If ShouldApplyVendorUnitPriceBlock(wsInfo, valueColumn) Then
-                ApplyVendorUnitPriceBlockToSheet wsUnitPrice, wsInfo, valueColumn
+                ApplyVendorUnitPriceBlockToSheet wsUnitPrice, wsInfo, valueColumn, vendorUnitPriceNameMap
             Else
                 ClearVendorUnitPriceBlockOnSheet wsUnitPrice, dayCol, nightCol
             End If
@@ -637,8 +645,9 @@ Private Sub RefreshVendorUnitPriceForValueColumn(ByVal wsInfo As Worksheet, ByVa
 End Sub
 
 Private Sub RefreshVendorUnitPriceBlocksOnSheet(ByVal wsUnitPrice As Worksheet, _
-                                                ByVal wsInfo As Worksheet, _
-                                                ByVal vendorCount As Long)
+                                                 ByVal wsInfo As Worksheet, _
+                                                 ByVal vendorCount As Long, _
+                                                 ByVal vendorUnitPriceNameMap As Object)
     Dim i As Long
     For i = 1 To vendorCount
         Dim valueColumn As Long
@@ -649,7 +658,7 @@ Private Sub RefreshVendorUnitPriceBlocksOnSheet(ByVal wsUnitPrice As Worksheet, 
         nightCol = dayCol + 1
 
         If ShouldApplyVendorUnitPriceBlock(wsInfo, valueColumn) Then
-            ApplyVendorUnitPriceBlockToSheet wsUnitPrice, wsInfo, valueColumn
+            ApplyVendorUnitPriceBlockToSheet wsUnitPrice, wsInfo, valueColumn, vendorUnitPriceNameMap
         Else
             ClearVendorUnitPriceBlockOnSheet wsUnitPrice, dayCol, nightCol
         End If
@@ -670,8 +679,9 @@ Private Function ShouldApplyVendorUnitPriceBlock(ByVal wsInfo As Worksheet, ByVa
 End Function
 
 Private Sub ApplyVendorUnitPriceBlockToSheet(ByVal wsUnitPrice As Worksheet, _
-                                             ByVal wsInfo As Worksheet, _
-                                             ByVal valueColumn As Long)
+                                              ByVal wsInfo As Worksheet, _
+                                              ByVal valueColumn As Long, _
+                                              ByVal vendorUnitPriceNameMap As Object)
     Dim dayCol As Long
     Dim nightCol As Long
     dayCol = VendorUnitPriceDayColumnByValueColumn(valueColumn)
@@ -681,7 +691,8 @@ Private Sub ApplyVendorUnitPriceBlockToSheet(ByVal wsUnitPrice As Worksheet, _
     ApplyVendorUnitPriceOutsourceRatioRow wsUnitPrice, wsInfo, valueColumn, dayCol, nightCol
     ApplyVendorUnitPriceMergedHeader wsUnitPrice, dayCol, nightCol, BuildVendorUnitPriceHeaderText(wsInfo)
     ApplyVendorUnitPriceMergedVendorName wsUnitPrice, dayCol, nightCol, _
-        CStr(wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, valueColumn).value)
+        ResolveVendorUnitPriceName(vendorUnitPriceNameMap, _
+                                   CStr(wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, valueColumn).value))
 
     With wsUnitPrice
         .Cells(VENDOR_UNIT_PRICE_LABEL_ROW, dayCol).value = VendorUnitPriceDayLabelText()
@@ -696,6 +707,60 @@ Private Sub ApplyVendorUnitPriceBlockToSheet(ByVal wsUnitPrice As Worksheet, _
     ApplyVendorUnitPriceFont wsUnitPrice, dayCol, nightCol
     ApplyVendorUnitPriceBorders wsUnitPrice, dayCol, nightCol
 End Sub
+
+Private Function BuildVendorUnitPriceNameMap(ByVal wsInfo As Worksheet) As Object
+    Dim result As Object
+    Set result = CreateObject("Scripting.Dictionary")
+    result.CompareMode = vbTextCompare
+
+    Dim BranchName As String
+    BranchName = CommonNormalizeText(CStr(wsInfo.Range("B6").value))
+    If BranchName = "" Then
+        Set BuildVendorUnitPriceNameMap = result
+        Exit Function
+    End If
+
+    Dim vendorRows As Collection
+    Set vendorRows = LoadVendorRows(BranchName)
+    If Not HasVendorRows(vendorRows) Then
+        Set BuildVendorUnitPriceNameMap = result
+        Exit Function
+    End If
+
+    Dim rowData As Variant
+    For Each rowData In vendorRows
+        Dim vendorNameKey As String
+        Dim unitPriceVendorName As String
+        vendorNameKey = CommonNormalizeText(CStr(rowData(VENDOR_ROW_NAME_INDEX)))
+        unitPriceVendorName = CommonNzText(rowData(VENDOR_ROW_UNIT_PRICE_NAME_INDEX))
+
+        If vendorNameKey <> "" And unitPriceVendorName <> "" Then
+            If Not result.Exists(vendorNameKey) Then
+                result.Add vendorNameKey, unitPriceVendorName
+            End If
+        End If
+    Next rowData
+
+    Set BuildVendorUnitPriceNameMap = result
+End Function
+
+Private Function ResolveVendorUnitPriceName(ByVal vendorUnitPriceNameMap As Object, _
+                                            ByVal basicInfoVendorName As String) As String
+    Dim vendorNameKey As String
+    vendorNameKey = CommonNormalizeText(basicInfoVendorName)
+
+    If Not vendorUnitPriceNameMap Is Nothing Then
+        If vendorUnitPriceNameMap.Exists(vendorNameKey) Then
+            ResolveVendorUnitPriceName = CStr(vendorUnitPriceNameMap(vendorNameKey))
+            Exit Function
+        End If
+    End If
+
+    ResolveVendorUnitPriceName = basicInfoVendorName
+    If vendorNameKey <> "" Then
+        mod_DebugLog.Log "[VendorMaster] Unit price vendor name not found: " & basicInfoVendorName
+    End If
+End Function
 
 Private Sub ClearVendorUnitPriceBlockOnSheet(ByVal wsUnitPrice As Worksheet, _
                                              ByVal dayCol As Long, _
