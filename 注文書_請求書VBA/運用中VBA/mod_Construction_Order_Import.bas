@@ -310,6 +310,18 @@ Public Sub ImportConstructionDocument()
     ApplyPriceGuidanceColumnLayout wsWorks
     mod_SubcontractorSelector.ApplySubcontractorDropdowns wsWorks   ' A列(施工業者)に施工会社ドロップダウンを付与
 
+    ' A列(施工業者)を中央揃え
+    wsWorks.Columns(COL_VENDOR).HorizontalAlignment = xlCenter
+
+    ' 施工通知書取込のみ H列(管理室)を非表示(通知書は管理室データなし)
+    If docType = DOC_NOTICE Then wsWorks.Columns(COL_MGR).Hidden = True
+
+    ' K列(外注単価)・L列(外注金額)は不要 -> 列ごと削除し右列以降を左へ詰める
+    '   ※全整形・単価転記が済んだ最後に実行。参照単価金額のR1C1相対数式は
+    '     Excelが列削除に合わせて自動調整するため、数式オフセットの手修正は不要。
+    wsWorks.Range(wsWorks.Cells(1, COL_OUT_PRICE), _
+                  wsWorks.Cells(1, COL_OUT_AMOUNT)).EntireColumn.Delete Shift:=xlToLeft
+
     '--- 購入充当側シート作成・書込み・ソート(該当行がある場合のみ) ---------
     If purchRows.Count > 0 Then
         Dim purchName As String
