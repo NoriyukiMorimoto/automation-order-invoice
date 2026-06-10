@@ -355,6 +355,9 @@ Public Sub ImportConstructionDocument()
     wsWorks.Range(wsWorks.Cells(1, COL_OUT_PRICE), _
                   wsWorks.Cells(1, COL_OUT_AMOUNT)).EntireColumn.Delete Shift:=xlToLeft
 
+    ' JR金額の合計行(I列:ラベル / J列:SUM)をB列最終行の直下に作成
+    WriteJrTotalRow wsWorks
+
     '--- 購入充当側シート作成・書込み・ソート(該当行がある場合のみ) ---------
     If purchRows.Count > 0 Then
         Dim purchName As String
@@ -375,9 +378,11 @@ Public Sub ImportConstructionDocument()
                 FillPurchaseUnitPrices wsPurch
                 FormatPurchaseNoticeSheet wsPurch
                 ApplyPurchaseNoticeColumnExclusions wsPurch
+                WritePurchaseNoticeJrTotalRow wsPurch   ' H列:ラベル / I列:SUM をA列最終行の直下に作成
             Else
                 SortPurchaseSheet wsPurch
                 FormatSheet wsPurch
+                WriteJrTotalRow wsPurch   ' I列:ラベル / J列:SUM をB列最終行の直下に作成
             End If
         End If
     End If
@@ -942,6 +947,15 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet)
         End If
     Next r
 
+    ' 施工会社ごとの合計(単価列:「会社名+合計」/ 金額列:SUM)をB列最終行の直下に作成
+    '   ※列は毎回削除→再挿入されるため、合計セルも実行のたびに再作成される
+    For vendorIndex = 1 To vendorNames.Count
+        priceColumn = SUBCON_PRICE_FIRST_COL + ((vendorIndex - 1) * 2)
+        WriteTotalCells ws, lastRow + 1, _
+                        priceColumn, CStr(vendorNames(vendorIndex)) & "合計", _
+                        priceColumn + 1, lastRow
+    Next vendorIndex
+
     FormatSubcontractorPriceColumns ws, lastRow, insertedColumnCount
     LogCI "施工会社別単価列: 会社数=" & vendorNames.Count & _
           " / 単価一致=" & matchedCount
@@ -1174,6 +1188,62 @@ Public Sub ApplySanpaiRowRestrictions(ByVal ws As Worksheet)
     Next r
 
     LogCI "産廃処理行: A列塗りつぶし・入力不可=" & restrictedCount & " 行"
+End Sub
+
+'==========================================================================
+'  合計セルの共通書込み
+'    ラベルセル: 黒のxlThin枠で囲む
+'    SUMセル   : 小数点以下切り捨て(ROUNDDOWN)・桁区切り表示・
+'                赤のxlMedium枠で囲む
+'==========================================================================
+Private Sub WriteTotalCells(ByVal ws As Worksheet, ByVal totalRow As Long, _
+                            ByVal labelColumn As Long, ByVal labelText As String, _
+                            ByVal sumColumn As Long, ByVal sumLastRow As Long)
+    ' ラベルセル
+    With ws.Cells(totalRow, labelColumn)
+        .value = labelText
+        .HorizontalAlignment = xlCenter
+        .VerticalAlignment = xlCenter
+        .ShrinkToFit = True
+        .BorderAround LineStyle:=xlContinuous, Weight:=xlThin, Color:=RGB(0, 0, 0)
+    End With
+
+    ' SUMセル(小数点以下切り捨て・桁区切り・赤の中太枠)
+    With ws.Cells(totalRow, sumColumn)
+        .FormulaR1C1 = "=ROUNDDOWN(SUM(R2C:R" & sumLastRow & "C),0)"
+        .NumberFormatLocal = "#,##0;[赤]-#,##0"
+        .BorderAround LineStyle:=xlContinuous, Weight:=xlMedium, Color:=RGB(255, 0, 0)
+    End With
+End Sub
+
+'==========================================================================
+'  工事側シート: JR金額の合計行を作成
+'    B列(整理番号)の最終行の直下に、I列(JR単価列)へ「JR合計」、
+'    J列(JR金額列)へ J2:J最終行 のSUMを設定。
+'==========================================================================
+Private Sub WriteJrTotalRow(ByVal ws As Worksheet)
+    Dim lastRow As Long
+    lastRow = GetLastDataRow(ws)
+    If lastRow < 2 Then Exit Sub
+
+    WriteTotalCells ws, lastRow + 1, _
+                    COL_JR_PRICE, "JR合計", _
+                    COL_JR_AMOUNT, lastRow
+End Sub
+
+'==========================================================================
+'  購入充当通知シート: JR金額の合計行を作成
+'    A列(整理番号)の最終行の直下に、H列(JR単価列)へ「JR合計」、
+'    I列(JR金額列)へ I2:I最終行 のSUMを設定。
+'==========================================================================
+Private Sub WritePurchaseNoticeJrTotalRow(ByVal ws As Worksheet)
+    Dim lastRow As Long
+    lastRow = GetLastDataRow(ws, PURCHASE_NOTICE_SEIRI_COL)
+    If lastRow < 2 Then Exit Sub
+
+    WriteTotalCells ws, lastRow + 1, _
+                    PURCHASE_NOTICE_JR_PRICE_COL, "JR合計", _
+                    PURCHASE_NOTICE_JR_AMOUNT_COL, lastRow
 End Sub
 
 '==========================================================================
