@@ -38,6 +38,7 @@ Private Const VENDOR_UNIT_PRICE_REF_UNIT_COL As Long = 5
 Private Const VENDOR_UNIT_PRICE_REF_WIDTH_COL As Long = 6
 Private Const VENDOR_UNIT_PRICE_WORK_TYPE_COL As Long = 3
 Private Const VENDOR_UNIT_PRICE_LAST_ROW_COL As Long = 2
+Private Const VENDOR_UNIT_PRICE_INITIAL_FILL_LAST_COL As Long = 10
 Private Const VENDOR_UNIT_PRICE_FILL_COLOR_R As Long = 128
 Private Const VENDOR_UNIT_PRICE_FILL_COLOR_G As Long = 128
 Private Const VENDOR_UNIT_PRICE_FILL_COLOR_B As Long = 128
@@ -591,6 +592,46 @@ Public Sub HandleVendorUnitPriceMonitorChange(ByVal wsInfo As Worksheet, ByVal c
     RefreshAllVendorUnitPricesForBasicInfo wsInfo
 End Sub
 
+Public Sub HandleConstructionUnitPriceSheetChange(ByVal wsUnitPrice As Worksheet, _
+                                                   ByVal changedRange As Range)
+    If wsUnitPrice Is Nothing Then Exit Sub
+    If changedRange Is Nothing Then Exit Sub
+
+    Dim wsInfo As Worksheet
+    Set wsInfo = CommonGetBasicInfoWorksheet(wsUnitPrice.Parent)
+    If wsInfo Is Nothing Then Exit Sub
+
+    EnsureApplicationCalculationAutomatic
+
+    Dim changedB As Range
+    Dim changedE As Range
+    Dim changedF As Range
+    Set changedB = Intersect(changedRange, wsUnitPrice.Columns(VENDOR_UNIT_PRICE_LAST_ROW_COL))
+    Set changedE = Intersect(changedRange, wsUnitPrice.Columns(VENDOR_UNIT_PRICE_REF_UNIT_COL))
+    Set changedF = Intersect(changedRange, wsUnitPrice.Columns(VENDOR_UNIT_PRICE_REF_WIDTH_COL))
+
+    If Not changedB Is Nothing Then
+        ApplyVendorUnitPriceNewRowFill wsUnitPrice, wsInfo, changedB
+        ApplyVendorUnitPriceBaseRowBorders wsUnitPrice, wsInfo, changedB
+    End If
+    If Not changedE Is Nothing Then
+        HandleVendorUnitPriceSourceChanges wsUnitPrice, wsInfo, changedE, True
+    End If
+    If Not changedF Is Nothing Then
+        HandleVendorUnitPriceSourceChanges wsUnitPrice, wsInfo, changedF, False
+    End If
+    If Not changedB Is Nothing Then
+        ResetClearedVendorUnitPriceRows wsUnitPrice, wsInfo, changedB
+    End If
+
+    mod_Construction_Order_Import.RefreshConstructionReferencePricesForUnitPriceChange _
+        wsUnitPrice, changedRange
+
+    On Error Resume Next
+    wsUnitPrice.Calculate
+    On Error GoTo 0
+End Sub
+
 Public Sub RefreshAllVendorUnitPricesForBasicInfo(Optional ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet()
     If wsInfo Is Nothing Then Exit Sub
@@ -968,6 +1009,182 @@ Private Sub ApplyVendorUnitPriceDataRows(ByVal wsUnitPrice As Worksheet, _
         ApplyVendorUnitPriceCell wsUnitPrice.Cells(rowIndex, nightCol), False, _
                                  wsUnitPrice, rowIndex, ratioAddress
     Next rowIndex
+End Sub
+
+Private Sub ApplyVendorUnitPriceBaseRowBorders(ByVal wsUnitPrice As Worksheet, _
+                                                ByVal wsInfo As Worksheet, _
+                                                ByVal changedCells As Range)
+    Dim changedCell As Range
+    For Each changedCell In changedCells.Cells
+        If changedCell.Row >= VENDOR_UNIT_PRICE_DATA_START_ROW Then
+            If Len(Trim$(CStr(wsUnitPrice.Cells(changedCell.Row, VENDOR_UNIT_PRICE_LAST_ROW_COL).value))) > 0 Then
+                With wsUnitPrice.Range(wsUnitPrice.Cells(changedCell.Row, 1), _
+                                            wsUnitPrice.Cells(changedCell.Row, VENDOR_UNIT_PRICE_REF_WIDTH_COL)).Borders
+                    .LineStyle = xlContinuous
+                    .Weight = xlThin
+                    .ColorIndex = xlAutomatic
+                End With
+            End If
+        End If
+    Next changedCell
+
+    RefreshVendorUnitPriceBordersForSheet wsUnitPrice, wsInfo
+End Sub
+
+Private Sub ApplyVendorUnitPriceNewRowFill(ByVal wsUnitPrice As Worksheet, _
+                                            ByVal wsInfo As Worksheet, _
+                                            ByVal changedCells As Range)
+    Dim lastFillCol As Long
+    lastFillCol = GetVendorUnitPriceInitialFillLastColumn(wsInfo)
+
+    Dim changedCell As Range
+    For Each changedCell In changedCells.Cells
+        If changedCell.Row >= VENDOR_UNIT_PRICE_DATA_START_ROW Then
+            If Len(Trim$(CStr(changedCell.value))) > 0 Then
+                With wsUnitPrice.Range(wsUnitPrice.Cells(changedCell.Row, VENDOR_UNIT_PRICE_REF_UNIT_COL), _
+                                            wsUnitPrice.Cells(changedCell.Row, lastFillCol)).Interior
+                    .Color = RGB(VENDOR_UNIT_PRICE_FILL_COLOR_R, _
+                                 VENDOR_UNIT_PRICE_FILL_COLOR_G, _
+                                 VENDOR_UNIT_PRICE_FILL_COLOR_B)
+                End With
+            End If
+        End If
+    Next changedCell
+End Sub
+
+Private Function GetVendorUnitPriceInitialFillLastColumn(ByVal wsInfo As Worksheet) As Long
+    Dim lastFillCol As Long
+    lastFillCol = VENDOR_UNIT_PRICE_INITIAL_FILL_LAST_COL
+
+    Dim vendorCount As Long
+    vendorCount = GetVendorBlockCount(wsInfo)
+
+    Dim vendorIndex As Long
+    For vendorIndex = 1 To vendorCount
+        Dim valueColumn As Long
+        valueColumn = VendorValueColumnByIndex(vendorIndex)
+        If ShouldApplyVendorUnitPriceBlock(wsInfo, valueColumn) Then
+            Dim nightCol As Long
+            nightCol = VendorUnitPriceDayColumnByValueColumn(valueColumn) + 1
+            If nightCol > lastFillCol Then lastFillCol = nightCol
+        End If
+    Next vendorIndex
+
+    GetVendorUnitPriceInitialFillLastColumn = lastFillCol
+End Function
+
+Private Sub ResetClearedVendorUnitPriceRows(ByVal wsUnitPrice As Worksheet, _
+                                             ByVal wsInfo As Worksheet, _
+                                             ByVal changedCells As Range)
+    Dim lastResetCol As Long
+    lastResetCol = GetVendorUnitPriceInitialFillLastColumn(wsInfo)
+
+    Dim changedCell As Range
+    For Each changedCell In changedCells.Cells
+        If changedCell.Row >= VENDOR_UNIT_PRICE_DATA_START_ROW Then
+            If Len(Trim$(CStr(changedCell.value))) = 0 Then
+                Dim resetRange As Range
+                Set resetRange = wsUnitPrice.Range(wsUnitPrice.Cells(changedCell.Row, 1), _
+                                                   wsUnitPrice.Cells(changedCell.Row, lastResetCol))
+                resetRange.Borders.LineStyle = xlNone
+
+                wsUnitPrice.Range(wsUnitPrice.Cells(changedCell.Row, VENDOR_UNIT_PRICE_REF_UNIT_COL), _
+                                  wsUnitPrice.Cells(changedCell.Row, lastResetCol)).Interior.ColorIndex = xlColorIndexNone
+
+                With wsUnitPrice.Range(wsUnitPrice.Cells(changedCell.Row, VENDOR_UNIT_PRICE_FIRST_DAY_COL), _
+                                       wsUnitPrice.Cells(changedCell.Row, lastResetCol))
+                    .ClearContents
+                    .NumberFormat = "General"
+                    .ShrinkToFit = False
+                End With
+            End If
+        End If
+    Next changedCell
+End Sub
+
+Private Sub RefreshVendorUnitPriceBordersForSheet(ByVal wsUnitPrice As Worksheet, _
+                                                   ByVal wsInfo As Worksheet)
+    Dim vendorCount As Long
+    vendorCount = GetVendorBlockCount(wsInfo)
+
+    Dim vendorIndex As Long
+    For vendorIndex = 1 To vendorCount
+        Dim valueColumn As Long
+        valueColumn = VendorValueColumnByIndex(vendorIndex)
+        If ShouldApplyVendorUnitPriceBlock(wsInfo, valueColumn) Then
+            Dim dayCol As Long
+            dayCol = VendorUnitPriceDayColumnByValueColumn(valueColumn)
+            ApplyVendorUnitPriceBorders wsUnitPrice, dayCol, dayCol + 1
+        End If
+    Next vendorIndex
+End Sub
+
+Private Sub HandleVendorUnitPriceSourceChanges(ByVal wsUnitPrice As Worksheet, _
+                                                ByVal wsInfo As Worksheet, _
+                                                ByVal changedCells As Range, _
+                                                ByVal isDayColumn As Boolean)
+    Dim sourceCell As Range
+    For Each sourceCell In changedCells.Cells
+        If sourceCell.Row >= VENDOR_UNIT_PRICE_DATA_START_ROW Then
+            If Len(Trim$(CStr(wsUnitPrice.Cells(sourceCell.Row, VENDOR_UNIT_PRICE_LAST_ROW_COL).value))) = 0 Then
+                GoTo ContinueNextSourceCell
+            End If
+
+            If HasNumericVendorUnitPriceSource(sourceCell) Then
+                sourceCell.Interior.ColorIndex = xlColorIndexNone
+                ApplyVendorUnitPriceCellsForSourceRow wsUnitPrice, wsInfo, sourceCell.Row, isDayColumn
+            ElseIf IsVendorUnitPriceSourceCellBlank(sourceCell) Then
+                ApplyVendorUnitPriceSourceGreyFill sourceCell
+                ApplyVendorUnitPriceCellsForSourceRow wsUnitPrice, wsInfo, sourceCell.Row, isDayColumn
+            End If
+        End If
+ContinueNextSourceCell:
+    Next sourceCell
+End Sub
+
+Private Function HasNumericVendorUnitPriceSource(ByVal sourceCell As Range) As Boolean
+    If sourceCell Is Nothing Then Exit Function
+    If IsError(sourceCell.Value2) Then Exit Function
+    If Len(Trim$(CStr(sourceCell.Value2))) = 0 Then Exit Function
+    HasNumericVendorUnitPriceSource = IsNumeric(sourceCell.Value2)
+End Function
+
+Private Function IsVendorUnitPriceSourceCellBlank(ByVal sourceCell As Range) As Boolean
+    If sourceCell Is Nothing Then
+        IsVendorUnitPriceSourceCellBlank = True
+        Exit Function
+    End If
+    If IsError(sourceCell.Value2) Then Exit Function
+    IsVendorUnitPriceSourceCellBlank = (Len(Trim$(CStr(sourceCell.Value2))) = 0)
+End Function
+
+Private Sub ApplyVendorUnitPriceSourceGreyFill(ByVal sourceCell As Range)
+    sourceCell.Interior.Color = RGB(VENDOR_UNIT_PRICE_FILL_COLOR_R, _
+                                    VENDOR_UNIT_PRICE_FILL_COLOR_G, _
+                                    VENDOR_UNIT_PRICE_FILL_COLOR_B)
+End Sub
+
+Private Sub ApplyVendorUnitPriceCellsForSourceRow(ByVal wsUnitPrice As Worksheet, _
+                                                   ByVal wsInfo As Worksheet, _
+                                                   ByVal rowIndex As Long, _
+                                                   ByVal isDayColumn As Boolean)
+    Dim vendorCount As Long
+    vendorCount = GetVendorBlockCount(wsInfo)
+
+    Dim vendorIndex As Long
+    For vendorIndex = 1 To vendorCount
+        Dim valueColumn As Long
+        valueColumn = VendorValueColumnByIndex(vendorIndex)
+        If ShouldApplyVendorUnitPriceBlock(wsInfo, valueColumn) Then
+            Dim targetCol As Long
+            targetCol = VendorUnitPriceDayColumnByValueColumn(valueColumn)
+            If Not isDayColumn Then targetCol = targetCol + 1
+
+            ApplyVendorUnitPriceCell wsUnitPrice.Cells(rowIndex, targetCol), _
+                                     isDayColumn, wsUnitPrice, rowIndex, _
+                                     GetVendorOutsourceRatioAddress(wsInfo, valueColumn)
+        End If
+    Next vendorIndex
 End Sub
 
 Private Sub ApplyVendorUnitPriceCell(ByVal targetCell As Range, _

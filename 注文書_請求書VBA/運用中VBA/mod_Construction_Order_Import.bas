@@ -318,7 +318,7 @@ Public Sub ImportConstructionDocument()
     FillReferenceUnitPrices wsWorks, guidanceDocumentName
     FormatSheet wsWorks
     ApplyPriceGuidanceColumnLayout wsWorks
-    mod_SubcontractorSelector.ApplySubcontractorDropdowns wsWorks   ' A列(施工業者)に施工会社ドロップダウンを付与
+    mod_subcontractorselector.ApplySubcontractorDropdowns wsWorks   ' A列(施工業者)に施工会社ドロップダウンを付与
 
     ' A列(施工業者)を中央揃え
     wsWorks.Columns(COL_VENDOR).HorizontalAlignment = xlCenter
@@ -543,10 +543,10 @@ Private Function BuildManagerRoomSet(ByRef masterWb As Workbook, _
         Exit Function
     End If
 
-    Dim branchName As String, officeName As String
-    branchName = CommonRemoveAllSpaces(CommonNzText(wsInfo.Range(BASIC_INFO_BRANCH_CELL).value))
+    Dim BranchName As String, officeName As String
+    BranchName = CommonRemoveAllSpaces(CommonNzText(wsInfo.Range(BASIC_INFO_BRANCH_CELL).value))
     officeName = CommonRemoveAllSpaces(CommonNzText(wsInfo.Range(BASIC_INFO_OFFICE_CELL).value))
-    If branchName = "" Or officeName = "" Then
+    If BranchName = "" Or officeName = "" Then
         MsgBox "基本情報シート " & BASIC_INFO_BRANCH_CELL & "(支店) または " & _
                BASIC_INFO_OFFICE_CELL & "(出張所) が空です。", vbExclamation
         Set BuildManagerRoomSet = Nothing
@@ -588,7 +588,7 @@ Private Function BuildManagerRoomSet(ByRef masterWb As Workbook, _
     For r = MGR_MASTER_START_ROW To mLast
         b = CommonRemoveAllSpaces(CommonNzText(wsMaster.Cells(r, MGR_MASTER_BRANCH_COL).value))
         c = CommonRemoveAllSpaces(CommonNzText(wsMaster.Cells(r, MGR_MASTER_OFFICE_COL).value))
-        If b = branchName And c = officeName Then
+        If b = BranchName And c = officeName Then
             room = CommonRemoveAllSpaces(CommonNzText(wsMaster.Cells(r, MGR_MASTER_ROOM_COL).value))
             If room <> "" Then
                 If Not dict.Exists(room) Then dict.Add room, True
@@ -596,7 +596,7 @@ Private Function BuildManagerRoomSet(ByRef masterWb As Workbook, _
         End If
     Next r
 
-    LogCI "管理室集合 件数=" & dict.Count & " (支店=" & branchName & " 出張所=" & officeName & ")"
+    LogCI "管理室集合 件数=" & dict.Count & " (支店=" & BranchName & " 出張所=" & officeName & ")"
     Set BuildManagerRoomSet = dict
 End Function
 
@@ -1100,6 +1100,135 @@ Private Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
 End Sub
 
 '==========================================================================
+'  適用積算線区単価シートの追記・単価変更を施工指示書/施工通知書へ反映
+'==========================================================================
+Public Sub RefreshConstructionReferencePricesForUnitPriceChange( _
+    ByVal wsUnitPrice As Worksheet, ByVal changedRange As Range)
+
+    If wsUnitPrice Is Nothing Or changedRange Is Nothing Then Exit Sub
+    If Not mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) Then Exit Sub
+
+    Dim monitored As Range
+    Set monitored = Application.Intersect(changedRange, _
+        Application.Union(wsUnitPrice.Columns(COL_SEIRI), _
+                          wsUnitPrice.Columns(5), _
+                          wsUnitPrice.Columns(6)))
+    If monitored Is Nothing Then Exit Sub
+
+    Dim changedPriceRows As Object
+    Set changedPriceRows = CreateObject("Scripting.Dictionary")
+    changedPriceRows.CompareMode = vbTextCompare
+
+    Dim changedCell As Range
+    Dim recordKey As String
+    For Each changedCell In monitored.Cells
+        If changedCell.Row >= UNIT_PRICE_DATA_START_ROW Then
+            recordKey = NormalizeRecordKey(wsUnitPrice.Cells(changedCell.Row, COL_SEIRI).value)
+            If recordKey <> "" Then
+                changedPriceRows(recordKey) = Array( _
+                    wsUnitPrice.Cells(changedCell.Row, 5).value, _
+                    wsUnitPrice.Cells(changedCell.Row, 6).value)
+            End If
+        End If
+    Next changedCell
+
+    If changedPriceRows.Count = 0 Then Exit Sub
+
+    Dim lineSheetMap As Object
+    Set lineSheetMap = BuildConstructionLineSheetMap()
+
+    Dim wsTarget As Worksheet
+    For Each wsTarget In ThisWorkbook.worksheets
+        If IsConstructionDocumentOutputSheet(wsTarget) Then
+            RefreshConstructionReferencePricesOnSheet _
+                wsTarget, wsUnitPrice.Name, changedPriceRows, lineSheetMap
+        End If
+    Next wsTarget
+End Sub
+
+Private Function IsConstructionDocumentOutputSheet(ByVal ws As Worksheet) As Boolean
+    If ws Is Nothing Then Exit Function
+    If Trim$(CommonNzText(ws.Cells(1, 1).value)) <> "施工業者" Then Exit Function
+    If Trim$(CommonNzText(ws.Cells(1, 2).value)) <> "整理番号" Then Exit Function
+    IsConstructionDocumentOutputSheet = (FindHeaderColumn(ws, "単価比較") > 0)
+End Function
+
+Private Sub RefreshConstructionReferencePricesOnSheet( _
+    ByVal ws As Worksheet, _
+    ByVal unitPriceSheetName As String, _
+    ByVal changedPriceRows As Object, _
+    ByVal lineSheetMap As Object)
+
+    Dim seiriColumn As Long
+    Dim dayNightColumn As Long
+    Dim quantityColumn As Long
+    Dim jrPriceColumn As Long
+    Dim comparisonColumn As Long
+    seiriColumn = FindHeaderColumn(ws, "整理番号")
+    dayNightColumn = FindHeaderColumn(ws, "昼夜別")
+    quantityColumn = FindHeaderColumn(ws, "数量")
+    jrPriceColumn = FindHeaderColumn(ws, "JR単価")
+    comparisonColumn = FindHeaderColumn(ws, "単価比較")
+
+    If seiriColumn = 0 Or dayNightColumn = 0 Or quantityColumn = 0 Then Exit Sub
+    If jrPriceColumn = 0 Or comparisonColumn < 3 Then Exit Sub
+
+    Dim autoPriceColumn As Long
+    Dim autoAmountColumn As Long
+    Dim guidanceColumn As Long
+    autoPriceColumn = comparisonColumn - 2
+    autoAmountColumn = comparisonColumn - 1
+    guidanceColumn = comparisonColumn + 1
+
+    Dim lastRow As Long
+    lastRow = ws.Cells(ws.rows.Count, seiriColumn).End(xlUp).Row
+    If lastRow < 2 Then Exit Sub
+
+    Dim normalizedSourceSheet As String
+    normalizedSourceSheet = NormalizeLineLookupText(unitPriceSheetName, False)
+
+    Dim r As Long
+    Dim recordKey As String
+    Dim resolvedSheetName As String
+    Dim referencePrice As Variant
+    For r = 2 To lastRow
+        recordKey = NormalizeRecordKey(ws.Cells(r, seiriColumn).value)
+        If recordKey <> "" And changedPriceRows.Exists(recordKey) Then
+            resolvedSheetName = ResolveUnitPriceSheetName( _
+                lineSheetMap, CommonNzText(ws.Cells(r, COL_LINE).value))
+
+            If NormalizeLineLookupText(resolvedSheetName, False) = normalizedSourceSheet Then
+                referencePrice = SelectDayNightPrice( _
+                    CommonNzText(ws.Cells(r, dayNightColumn).value), _
+                    changedPriceRows(recordKey))
+
+                If IsEmpty(referencePrice) Or IsError(referencePrice) Then
+                    ws.Cells(r, autoPriceColumn).ClearContents
+                Else
+                    ws.Cells(r, autoPriceColumn).value = referencePrice
+                End If
+
+                ws.Cells(r, autoAmountColumn).FormulaR1C1 = _
+                    "=IF(OR(RC[" & (autoPriceColumn - autoAmountColumn) & "]=""""," & _
+                    "RC[" & (quantityColumn - autoAmountColumn) & "]=""""),""""," & _
+                    "RC[" & (autoPriceColumn - autoAmountColumn) & "]*" & _
+                    "RC[" & (quantityColumn - autoAmountColumn) & "])"
+
+                WritePriceComparisonAtColumns _
+                    ws, r, unitPriceSheetName, autoPriceColumn, jrPriceColumn, _
+                    comparisonColumn, guidanceColumn, True
+            End If
+        End If
+    Next r
+
+    ws.Range(ws.Cells(2, autoPriceColumn), _
+             ws.Cells(lastRow, autoAmountColumn)).NumberFormatLocal = "#,##0;[赤]-#,##0"
+    ws.Range(ws.Cells(1, comparisonColumn), _
+             ws.Cells(lastRow, comparisonColumn)).HorizontalAlignment = xlCenter
+    ApplyPriceGuidanceColumnLayoutAtColumns ws, comparisonColumn, guidanceColumn
+End Sub
+
+'==========================================================================
 '  工事件名別マスタのF/G列から、施工指示書線区名→単価シート名を構築
 '==========================================================================
 Private Function BuildConstructionLineSheetMap() As Object
@@ -1429,15 +1558,37 @@ Private Sub WritePriceComparison(ByVal ws As Worksheet, ByVal rowIndex As Long, 
                                  ByVal unitPriceSheetName As String, _
                                  Optional ByVal includeGuidance As Boolean = True, _
                                  Optional ByVal guidanceDocumentName As String = "")
+    WritePriceComparisonAtColumns _
+        ws, rowIndex, unitPriceSheetName, COL_AUTO_PRICE, COL_JR_PRICE, _
+        COL_PRICE_COMPARE, COL_PRICE_GUIDANCE, includeGuidance
+End Sub
+
+Private Sub WritePriceComparisonAtColumns( _
+    ByVal ws As Worksheet, _
+    ByVal rowIndex As Long, _
+    ByVal unitPriceSheetName As String, _
+    ByVal autoPriceColumn As Long, _
+    ByVal jrPriceColumn As Long, _
+    ByVal comparisonColumn As Long, _
+    ByVal guidanceColumn As Long, _
+    ByVal includeGuidance As Boolean)
+
     Dim priceMatches As Boolean
-    priceMatches = UnitPriceValuesMatch(ws.Cells(rowIndex, COL_AUTO_PRICE).value, _
-                                        ws.Cells(rowIndex, COL_JR_PRICE).value)
+    priceMatches = UnitPriceValuesMatch(ws.Cells(rowIndex, autoPriceColumn).value, _
+                                        ws.Cells(rowIndex, jrPriceColumn).value)
 
-    ws.Cells(rowIndex, COL_PRICE_GUIDANCE).ClearContents
+    With ws.Cells(rowIndex, guidanceColumn)
+        .ClearContents
+        .Font.ColorIndex = xlAutomatic
+        .Font.Bold = False
+        .WrapText = False
+        .VerticalAlignment = xlCenter
+    End With
 
-    With ws.Cells(rowIndex, COL_PRICE_COMPARE)
+    With ws.Cells(rowIndex, comparisonColumn)
         .HorizontalAlignment = xlCenter
         .VerticalAlignment = xlCenter
+        .Font.Bold = False
         If priceMatches Then
             .value = "単価一致"
             .Interior.Color = RGB(0, 255, 0)
@@ -1453,11 +1604,11 @@ Private Sub WritePriceComparison(ByVal ws As Worksheet, ByVal rowIndex As Long, 
                 If guidanceSheetName = "" Then
                     guidanceSheetName = CommonNzText(ws.Cells(rowIndex, COL_LINE).value)
                 End If
-                If guidanceDocumentName = "" Then guidanceDocumentName = "施工通知書"
-                With ws.Cells(rowIndex, COL_PRICE_GUIDANCE)
-                    .value = "独自工種の内容を" & guidanceSheetName & "シートに入力してください。" & vbLf & _
-                             "入力後、基本情報シートで" & guidanceDocumentName & "の再取込みを行ってください。"
-                    .WrapText = True
+                With ws.Cells(rowIndex, guidanceColumn)
+                    .value = "独自工種の内容を" & guidanceSheetName & "シートに入力してください。"
+                    .Font.Color = RGB(255, 0, 0)
+                    .Font.Bold = True
+                    .WrapText = False
                     .VerticalAlignment = xlCenter
                 End With
             End If
@@ -1630,22 +1781,31 @@ End Sub
 '  工事側シートの案内列(R列)をメッセージ有無に応じて表示切替
 '==========================================================================
 Private Sub ApplyPriceGuidanceColumnLayout(ByVal ws As Worksheet)
+    ApplyPriceGuidanceColumnLayoutAtColumns _
+        ws, COL_PRICE_COMPARE, COL_PRICE_GUIDANCE
+End Sub
+
+Private Sub ApplyPriceGuidanceColumnLayoutAtColumns( _
+    ByVal ws As Worksheet, _
+    ByVal comparisonColumn As Long, _
+    ByVal guidanceColumn As Long)
+
     Dim lastRow As Long
     lastRow = GetLastDataRow(ws)
 
     Dim hasGuidance As Boolean
     Dim r As Long
     For r = 2 To lastRow
-        If CommonNzText(ws.Cells(r, COL_PRICE_COMPARE).value) = "単価不一致" And _
-           CommonNzText(ws.Cells(r, COL_PRICE_GUIDANCE).value) <> "" Then
+        If CommonNzText(ws.Cells(r, comparisonColumn).value) = "単価不一致" And _
+           CommonNzText(ws.Cells(r, guidanceColumn).value) <> "" Then
             hasGuidance = True
             Exit For
         End If
     Next r
 
-    With ws.Columns(COL_PRICE_GUIDANCE)
+    With ws.Columns(guidanceColumn)
         .Hidden = Not hasGuidance
-        If hasGuidance Then .ColumnWidth = PRICE_GUIDANCE_COLUMN_WIDTH
+        If hasGuidance Then .AutoFit
     End With
 End Sub
 
@@ -1798,10 +1958,10 @@ Private Function ResolvePurchasePriceSheetName() As String
     Set wsInfo = CommonGetBasicInfoWorksheet(ThisWorkbook)
     If wsInfo Is Nothing Then Exit Function
 
-    Dim branchName As String, officeName As String
-    branchName = CommonRemoveAllSpaces(CommonNzText(wsInfo.Range(BASIC_INFO_BRANCH_CELL).value))
+    Dim BranchName As String, officeName As String
+    BranchName = CommonRemoveAllSpaces(CommonNzText(wsInfo.Range(BASIC_INFO_BRANCH_CELL).value))
     officeName = CommonRemoveAllSpaces(CommonNzText(wsInfo.Range(BASIC_INFO_OFFICE_CELL).value))
-    If branchName = "" Or officeName = "" Then Exit Function
+    If BranchName = "" Or officeName = "" Then Exit Function
 
     Dim masterPath As String
     masterPath = ResolveMasterFilePath()
@@ -1826,7 +1986,7 @@ Private Function ResolvePurchasePriceSheetName() As String
         For r = PRICE_LINE_START_ROW To mLast
             b = CommonRemoveAllSpaces(CommonNzText(wsMaster.Cells(r, PRICE_LINE_BRANCH_COL).value))
             c = CommonRemoveAllSpaces(CommonNzText(wsMaster.Cells(r, PRICE_LINE_OFFICE_COL).value))
-            If b = branchName And c = officeName Then
+            If b = BranchName And c = officeName Then
                 nameText = CommonRemoveAllSpaces(CommonNzText(wsMaster.Cells(r, PRICE_LINE_NAME_COL).value))
                 If nameText <> "" Then
                     resultName = nameText & PURCHASE_PRICE_SHEET_SUFFIX
