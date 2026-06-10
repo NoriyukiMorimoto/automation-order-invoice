@@ -113,8 +113,8 @@ Private Const SOURCE_SHEET_NAME_CELL As String = "A3"
 '  エントリポイント
 '==========================================================================
 Public Sub ImportConstructionDocument()
-    Dim srcWb As Workbook, masterWb As Workbook
-    Dim srcOpenedHere As Boolean, masterOpenedHere As Boolean
+    Dim srcWb As Workbook
+    Dim srcOpenedHere As Boolean
     Dim scrn As Boolean, calc As XlCalculation, evt As Boolean, alerts As Boolean
 
     ' 元のアプリ状態を保存
@@ -200,7 +200,7 @@ Public Sub ImportConstructionDocument()
     '--- 管理室フィルタ集合(施工指示書のみ) ---------------------------------
     Dim mgrSet As Object   ' Scripting.Dictionary
     If docType = DOC_ORDER Then
-        Set mgrSet = BuildManagerRoomSet(masterWb, masterOpenedHere)
+        Set mgrSet = BuildManagerRoomSet()
         If mgrSet Is Nothing Then GoTo Cleanup
         If mgrSet.Count = 0 Then
             MsgBox "基本情報 " & BASIC_INFO_BRANCH_CELL & "/" & BASIC_INFO_OFFICE_CELL & _
@@ -298,11 +298,9 @@ Public Sub ImportConstructionDocument()
                "ご確認ください。", vbExclamation, "取込み診断"
     End If
 
-    '--- 取込ブック・マスタを閉じる(以降は出力処理のみ) ---------------------
+    '--- 取込ブックを閉じる(以降は出力処理のみ) -----------------------------
     If srcOpenedHere And Not srcWb Is Nothing Then srcWb.Close SaveChanges:=False
     Set srcWb = Nothing: srcOpenedHere = False
-    If masterOpenedHere And Not masterWb Is Nothing Then masterWb.Close SaveChanges:=False
-    Set masterWb = Nothing: masterOpenedHere = False
 
     '--- 工事側シート作成・書込み・ソート -----------------------------------
     '--- 参照シート H9 を 基本情報 C12 へ転記(中央揃え・BIZ UDゴシック) -------
@@ -380,7 +378,6 @@ Cleanup:
 
     On Error Resume Next
     If srcOpenedHere And Not srcWb Is Nothing Then srcWb.Close SaveChanges:=False
-    If masterOpenedHere And Not masterWb Is Nothing Then masterWb.Close SaveChanges:=False
     On Error GoTo 0
 
     Application.screenUpdating = scrn
@@ -533,8 +530,7 @@ End Function
 '==========================================================================
 '  管理室集合の構築(基本情報 B6/C6 に対応する F列管理室名)
 '==========================================================================
-Private Function BuildManagerRoomSet(ByRef masterWb As Workbook, _
-                                     ByRef masterOpenedHere As Boolean) As Object
+Private Function BuildManagerRoomSet() As Object
     Dim wsInfo As Worksheet
     Set wsInfo = CommonGetBasicInfoWorksheet(ThisWorkbook)
     If wsInfo Is Nothing Then
@@ -554,50 +550,57 @@ Private Function BuildManagerRoomSet(ByRef masterWb As Workbook, _
     End If
 
     Dim masterPath As String
-    masterPath = ResolveMasterFilePath()
-    If masterPath = "" Then
+    Dim connection As Object
+    Set connection = OpenUnitPriceMasterAdoConnection(masterPath)
+    If connection Is Nothing Then
         MsgBox "出張所別_単価適用線区.xlsx が見つかりませんでした。", vbExclamation
         Set BuildManagerRoomSet = Nothing
         Exit Function
     End If
 
-    Set masterWb = OpenWorkbookReadOnly(masterPath, masterOpenedHere)
-    If masterWb Is Nothing Then
-        MsgBox "出張所別_単価適用線区.xlsx を開けませんでした。" & vbCrLf & masterPath, vbExclamation
-        Set BuildManagerRoomSet = Nothing
-        Exit Function
-    End If
+    On Error GoTo ErrorHandler
 
-    Dim wsMaster As Worksheet
-    On Error Resume Next
-    Set wsMaster = masterWb.worksheets(MGR_MASTER_SHEET)
-    On Error GoTo 0
-    If wsMaster Is Nothing Then
+    Dim actualSheetName As String
+    actualSheetName = FindAdoWorksheetName(connection, MGR_MASTER_SHEET)
+    If actualSheetName = "" Then
         MsgBox "管理室マスタに「" & MGR_MASTER_SHEET & "」シートが見つかりませんでした。", vbExclamation
         Set BuildManagerRoomSet = Nothing
-        Exit Function
+        GoTo Cleanup
     End If
 
     Dim dict As Object
     Set dict = CreateObject("Scripting.Dictionary")
 
-    Dim mLast As Long, r As Long
-    mLast = wsMaster.Cells(wsMaster.rows.Count, MGR_MASTER_BRANCH_COL).End(xlUp).Row
+    Dim recordset As Object
+    Set recordset = CreateObject("ADODB.Recordset")
+    recordset.Open "SELECT [F2], [F3], [F6] FROM " & _
+                   BuildAdoSheetTableName(actualSheetName), connection, 0, 1, 1
 
     Dim b As String, c As String, room As String
-    For r = MGR_MASTER_START_ROW To mLast
-        b = CommonRemoveAllSpaces(CommonNzText(wsMaster.Cells(r, MGR_MASTER_BRANCH_COL).value))
-        c = CommonRemoveAllSpaces(CommonNzText(wsMaster.Cells(r, MGR_MASTER_OFFICE_COL).value))
+    Do Until recordset.EOF
+        b = CommonRemoveAllSpaces(CommonNzText(recordset.Fields(0).value))
+        c = CommonRemoveAllSpaces(CommonNzText(recordset.Fields(1).value))
         If b = BranchName And c = officeName Then
-            room = CommonRemoveAllSpaces(CommonNzText(wsMaster.Cells(r, MGR_MASTER_ROOM_COL).value))
+            room = CommonRemoveAllSpaces(CommonNzText(recordset.Fields(2).value))
             If room <> "" Then
                 If Not dict.Exists(room) Then dict.Add room, True
             End If
         End If
-    Next r
+        recordset.MoveNext
+    Loop
 
     LogCI "管理室集合 件数=" & dict.Count & " (支店=" & BranchName & " 出張所=" & officeName & ")"
     Set BuildManagerRoomSet = dict
+    GoTo Cleanup
+
+ErrorHandler:
+    MsgBox "管理室マスタをADOで読み込めませんでした。" & vbCrLf & _
+           masterPath & vbCrLf & Err.Description, vbExclamation
+    Set BuildManagerRoomSet = Nothing
+
+Cleanup:
+    CommonCloseAdoRecordset recordset
+    CommonCloseAdoConnection connection
 End Function
 
 '==========================================================================
@@ -1252,46 +1255,56 @@ Private Function BuildConstructionLineSheetMap() As Object
         Exit Function
     End If
 
-    Dim masterBook As Workbook, openedHere As Boolean
-    Set masterBook = OpenWorkbookReadOnly(masterPath, openedHere)
-    If masterBook Is Nothing Then
-        LogCI "工事件名別マスタを開けない path=[" & masterPath & "]"
+    Dim connection As Object
+    Set connection = CommonOpenExcelAdoConnection(masterPath)
+    If connection Is Nothing Then
+        LogCI "工事件名別マスタへADO接続できない path=[" & masterPath & "]"
         Set BuildConstructionLineSheetMap = result
         Exit Function
     End If
 
     On Error GoTo Cleanup
 
-    Dim masterSheet As Worksheet
-    For Each masterSheet In masterBook.worksheets
-        Dim lastRow As Long
-        lastRow = masterSheet.Cells(masterSheet.rows.Count, PROJECT_MASTER_UNIT_PRICE_LINE_COL).End(xlUp).Row
+    Dim sheetNames As Collection
+    Set sheetNames = CommonGetAdoWorksheetNames(connection)
 
-        Dim r As Long
-        For r = PROJECT_MASTER_START_ROW To lastRow
+    Dim sheetName As Variant
+    Dim recordset As Object
+    For Each sheetName In sheetNames
+        Set recordset = CreateObject("ADODB.Recordset")
+        recordset.Open "SELECT [F6], [F7] FROM " & _
+                       BuildAdoSheetTableName(CStr(sheetName)), connection, 0, 1, 1
+
+        Dim rowNumber As Long
+        rowNumber = 1
+        Do Until recordset.EOF
             Dim unitPriceLineName As String
             Dim sourceLineName As String
             Dim actualSheetName As String
 
-            unitPriceLineName = CommonNzText(masterSheet.Cells(r, PROJECT_MASTER_UNIT_PRICE_LINE_COL).value)
-            If Trim$(unitPriceLineName) <> "" Then
+            unitPriceLineName = CommonNzText(recordset.Fields(0).value)
+            If rowNumber >= PROJECT_MASTER_START_ROW And Trim$(unitPriceLineName) <> "" Then
                 actualSheetName = FindImportedUnitPriceSheetName(unitPriceLineName)
                 If actualSheetName <> "" Then
-                    sourceLineName = CommonNzText(masterSheet.Cells(r, PROJECT_MASTER_SOURCE_LINE_COL).value)
+                    sourceLineName = CommonNzText(recordset.Fields(1).value)
                     If Trim$(sourceLineName) = "" Then sourceLineName = unitPriceLineName
 
                     AddLineSheetAliases result, sourceLineName, actualSheetName
                     AddLineSheetAliases result, unitPriceLineName, actualSheetName
                 End If
             End If
-        Next r
-    Next masterSheet
+            recordset.MoveNext
+            rowNumber = rowNumber + 1
+        Loop
+
+        CommonCloseAdoRecordset recordset
+        Set recordset = Nothing
+    Next sheetName
 
 Cleanup:
     If Err.Number <> 0 Then LogCI "線区名マスタ読込エラー Err " & Err.Number & ": " & Err.Description
-    On Error Resume Next
-    If openedHere And Not masterBook Is Nothing Then masterBook.Close SaveChanges:=False
-    On Error GoTo 0
+    CommonCloseAdoRecordset recordset
+    CommonCloseAdoConnection connection
 
     LogCI "線区名→単価シート対応数=" & result.Count & " master=[" & masterPath & "]"
     Set BuildConstructionLineSheetMap = result
@@ -1964,41 +1977,112 @@ Private Function ResolvePurchasePriceSheetName() As String
     If BranchName = "" Or officeName = "" Then Exit Function
 
     Dim masterPath As String
-    masterPath = ResolveMasterFilePath()
-    If masterPath = "" Then Exit Function
+    Dim connection As Object
+    Set connection = OpenUnitPriceMasterAdoConnection(masterPath)
+    If connection Is Nothing Then Exit Function
 
-    Dim openedHere As Boolean
-    Dim masterWb As Workbook
-    Set masterWb = OpenWorkbookReadOnly(masterPath, openedHere)
-    If masterWb Is Nothing Then Exit Function
+    On Error GoTo Cleanup
 
-    Dim wsMaster As Worksheet
-    On Error Resume Next
-    Set wsMaster = masterWb.worksheets(PRICE_LINE_SHEET)
-    On Error GoTo 0
+    Dim actualSheetName As String
+    actualSheetName = FindAdoWorksheetName(connection, PRICE_LINE_SHEET)
 
     Dim resultName As String
-    If wsMaster Is Nothing Then
+    If actualSheetName = "" Then
         LogCI "購入充当単価: マスタに「" & PRICE_LINE_SHEET & "」シートがありません"
     Else
-        Dim mLast As Long, r As Long, b As String, c As String, nameText As String
-        mLast = wsMaster.Cells(wsMaster.rows.Count, PRICE_LINE_BRANCH_COL).End(xlUp).Row
-        For r = PRICE_LINE_START_ROW To mLast
-            b = CommonRemoveAllSpaces(CommonNzText(wsMaster.Cells(r, PRICE_LINE_BRANCH_COL).value))
-            c = CommonRemoveAllSpaces(CommonNzText(wsMaster.Cells(r, PRICE_LINE_OFFICE_COL).value))
+        Dim recordset As Object
+        Set recordset = CreateObject("ADODB.Recordset")
+        recordset.Open "SELECT [F2], [F3], [F5] FROM " & _
+                       BuildAdoSheetTableName(actualSheetName), connection, 0, 1, 1
+
+        Dim b As String, c As String, nameText As String
+        Do Until recordset.EOF
+            b = CommonRemoveAllSpaces(CommonNzText(recordset.Fields(0).value))
+            c = CommonRemoveAllSpaces(CommonNzText(recordset.Fields(1).value))
             If b = BranchName And c = officeName Then
-                nameText = CommonRemoveAllSpaces(CommonNzText(wsMaster.Cells(r, PRICE_LINE_NAME_COL).value))
+                nameText = CommonRemoveAllSpaces(CommonNzText(recordset.Fields(2).value))
                 If nameText <> "" Then
                     resultName = nameText & PURCHASE_PRICE_SHEET_SUFFIX
-                    Exit For
+                    Exit Do
                 End If
             End If
-        Next r
+            recordset.MoveNext
+        Loop
     End If
 
-    If openedHere And Not masterWb Is Nothing Then masterWb.Close SaveChanges:=False
-
+Cleanup:
+    If Err.Number <> 0 Then
+        LogCI "購入充当単価マスタADO読込エラー Err " & Err.Number & ": " & Err.Description
+    End If
+    CommonCloseAdoRecordset recordset
+    CommonCloseAdoConnection connection
     ResolvePurchasePriceSheetName = resultName
+End Function
+
+'==========================================================================
+'  ADO共通ヘルパー
+'==========================================================================
+Private Function OpenUnitPriceMasterAdoConnection(ByRef resolvedPath As String) As Object
+    Dim candidates As Collection
+    Set candidates = New Collection
+
+    AddUniqueText candidates, ResolveMasterFilePath()
+
+    Dim fso As Object
+    Set fso = CreateObject("Scripting.FileSystemObject")
+
+    Dim documentRoot As String
+    If Len(ThisWorkbook.Path) > 0 Then
+        documentRoot = fso.GetParentFolderName(ThisWorkbook.Path)
+        AddUniqueText candidates, fso.BuildPath(documentRoot, _
+            "単価マスタ\" & PROJECT_MASTER_FOLDER & "\出張所別_単価適用線区.xlsx")
+    End If
+
+    Dim userProfilePath As String
+    userProfilePath = Environ$("USERPROFILE")
+    If Len(Trim$(userProfilePath)) = 0 Then
+        userProfilePath = Environ$("HOMEDRIVE") & Environ$("HOMEPATH")
+    End If
+    If Len(Trim$(userProfilePath)) > 0 Then
+        AddUniqueText candidates, userProfilePath & "\" & CommonCompanyNameText() & "\" & _
+            "線路出張所用_注文書_請求書アクセスサイト - ドキュメント\単価マスタ\" & _
+            PROJECT_MASTER_FOLDER & "\出張所別_単価適用線区.xlsx"
+    End If
+
+    Dim candidate As Variant
+    Dim connection As Object
+    For Each candidate In candidates
+        If fso.FileExists(CStr(candidate)) Then
+            Set connection = CommonOpenExcelAdoConnection(CStr(candidate))
+            If Not connection Is Nothing Then
+                resolvedPath = CStr(candidate)
+                Set OpenUnitPriceMasterAdoConnection = connection
+                Exit Function
+            End If
+        End If
+    Next candidate
+End Function
+
+Private Function FindAdoWorksheetName(ByVal connection As Object, _
+                                      ByVal expectedSheetName As String) As String
+    Dim sheetNames As Collection
+    Set sheetNames = CommonGetAdoWorksheetNames(connection)
+
+    Dim expectedKey As String
+    expectedKey = CommonRemoveAllSpaces(CommonNormalizeText(expectedSheetName))
+
+    Dim sheetName As Variant
+    For Each sheetName In sheetNames
+        If StrComp(CommonRemoveAllSpaces(CommonNormalizeText(CStr(sheetName))), _
+                   expectedKey, vbTextCompare) = 0 Then
+            FindAdoWorksheetName = CStr(sheetName)
+            Exit Function
+        End If
+    Next sheetName
+End Function
+
+Private Function BuildAdoSheetTableName(ByVal sheetName As String) As String
+    BuildAdoSheetTableName = "[" & Replace$(sheetName, "]", "]]") & "$]"
 End Function
 
 Private Sub WriteReferenceValueToBasicInfo(ByVal refValue As Variant)
