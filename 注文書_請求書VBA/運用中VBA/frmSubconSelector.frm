@@ -104,7 +104,8 @@ Private Sub ConfirmSelection()
         MsgBox "{H‰ïĞ‚ğ‘I‘ğ‚µ‚Ä‚­‚¾‚³‚¢B", vbExclamation
         Exit Sub
     End If
-    SelectedCompany = CStr(lst.value)
+    ' MultiSelect/BoundColumn ‚ÉˆË‘¶‚µ‚È‚¢‚æ‚¤ List(ListIndex) ‚Åæ“¾(.Value ‚Í•¡”‘I‘ğ Null)
+    SelectedCompany = CStr(lst.List(lst.ListIndex))
     confirmed = True
     Me.Hide
 End Sub
