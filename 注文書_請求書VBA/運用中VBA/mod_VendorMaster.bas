@@ -708,7 +708,7 @@ Private Sub ApplyVendorUnitPriceBlockToSheet(ByVal wsUnitPrice As Worksheet, _
     ApplyVendorUnitPriceBorders wsUnitPrice, dayCol, nightCol
 End Sub
 
-Private Function BuildVendorUnitPriceNameMap(ByVal wsInfo As Worksheet) As Object
+Public Function BuildVendorUnitPriceNameMap(ByVal wsInfo As Worksheet) As Object
     Dim result As Object
     Set result = CreateObject("Scripting.Dictionary")
     result.CompareMode = vbTextCompare

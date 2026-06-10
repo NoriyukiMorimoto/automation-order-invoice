@@ -101,6 +101,11 @@ Private Const PURCHASE_PRICE_DATA_START_ROW As Long = 2
 Private Const PURCHASE_NOTICE_SEIRI_COL As Long = 1     ' çwì¸è[ìñí ím AóÒ(êÆóùî‘çÜ)
 Private Const PURCHASE_PRICE_LOOKUP_COL As Long = PURCHASE_NOTICE_SEIRI_COL
 
+' é{çHâÔé–ï íPâøÅEã‡äzóÒ(éÊçûÉVÅ[ÉgÇÃJóÒÇ∆çHéÌï™óﬁóÒÇÃä‘)
+Private Const SUBCON_PRICE_FIRST_COL As Long = 11
+Private Const UNIT_PRICE_VENDOR_NAME_ROW As Long = 5
+Private Const UNIT_PRICE_VENDOR_FIRST_DAY_COL As Long = 7
+
 ' éÊçûÉuÉbÉNÇÃÉVÅ[ÉgñºéÊìæå≥ÉZÉã
 Private Const SOURCE_SHEET_NAME_CELL As String = "A3"
 
@@ -798,6 +803,238 @@ Private Function GetOutputLastColumn(ByVal ws As Worksheet) As Long
         GetOutputLastColumn = COL_KIND
     End If
 End Function
+
+'==========================================================================
+'  AóÒÇ≈égópíÜÇÃé{çHâÔé–Ç≤Ç∆Ç…ÅAíPâøÅEã‡äzÇÃ2óÒÇJóÒÇÃâEÇ÷çÏê¨
+'==========================================================================
+Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet)
+    If ws Is Nothing Then Exit Sub
+    If CommonNzText(ws.Cells(1, COL_VENDOR).value) <> "é{çHã∆é“" Then Exit Sub
+    If CommonNzText(ws.Cells(1, COL_SEIRI).value) <> "êÆóùî‘çÜ" Then Exit Sub
+
+    Dim lastRow As Long
+    lastRow = GetLastDataRow(ws)
+
+    Dim vendorNames As Collection
+    Set vendorNames = CollectSelectedSubcontractors(ws, lastRow)
+
+    Dim kindColumn As Long
+    kindColumn = FindHeaderColumn(ws, "çHéÌï™óﬁ")
+    If kindColumn = 0 Then Exit Sub
+
+    If kindColumn > SUBCON_PRICE_FIRST_COL Then
+        ws.Range(ws.Columns(SUBCON_PRICE_FIRST_COL), _
+                 ws.Columns(kindColumn - 1)).Delete Shift:=xlToLeft
+    End If
+    If vendorNames.Count = 0 Or lastRow < 2 Then Exit Sub
+
+    Dim insertedColumnCount As Long
+    insertedColumnCount = vendorNames.Count * 2
+    ws.Range(ws.Columns(SUBCON_PRICE_FIRST_COL), _
+             ws.Columns(SUBCON_PRICE_FIRST_COL + insertedColumnCount - 1)).Insert Shift:=xlToRight
+
+    Dim vendorColumnMap As Object
+    Set vendorColumnMap = CreateObject("Scripting.Dictionary")
+    vendorColumnMap.CompareMode = vbTextCompare
+
+    Dim vendorIndex As Long
+    For vendorIndex = 1 To vendorNames.Count
+        Dim vendorName As String
+        Dim priceColumn As Long
+        vendorName = CStr(vendorNames(vendorIndex))
+        priceColumn = SUBCON_PRICE_FIRST_COL + ((vendorIndex - 1) * 2)
+
+        vendorColumnMap.Add NormalizeVendorPriceName(vendorName), priceColumn
+        ws.Cells(1, priceColumn).value = vendorName & "íPâø"
+        ws.Cells(1, priceColumn + 1).value = vendorName & "ã‡äz"
+    Next vendorIndex
+
+    Dim lineSheetMap As Object
+    Set lineSheetMap = BuildConstructionLineSheetMap()
+
+    Dim vendorPriceCaches As Object
+    Set vendorPriceCaches = CreateObject("Scripting.Dictionary")
+    vendorPriceCaches.CompareMode = vbTextCompare
+
+    Dim matchedCount As Long
+    Dim r As Long
+    For r = 2 To lastRow
+        Dim rowVendorKey As String
+        rowVendorKey = NormalizeVendorPriceName(CommonNzText(ws.Cells(r, COL_VENDOR).value))
+        If rowVendorKey <> "" And vendorColumnMap.Exists(rowVendorKey) Then
+            priceColumn = CLng(vendorColumnMap(rowVendorKey))
+
+            Dim unitPriceSheetName As String
+            unitPriceSheetName = ResolveUnitPriceSheetName( _
+                lineSheetMap, CommonNzText(ws.Cells(r, COL_LINE).value))
+
+            Dim vendorPriceRows As Object
+            Set vendorPriceRows = GetVendorUnitPriceRows( _
+                unitPriceSheetName, CommonNzText(ws.Cells(r, COL_VENDOR).value), vendorPriceCaches)
+
+            Dim recordKey As String
+            recordKey = NormalizeRecordKey(ws.Cells(r, COL_SEIRI).value)
+            If Not vendorPriceRows Is Nothing And recordKey <> "" Then
+                If vendorPriceRows.Exists(recordKey) Then
+                    Dim dayNightPrices As Variant
+                    Dim vendorPrice As Variant
+                    dayNightPrices = vendorPriceRows(recordKey)
+                    vendorPrice = SelectDayNightPrice( _
+                        CommonNzText(ws.Cells(r, COL_DAYNIGHT).value), dayNightPrices)
+                    If Not IsEmpty(vendorPrice) And Not IsError(vendorPrice) Then
+                        ws.Cells(r, priceColumn).value = vendorPrice
+                        matchedCount = matchedCount + 1
+                    End If
+                End If
+            End If
+
+            ws.Cells(r, priceColumn + 1).FormulaR1C1 = _
+                "=IF(OR(RC[-1]="""",RC" & COL_QTY & "=""""),"""",RC[-1]*RC" & COL_QTY & ")"
+        End If
+    Next r
+
+    FormatSubcontractorPriceColumns ws, lastRow, insertedColumnCount
+    LogCI "é{çHâÔé–ï íPâøóÒ: âÔé–êî=" & vendorNames.Count & _
+          " / íPâøàÍív=" & matchedCount
+End Sub
+
+Private Function CollectSelectedSubcontractors(ByVal ws As Worksheet, _
+                                                ByVal lastRow As Long) As Collection
+    Dim result As New Collection
+    Dim seen As Object
+    Set seen = CreateObject("Scripting.Dictionary")
+    seen.CompareMode = vbTextCompare
+
+    Dim r As Long
+    For r = 2 To lastRow
+        Dim vendorName As String
+        Dim vendorKey As String
+        vendorName = Trim$(CommonNzText(ws.Cells(r, COL_VENDOR).value))
+        vendorKey = NormalizeVendorPriceName(vendorName)
+        If vendorKey <> "" And Not seen.Exists(vendorKey) Then
+            seen.Add vendorKey, True
+            result.Add vendorName
+        End If
+    Next r
+
+    Set CollectSelectedSubcontractors = result
+End Function
+
+Private Function FindHeaderColumn(ByVal ws As Worksheet, ByVal headerText As String) As Long
+    Dim hit As Range
+    Set hit = ws.rows(1).Find(What:=headerText, After:=ws.Cells(1, 1), _
+                              LookIn:=xlValues, LookAt:=xlWhole, _
+                              SearchOrder:=xlByColumns, SearchDirection:=xlNext, _
+                              MatchCase:=False)
+    If Not hit Is Nothing Then FindHeaderColumn = hit.Column
+End Function
+
+Private Function GetVendorUnitPriceRows(ByVal unitPriceSheetName As String, _
+                                        ByVal vendorName As String, _
+                                        ByVal vendorPriceCaches As Object) As Object
+    If unitPriceSheetName = "" Then Exit Function
+
+    Dim cacheKey As String
+    cacheKey = unitPriceSheetName & "|" & NormalizeVendorPriceName(vendorName)
+    If vendorPriceCaches.Exists(cacheKey) Then
+        Set GetVendorUnitPriceRows = vendorPriceCaches(cacheKey)
+        Exit Function
+    End If
+
+    Dim result As Object
+    Set result = CreateObject("Scripting.Dictionary")
+    result.CompareMode = vbTextCompare
+
+    Dim priceSheet As Worksheet
+    On Error Resume Next
+    Set priceSheet = ThisWorkbook.worksheets(unitPriceSheetName)
+    On Error GoTo 0
+    If priceSheet Is Nothing Then
+        vendorPriceCaches.Add cacheKey, result
+        Set GetVendorUnitPriceRows = result
+        Exit Function
+    End If
+
+    Dim vendorDayColumn As Long
+    vendorDayColumn = FindUnitPriceVendorDayColumn(priceSheet, vendorName)
+    If vendorDayColumn = 0 Then
+        vendorPriceCaches.Add cacheKey, result
+        Set GetVendorUnitPriceRows = result
+        Exit Function
+    End If
+
+    Dim priceLastRow As Long
+    priceLastRow = priceSheet.Cells(priceSheet.rows.Count, COL_SEIRI).End(xlUp).Row
+
+    Dim r As Long
+    For r = UNIT_PRICE_DATA_START_ROW To priceLastRow
+        Dim recordKey As String
+        recordKey = NormalizeRecordKey(priceSheet.Cells(r, COL_SEIRI).value)
+        If recordKey <> "" And Not result.Exists(recordKey) Then
+            result.Add recordKey, Array(priceSheet.Cells(r, vendorDayColumn).value, _
+                                        priceSheet.Cells(r, vendorDayColumn + 1).value)
+        End If
+    Next r
+
+    vendorPriceCaches.Add cacheKey, result
+    Set GetVendorUnitPriceRows = result
+End Function
+
+Private Function FindUnitPriceVendorDayColumn(ByVal priceSheet As Worksheet, _
+                                              ByVal vendorName As String) As Long
+    Dim vendorKey As String
+    vendorKey = NormalizeVendorPriceName(vendorName)
+    If vendorKey = "" Then Exit Function
+
+    Dim lastColumn As Long
+    lastColumn = priceSheet.Cells(UNIT_PRICE_VENDOR_NAME_ROW, _
+                                  priceSheet.Columns.Count).End(xlToLeft).Column
+
+    Dim c As Long
+    For c = UNIT_PRICE_VENDOR_FIRST_DAY_COL To lastColumn
+        If StrComp(NormalizeVendorPriceName( _
+                       CommonNzText(priceSheet.Cells(UNIT_PRICE_VENDOR_NAME_ROW, c).value)), _
+                   vendorKey, vbTextCompare) = 0 Then
+            FindUnitPriceVendorDayColumn = c
+            Exit Function
+        End If
+    Next c
+End Function
+
+Private Function NormalizeVendorPriceName(ByVal vendorName As String) As String
+    NormalizeVendorPriceName = CommonRemoveAllSpaces(CommonNormalizeText(vendorName))
+End Function
+
+Private Sub FormatSubcontractorPriceColumns(ByVal ws As Worksheet, _
+                                            ByVal lastRow As Long, _
+                                            ByVal columnCount As Long)
+    Dim firstColumn As Long
+    Dim lastColumn As Long
+    firstColumn = SUBCON_PRICE_FIRST_COL
+    lastColumn = firstColumn + columnCount - 1
+
+    With ws.Range(ws.Cells(1, firstColumn), ws.Cells(1, lastColumn))
+        .Font.Bold = True
+        .Font.Color = RGB(255, 255, 255)
+        .Interior.Color = RGB(0, 0, 0)
+        .HorizontalAlignment = xlCenter
+        .VerticalAlignment = xlCenter
+        .ShrinkToFit = True
+    End With
+
+    If lastRow >= 2 Then
+        With ws.Range(ws.Cells(2, firstColumn), ws.Cells(lastRow, lastColumn))
+            .NumberFormatLocal = "#,##0;[ê‘]-#,##0"
+        End With
+        With ws.Range(ws.Cells(1, firstColumn), ws.Cells(lastRow, lastColumn)).Borders
+            .LineStyle = xlContinuous
+            .Weight = xlThin
+            .Color = RGB(150, 150, 150)
+        End With
+    End If
+
+    ws.Range(ws.Columns(firstColumn), ws.Columns(lastColumn)).AutoFit
+End Sub
 
 '==========================================================================
 '  çHéñë§ÉVÅ[ÉgÇÃéQè∆íPâøÅEã‡äzÅEî‰äråãâ Çê›íË
