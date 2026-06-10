@@ -122,3 +122,18 @@ Private Sub Workbook_SheetBeforeRightClick(ByVal Sh As Object, ByVal Target As R
     btn.FaceId = 626
     On Error GoTo 0
 End Sub
+
+'--------------------------------------------------------------------------
+'  A列で施工会社が入力/選択されたら、その名前にA列幅をフィットさせる
+'    (ドロップダウン選択・手入力経路。フォーム経由はフォーム側でフィット済み)
+'--------------------------------------------------------------------------
+Private Sub Workbook_SheetChange(ByVal Sh As Object, ByVal Target As Range)
+    If Not IsSubconSheet(Sh) Then Exit Sub
+    If Application.Intersect(Target, Sh.Columns(1)) Is Nothing Then Exit Sub
+
+    Dim prevEE As Boolean
+    prevEE = Application.EnableEvents
+    Application.EnableEvents = False
+    Sh.Columns(1).AutoFit
+    Application.EnableEvents = prevEE
+End Sub
