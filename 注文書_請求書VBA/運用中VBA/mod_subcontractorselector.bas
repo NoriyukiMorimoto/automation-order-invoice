@@ -219,6 +219,9 @@ Public Sub SelectSubcontractorForSelection()
         ws.Cells(CLng(rIdx), COL_VENDOR).value = chosen
     Next rIdx
 
+    ' A列幅を施工会社名にフィット(内容に合わせて自動調整)
+    ws.Columns(COL_VENDOR).AutoFit
+
     Application.EnableEvents = prevEvents
 
     MsgBox targetRows.Count & " 行に「" & chosen & "」を設定しました。", vbInformation
