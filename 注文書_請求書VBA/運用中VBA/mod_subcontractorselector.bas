@@ -13,6 +13,10 @@ Private Const COL_VENDOR As Long = 1
 Private Const COL_SEIRI As Long = 2
 Private Const DATA_START_ROW As Long = 2
 
+'--- 産廃処理行の制御 ------------------------------------------------------
+Private Const SANPAI_KEYWORD As String = "産廃処理"
+Private Const COL_TYPE As Long = 3   ' C列(工事種類)
+
 ' 基本情報シートの業者ブロック(行11・F列から3列おき、最大20ブロック)
 Private Const VENDOR_NAME_ROW As Long = 11
 Private Const VENDOR_FIRST_COL As Long = 6      ' F列
@@ -111,14 +115,16 @@ Public Sub ApplySubcontractorDropdowns(ByVal ws As Worksheet)
     Dim r As Long
     For r = DATA_START_ROW To lastRow
         If Trim$(CommonNzText(ws.Cells(r, COL_SEIRI).value)) <> "" Then
-            With ws.Cells(r, COL_VENDOR).Validation
-                .Delete
-                .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, _
-                     Operator:=xlBetween, Formula1:=listFormula
-                .IgnoreBlank = True
-                .InCellDropdown = True
-                .ShowError = False
-            End With
+            If Not IsSanpaiRow(ws, r) Then   ' 産廃処理行はスキップ(入力不可規則を維持)
+                With ws.Cells(r, COL_VENDOR).Validation
+                    .Delete
+                    .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, _
+                         Operator:=xlBetween, Formula1:=listFormula
+                    .IgnoreBlank = True
+                    .InCellDropdown = True
+                    .ShowError = False
+                End With
+            End If
         End If
     Next r
 
@@ -201,7 +207,9 @@ Public Sub SelectSubcontractorForSelection()
         Dim c As Range
         If Not hit Is Nothing Then
             For Each c In hit.Cells
-                If Trim$(CommonNzText(ws.Cells(c.Row, COL_SEIRI).value)) <> "" Then targetRows.Add c.Row
+                If Trim$(CommonNzText(ws.Cells(c.Row, COL_SEIRI).value)) <> "" Then
+                    If Not IsSanpaiRow(ws, c.Row) Then targetRows.Add c.Row   ' 産廃処理行は対象外
+                End If
             Next c
         End If
     End If
@@ -209,7 +217,9 @@ Public Sub SelectSubcontractorForSelection()
     If targetRows.Count = 0 Then
         ' 選択が無効ならアクティブセルの行
         If ActiveCell.Row >= DATA_START_ROW And ActiveCell.Row <= lastRow Then
-            If Trim$(CommonNzText(ws.Cells(ActiveCell.Row, COL_SEIRI).value)) <> "" Then targetRows.Add ActiveCell.Row
+            If Trim$(CommonNzText(ws.Cells(ActiveCell.Row, COL_SEIRI).value)) <> "" Then
+                If Not IsSanpaiRow(ws, ActiveCell.Row) Then targetRows.Add ActiveCell.Row   ' 産廃処理行は対象外
+            End If
         End If
     End If
 
@@ -261,4 +271,10 @@ ErrorHandler:
            Err.Description, vbExclamation
 End Sub
 
-
+'==========================================================================
+'  産廃処理行: C列(工事種類)に「産廃処理」を含む行か判定
+'==========================================================================
+Private Function IsSanpaiRow(ByVal ws As Worksheet, ByVal rowIndex As Long) As Boolean
+    IsSanpaiRow = (InStr(1, CommonRemoveAllSpaces(CommonNzText(ws.Cells(rowIndex, COL_TYPE).value)), _
+                         SANPAI_KEYWORD, vbTextCompare) > 0)
+End Function

@@ -68,6 +68,11 @@ Private Const PURCHASE_KEYWORD As String = "購入充当"
 Private Const SIDELINE_KEYWORD As String = "側線"
 Private Const WELDING_KEYWORD As String = "レール溶接"
 
+'--- 産廃処理行の制御 ------------------------------------------------------
+Private Const SANPAI_KEYWORD As String = "産廃処理"
+' 取込済み単価シートに塗りつぶしセルが無い場合の既定色(グレー)
+Private Const SANPAI_FALLBACK_FILL_COLOR As Long = 14277081   ' RGB(217,217,217)
+
 ' 基本情報セル
 Private Const BASIC_INFO_BRANCH_CELL As String = "B6"
 Private Const BASIC_INFO_OFFICE_CELL As String = "C6"
@@ -336,6 +341,7 @@ Public Sub ImportConstructionDocument()
     FormatSheet wsWorks
     ApplyPriceGuidanceColumnLayout wsWorks
     mod_subcontractorselector.ApplySubcontractorDropdowns wsWorks   ' A列(施工業者)に施工会社ドロップダウンを付与
+    ApplySanpaiRowRestrictions wsWorks   ' 産廃処理行のA列を塗りつぶし＋入力不可化
 
     ' A列(施工業者)を中央揃え
     wsWorks.Columns(COL_VENDOR).HorizontalAlignment = xlCenter
@@ -1076,7 +1082,98 @@ Private Sub FormatSubcontractorPriceColumns(ByVal ws As Worksheet, _
         End With
     End If
 
+    ' 産廃処理行: 追加された施工会社別単価・金額列を塗りつぶし(単価シートと同色)
+    If lastRow >= 2 Then
+        Dim sanpaiFillColor As Long
+        Dim sanpaiRow As Long
+        sanpaiFillColor = GetSanpaiFillColor()
+        For sanpaiRow = 2 To lastRow
+            If IsSanpaiRow(ws, sanpaiRow) Then
+                ws.Range(ws.Cells(sanpaiRow, firstColumn), _
+                         ws.Cells(sanpaiRow, lastColumn)).Interior.Color = sanpaiFillColor
+            End If
+        Next sanpaiRow
+    End If
+
     ws.Range(ws.Columns(firstColumn), ws.Columns(lastColumn)).AutoFit
+End Sub
+
+'==========================================================================
+'  産廃処理行: C列(工事種類)に「産廃処理」を含む行か判定
+'==========================================================================
+Private Function IsSanpaiRow(ByVal ws As Worksheet, ByVal rowIndex As Long) As Boolean
+    IsSanpaiRow = (InStr(1, CommonRemoveAllSpaces(CommonNzText(ws.Cells(rowIndex, COL_TYPE).value)), _
+                         SANPAI_KEYWORD, vbTextCompare) > 0)
+End Function
+
+'==========================================================================
+'  産廃処理行の塗りつぶし色を取得
+'    取込済み単価シートのE/F列(昼・夜単価)で最初に見つかった
+'    塗りつぶしセルの色を採用。見つからない場合は既定のグレー。
+'==========================================================================
+Private Function GetSanpaiFillColor() As Long
+    GetSanpaiFillColor = SANPAI_FALLBACK_FILL_COLOR
+
+    Dim ws As Worksheet
+    For Each ws In ThisWorkbook.worksheets
+        If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(ws) Then
+            Dim priceLastRow As Long
+            priceLastRow = ws.Cells(ws.rows.Count, COL_SEIRI).End(xlUp).Row
+
+            Dim r As Long, c As Long
+            For r = UNIT_PRICE_DATA_START_ROW To priceLastRow
+                For c = 5 To 6                      ' E:昼単価 / F:夜単価
+                    If ws.Cells(r, c).Interior.Pattern <> xlPatternNone Then
+                        GetSanpaiFillColor = ws.Cells(r, c).Interior.Color
+                        Exit Function
+                    End If
+                Next c
+            Next r
+        End If
+    Next ws
+End Function
+
+'==========================================================================
+'  産廃処理行: A列(施工業者)を塗りつぶし＋入力不可化
+'    施工業者ドロップダウン付与(ApplySubcontractorDropdowns)の後に
+'    呼び出すこと(A列の入力規則を上書きするため)。
+'    入力不可はユーザー設定の入力規則(=FALSE)で実現。
+'    ※Excelの仕様上、コピー＆貼り付けは防げない点に注意。
+'==========================================================================
+Public Sub ApplySanpaiRowRestrictions(ByVal ws As Worksheet)
+    If ws Is Nothing Then Exit Sub
+
+    Dim lastRow As Long
+    lastRow = GetLastDataRow(ws)
+    If lastRow < 2 Then Exit Sub
+
+    Dim fillColor As Long
+    fillColor = GetSanpaiFillColor()
+
+    Dim restrictedCount As Long
+    Dim r As Long
+    For r = 2 To lastRow
+        If IsSanpaiRow(ws, r) Then
+            With ws.Cells(r, COL_VENDOR)
+                .ClearContents
+                .Interior.Color = fillColor
+                With .Validation
+                    .Delete
+                    .Add Type:=xlValidateCustom, AlertStyle:=xlValidAlertStop, _
+                         Formula1:="=FALSE"
+                    .IgnoreBlank = True
+                    .InCellDropdown = False
+                    .ShowInput = False
+                    .ErrorTitle = "入力不可"
+                    .ErrorMessage = "産廃処理の行は施工業者を入力できません。"
+                    .ShowError = True
+                End With
+            End With
+            restrictedCount = restrictedCount + 1
+        End If
+    Next r
+
+    LogCI "産廃処理行: A列塗りつぶし・入力不可=" & restrictedCount & " 行"
 End Sub
 
 '==========================================================================
