@@ -29,27 +29,32 @@ Private Const DOC_NOTICE As Long = 2   ' 施工通知書
 Private Const DATA_START_ROW As Long = 22
 
 ' 出力列インデックス(A=1)
-Private Const COL_VENDOR As Long = 1      ' 施工業者(空白)
-Private Const COL_SEIRI As Long = 2       ' 整理番号
-Private Const COL_TYPE As Long = 3        ' 工事種類
-Private Const COL_DAYNIGHT As Long = 4    ' 昼夜別
-Private Const COL_UNIT As Long = 5        ' 単位
-Private Const COL_QTY As Long = 6         ' 数量
-Private Const COL_LINE As Long = 7        ' 契約線区名
-Private Const COL_MGR As Long = 8         ' 管理室
-Private Const COL_JR_PRICE As Long = 9    ' JR単価
-Private Const COL_JR_AMOUNT As Long = 10  ' JR金額
-Private Const COL_OUT_PRICE As Long = 11  ' 外注単価(空白)
-Private Const COL_OUT_AMOUNT As Long = 12 ' 外注金額(空白)
-Private Const COL_KIND As Long = 13       ' 工種分類
-Private Const COL_AUTO_PRICE As Long = 15 ' 参照単価(O列)
-Private Const COL_AUTO_AMOUNT As Long = 16 ' 参照単価金額(P列)
-Private Const COL_PRICE_COMPARE As Long = 17 ' 単価比較(Q列)
-Private Const COL_PRICE_GUIDANCE As Long = 18 ' 単価不一致時の案内(R列)
-Private Const PRICE_GUIDANCE_COLUMN_WIDTH As Double = 59# ' 案内表示時のR列幅
-Private Const COL_FLAG_SIDE As Long = 27  ' 補助:側線フラグ(AA列)
-Private Const COL_FLAG_WELD As Long = 28  ' 補助:レール溶接フラグ(AB列)
-Private Const OUTPUT_COL_COUNT As Long = 13
+'   ※列番号は相対定義(直前の列+1)。列を挿入/削除する場合は、該当位置の Const を
+'     1行追加/削除するだけで以降の列番号が自動的にずれる。併せて WriteRecordsToSheet の
+'     headers 配列と rowArr への代入も同じ位置に追加/削除すること(順番厳守)。
+'     絶対参照や数式オフセットはすべて定数から算出しているため、ここ以外の修正は不要。
+Private Const COL_VENDOR         As Long = 1                        ' A 施工業者
+Private Const COL_SEIRI          As Long = COL_VENDOR + 1           ' B 整理番号
+Private Const COL_TYPE           As Long = COL_SEIRI + 1            ' C 工事種類
+Private Const COL_DAYNIGHT       As Long = COL_TYPE + 1             ' D 昼夜別
+Private Const COL_UNIT           As Long = COL_DAYNIGHT + 1         ' E 単位
+Private Const COL_QTY            As Long = COL_UNIT + 1             ' F 数量
+Private Const COL_LINE           As Long = COL_QTY + 1              ' G 契約線区名
+Private Const COL_MGR            As Long = COL_LINE + 1             ' H 管理室
+Private Const COL_JR_PRICE       As Long = COL_MGR + 1              ' I JR単価
+Private Const COL_JR_AMOUNT      As Long = COL_JR_PRICE + 1         ' J JR金額
+Private Const COL_OUT_PRICE      As Long = COL_JR_AMOUNT + 1        ' 外注単価(空白/作成後に削除)
+Private Const COL_OUT_AMOUNT     As Long = COL_OUT_PRICE + 1        ' 外注金額(空白/作成後に削除)
+Private Const COL_KIND           As Long = COL_OUT_AMOUNT + 1       ' 工種分類(データ最終列)
+Private Const COL_GAP_AFTER_DATA As Long = COL_KIND + 1             ' 空白の区切り列
+Private Const COL_AUTO_PRICE     As Long = COL_GAP_AFTER_DATA + 1   ' 参照単価
+Private Const COL_AUTO_AMOUNT    As Long = COL_AUTO_PRICE + 1       ' 参照単価金額
+Private Const COL_PRICE_COMPARE  As Long = COL_AUTO_AMOUNT + 1      ' 単価比較
+Private Const COL_PRICE_GUIDANCE As Long = COL_PRICE_COMPARE + 1    ' 単価不一致時の案内
+Private Const PRICE_GUIDANCE_COLUMN_WIDTH As Double = 59#           ' 案内表示時の列幅
+Private Const COL_FLAG_SIDE      As Long = COL_PRICE_GUIDANCE + 9   ' 補助:側線フラグ(出力列より右の作業列)
+Private Const COL_FLAG_WELD      As Long = COL_FLAG_SIDE + 1        ' 補助:レール溶接フラグ
+Private Const OUTPUT_COL_COUNT   As Long = COL_KIND                 ' データ列数(=工種分類の列番号)
 
 ' 管理室マスタ(出張所別_単価適用線区.xlsx)
 Private Const MGR_MASTER_SHEET As String = "JR管理室対応出張所"
@@ -249,7 +254,7 @@ Public Sub ImportConstructionDocument()
             End If
 
             If keepRow Then
-                Dim rowArr(0 To 12) As Variant
+                Dim rowArr(0 To OUTPUT_COL_COUNT - 1) As Variant
                 rowArr(COL_VENDOR - 1) = ""              ' 施工業者(空白)
                 rowArr(COL_SEIRI - 1) = vSeiri(i)        ' 整理番号
                 rowArr(COL_TYPE - 1) = vType(i)          ' 工事種類
@@ -309,6 +314,18 @@ Public Sub ImportConstructionDocument()
     FormatSheet wsWorks
     ApplyPriceGuidanceColumnLayout wsWorks
     mod_SubcontractorSelector.ApplySubcontractorDropdowns wsWorks   ' A列(施工業者)に施工会社ドロップダウンを付与
+
+    ' A列(施工業者)を中央揃え
+    wsWorks.Columns(COL_VENDOR).HorizontalAlignment = xlCenter
+
+    ' 施工通知書取込のみ H列(管理室)を非表示(通知書は管理室データなし)
+    If docType = DOC_NOTICE Then wsWorks.Columns(COL_MGR).Hidden = True
+
+    ' K列(外注単価)・L列(外注金額)は不要 -> 列ごと削除し右列以降を左へ詰める
+    '   ※全整形・単価転記が済んだ最後に実行。参照単価金額のR1C1相対数式は
+    '     Excelが列削除に合わせて自動調整するため、数式オフセットの手修正は不要。
+    wsWorks.Range(wsWorks.Cells(1, COL_OUT_PRICE), _
+                  wsWorks.Cells(1, COL_OUT_AMOUNT)).EntireColumn.Delete Shift:=xlToLeft
 
     '--- 購入充当側シート作成・書込み・ソート(該当行がある場合のみ) ---------
     If purchRows.Count > 0 Then
@@ -764,19 +781,19 @@ Private Sub WriteAdditionalHeaders(ByVal ws As Worksheet, _
 
     Dim amountName As String
     amountName = CommonNzText(wsInfo.Range(BASIC_INFO_AMOUNT_CELL).value)
-    ws.Range("O1").value = CommonNzText(wsInfo.Range(BASIC_INFO_PUBLIC_CELL).value) & "公開" & amountName
-    ws.Range("P1").value = amountName & "金額"
-    If includePriceComparison Then ws.Range("Q1").value = "単価比較"
+    ws.Cells(1, COL_AUTO_PRICE).value = CommonNzText(wsInfo.Range(BASIC_INFO_PUBLIC_CELL).value) & "公開" & amountName
+    ws.Cells(1, COL_AUTO_AMOUNT).value = amountName & "金額"
+    If includePriceComparison Then ws.Cells(1, COL_PRICE_COMPARE).value = "単価比較"
 End Sub
 
 '==========================================================================
 '  出力表の最終列(単価比較がある場合は案内欄のR列)
 '==========================================================================
 Private Function GetOutputLastColumn(ByVal ws As Worksheet) As Long
-    If CommonNzText(ws.Range("Q1").value) <> "" Then
+    If CommonNzText(ws.Cells(1, COL_PRICE_COMPARE).value) <> "" Then
         GetOutputLastColumn = COL_PRICE_GUIDANCE
-    ElseIf CommonNzText(ws.Range("P1").value) <> "" Then
-        GetOutputLastColumn = ws.Range("P1").Column
+    ElseIf CommonNzText(ws.Cells(1, COL_AUTO_AMOUNT).value) <> "" Then
+        GetOutputLastColumn = COL_AUTO_AMOUNT
     Else
         GetOutputLastColumn = COL_KIND
     End If
@@ -833,7 +850,7 @@ Private Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
     Next r
 
     ws.Range(ws.Cells(2, COL_AUTO_AMOUNT), ws.Cells(lastRow, COL_AUTO_AMOUNT)).FormulaR1C1 = _
-        "=IF(OR(RC[-1]="""",RC[-10]=""""),"""",RC[-1]*RC[-10])"
+        "=IF(OR(RC[" & (COL_AUTO_PRICE - COL_AUTO_AMOUNT) & "]="""",RC[" & (COL_QTY - COL_AUTO_AMOUNT) & "]=""""),"""",RC[" & (COL_AUTO_PRICE - COL_AUTO_AMOUNT) & "]*RC[" & (COL_QTY - COL_AUTO_AMOUNT) & "])"
 
     With ws.Range(ws.Cells(2, COL_AUTO_PRICE), ws.Cells(lastRow, COL_AUTO_AMOUNT))
         .NumberFormatLocal = "#,##0;[赤]-#,##0"
@@ -1519,7 +1536,7 @@ Private Sub FillPurchaseUnitPrices(ByVal ws As Worksheet)
 
     ' O列の数値書式(桁区切り・通貨・円記号なし)
     ws.Range(ws.Cells(2, COL_AUTO_AMOUNT), ws.Cells(lastRow, COL_AUTO_AMOUNT)).FormulaR1C1 = _
-        "=RC[-1]*RC[-10]"
+        "=RC[" & (COL_AUTO_PRICE - COL_AUTO_AMOUNT) & "]*RC[" & (COL_QTY - COL_AUTO_AMOUNT) & "]"
 
     For r = 2 To lastRow
         WritePriceComparison ws, r, priceSheetName, False
