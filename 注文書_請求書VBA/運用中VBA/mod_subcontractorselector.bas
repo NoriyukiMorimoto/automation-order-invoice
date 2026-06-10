@@ -103,6 +103,7 @@ Public Sub ApplySubcontractorDropdowns(ByVal ws As Worksheet)
     If listFormula = "" Then Exit Sub
 
     Dim prevEvents As Boolean
+    Dim errorDescription As String
     prevEvents = Application.EnableEvents
     On Error GoTo ErrorHandler
     Application.EnableEvents = False
@@ -121,7 +122,17 @@ Public Sub ApplySubcontractorDropdowns(ByVal ws As Worksheet)
         End If
     Next r
 
+Cleanup:
     Application.EnableEvents = prevEvents
+    If errorDescription <> "" Then
+        MsgBox "施工会社のドロップダウンを設定できませんでした。" & vbCrLf & _
+               errorDescription, vbExclamation
+    End If
+    Exit Sub
+
+ErrorHandler:
+    errorDescription = Err.Description
+    Resume Cleanup
 End Sub
 
 '==========================================================================

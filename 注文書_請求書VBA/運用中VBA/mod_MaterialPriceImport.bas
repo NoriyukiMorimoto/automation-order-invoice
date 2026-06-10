@@ -84,6 +84,7 @@ Private Const IMPORTED_LINE_NAME_BASE_FONT_SIZE As Double = 16
 Private Const IMPORTED_LINE_NAME_MIN_FONT_SIZE As Double = 5
 Private Const IMPORTED_LINE_NAME_LINE_HEIGHT_RATIO As Double = 1.25
 Private Const IMPORTED_LINE_NAME_VERTICAL_PADDING As Double = 4
+Private Const IMPORTED_UNIT_PRICE_CENTER_COL As Long = 2
 
 Private Const ZAIRAISEN_PROJECT_NAME_FIRST_END_ROW  As Long = 8
 Private Const ZAIRAISEN_PROJECT_NAME_SKIP_ROW       As Long = 9
@@ -1030,6 +1031,7 @@ Private Function ImportSelectedUnitPriceSheets(ByVal selectedSheetNames As Colle
             .Tab.Color = RGB(UNIT_PRICE_SHEET_TAB_R, UNIT_PRICE_SHEET_TAB_G, UNIT_PRICE_SHEET_TAB_B)
             MarkImportedUnitPriceSheet stagedSheet
             FillBlankUnitPriceEFCells stagedSheet
+            ApplyImportedUnitPriceSheetFormat stagedSheet
             LogUP "àÍéûÉVÅ[ÉgçÏê¨äÆóπ name=[" & .Name & "]"
         End With
         stagedSheets.Add stagedSheet
@@ -1107,6 +1109,7 @@ Private Function ImportAndMergePurchaseUnitPriceSheets(ByVal sourceFilePath As S
     If Not newSheet Is Nothing Then
         newSheet.Tab.Color = RGB(PURCHASE_SHEET_TAB_R, PURCHASE_SHEET_TAB_G, PURCHASE_SHEET_TAB_B)
         MarkImportedUnitPriceSheet newSheet
+        ApplyImportedUnitPriceSheetFormat newSheet
         DeleteWorksheetIfExists targetBook, newSheetName, newSheet
         newSheet.Name = MakeUniqueWorksheetName(targetBook, newSheetName, newSheet.Name)
     End If
@@ -1173,6 +1176,7 @@ Private Function ImportAndMergeWeldingUnitPriceSheets(ByVal sourceFilePath As St
         newSheet.Tab.Color = RGB(WELDING_SHEET_TAB_R, WELDING_SHEET_TAB_G, WELDING_SHEET_TAB_B)
         MarkImportedUnitPriceSheet newSheet
         FillBlankUnitPriceEFCells newSheet
+        ApplyImportedUnitPriceSheetFormat newSheet
         DeleteWorksheetIfExists targetBook, newSheetName, newSheet
         newSheet.Name = MakeUniqueWorksheetName(targetBook, newSheetName, newSheet.Name)
     End If
@@ -1853,6 +1857,27 @@ Private Sub MarkImportedUnitPriceSheet(ByVal targetSheet As Worksheet)
     targetSheet.Range(IMPORTED_SHEET_MARKER_ADDRESS).value = IMPORTED_SHEET_MARKER_VALUE
     On Error GoTo 0
 End Sub
+
+Private Sub ApplyImportedUnitPriceSheetFormat(ByVal targetSheet As Worksheet)
+    If targetSheet Is Nothing Then Exit Sub
+
+    With targetSheet.Cells.Font
+        .Name = ImportedUnitPriceSheetFontNameText()
+        On Error Resume Next
+        .NameFarEast = ImportedUnitPriceSheetFontNameText()
+        On Error GoTo 0
+    End With
+
+    targetSheet.Columns(IMPORTED_UNIT_PRICE_CENTER_COL).HorizontalAlignment = xlCenter
+End Sub
+
+Private Function ImportedUnitPriceSheetFontNameText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = "BIZ UD" & ChrW$(&H30B4) & ChrW$(&H30B7) & ChrW$(&H30C3) & ChrW$(&H30AF)
+    End If
+    ImportedUnitPriceSheetFontNameText = cached
+End Function
 
 Private Function IsImportedLineNamesMonitorRangeChanged(ByVal wsInfo As Worksheet, ByVal changedRange As Range) As Boolean
     Dim monitorRange As Range

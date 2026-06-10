@@ -127,6 +127,23 @@ End Sub
 '  A—ñ‚Å{H‰ïĞ‚ª“ü—Í/‘I‘ğ‚³‚ê‚½‚çA‰ïĞ•Ê’P‰¿E‹àŠz—ñ‚ğÄ\’z‚·‚é
 '--------------------------------------------------------------------------
 Private Sub Workbook_SheetChange(ByVal Sh As Object, ByVal Target As Range)
+    If TypeName(Sh) <> "Worksheet" Then Exit Sub
+
+    If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(Sh) Then
+        If Application.Intersect(Target, Sh.Range("B:B,E:F")) Is Nothing Then Exit Sub
+
+        Dim unitPricePrevEE As Boolean
+        unitPricePrevEE = Application.EnableEvents
+        On Error GoTo UnitPriceCleanup
+        Application.EnableEvents = False
+
+        mod_VendorMaster.HandleConstructionUnitPriceSheetChange Sh, Target
+
+UnitPriceCleanup:
+        Application.EnableEvents = unitPricePrevEE
+        Exit Sub
+    End If
+
     If Not IsSubconSheet(Sh) Then Exit Sub
     If Application.Intersect(Target, Sh.Columns(1)) Is Nothing Then Exit Sub
 
