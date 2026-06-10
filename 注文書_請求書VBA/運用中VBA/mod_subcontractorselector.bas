@@ -19,6 +19,7 @@ Private Const VENDOR_NAME_ROW As Long = 11
 Private Const VENDOR_FIRST_COL As Long = 6      ' F列
 Private Const VENDOR_STEP_COLS As Long = 3      ' F,I,L,O…
 Private Const VENDOR_MAX_BLOCKS As Long = 20
+Private Const VENDOR_COUNT_CELL As String = "F9"  ' 下請負会社数(この数だけ候補を読む)
 
 ' リストが長い(255文字超)場合に使う非表示の補助列
 Private Const HELPER_COL As Long = 100
@@ -38,8 +39,14 @@ Public Function GetSubcontractorList() As Variant
     Set seen = CreateObject("Scripting.Dictionary")
     seen.CompareMode = vbTextCompare
 
+    ' 下請負会社数(F9)を上限にする(古い業者ブロックの残骸を候補に含めない)
+    Dim vendorCount As Long
+    vendorCount = CLng(Val(StrConv(CStr(CommonNzText(wsInfo.Range(VENDOR_COUNT_CELL).value)), vbNarrow)))
+    If vendorCount < 1 Then vendorCount = 1
+    If vendorCount > VENDOR_MAX_BLOCKS Then vendorCount = VENDOR_MAX_BLOCKS
+
     Dim k As Long, col As Long, nm As String
-    For k = 0 To VENDOR_MAX_BLOCKS - 1
+    For k = 0 To vendorCount - 1
         col = VENDOR_FIRST_COL + k * VENDOR_STEP_COLS
         nm = Trim$(CommonNzText(wsInfo.Cells(VENDOR_NAME_ROW, col).value))
         If nm <> "" Then
@@ -218,6 +225,9 @@ Public Sub SelectSubcontractorForSelection()
     For Each rIdx In targetRows
         ws.Cells(CLng(rIdx), COL_VENDOR).value = chosen
     Next rIdx
+
+    ' A列幅を施工会社名にフィット(内容に合わせて自動調整)
+    ws.Columns(COL_VENDOR).AutoFit
 
     ' A列幅を施工会社名にフィット(内容に合わせて自動調整)
     ws.Columns(COL_VENDOR).AutoFit

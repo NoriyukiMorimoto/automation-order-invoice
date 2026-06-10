@@ -132,6 +132,9 @@ Public Sub ImportConstructionDocument()
     If docType = 0 Then GoTo Cleanup            ' キャンセル
     LogCI "docType=" & docType
 
+    '--- 取込前チェック: 基本情報の必須入力を確認 --------------------------
+    If Not ValidateBasicInfoForImport(docType) Then GoTo Cleanup
+
     '--- 取込ブックを開く ---------------------------------------------------
     Set srcWb = OpenWorkbookReadOnly(srcPath, srcOpenedHere)
     If srcWb Is Nothing Then
@@ -451,6 +454,58 @@ Private Function DetermineDocType(ByVal filePath As String) As Long
             Case Else: DetermineDocType = 0
         End Select
     End If
+End Function
+
+'==========================================================================
+'  取込前チェック: 基本情報シートの必須セルが入力済みか確認
+'    未入力があれば対象セルを案内し、最初の未入力セルを選択して False を返す
+'    共通必須      : C20(在来線・新幹線区分) / C21(工事種別)  ※単価・線区解決に必要
+'    施工指示書のみ: B6(支店) / C6(出張所)                    ※管理室フィルタに必要
+'==========================================================================
+Private Function ValidateBasicInfoForImport(ByVal docType As Long) As Boolean
+    ValidateBasicInfoForImport = False
+
+    Dim wsInfo As Worksheet
+    Set wsInfo = CommonGetBasicInfoWorksheet(ThisWorkbook)
+    If wsInfo Is Nothing Then
+        MsgBox "基本情報シートが見つかりません。", vbExclamation
+        Exit Function
+    End If
+
+    ' チェック対象(セル, ラベル)。施工指示書(DOC_ORDER)のみ支店/出張所を追加
+    Dim chkCells(1 To 4) As String, chkLabels(1 To 4) As String, n As Long
+    n = 0
+    n = n + 1: chkCells(n) = BASIC_INFO_LINE_TYPE_CELL:    chkLabels(n) = "在来線・新幹線区分"
+    n = n + 1: chkCells(n) = BASIC_INFO_PROJECT_NAME_CELL: chkLabels(n) = "工事種別"
+    If docType = DOC_ORDER Then
+        n = n + 1: chkCells(n) = BASIC_INFO_BRANCH_CELL:   chkLabels(n) = "支店"
+        n = n + 1: chkCells(n) = BASIC_INFO_OFFICE_CELL:   chkLabels(n) = "出張所"
+    End If
+
+    Dim missingMsg As String, firstCell As String
+    Dim i As Long, v As String
+    For i = 1 To n
+        v = Trim$(CommonNzText(wsInfo.Range(chkCells(i)).value))
+        If v = "" Then
+            missingMsg = missingMsg & "  ・" & chkCells(i) & "  " & chkLabels(i) & vbCrLf
+            If firstCell = "" Then firstCell = chkCells(i)
+        End If
+    Next i
+
+    If missingMsg <> "" Then
+        ' 最初の未入力セルへ誘導(画面更新を一時的に戻して選択を見せる)
+        On Error Resume Next
+        Application.screenUpdating = True
+        wsInfo.Activate
+        wsInfo.Range(firstCell).Select
+        On Error GoTo 0
+        MsgBox "取込に必要な基本情報が未入力です。" & vbCrLf & vbCrLf & _
+               "以下のセルを入力してから取り込んでください。" & vbCrLf & vbCrLf & _
+               missingMsg, vbExclamation, "入力チェック"
+        Exit Function
+    End If
+
+    ValidateBasicInfoForImport = True
 End Function
 
 '==========================================================================
