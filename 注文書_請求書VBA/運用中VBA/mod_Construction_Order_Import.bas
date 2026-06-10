@@ -1192,7 +1192,7 @@ End Sub
 
 '==========================================================================
 '  合計セルの共通書込み
-'    ラベルセル: 黒のxlThin枠で囲む
+'    ラベルセル: 黒の二重線(xlDouble)枠で囲む
 '    SUMセル   : 小数点以下切り捨て(ROUNDDOWN)・桁区切り表示・
 '                赤のxlMedium枠で囲む
 '==========================================================================
@@ -1205,7 +1205,7 @@ Private Sub WriteTotalCells(ByVal ws As Worksheet, ByVal totalRow As Long, _
         .HorizontalAlignment = xlCenter
         .VerticalAlignment = xlCenter
         .ShrinkToFit = True
-        .BorderAround LineStyle:=xlContinuous, Weight:=xlThin, Color:=RGB(0, 0, 0)
+        .BorderAround LineStyle:=xlDouble, Color:=RGB(0, 0, 0)
     End With
 
     ' SUMセル(小数点以下切り捨て・桁区切り・赤の中太枠)
