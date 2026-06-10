@@ -1,10 +1,9 @@
-Attribute VB_Name = "mod_subcontractorselector"
 Option Explicit
 
 '==========================================================================
 '  {H‰ïĞ({H‹ÆÒ)‘I‘ğƒ‚ƒWƒ…[ƒ‹  mod_SubcontractorSelector
 '    E{Hw¦‘/{H’Ê’m‘ƒV[ƒg‚ÌA—ñ({H‹ÆÒ)‚Éƒhƒƒbƒvƒ_ƒEƒ“‚ğİ’è
-'    EŒó•â‚ÍŠî–{î•ñƒV[ƒg‚Ìs11EF—ñ‚©‚ç3—ñ‚¨‚«(F11,I11,L11c)‚ÌĞ–¼
+'    EŠî–{î•ñ‚Ì‰ïĞ–¼‚ğ‹ÆÒƒ}ƒXƒ^B—ñ‚ÅÆ‡‚µA‘Î‰‚·‚éA—ñ’l‚ğŒó•â‚É‚·‚é
 '    EfrmSubconSelector ‚ğg‚¢A‘I‘ğs(•¡”‰Â)‚ÖˆêŠ‡“K—p(Project_Number_Posting
 '      ‚Ì•¡”sˆêŠ‡‘I‘ğ‚Ì”­‘z‚ğ“¥P)
 '==========================================================================
@@ -25,7 +24,7 @@ Private Const VENDOR_COUNT_CELL As String = "F9"  ' ‰º¿•‰‰ïĞ”(‚±‚Ì”‚¾‚¯Œó•â‚
 Private Const HELPER_COL As Long = 100
 
 '==========================================================================
-'  Šî–{î•ñƒV[ƒg‚©‚ç{H‰ïĞƒŠƒXƒg(1ŸŒ³”z—ñ)‚ğæ“¾
+'  Šî–{î•ñ‚Ì‰ïĞ–¼‚ğ‹ÆÒƒ}ƒXƒ^B—ñ‚ÅÆ‡‚µAA—ñ•\¦–¼‚ÌƒŠƒXƒg‚ğæ“¾
 '==========================================================================
 Public Function GetSubcontractorList() As Variant
     Dim wsInfo As Worksheet
@@ -39,20 +38,28 @@ Public Function GetSubcontractorList() As Variant
     Set seen = CreateObject("Scripting.Dictionary")
     seen.CompareMode = vbTextCompare
 
+    Dim vendorNameMap As Object
+    Set vendorNameMap = mod_VendorMaster.BuildVendorUnitPriceNameMap(wsInfo)
+    If vendorNameMap Is Nothing Then Exit Function
+
     ' ‰º¿•‰‰ïĞ”(F9)‚ğãŒÀ‚É‚·‚é(ŒÃ‚¢‹ÆÒƒuƒƒbƒN‚ÌcŠ[‚ğŒó•â‚ÉŠÜ‚ß‚È‚¢)
     Dim vendorCount As Long
     vendorCount = CLng(Val(StrConv(CStr(CommonNzText(wsInfo.Range(VENDOR_COUNT_CELL).value)), vbNarrow)))
     If vendorCount < 1 Then vendorCount = 1
     If vendorCount > VENDOR_MAX_BLOCKS Then vendorCount = VENDOR_MAX_BLOCKS
 
-    Dim k As Long, col As Long, nm As String
+    Dim k As Long, col As Long, nm As String, mappedName As String
     For k = 0 To vendorCount - 1
         col = VENDOR_FIRST_COL + k * VENDOR_STEP_COLS
         nm = Trim$(CommonNzText(wsInfo.Cells(VENDOR_NAME_ROW, col).value))
         If nm <> "" Then
-            If Not seen.Exists(nm) Then
-                seen.Add nm, True
-                names.Add nm
+            nm = CommonNormalizeText(nm)
+            If vendorNameMap.Exists(nm) Then
+                mappedName = Trim$(CommonNzText(vendorNameMap(nm)))
+                If mappedName <> "" And Not seen.Exists(mappedName) Then
+                    seen.Add mappedName, True
+                    names.Add mappedName
+                End If
             End If
         End If
     Next k
@@ -83,7 +90,7 @@ Public Sub ApplySubcontractorDropdowns(ByVal ws As Worksheet)
     Dim names As Variant
     names = GetSubcontractorList()
     If Not IsArray(names) Then
-        MsgBox "Šî–{î•ñƒV[ƒg‚É{H‰ïĞ(F11,I11,L11c)‚ª“o˜^‚³‚ê‚Ä‚¢‚Ü‚¹‚ñB", vbExclamation
+        MsgBox "Šî–{î•ñ‚Ì{H‰ïĞ‚É‘Î‰‚·‚é‹ÆÒƒ}ƒXƒ^A—ñ‚ÌŒó•â‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB", vbExclamation
         Exit Sub
     End If
 
@@ -97,6 +104,7 @@ Public Sub ApplySubcontractorDropdowns(ByVal ws As Worksheet)
 
     Dim prevEvents As Boolean
     prevEvents = Application.EnableEvents
+    On Error GoTo ErrorHandler
     Application.EnableEvents = False
 
     Dim r As Long
@@ -202,7 +210,7 @@ Public Sub SelectSubcontractorForSelection()
     Dim names As Variant
     names = GetSubcontractorList()
     If Not IsArray(names) Then
-        MsgBox "Šî–{î•ñƒV[ƒg‚É{H‰ïĞ(F11,I11,L11c)‚ª“o˜^‚³‚ê‚Ä‚¢‚Ü‚¹‚ñB", vbExclamation
+        MsgBox "Šî–{î•ñ‚Ì{H‰ïĞ‚É‘Î‰‚·‚é‹ÆÒƒ}ƒXƒ^A—ñ‚ÌŒó•â‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB", vbExclamation
         Exit Sub
     End If
 
@@ -226,8 +234,7 @@ Public Sub SelectSubcontractorForSelection()
         ws.Cells(CLng(rIdx), COL_VENDOR).value = chosen
     Next rIdx
 
-    ' A—ñ•‚ğ{H‰ïĞ–¼‚ÉƒtƒBƒbƒg(“à—e‚É‡‚í‚¹‚Ä©“®’²®)
-    ws.Columns(COL_VENDOR).AutoFit
+    mod_Construction_Order_Import.RefreshSubcontractorPriceColumns ws
 
     ' A—ñ•‚ğ{H‰ïĞ–¼‚ÉƒtƒBƒbƒg(“à—e‚É‡‚í‚¹‚Ä©“®’²®)
     ws.Columns(COL_VENDOR).AutoFit
@@ -235,6 +242,12 @@ Public Sub SelectSubcontractorForSelection()
     Application.EnableEvents = prevEvents
 
     MsgBox targetRows.Count & " s‚Éu" & chosen & "v‚ğİ’è‚µ‚Ü‚µ‚½B", vbInformation
+    Exit Sub
+
+ErrorHandler:
+    Application.EnableEvents = prevEvents
+    MsgBox "{H‰ïĞ•Ê‚Ì’P‰¿E‹àŠz—ñ‚ğXV‚Å‚«‚Ü‚¹‚ñ‚Å‚µ‚½B" & vbCrLf & _
+           Err.Description, vbExclamation
 End Sub
 
 

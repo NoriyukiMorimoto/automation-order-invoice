@@ -124,8 +124,7 @@ Private Sub Workbook_SheetBeforeRightClick(ByVal Sh As Object, ByVal Target As R
 End Sub
 
 '--------------------------------------------------------------------------
-'  A列で施工会社が入力/選択されたら、その名前にA列幅をフィットさせる
-'    (ドロップダウン選択・手入力経路。フォーム経由はフォーム側でフィット済み)
+'  A列で施工会社が入力/選択されたら、会社別単価・金額列を再構築する
 '--------------------------------------------------------------------------
 Private Sub Workbook_SheetChange(ByVal Sh As Object, ByVal Target As Range)
     If Not IsSubconSheet(Sh) Then Exit Sub
@@ -133,7 +132,12 @@ Private Sub Workbook_SheetChange(ByVal Sh As Object, ByVal Target As Range)
 
     Dim prevEE As Boolean
     prevEE = Application.EnableEvents
+    On Error GoTo Cleanup
     Application.EnableEvents = False
+
+    mod_Construction_Order_Import.RefreshSubcontractorPriceColumns Sh
     Sh.Columns(1).AutoFit
+
+Cleanup:
     Application.EnableEvents = prevEE
 End Sub
