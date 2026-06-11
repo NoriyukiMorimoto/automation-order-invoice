@@ -1,15 +1,5 @@
 Option Explicit
 
-'==========================================================================
-'  共通ユーティリティモジュール
-'  改修履歴: CHANGELOG.md 参照
-'==========================================================================
-
-'--------------------------------------------------------------------------
-'  文字列ユーティリティ
-'--------------------------------------------------------------------------
-
-' 改行・タブ・全角空白を半角空白に正規化し、連続空白を 1 つにまとめる。
 Public Function CommonNormalizeText(ByVal value As String) As String
     Dim s As String
     s = Trim$(Replace$(Replace$(Replace$(value, vbCr, ""), vbLf, ""), vbTab, " "))
@@ -20,7 +10,6 @@ Public Function CommonNormalizeText(ByVal value As String) As String
     CommonNormalizeText = Trim$(s)
 End Function
 
-' 文字列内の全種空白（半角・全角・タブ・改行）を削除する。
 Public Function CommonRemoveAllSpaces(ByVal value As String) As String
     Dim s As String
     s = Replace$(value, " ", "")
@@ -31,7 +20,6 @@ Public Function CommonRemoveAllSpaces(ByVal value As String) As String
     CommonRemoveAllSpaces = s
 End Function
 
-' Null / Empty を空文字に変換し、それ以外は CStr で文字列化する。
 Public Function CommonNzText(ByVal value As Variant) As String
     If IsNull(value) Or IsEmpty(value) Then
         CommonNzText = ""
@@ -40,8 +28,6 @@ Public Function CommonNzText(ByVal value As Variant) As String
     End If
 End Function
 
-' 文字列の先頭から数字のみを拾い、4 桁になった時点で返す。
-' 4 桁に満たない場合は空文字を返す。
 Public Function CommonExtractYear4Digits(ByVal sourceText As String) As String
     Dim result As String
     Dim i As Long, ch As String
@@ -62,16 +48,10 @@ Public Function CommonExtractYear4Digits(ByVal sourceText As String) As String
     End If
 End Function
 
-'--------------------------------------------------------------------------
-'  日本語名キャッシュ
-'    ChrW で組み立てた日本語シート名・フォルダ名等を Static でキャッシュ。
-'    どのモジュールからもこの関数経由で参照することで重複を排除する。
-'--------------------------------------------------------------------------
-
 Public Function CommonBasicInfoSheetNameText() As String
     Static cached As String
     If cached = "" Then
-        cached = ChrW$(&H57FA) & ChrW$(&H672C) & ChrW$(&H60C5) & ChrW$(&H5831) ' 基本情報
+        cached = ChrW$(&H57FA) & ChrW$(&H672C) & ChrW$(&H60C5) & ChrW$(&H5831)
     End If
     CommonBasicInfoSheetNameText = cached
 End Function
@@ -79,7 +59,7 @@ End Function
 Public Function CommonCoverSheetNameText() As String
     Static cached As String
     If cached = "" Then
-        cached = ChrW$(&H8868) & ChrW$(&H7D19) ' 表紙
+        cached = ChrW$(&H8868) & ChrW$(&H7D19)
     End If
     CommonCoverSheetNameText = cached
 End Function
@@ -88,7 +68,7 @@ Public Function CommonCompanyNameText() As String
     Static cached As String
     If cached = "" Then
         cached = ChrW$(&H5927) & ChrW$(&H9244) & ChrW$(&H5DE5) & ChrW$(&H696D) & _
-                 ChrW$(&H682A) & ChrW$(&H5F0F) & ChrW$(&H4F1A) & ChrW$(&H793E) ' 大鉄工業株式会社
+                 ChrW$(&H682A) & ChrW$(&H5F0F) & ChrW$(&H4F1A) & ChrW$(&H793E)
     End If
     CommonCompanyNameText = cached
 End Function
@@ -96,12 +76,11 @@ End Function
 Public Function CommonBranchSuffixText() As String
     Static cached As String
     If cached = "" Then
-        cached = ChrW$(&H652F) & ChrW$(&H5E97) ' 支店
+        cached = ChrW$(&H652F) & ChrW$(&H5E97)
     End If
     CommonBranchSuffixText = cached
 End Function
 
-' 単価マスタの「単価適用工事件名マスタ」シート名
 Public Function CommonUnitPriceProjectNameMasterSheetNameText() As String
     Static cached As String
     If cached = "" Then
@@ -111,11 +90,6 @@ Public Function CommonUnitPriceProjectNameMasterSheetNameText() As String
     End If
     CommonUnitPriceProjectNameMasterSheetNameText = cached
 End Function
-
-'--------------------------------------------------------------------------
-'  シート取得
-'    基本情報シートを「基本情報」「表紙」「Cover」の順で探す。
-'--------------------------------------------------------------------------
 
 Public Function CommonGetBasicInfoWorksheet(Optional ByVal wb As Workbook = Nothing) As Worksheet
     If wb Is Nothing Then Set wb = ThisWorkbook
@@ -136,17 +110,11 @@ Public Function CommonGetBasicInfoWorksheet(Optional ByVal wb As Workbook = Noth
     Next i
 End Function
 
-' シート名のみを返す版（呼び出し側でシート参照が不要なケース向け）。
 Public Function CommonGetBasicInfoSheetName(Optional ByVal wb As Workbook = Nothing) As String
     Dim ws As Worksheet
     Set ws = CommonGetBasicInfoWorksheet(wb)
     If Not ws Is Nothing Then CommonGetBasicInfoSheetName = ws.Name
 End Function
-
-'--------------------------------------------------------------------------
-'  ADO 接続生成
-'    既存 mod_FillManagerName / mod_VendorMaster の重複を統合。
-'--------------------------------------------------------------------------
 
 Public Function CommonGetExcelAdoConnectionString(ByVal sourceFilePath As String) As String
     Dim ext As String
@@ -195,7 +163,6 @@ Public Sub CommonCloseAdoRecordset(ByVal rs As Object)
     On Error GoTo 0
 End Sub
 
-' ADO スキーマからワークシート名一覧を取得する。
 Public Function CommonGetAdoWorksheetNames(ByVal cn As Object) As Collection
     Const AD_SCHEMA_TABLES As Long = 20
 
@@ -235,8 +202,6 @@ Public Function CommonCleanAdoWorksheetName(ByVal tableName As String) As String
     CommonCleanAdoWorksheetName = t
 End Function
 
-' ADO レコードセットからインデックス指定でフィールド値を安全に取り出す。
-' Fields コレクションは 1 始まり（1=A列）で扱う。0 は先頭フィールド参照用。
 Public Function CommonGetAdoFieldValue(ByVal rs As Object, ByVal fieldIndex As Long) As Variant
     On Error Resume Next
     If fieldIndex >= 1 And fieldIndex <= rs.Fields.Count Then
@@ -246,12 +211,6 @@ Public Function CommonGetAdoFieldValue(ByVal rs As Object, ByVal fieldIndex As L
     End If
     On Error GoTo 0
 End Function
-
-'--------------------------------------------------------------------------
-'  Long 配列の昇順ソート（挿入ソート）
-'    Project_Number_Selection.frm の連続区間判定で使用。
-'    対象件数は通常数百件以下のため挿入ソートで十分。
-'--------------------------------------------------------------------------
 
 Public Sub CommonSortLongArrayAsc(ByRef arr() As Long, ByVal itemCount As Long)
     Dim i As Long, j As Long, key As Long

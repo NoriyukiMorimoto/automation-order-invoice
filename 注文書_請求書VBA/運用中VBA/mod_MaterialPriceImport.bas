@@ -1,9 +1,5 @@
 Option Explicit
 
-'==========================================================================
-'  工事単価インポートモジュール
-'  改修履歴: CHANGELOG.md 参照
-'==========================================================================
 Public SharedMasterData As Variant
 Private mClearingImportedLineNames As Boolean
 
@@ -91,12 +87,6 @@ Private Const ZAIRAISEN_PROJECT_NAME_SKIP_ROW       As Long = 9
 Private Const ZAIRAISEN_PROJECT_NAME_SECOND_END_ROW As Long = 11
 Private Const SHINKANSEN_PROJECT_NAME_END_ROW       As Long = 6
 
-'==========================================================================
-'  [UnitPrice] 専用ログヘルパー
-'    mod_DebugLog.Log を [UnitPrice] タグ付きで呼び出す薄いラッパー。
-'    On Error Resume Next で囲み、ロガーが使えない環境でも本処理を
-'    止めないようにする。Boolean 戻り値版は条件文の中で使える形。
-'==========================================================================
 Private Sub LogUP(ByVal msg As String)
     On Error Resume Next
     mod_DebugLog.Log "[UnitPrice] " & msg
@@ -428,7 +418,6 @@ Private Sub ImportUnitPriceData(ByVal wsInfo As Worksheet)
     wsInfo.Parent.Calculate
     On Error GoTo 0
 
-    ' #19: 購入充当・溶接単価取込後も基本情報シートに戻す
     wsInfo.Activate
     LogUP "ImportUnitPriceData 完了"
 
@@ -1461,14 +1450,6 @@ Private Function TrimPurchaseReferenceSuffix(ByVal sourceText As String, ByVal s
     TrimPurchaseReferenceSuffix = sourceText
 End Function
 
-'--------------------------------------------------------------------------
-'  PurchaseSheetNameMatchesReferenceKey  (#20 修正)
-'    在来線（数字キー）: 完全一致 / 「キー-」始まり / 「キー_」始まり
-'    新幹線（漢字キー）: 上記3パターンに加えて、シート名にキーが
-'                       含まれる（部分一致）パターンを追加。
-'    例: シート名「金沢新幹線保線区」, キー「金沢新幹線保線区」→ 一致
-'        シート名「金沢新幹線保線区-本線」, キー「金沢新幹線保線区」→ 一致
-'--------------------------------------------------------------------------
 Private Function PurchaseSheetNameMatchesReferenceKey(ByVal sheetName As String, ByVal referenceKey As String) As Boolean
     Dim a As String, b As String
     a = NormalizeMatchText(sheetName)
@@ -1480,19 +1461,10 @@ Private Function PurchaseSheetNameMatchesReferenceKey(ByVal sheetName As String,
                                             InStr(1, a, b, vbTextCompare) > 0)
 End Function
 
-'--------------------------------------------------------------------------
-'  BuildPurchaseReferenceKey  (#20 修正)
-'    在来線フォルダ名は「01_金沢保線区」のように数字始まりなので
-'    先頭数字（"01"）を参照キーとして使う（既存動作を維持）。
-'    新幹線フォルダ名は「金沢新幹線保線区」のように漢字始まりのため
-'    ExtractLeadingDigits が "" を返し「参照キー取得失敗」エラーになっていた。
-'    先頭数字が取れない場合はフォルダ名全体を正規化して参照キーとする。
-'--------------------------------------------------------------------------
 Private Function BuildPurchaseReferenceKey(ByVal sectionFolderPath As String) As String
     Dim baseName As String
     baseName = GetPathBaseName(sectionFolderPath)
 
-    ' 先頭数字が取れた場合はそれをキーとして使う（在来線の既存動作）
     Dim digits As String
     digits = ExtractLeadingDigits(baseName)
     If digits <> "" Then
@@ -1500,7 +1472,6 @@ Private Function BuildPurchaseReferenceKey(ByVal sectionFolderPath As String) As
         Exit Function
     End If
 
-    ' 先頭数字がない場合（新幹線等）はフォルダ名全体を正規化してキーとする
     BuildPurchaseReferenceKey = NormalizeMatchText(baseName)
 End Function
 
@@ -1657,11 +1628,7 @@ Public Sub SilentClearUnitPriceForBasicInfo(ByVal wsInfo As Worksheet)
     FormatImportedLineNamesCell wsInfo
 End Sub
 
-'--------------------------------------------------------------------------
 '  HandleImportedLineNamesCellChange
-'    基本情報シート Worksheet_Change から呼び出す。
-'    C24 が手動消去されたときに取り込み済み単価シートを削除する。
-'--------------------------------------------------------------------------
 Public Function IsClearingImportedLineNames() As Boolean
     IsClearingImportedLineNames = mClearingImportedLineNames
 End Function
@@ -2140,16 +2107,7 @@ Private Sub WriteUnitPriceProjectNameValidation(ByVal wsInfo As Worksheet, _
     wsInfo.Columns(PROJECT_NAME_LIST_COL & ":" & PROJECT_NAME_LIST_COL).Hidden = True
 End Sub
 
-'--------------------------------------------------------------------------
-'  ResetUnitPriceValidation  (#17, #18 修正)
-'    セル結合されている場合、MergeArea の左上セルに対して入力規則を設定。
-'    targetCell が D22 等の結合副セルを指してしまう場合でも
-'    確実に結合範囲の代表セル（C22 等）に適用する。
-'    AlertStyle = xlValidAlertInformation：非表示列参照時に
-'    xlValidAlertStop だと入力がブロックされるため。
-'--------------------------------------------------------------------------
 Private Sub ResetUnitPriceValidation(ByVal targetCell As Range, ByVal listRange As Range)
-    ' 結合セルの左上（代表セル）に対して入力規則を設定する
     Dim topLeft As Range
     Set topLeft = targetCell.MergeArea.Cells(1, 1)
     With topLeft.Validation

@@ -1,79 +1,46 @@
 Option Explicit
 
-'==========================================================================
-'  施工指示書・施工通知書 取込みモジュール  Construction_Order_Import
-'  改修履歴: CHANGELOG.md 参照
-'
-'  概要:
-'   ・ルートフォルダから施工指示書／施工通知書ブックを選択して取り込む
-'   ・取込ブック A3 の値をシート名にして ThisWorkbook へ工事側シートを新規作成
-'   ・工種分類が「購入充当」の行は別シート(購入充当指示／購入充当通知)へ分離
-'   ・施工指示書は基本情報 B6(支店)/C6(出張所) に対応する管理室で行を絞り込む
-'   ・取込後にソート(工事側／購入充当側でルールが異なる)と列幅自動調整を行う
-'
-'  出力ヘッダー(13列, Word 仕様画像どおり):
-'   A 施工業者 / B 整理番号 / C 工事種類 / D 昼夜別 / E 単位 / F 数量 /
-'   G 契約線区名 / H 管理室 / I JR単価 / J JR金額 / K 外注単価 /
-'   L 外注金額 / M 工種分類
-'   ※ 取込元に対応データが無い列(施工業者・外注単価・外注金額、通知書の管理室)は
-'      空白のまま出力する(後工程で使用)。取込元の単価→JR単価、金額→JR金額。
-'
-'  エントリポイント: ImportConstructionDocument
-'==========================================================================
+Private Const DOC_ORDER As Long = 1
+Private Const DOC_NOTICE As Long = 2
 
-' 取込種別
-Private Const DOC_ORDER As Long = 1    ' 施工指示書
-Private Const DOC_NOTICE As Long = 2   ' 施工通知書
-
-' データ開始行
 Private Const DATA_START_ROW As Long = 22
 
-' 出力列インデックス(A=1)
-'   ※列番号は相対定義(直前の列+1)。列を挿入/削除する場合は、該当位置の Const を
-'     1行追加/削除するだけで以降の列番号が自動的にずれる。併せて WriteRecordsToSheet の
-'     headers 配列と rowArr への代入も同じ位置に追加/削除すること(順番厳守)。
-'     絶対参照や数式オフセットはすべて定数から算出しているため、ここ以外の修正は不要。
-Private Const COL_VENDOR         As Long = 1                        ' A 施工業者
-Private Const COL_SEIRI          As Long = COL_VENDOR + 1           ' B 整理番号
-Private Const COL_TYPE           As Long = COL_SEIRI + 1            ' C 工事種類
-Private Const COL_DAYNIGHT       As Long = COL_TYPE + 1             ' D 昼夜別
-Private Const COL_UNIT           As Long = COL_DAYNIGHT + 1         ' E 単位
-Private Const COL_QTY            As Long = COL_UNIT + 1             ' F 数量
-Private Const COL_LINE           As Long = COL_QTY + 1              ' G 契約線区名
-Private Const COL_MGR            As Long = COL_LINE + 1             ' H 管理室
-Private Const COL_JR_PRICE       As Long = COL_MGR + 1              ' I JR単価
-Private Const COL_JR_AMOUNT      As Long = COL_JR_PRICE + 1         ' J JR金額
-Private Const COL_OUT_PRICE      As Long = COL_JR_AMOUNT + 1        ' 外注単価(空白/作成後に削除)
-Private Const COL_OUT_AMOUNT     As Long = COL_OUT_PRICE + 1        ' 外注金額(空白/作成後に削除)
-Private Const COL_KIND           As Long = COL_OUT_AMOUNT + 1       ' 工種分類(データ最終列)
-Private Const COL_GAP_AFTER_DATA As Long = COL_KIND + 1             ' 空白の区切り列
-Private Const COL_AUTO_PRICE     As Long = COL_GAP_AFTER_DATA + 1   ' 参照単価
-Private Const COL_AUTO_AMOUNT    As Long = COL_AUTO_PRICE + 1       ' 参照単価金額
-Private Const COL_PRICE_COMPARE  As Long = COL_AUTO_AMOUNT + 1      ' 単価比較
-Private Const COL_PRICE_GUIDANCE As Long = COL_PRICE_COMPARE + 1    ' 単価不一致時の案内
-Private Const PRICE_GUIDANCE_COLUMN_WIDTH As Double = 59#           ' 案内表示時の列幅
-Private Const COL_FLAG_SIDE      As Long = COL_PRICE_GUIDANCE + 9   ' 補助:側線フラグ(出力列より右の作業列)
-Private Const COL_FLAG_WELD      As Long = COL_FLAG_SIDE + 1        ' 補助:レール溶接フラグ
-Private Const OUTPUT_COL_COUNT   As Long = COL_KIND                 ' データ列数(=工種分類の列番号)
+Private Const COL_VENDOR         As Long = 1
+Private Const COL_SEIRI          As Long = COL_VENDOR + 1
+Private Const COL_TYPE           As Long = COL_SEIRI + 1
+Private Const COL_DAYNIGHT       As Long = COL_TYPE + 1
+Private Const COL_UNIT           As Long = COL_DAYNIGHT + 1
+Private Const COL_QTY            As Long = COL_UNIT + 1
+Private Const COL_LINE           As Long = COL_QTY + 1
+Private Const COL_MGR            As Long = COL_LINE + 1
+Private Const COL_JR_PRICE       As Long = COL_MGR + 1
+Private Const COL_JR_AMOUNT      As Long = COL_JR_PRICE + 1
+Private Const COL_OUT_PRICE      As Long = COL_JR_AMOUNT + 1
+Private Const COL_OUT_AMOUNT     As Long = COL_OUT_PRICE + 1
+Private Const COL_KIND           As Long = COL_OUT_AMOUNT + 1
+Private Const COL_GAP_AFTER_DATA As Long = COL_KIND + 1
+Private Const COL_AUTO_PRICE     As Long = COL_GAP_AFTER_DATA + 1
+Private Const COL_AUTO_AMOUNT    As Long = COL_AUTO_PRICE + 1
+Private Const COL_PRICE_COMPARE  As Long = COL_AUTO_AMOUNT + 1
+Private Const COL_PRICE_GUIDANCE As Long = COL_PRICE_COMPARE + 1
+Private Const PRICE_GUIDANCE_COLUMN_WIDTH As Double = 59#
+Private Const COL_FLAG_SIDE      As Long = COL_PRICE_GUIDANCE + 9
+Private Const COL_FLAG_WELD      As Long = COL_FLAG_SIDE + 1
+Private Const OUTPUT_COL_COUNT   As Long = COL_KIND
 
-' 管理室マスタ(出張所別_単価適用線区.xlsx)
 Private Const MGR_MASTER_SHEET As String = "JR管理室対応出張所"
-Private Const MGR_MASTER_BRANCH_COL As Long = 2  ' B列 支店
-Private Const MGR_MASTER_OFFICE_COL As Long = 3  ' C列 出張所
-Private Const MGR_MASTER_ROOM_COL As Long = 6    ' F列 管理室名
+Private Const MGR_MASTER_BRANCH_COL As Long = 2
+Private Const MGR_MASTER_OFFICE_COL As Long = 3
+Private Const MGR_MASTER_ROOM_COL As Long = 6
 Private Const MGR_MASTER_START_ROW As Long = 2
 
-' 工種分類キーワード
 Private Const PURCHASE_KEYWORD As String = "購入充当"
 Private Const SIDELINE_KEYWORD As String = "側線"
 Private Const WELDING_KEYWORD As String = "レール溶接"
 
-'--- 産廃処理行の制御 ------------------------------------------------------
 Private Const SANPAI_KEYWORD As String = "産廃処理"
-' 取込済み単価シートに塗りつぶしセルが無い場合の既定色(グレー)
 Private Const SANPAI_FALLBACK_FILL_COLOR As Long = 14277081   ' RGB(217,217,217)
 
-' 基本情報セル
 Private Const BASIC_INFO_BRANCH_CELL As String = "B6"
 Private Const BASIC_INFO_OFFICE_CELL As String = "C6"
 Private Const BASIC_INFO_PUBLIC_CELL As String = "B4"
@@ -83,31 +50,27 @@ Private Const BASIC_INFO_PROJECT_NAME_CELL As String = "C21"
 Private Const PRICE_GUIDANCE_AMOUNT_TYPE_MESSAGE As String = _
     "基本情報シートのC22セル：単価適用区分(年初単価or設計変更単価)を確認して下さい。"
 
-' 参照シート(取込元)H9 -> 基本情報 C12 転記
 Private Const REF_VALUE_SOURCE_CELL As String = "H9"
 Private Const BASIC_INFO_REF_VALUE_CELL As String = "C12"
 Private Const BASIC_INFO_REF_FONT_NAME As String = "BIZ UDゴシック"
 
-' 工事件名別マスタ(F列=積算線区、G列=施工指示書記載線区名)
 Private Const PROJECT_MASTER_START_ROW As Long = 2
 Private Const PROJECT_MASTER_UNIT_PRICE_LINE_COL As Long = 6
 Private Const PROJECT_MASTER_SOURCE_LINE_COL As Long = 7
 Private Const PROJECT_MASTER_FOLDER As String = "工事件名別マスタ"
 Private Const UNIT_PRICE_DATA_START_ROW As Long = 7
 
-' 購入充当単価 取込(単価適用線区シート + 名称_購入充当単価シート)
 Private Const PRICE_LINE_SHEET As String = "単価適用線区"
-Private Const PRICE_LINE_BRANCH_COL As Long = 2     ' B列 支店
-Private Const PRICE_LINE_OFFICE_COL As Long = 3     ' C列 出張所
-Private Const PRICE_LINE_NAME_COL As Long = 5       ' E列 名称
+Private Const PRICE_LINE_BRANCH_COL As Long = 2
+Private Const PRICE_LINE_OFFICE_COL As Long = 3
+Private Const PRICE_LINE_NAME_COL As Long = 5
 Private Const PRICE_LINE_START_ROW As Long = 2
 Private Const PURCHASE_PRICE_SHEET_SUFFIX As String = "_購入充当単価"
-Private Const PURCHASE_PRICE_KEY_COL As Long = 1    ' 単価シート A列(照合キー)
-Private Const PURCHASE_PRICE_VALUE_COL As Long = 6  ' 単価シート F列(単価)
+Private Const PURCHASE_PRICE_KEY_COL As Long = 1
+Private Const PURCHASE_PRICE_VALUE_COL As Long = 6
 Private Const PURCHASE_PRICE_DATA_START_ROW As Long = 2
-Private Const PURCHASE_NOTICE_SEIRI_COL As Long = 1     ' 購入充当通知 A列(整理番号)
+Private Const PURCHASE_NOTICE_SEIRI_COL As Long = 1
 Private Const PURCHASE_PRICE_LOOKUP_COL As Long = PURCHASE_NOTICE_SEIRI_COL
-' 購入充当通知は施工業者列を削除するため、整理番号より右は共通レイアウトの1列左。
 Private Const PURCHASE_NOTICE_TYPE_COL As Long = COL_TYPE - 1
 Private Const PURCHASE_NOTICE_DAYNIGHT_COL As Long = COL_DAYNIGHT - 1
 Private Const PURCHASE_NOTICE_UNIT_COL As Long = COL_UNIT - 1
@@ -125,23 +88,17 @@ Private Const PURCHASE_NOTICE_AUTO_AMOUNT_COL As Long = COL_AUTO_AMOUNT - 1
 Private Const PURCHASE_NOTICE_PRICE_COMPARE_COL As Long = COL_PRICE_COMPARE - 1
 Private Const PURCHASE_NOTICE_PRICE_GUIDANCE_COL As Long = COL_PRICE_GUIDANCE - 1
 
-' 施工会社別単価・金額列(取込シートのJ列と工種分類列の間)
 Private Const SUBCON_PRICE_FIRST_COL As Long = 11
 Private Const UNIT_PRICE_VENDOR_NAME_ROW As Long = 5
 Private Const UNIT_PRICE_VENDOR_FIRST_DAY_COL As Long = 7
 
-' 取込ブックのシート名取得元セル
 Private Const SOURCE_SHEET_NAME_CELL As String = "A3"
 
-'==========================================================================
-'  エントリポイント
-'==========================================================================
 Public Sub ImportConstructionDocument()
     Dim srcWb As Workbook
     Dim srcOpenedHere As Boolean
     Dim scrn As Boolean, calc As XlCalculation, evt As Boolean, alerts As Boolean
 
-    ' 元のアプリ状態を保存
     scrn = Application.screenUpdating
     calc = Application.Calculation
     evt = Application.EnableEvents
@@ -154,22 +111,18 @@ Public Sub ImportConstructionDocument()
     Application.EnableEvents = False
     Application.DisplayAlerts = False
 
-    '--- 取込ファイルの選択 -------------------------------------------------
     Dim srcPath As String
     srcPath = PickSourceFile()
-    If srcPath = "" Then GoTo Cleanup           ' キャンセル
+    If srcPath = "" Then GoTo Cleanup
     LogCI "srcPath=[" & srcPath & "]"
 
-    '--- 取込種別の判定 -----------------------------------------------------
     Dim docType As Long
     docType = DetermineDocType(srcPath)
-    If docType = 0 Then GoTo Cleanup            ' キャンセル
+    If docType = 0 Then GoTo Cleanup
     LogCI "docType=" & docType
 
-    '--- 取込前チェック: 基本情報の必須入力を確認 --------------------------
     If Not ValidateBasicInfoForImport(docType) Then GoTo Cleanup
 
-    '--- 取込ブックを開く ---------------------------------------------------
     Set srcWb = OpenWorkbookReadOnly(srcPath, srcOpenedHere)
     If srcWb Is Nothing Then
         MsgBox "取込対象ブックを開けませんでした。" & vbCrLf & srcPath, vbExclamation
@@ -177,10 +130,8 @@ Public Sub ImportConstructionDocument()
     End If
 
     Dim srcWs As Worksheet
-    Set srcWs = srcWb.ActiveSheet               ' ※ 取込ブックのアクティブシートを対象とする
+    Set srcWs = srcWb.ActiveSheet
 
-    '--- 新規シート名(A3) ---------------------------------------------------
-    '--- 参照シート H9 の値を取得(基本情報 C12 への転記用) -------------------
     Dim refValueH9 As Variant
     refValueH9 = srcWs.Range(REF_VALUE_SOURCE_CELL).value
     LogCI "参照シート " & REF_VALUE_SOURCE_CELL & "=[" & CommonNzText(refValueH9) & "]"
@@ -200,7 +151,6 @@ Public Sub ImportConstructionDocument()
     guidanceDocumentName = ResolveGuidanceDocumentName(sourceA3Text, docType)
     LogCI "再取込み案内文書名=[" & guidanceDocumentName & "] A3=[" & sourceA3Text & "]"
 
-    '--- データ最終行(取込元の整理番号=A列) ---------------------------------
     Dim lastRow As Long
     lastRow = srcWs.Cells(srcWs.rows.Count, "A").End(xlUp).Row
     If lastRow < DATA_START_ROW Then
@@ -208,7 +158,6 @@ Public Sub ImportConstructionDocument()
         GoTo Cleanup
     End If
 
-    '--- 取込列マップ -------------------------------------------------------
     Dim colType As String, colDayNight As String, colUnit As String
     Dim colQty As String, colLine As String, colMgr As String
     Dim colPrice As String, colAmount As String, colKind As String
@@ -221,7 +170,6 @@ Public Sub ImportConstructionDocument()
         colLine = "DK": colMgr = "": colPrice = "CS": colAmount = "DA": colKind = "EC"
     End If
 
-    '--- 管理室フィルタ集合(施工指示書のみ) ---------------------------------
     Dim mgrSet As Object   ' Scripting.Dictionary
     If docType = DOC_ORDER Then
         Set mgrSet = BuildManagerRoomSet()
@@ -234,7 +182,6 @@ Public Sub ImportConstructionDocument()
         End If
     End If
 
-    '--- 取込元の列ベクトルを取得 -------------------------------------------
     Dim n As Long
     n = lastRow - DATA_START_ROW + 1
 
@@ -253,12 +200,10 @@ Public Sub ImportConstructionDocument()
     vKind = ReadColumnValues(srcWs, colKind, DATA_START_ROW, lastRow)
     If docType = DOC_ORDER Then vMgr = ReadColumnValues(srcWs, colMgr, DATA_START_ROW, lastRow)
 
-    '--- 行ごとに分類(工事側 / 購入充当側) -----------------------------------
     Dim worksRows As Collection, purchRows As Collection
     Set worksRows = New Collection
     Set purchRows = New Collection
 
-    ' 診断用: 取込データに含まれる管理室の一覧(施工指示書のみ)
     Dim seenMgr As Object
     Set seenMgr = CreateObject("Scripting.Dictionary")
 
@@ -266,7 +211,7 @@ Public Sub ImportConstructionDocument()
     Dim seiriText As String, kindText As String, mgrOut As String, mraw As String
     For i = 1 To n
         seiriText = Trim$(CommonNzText(vSeiri(i)))
-        If seiriText <> "" Then                          ' 空行スキップ(整理番号が空)
+        If seiriText <> "" Then
             Dim keepRow As Boolean
             keepRow = True
 
@@ -276,27 +221,26 @@ Public Sub ImportConstructionDocument()
                 If mraw <> "" Then
                     If Not seenMgr.Exists(mraw) Then seenMgr.Add mraw, True
                 End If
-                ' 管理室フィルタ(購入充当側も同様に適用)
                 If Not mgrSet.Exists(CommonRemoveAllSpaces(mgrOut)) Then keepRow = False
             Else
-                mgrOut = ""                              ' 通知書は管理室なし(空白)
+                mgrOut = ""
             End If
 
             If keepRow Then
                 Dim rowArr(0 To OUTPUT_COL_COUNT - 1) As Variant
-                rowArr(COL_VENDOR - 1) = ""              ' 施工業者(空白)
-                rowArr(COL_SEIRI - 1) = vSeiri(i)        ' 整理番号
-                rowArr(COL_TYPE - 1) = vType(i)          ' 工事種類
-                rowArr(COL_DAYNIGHT - 1) = vDN(i)        ' 昼夜別
-                rowArr(COL_UNIT - 1) = vUnit(i)          ' 単位
-                rowArr(COL_QTY - 1) = vQty(i)            ' 数量
-                rowArr(COL_LINE - 1) = vLine(i)          ' 契約線区名
-                rowArr(COL_MGR - 1) = mgrOut             ' 管理室
-                rowArr(COL_JR_PRICE - 1) = vPrice(i)     ' JR単価(取込元の単価)
-                rowArr(COL_JR_AMOUNT - 1) = vAmount(i)   ' JR金額(取込元の金額)
-                rowArr(COL_OUT_PRICE - 1) = ""           ' 外注単価(空白)
-                rowArr(COL_OUT_AMOUNT - 1) = ""          ' 外注金額(空白)
-                rowArr(COL_KIND - 1) = vKind(i)          ' 工種分類
+                rowArr(COL_VENDOR - 1) = ""
+                rowArr(COL_SEIRI - 1) = vSeiri(i)
+                rowArr(COL_TYPE - 1) = vType(i)
+                rowArr(COL_DAYNIGHT - 1) = vDN(i)
+                rowArr(COL_UNIT - 1) = vUnit(i)
+                rowArr(COL_QTY - 1) = vQty(i)
+                rowArr(COL_LINE - 1) = vLine(i)
+                rowArr(COL_MGR - 1) = mgrOut
+                rowArr(COL_JR_PRICE - 1) = vPrice(i)
+                rowArr(COL_JR_AMOUNT - 1) = vAmount(i)
+                rowArr(COL_OUT_PRICE - 1) = ""
+                rowArr(COL_OUT_AMOUNT - 1) = ""
+                rowArr(COL_KIND - 1) = vKind(i)
 
                 kindText = CommonRemoveAllSpaces(CommonNzText(vKind(i)))
                 If InStr(1, kindText, PURCHASE_KEYWORD) > 0 Then
@@ -309,7 +253,6 @@ Public Sub ImportConstructionDocument()
     Next i
     LogCI "工事側=" & worksRows.Count & " / 購入充当側=" & purchRows.Count
 
-    '--- 管理室フィルタで全件除外された場合の診断表示 -----------------------
     Dim filteredOutAll As Boolean
     filteredOutAll = (docType = DOC_ORDER) And (worksRows.Count = 0) And (purchRows.Count = 0)
     If filteredOutAll Then
@@ -322,12 +265,9 @@ Public Sub ImportConstructionDocument()
                "ご確認ください。", vbExclamation, "取込み診断"
     End If
 
-    '--- 取込ブックを閉じる(以降は出力処理のみ) -----------------------------
     If srcOpenedHere And Not srcWb Is Nothing Then srcWb.Close SaveChanges:=False
     Set srcWb = Nothing: srcOpenedHere = False
 
-    '--- 工事側シート作成・書込み・ソート -----------------------------------
-    '--- 参照シート H9 を 基本情報 C12 へ転記(中央揃え・BIZ UDゴシック) -------
     WriteReferenceValueToBasicInfo refValueH9
 
     Dim wsWorks As Worksheet
@@ -340,25 +280,18 @@ Public Sub ImportConstructionDocument()
     FillReferenceUnitPrices wsWorks, guidanceDocumentName
     FormatSheet wsWorks
     ApplyPriceGuidanceColumnLayout wsWorks
-    mod_subcontractorselector.ApplySubcontractorDropdowns wsWorks   ' A列(施工業者)に施工会社ドロップダウンを付与
-    ApplySanpaiRowRestrictions wsWorks   ' 産廃処理行のA列を塗りつぶし＋入力不可化
+    mod_subcontractorselector.ApplySubcontractorDropdowns wsWorks
+    ApplySanpaiRowRestrictions wsWorks
 
-    ' A列(施工業者)を中央揃え
     wsWorks.Columns(COL_VENDOR).HorizontalAlignment = xlCenter
 
-    ' 施工通知書取込のみ H列(管理室)を非表示(通知書は管理室データなし)
     If docType = DOC_NOTICE Then wsWorks.Columns(COL_MGR).Hidden = True
 
-    ' K列(外注単価)・L列(外注金額)は不要 -> 列ごと削除し右列以降を左へ詰める
-    '   ※全整形・単価転記が済んだ最後に実行。参照単価金額のR1C1相対数式は
-    '     Excelが列削除に合わせて自動調整するため、数式オフセットの手修正は不要。
     wsWorks.Range(wsWorks.Cells(1, COL_OUT_PRICE), _
                   wsWorks.Cells(1, COL_OUT_AMOUNT)).EntireColumn.Delete Shift:=xlToLeft
 
-    ' JR金額の合計行(I列:ラベル / J列:SUM)をB列最終行の直下に作成
     WriteJrTotalRow wsWorks
 
-    '--- 購入充当側シート作成・書込み・ソート(該当行がある場合のみ) ---------
     If purchRows.Count > 0 Then
         Dim purchName As String
         If docType = DOC_ORDER Then
@@ -378,11 +311,11 @@ Public Sub ImportConstructionDocument()
                 FillPurchaseUnitPrices wsPurch
                 FormatPurchaseNoticeSheet wsPurch
                 ApplyPurchaseNoticeColumnExclusions wsPurch
-                WritePurchaseNoticeJrTotalRow wsPurch   ' H列:ラベル / I列:SUM をA列最終行の直下に作成
+                WritePurchaseNoticeJrTotalRow wsPurch
             Else
                 SortPurchaseSheet wsPurch
                 FormatSheet wsPurch
-                WriteJrTotalRow wsPurch   ' I列:ラベル / J列:SUM をB列最終行の直下に作成
+                WriteJrTotalRow wsPurch
             End If
         End If
     End If
@@ -421,9 +354,6 @@ Cleanup:
     End If
 End Sub
 
-'==========================================================================
-'  取込ファイル選択
-'==========================================================================
 Private Function PickSourceFile() As String
     Dim fd As FileDialog
     Set fd = Application.FileDialog(msoFileDialogFilePicker)
@@ -443,9 +373,6 @@ Private Function PickSourceFile() As String
     End With
 End Function
 
-'==========================================================================
-'  取込ルートフォルダの解決
-'==========================================================================
 Private Function GetImportRootFolder() As String
     Dim fso As Object
     Set fso = CreateObject("Scripting.FileSystemObject")
@@ -465,7 +392,6 @@ Private Function GetImportRootFolder() As String
     If Len(Trim$(up)) > 0 Then
         candidates.Add up & "\" & CommonCompanyNameText() & "\" & docFolder & "\" & subPath
     End If
-    ' 仕様書記載の絶対パス(フォールバック)
     candidates.Add "C:\Users\n-morimoto\" & CommonCompanyNameText() & "\" & docFolder & "\" & subPath
 
     Dim p As Variant
@@ -476,13 +402,9 @@ Private Function GetImportRootFolder() As String
         End If
     Next p
 
-    ' 見つからなければ先頭候補を返す(ダイアログ初期位置用)
     If candidates.Count > 0 Then GetImportRootFolder = CStr(candidates(1))
 End Function
 
-'==========================================================================
-'  取込種別の判定(ファイル名 -> 不明ならユーザーに確認)
-'==========================================================================
 Private Function DetermineDocType(ByVal filePath As String) As Long
     Dim nm As String
     nm = Mid$(filePath, InStrRev(filePath, "\") + 1)
@@ -505,12 +427,6 @@ Private Function DetermineDocType(ByVal filePath As String) As Long
     End If
 End Function
 
-'==========================================================================
-'  取込前チェック: 基本情報シートの必須セルが入力済みか確認
-'    未入力があれば対象セルを案内し、最初の未入力セルを選択して False を返す
-'    共通必須      : C20(在来線・新幹線区分) / C21(工事種別)  ※単価・線区解決に必要
-'    施工指示書のみ: B6(支店) / C6(出張所)                    ※管理室フィルタに必要
-'==========================================================================
 Private Function ValidateBasicInfoForImport(ByVal docType As Long) As Boolean
     ValidateBasicInfoForImport = False
 
@@ -521,7 +437,6 @@ Private Function ValidateBasicInfoForImport(ByVal docType As Long) As Boolean
         Exit Function
     End If
 
-    ' チェック対象(セル, ラベル)。施工指示書(DOC_ORDER)のみ支店/出張所を追加
     Dim chkCells(1 To 4) As String, chkLabels(1 To 4) As String, n As Long
     n = 0
     n = n + 1: chkCells(n) = BASIC_INFO_LINE_TYPE_CELL:    chkLabels(n) = "在来線・新幹線区分"
@@ -542,7 +457,6 @@ Private Function ValidateBasicInfoForImport(ByVal docType As Long) As Boolean
     Next i
 
     If missingMsg <> "" Then
-        ' 最初の未入力セルへ誘導(画面更新を一時的に戻して選択を見せる)
         On Error Resume Next
         Application.screenUpdating = True
         wsInfo.Activate
@@ -557,9 +471,6 @@ Private Function ValidateBasicInfoForImport(ByVal docType As Long) As Boolean
     ValidateBasicInfoForImport = True
 End Function
 
-'==========================================================================
-'  管理室集合の構築(基本情報 B6/C6 に対応する F列管理室名)
-'==========================================================================
 Private Function BuildManagerRoomSet() As Object
     Dim wsInfo As Worksheet
     Set wsInfo = CommonGetBasicInfoWorksheet(ThisWorkbook)
@@ -633,9 +544,6 @@ Cleanup:
     CommonCloseAdoConnection connection
 End Function
 
-'==========================================================================
-'  管理室マスタのパス解決(既存 mod_MaterialPriceImport を優先利用)
-'==========================================================================
 Private Function ResolveMasterFilePath() As String
     Dim p As String
     On Error Resume Next
@@ -646,7 +554,6 @@ Private Function ResolveMasterFilePath() As String
         Exit Function
     End If
 
-    ' フォールバック: 環境変数から組み立て
     Dim fso As Object
     Set fso = CreateObject("Scripting.FileSystemObject")
     Dim up As String
@@ -660,9 +567,6 @@ Private Function ResolveMasterFilePath() As String
     End If
 End Function
 
-'==========================================================================
-'  ワークブックを読み取り専用で開く(既に開いていれば再利用)
-'==========================================================================
 Private Function OpenWorkbookReadOnly(ByVal filePath As String, _
                                       ByRef openedHere As Boolean) As Workbook
     openedHere = False
@@ -685,17 +589,12 @@ Private Function OpenWorkbookReadOnly(ByVal filePath As String, _
     Set OpenWorkbookReadOnly = wb
 End Function
 
-'==========================================================================
-'  列ベクトルの取得(1始まり 1次元配列で返す)
-'==========================================================================
 Private Function ReadColumnValues(ByVal ws As Worksheet, ByVal col As String, _
                                   ByVal r1 As Long, ByVal r2 As Long) As Variant
     Dim out() As Variant, v As Variant, i As Long, cnt As Long, colIdx As Long
     cnt = r2 - r1 + 1
     ReDim out(1 To cnt)
 
-    ' 列をインデックス化し、シートの列数範囲内かを確認する。
-    ' (.xls は 256 列まで。範囲外の列は参照すると Err1004 になるため空白扱い)
     colIdx = ColLetterToNum(col)
     If colIdx = 0 Or colIdx > ws.Columns.Count Then
         LogCI "列[" & col & "](=" & colIdx & ")はシート範囲外(列数=" & ws.Columns.Count & ") -> 空白で取込"
@@ -717,10 +616,6 @@ Private Function ReadColumnValues(ByVal ws As Worksheet, ByVal col As String, _
     ReadColumnValues = out
 End Function
 
-'==========================================================================
-'  列文字(A,B,...,AA,...)を列番号(1始まり)に変換する。
-'  ワークシートに依存しない純粋計算のため、範囲外列でも安全に判定できる。
-'==========================================================================
 Private Function ColLetterToNum(ByVal col As String) As Long
     Dim i As Long, ch As String, result As Long
     col = UCase$(Trim$(col))
@@ -740,9 +635,6 @@ Private Function ColLetterToNum(ByVal col As String) As Long
     ColLetterToNum = result
 End Function
 
-'==========================================================================
-'  シート作成(同名が存在すれば確認の上で置換)
-'==========================================================================
 Private Function CreateOrReplaceSheet(ByVal sheetName As String) As Worksheet
     Dim existing As Worksheet
     On Error Resume Next
@@ -757,7 +649,7 @@ Private Function CreateOrReplaceSheet(ByVal sheetName As String) As Worksheet
             Set CreateOrReplaceSheet = Nothing
             Exit Function
         End If
-        existing.Delete   ' DisplayAlerts は呼び出し元で False 設定済み
+        existing.Delete
     End If
 
     Dim ws As Worksheet
@@ -766,11 +658,7 @@ Private Function CreateOrReplaceSheet(ByVal sheetName As String) As Worksheet
     Set CreateOrReplaceSheet = ws
 End Function
 
-'==========================================================================
-'  レコード書込み(ヘッダー + データ)
-'==========================================================================
 Private Sub WriteRecordsToSheet(ByVal ws As Worksheet, ByVal rows As Collection)
-    ' ヘッダー(13列, Word 仕様画像どおり)
     Dim headers As Variant
     headers = Array("施工業者", "整理番号", "工事種類", "昼夜別", "単位", "数量", _
                     "契約線区名", "管理室", "JR単価", "JR金額", "外注単価", "外注金額", "工種分類")
@@ -793,18 +681,11 @@ Private Sub WriteRecordsToSheet(ByVal ws As Worksheet, ByVal rows As Collection)
     ws.Range("A2").Resize(rows.Count, OUTPUT_COL_COUNT).value = arr
 End Sub
 
-'==========================================================================
-'  購入充当通知専用レイアウト
-'    A列(施工業者)を削除し、整理番号以降を1列左へ詰める。
-'==========================================================================
 Private Sub ApplyPurchaseNoticeLayout(ByVal ws As Worksheet)
     ws.Columns(COL_VENDOR).Delete Shift:=xlToLeft
     ws.Cells(1, PURCHASE_NOTICE_SEIRI_COL).value = "整理番号"
 End Sub
 
-'==========================================================================
-'  追加ヘッダー(参照単価・参照金額・単価比較)
-'==========================================================================
 Private Sub WriteAdditionalHeaders(ByVal ws As Worksheet, _
                                    Optional ByVal includePriceComparison As Boolean = True)
     WriteAdditionalHeadersAtColumns _
@@ -839,9 +720,6 @@ Private Sub WriteAdditionalHeadersAtColumns( _
     If includePriceComparison Then ws.Cells(1, comparisonColumn).value = "単価比較"
 End Sub
 
-'==========================================================================
-'  出力表の最終列(単価比較がある場合は案内欄)
-'==========================================================================
 Private Function GetOutputLastColumn( _
     ByVal ws As Worksheet, _
     Optional ByVal kindColumn As Long = COL_KIND, _
@@ -858,9 +736,6 @@ Private Function GetOutputLastColumn( _
     End If
 End Function
 
-'==========================================================================
-'  A列で使用中の施工会社ごとに、単価・金額の2列をJ列の右へ作成
-'==========================================================================
 Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet)
     If ws Is Nothing Then Exit Sub
     If CommonNzText(ws.Cells(1, COL_VENDOR).value) <> "施工業者" Then Exit Sub
@@ -947,8 +822,6 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet)
         End If
     Next r
 
-    ' 施工会社ごとの合計(単価列:「会社名+合計」/ 金額列:SUM)をB列最終行の直下に作成
-    '   ※列は毎回削除→再挿入されるため、合計セルも実行のたびに再作成される
     For vendorIndex = 1 To vendorNames.Count
         priceColumn = SUBCON_PRICE_FIRST_COL + ((vendorIndex - 1) * 2)
         WriteTotalCells ws, lastRow + 1, _
@@ -1096,7 +969,6 @@ Private Sub FormatSubcontractorPriceColumns(ByVal ws As Worksheet, _
         End With
     End If
 
-    ' 産廃処理行: 追加された施工会社別単価・金額列を塗りつぶし(単価シートと同色)
     If lastRow >= 2 Then
         Dim sanpaiFillColor As Long
         Dim sanpaiRow As Long
@@ -1112,19 +984,11 @@ Private Sub FormatSubcontractorPriceColumns(ByVal ws As Worksheet, _
     ws.Range(ws.Columns(firstColumn), ws.Columns(lastColumn)).AutoFit
 End Sub
 
-'==========================================================================
-'  産廃処理行: C列(工事種類)に「産廃処理」を含む行か判定
-'==========================================================================
 Private Function IsSanpaiRow(ByVal ws As Worksheet, ByVal rowIndex As Long) As Boolean
     IsSanpaiRow = (InStr(1, CommonRemoveAllSpaces(CommonNzText(ws.Cells(rowIndex, COL_TYPE).value)), _
                          SANPAI_KEYWORD, vbTextCompare) > 0)
 End Function
 
-'==========================================================================
-'  産廃処理行の塗りつぶし色を取得
-'    取込済み単価シートのE/F列(昼・夜単価)で最初に見つかった
-'    塗りつぶしセルの色を採用。見つからない場合は既定のグレー。
-'==========================================================================
 Private Function GetSanpaiFillColor() As Long
     GetSanpaiFillColor = SANPAI_FALLBACK_FILL_COLOR
 
@@ -1136,7 +1000,7 @@ Private Function GetSanpaiFillColor() As Long
 
             Dim r As Long, c As Long
             For r = UNIT_PRICE_DATA_START_ROW To priceLastRow
-                For c = 5 To 6                      ' E:昼単価 / F:夜単価
+                For c = 5 To 6
                     If ws.Cells(r, c).Interior.Pattern <> xlPatternNone Then
                         GetSanpaiFillColor = ws.Cells(r, c).Interior.Color
                         Exit Function
@@ -1147,13 +1011,6 @@ Private Function GetSanpaiFillColor() As Long
     Next ws
 End Function
 
-'==========================================================================
-'  産廃処理行: A列(施工業者)を塗りつぶし＋入力不可化
-'    施工業者ドロップダウン付与(ApplySubcontractorDropdowns)の後に
-'    呼び出すこと(A列の入力規則を上書きするため)。
-'    入力不可はユーザー設定の入力規則(=FALSE)で実現。
-'    ※Excelの仕様上、コピー＆貼り付けは防げない点に注意。
-'==========================================================================
 Public Sub ApplySanpaiRowRestrictions(ByVal ws As Worksheet)
     If ws Is Nothing Then Exit Sub
 
@@ -1190,16 +1047,9 @@ Public Sub ApplySanpaiRowRestrictions(ByVal ws As Worksheet)
     LogCI "産廃処理行: A列塗りつぶし・入力不可=" & restrictedCount & " 行"
 End Sub
 
-'==========================================================================
-'  合計セルの共通書込み
-'    ラベルセル: 黒の二重線(xlDouble)枠で囲む
-'    SUMセル   : 小数点以下切り捨て(ROUNDDOWN)・桁区切り表示・
-'                赤のxlMedium枠で囲む
-'==========================================================================
 Private Sub WriteTotalCells(ByVal ws As Worksheet, ByVal totalRow As Long, _
                             ByVal labelColumn As Long, ByVal labelText As String, _
                             ByVal sumColumn As Long, ByVal sumLastRow As Long)
-    ' ラベルセル
     With ws.Cells(totalRow, labelColumn)
         .value = labelText
         .HorizontalAlignment = xlCenter
@@ -1208,7 +1058,6 @@ Private Sub WriteTotalCells(ByVal ws As Worksheet, ByVal totalRow As Long, _
         .BorderAround LineStyle:=xlDouble, Color:=RGB(0, 0, 0)
     End With
 
-    ' SUMセル(小数点以下切り捨て・桁区切り・赤の中太枠)
     With ws.Cells(totalRow, sumColumn)
         .FormulaR1C1 = "=ROUNDDOWN(SUM(R2C:R" & sumLastRow & "C),0)"
         .NumberFormatLocal = "#,##0;[赤]-#,##0"
@@ -1216,11 +1065,6 @@ Private Sub WriteTotalCells(ByVal ws As Worksheet, ByVal totalRow As Long, _
     End With
 End Sub
 
-'==========================================================================
-'  工事側シート: JR金額の合計行を作成
-'    B列(整理番号)の最終行の直下に、I列(JR単価列)へ「JR合計」、
-'    J列(JR金額列)へ J2:J最終行 のSUMを設定。
-'==========================================================================
 Private Sub WriteJrTotalRow(ByVal ws As Worksheet)
     Dim lastRow As Long
     lastRow = GetLastDataRow(ws)
@@ -1231,11 +1075,6 @@ Private Sub WriteJrTotalRow(ByVal ws As Worksheet)
                     COL_JR_AMOUNT, lastRow
 End Sub
 
-'==========================================================================
-'  購入充当通知シート: JR金額の合計行を作成
-'    A列(整理番号)の最終行の直下に、H列(JR単価列)へ「JR合計」、
-'    I列(JR金額列)へ I2:I最終行 のSUMを設定。
-'==========================================================================
 Private Sub WritePurchaseNoticeJrTotalRow(ByVal ws As Worksheet)
     Dim lastRow As Long
     lastRow = GetLastDataRow(ws, PURCHASE_NOTICE_SEIRI_COL)
@@ -1246,9 +1085,6 @@ Private Sub WritePurchaseNoticeJrTotalRow(ByVal ws As Worksheet)
                     PURCHASE_NOTICE_JR_AMOUNT_COL, lastRow
 End Sub
 
-'==========================================================================
-'  工事側シートの参照単価・金額・比較結果を設定
-'==========================================================================
 Private Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
                                     ByVal guidanceDocumentName As String)
     Dim lastRow As Long
@@ -1309,9 +1145,6 @@ Private Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
           " / 整理番号未一致=" & missingRecordCount
 End Sub
 
-'==========================================================================
-'  適用積算線区単価シートの追記・単価変更を施工指示書/施工通知書へ反映
-'==========================================================================
 Public Sub RefreshConstructionReferencePricesForUnitPriceChange( _
     ByVal wsUnitPrice As Worksheet, ByVal changedRange As Range)
 
@@ -1438,15 +1271,11 @@ Private Sub RefreshConstructionReferencePricesOnSheet( _
     ApplyPriceGuidanceColumnLayoutAtColumns ws, comparisonColumn, guidanceColumn
 End Sub
 
-'==========================================================================
-'  工事件名別マスタのF/G列から、施工指示書線区名→単価シート名を構築
-'==========================================================================
 Private Function BuildConstructionLineSheetMap() As Object
     Dim result As Object
     Set result = CreateObject("Scripting.Dictionary")
     result.CompareMode = vbTextCompare
 
-    ' マスタが取得できない場合も、施工指示書線区名と単価シート名が同じなら参照できる。
     Dim targetSheet As Worksheet
     For Each targetSheet In ThisWorkbook.worksheets
         If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(targetSheet) Then
@@ -1841,9 +1670,6 @@ Private Sub WritePriceComparisonAtColumns( _
     End With
 End Sub
 
-'==========================================================================
-'  取込元A3から再取込み案内に表示する文書名を決定する
-'==========================================================================
 Private Function ResolveGuidanceDocumentName(ByVal sourceA3Text As String, _
                                              ByVal docType As Long) As String
     Dim normalized As String
@@ -1869,17 +1695,11 @@ Private Function UnitPriceValuesMatch(ByVal leftValue As Variant, _
     UnitPriceValuesMatch = (Abs(CDbl(leftValue) - CDbl(rightValue)) < 0.0000001)
 End Function
 
-'==========================================================================
-'  工事側シートのソート
-'    1.契約線区名(側線は最後)  2.工種分類(レール溶接は最後)
-'    3.昼夜別  4.整理番号
-'==========================================================================
 Private Sub SortWorksSheet(ByVal ws As Worksheet)
     Dim lastRow As Long
     lastRow = GetLastDataRow(ws)
     If lastRow < 2 Then Exit Sub
 
-    ' 補助フラグ列(側線・レール溶接)
     Dim r As Long, lineName As String, kindName As String
     For r = 2 To lastRow
         lineName = CommonRemoveAllSpaces(CommonNzText(ws.Cells(r, COL_LINE).value))
@@ -1890,12 +1710,12 @@ Private Sub SortWorksSheet(ByVal ws As Worksheet)
 
     With ws.Sort
         .SortFields.Clear
-        .SortFields.Add key:=ws.Range(ws.Cells(2, COL_FLAG_SIDE), ws.Cells(lastRow, COL_FLAG_SIDE)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal ' 側線フラグ
-        .SortFields.Add key:=ws.Range(ws.Cells(2, COL_LINE), ws.Cells(lastRow, COL_LINE)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal ' 契約線区名
-        .SortFields.Add key:=ws.Range(ws.Cells(2, COL_FLAG_WELD), ws.Cells(lastRow, COL_FLAG_WELD)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal ' レール溶接フラグ
-        .SortFields.Add key:=ws.Range(ws.Cells(2, COL_KIND), ws.Cells(lastRow, COL_KIND)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal ' 工種分類
-        .SortFields.Add key:=ws.Range(ws.Cells(2, COL_DAYNIGHT), ws.Cells(lastRow, COL_DAYNIGHT)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal ' 昼夜別
-        .SortFields.Add key:=ws.Range(ws.Cells(2, COL_SEIRI), ws.Cells(lastRow, COL_SEIRI)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal ' 整理番号
+        .SortFields.Add key:=ws.Range(ws.Cells(2, COL_FLAG_SIDE), ws.Cells(lastRow, COL_FLAG_SIDE)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+        .SortFields.Add key:=ws.Range(ws.Cells(2, COL_LINE), ws.Cells(lastRow, COL_LINE)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+        .SortFields.Add key:=ws.Range(ws.Cells(2, COL_FLAG_WELD), ws.Cells(lastRow, COL_FLAG_WELD)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+        .SortFields.Add key:=ws.Range(ws.Cells(2, COL_KIND), ws.Cells(lastRow, COL_KIND)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+        .SortFields.Add key:=ws.Range(ws.Cells(2, COL_DAYNIGHT), ws.Cells(lastRow, COL_DAYNIGHT)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+        .SortFields.Add key:=ws.Range(ws.Cells(2, COL_SEIRI), ws.Cells(lastRow, COL_SEIRI)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
         .SetRange ws.Range(ws.Cells(1, 1), ws.Cells(lastRow, COL_FLAG_WELD))
         .Header = xlYes
         .MatchCase = False
@@ -1903,12 +1723,9 @@ Private Sub SortWorksSheet(ByVal ws As Worksheet)
         .Apply
     End With
 
-    ws.Range(ws.Cells(1, COL_FLAG_SIDE), ws.Cells(lastRow, COL_FLAG_WELD)).ClearContents ' 補助列を消去
+    ws.Range(ws.Cells(1, COL_FLAG_SIDE), ws.Cells(lastRow, COL_FLAG_WELD)).ClearContents
 End Sub
 
-'==========================================================================
-'  購入充当側シートのソート(整理番号のみ)
-'==========================================================================
 Private Sub SortPurchaseSheet(ByVal ws As Worksheet, _
                               Optional ByVal seiriColumn As Long = COL_SEIRI, _
                               Optional ByVal lastDataColumn As Long = COL_KIND)
@@ -1927,9 +1744,6 @@ Private Sub SortPurchaseSheet(ByVal ws As Worksheet, _
     End With
 End Sub
 
-'==========================================================================
-'  書式設定(ヘッダー装飾・罫線・数値書式・列幅自動調整)
-'==========================================================================
 Private Sub FormatSheet(ByVal ws As Worksheet, _
                         Optional ByVal dataKeyColumn As Long = COL_SEIRI)
     FormatSheetAtColumns _
@@ -1971,7 +1785,6 @@ Private Sub FormatSheetAtColumns( _
     outputLastColumn = GetOutputLastColumn( _
         ws, kindColumn, autoAmountColumn, comparisonColumn, guidanceColumn)
 
-    ' ヘッダー装飾(黒地・白文字・中央揃え・太字)
     With ws.Range(ws.Cells(1, 1), ws.Cells(1, outputLastColumn))
         .Font.Bold = True
         .Font.Color = RGB(255, 255, 255)
@@ -1980,13 +1793,11 @@ Private Sub FormatSheetAtColumns( _
         .VerticalAlignment = xlCenter
     End With
 
-    ' 数値書式(JR単価・JR金額・外注単価・外注金額)
     If lastRow >= 2 Then
         ws.Range(ws.Cells(2, jrPriceColumn), _
                  ws.Cells(lastRow, outAmountColumn)).NumberFormatLocal = "#,##0"
     End If
 
-    ' データ列と参照単価列に罫線を設定。空白区切り列と案内欄は対象外。
     With ws.Range(ws.Cells(1, 1), ws.Cells(lastRow, kindColumn)).Borders
         .LineStyle = xlContinuous
         .Weight = xlThin
@@ -2010,20 +1821,16 @@ Private Sub FormatSheetAtColumns( _
         End If
     End If
 
-    ' 列幅自動調整(取込文字列にフィット)
     ws.Range(ws.Cells(1, 1), ws.Cells(1, outputLastColumn)).EntireColumn.AutoFit
 
-    ' 参照単価列は参照金額列と同じ列幅にし、ヘッダーだけ縮小表示する
     If CommonNzText(ws.Cells(1, autoAmountColumn).value) <> "" Then
         ws.Columns(autoPriceColumn).ShrinkToFit = False
         ws.Columns(autoPriceColumn).ColumnWidth = ws.Columns(autoAmountColumn).ColumnWidth
         ws.Cells(1, autoPriceColumn).ShrinkToFit = True
     End If
 
-    ' 注意文は折り返さないため、単価不一致行も含めて行の高さは18で統一する
     ws.Cells.RowHeight = 18
 
-    ' 中央揃え(整理番号, 昼夜別, 単位, 契約線区名, 管理室, 工種分類)
     Dim centerCols As Variant, cv As Variant
     centerCols = Array(dataKeyColumn, dayNightColumn, unitColumn, lineColumn, mgrColumn, kindColumn)
     For Each cv In centerCols
@@ -2031,9 +1838,6 @@ Private Sub FormatSheetAtColumns( _
     Next cv
 End Sub
 
-'==========================================================================
-'  工事側シートの案内列(R列)をメッセージ有無に応じて表示切替
-'==========================================================================
 Private Sub ApplyPriceGuidanceColumnLayout(ByVal ws As Worksheet)
     ApplyPriceGuidanceColumnLayoutAtColumns _
         ws, COL_PRICE_COMPARE, COL_PRICE_GUIDANCE
@@ -2063,9 +1867,6 @@ Private Sub ApplyPriceGuidanceColumnLayoutAtColumns( _
     End With
 End Sub
 
-'==========================================================================
-'  購入充当通知では後工程で使用しない列を非表示にする
-'==========================================================================
 Private Sub ApplyPurchaseNoticeColumnExclusions(ByVal ws As Worksheet)
     Dim excludedColumns As Range
     Set excludedColumns = Application.Union(ws.Columns(PURCHASE_NOTICE_MGR_COL), _
@@ -2074,17 +1875,11 @@ Private Sub ApplyPurchaseNoticeColumnExclusions(ByVal ws As Worksheet)
     excludedColumns.EntireColumn.Hidden = True
 End Sub
 
-'==========================================================================
-'  出力シートのデータ最終行(指定された整理番号列で判定)
-'==========================================================================
 Private Function GetLastDataRow(ByVal ws As Worksheet, _
                                 Optional ByVal dataKeyColumn As Long = COL_SEIRI) As Long
     GetLastDataRow = ws.Cells(ws.rows.Count, dataKeyColumn).End(xlUp).Row
 End Function
 
-'==========================================================================
-'  Dictionary のキーをカンマ区切り文字列に(診断表示用)
-'==========================================================================
 Private Function JoinKeys(ByVal d As Object) As String
     Dim s As String
     If Not d Is Nothing Then
@@ -2097,9 +1892,6 @@ Private Function JoinKeys(ByVal d As Object) As String
     JoinKeys = s
 End Function
 
-'==========================================================================
-'  シート名サニタイズ(禁則文字除去・31文字制限)
-'==========================================================================
 Private Function SanitizeSheetName(ByVal s As String) As String
     Dim t As String
     t = CommonNormalizeText(s)
@@ -2113,30 +1905,15 @@ Private Function SanitizeSheetName(ByVal s As String) As String
     SanitizeSheetName = t
 End Function
 
-'==========================================================================
-'  デバッグログ(イミディエイトウィンドウ出力)
-'==========================================================================
 Private Sub LogCI(ByVal msg As String)
     Debug.Print "[ConstructionImport] " & Format(Now, "hh:mm:ss") & "  " & msg
 End Sub
 
-'==========================================================================
-'  参照シート H9 の値を 基本情報 C12 へ転記(中央揃え・BIZ UDゴシック)
-'==========================================================================
-'==========================================================================
-'  購入充当通知シートへ単価(F列)を N列へ取込み
-'    照合元: 購入充当通知 A列(整理番号)  <->  名称_購入充当単価 A列
-'    取込値: 名称_購入充当単価 F列  ->  購入充当通知 N列
-'    O列: N列(参照単価) * E列(数量)
-'    P列: N列(参照単価) と H列(JR単価)の比較結果
-'    行範囲: 2 ~ A列(整理番号)の最終行
-'==========================================================================
 Private Sub FillPurchaseUnitPrices(ByVal ws As Worksheet)
     Dim lastRow As Long
     lastRow = ws.Cells(ws.rows.Count, PURCHASE_NOTICE_SEIRI_COL).End(xlUp).Row
     If lastRow < 2 Then Exit Sub
 
-    ' 基本情報 B6/C6 -> 単価適用線区マスタ -> 名称_購入充当単価 シート名
     Dim priceSheetName As String
     priceSheetName = ResolvePurchasePriceSheetName()
     If priceSheetName = "" Then
@@ -2155,7 +1932,6 @@ Private Sub FillPurchaseUnitPrices(ByVal ws As Worksheet)
         Exit Sub
     End If
 
-    ' 名称_購入充当単価 シートの A列(キー) -> F列(単価) 辞書を構築
     Dim priceMap As Object
     Set priceMap = CreateObject("Scripting.Dictionary")
     priceMap.CompareMode = vbTextCompare
@@ -2169,7 +1945,6 @@ Private Sub FillPurchaseUnitPrices(ByVal ws As Worksheet)
         End If
     Next pr
 
-    ' 購入充当通知 A列(整理番号) と照合し N列へ転記
     Dim matched As Long, lookupCount As Long, unmatched As Long
     Dim r As Long, lookupKey As String
     For r = 2 To lastRow
@@ -2185,7 +1960,6 @@ Private Sub FillPurchaseUnitPrices(ByVal ws As Worksheet)
         End If
     Next r
 
-    ' O列へ N列(参照単価) * E列(数量) の数式を設定
     ws.Range(ws.Cells(2, PURCHASE_NOTICE_AUTO_AMOUNT_COL), _
              ws.Cells(lastRow, PURCHASE_NOTICE_AUTO_AMOUNT_COL)).FormulaR1C1 = _
         "=RC[" & (PURCHASE_NOTICE_AUTO_PRICE_COL - PURCHASE_NOTICE_AUTO_AMOUNT_COL) & _
@@ -2209,10 +1983,6 @@ Private Sub FillPurchaseUnitPrices(ByVal ws As Worksheet)
           " / 未一致=" & unmatched & " (単価シート=" & priceSheetName & ")"
 End Sub
 
-'==========================================================================
-'  基本情報 B6(支店)/C6(出張所) -> 単価適用線区マスタ E列(名称)
-'    -> 「名称_購入充当単価」シート名を返す
-'==========================================================================
 Private Function ResolvePurchasePriceSheetName() As String
     Dim wsInfo As Worksheet
     Set wsInfo = CommonGetBasicInfoWorksheet(ThisWorkbook)
@@ -2266,9 +2036,6 @@ Cleanup:
     ResolvePurchasePriceSheetName = resultName
 End Function
 
-'==========================================================================
-'  ADO共通ヘルパー
-'==========================================================================
 Private Function OpenUnitPriceMasterAdoConnection(ByRef resolvedPath As String) As Object
     Dim candidates As Collection
     Set candidates = New Collection

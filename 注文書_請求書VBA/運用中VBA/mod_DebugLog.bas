@@ -1,30 +1,15 @@
 Option Explicit
 
-'==========================================================================
-'  デバッグログモジュール  mod_DebugLog
-'  B6変更時のコンボ表示フロー追跡用
-'  使い方：
-'    1. このモジュールをインポート
-'    2. B6を変更する
-'    3. イミディエイトウィンドウ(Ctrl+G)またはログシートで結果確認
-'    4. 確認後は mod_DebugLog.ClearLog で消去
-'==========================================================================
-
 Private mLogs() As String
 Private mLogCount As Long
 Private Const LOG_SHEET_NAME As String = "DebugLog"
 
-'--------------------------------------------------------------------------
-' ログ追記（イミディエイトウィンドウ＋内部バッファ両方に出力）
-'--------------------------------------------------------------------------
 Public Sub Log(ByVal msg As String)
     Dim line As String
     line = Format(Now, "hh:mm:ss") & "  " & msg
 
-    ' イミディエイトウィンドウへ
     Debug.Print line
 
-    ' 内部バッファへ
     If mLogCount = 0 Then
         ReDim mLogs(0 To 99)
     ElseIf mLogCount > UBound(mLogs) Then
@@ -34,9 +19,6 @@ Public Sub Log(ByVal msg As String)
     mLogCount = mLogCount + 1
 End Sub
 
-'--------------------------------------------------------------------------
-' ログをシートに書き出す（B6変更後にこれを手動実行して確認）
-'--------------------------------------------------------------------------
 Public Sub FlushToSheet()
     If mLogCount = 0 Then
         MsgBox UiMsgDebugLogEmptyText(), vbInformation
@@ -74,9 +56,6 @@ Public Sub FlushToSheet()
     MsgBox mLogCount & UiMsgDebugLogFlushSuffixText(), vbInformation
 End Sub
 
-'--------------------------------------------------------------------------
-' ログクリア
-'--------------------------------------------------------------------------
 Public Sub ClearLog()
     mLogCount = 0
     ReDim mLogs(0 To 0)

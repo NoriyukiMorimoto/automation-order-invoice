@@ -9,9 +9,7 @@ End Sub
 
 Private Sub UserForm_Initialize()
     SelectionConfirmed = False
-    ' ListViewの初期設定
     SetupListView
-    ' 標準モジュールのSharedMasterDataをチェック
     If IsEmpty(SharedMasterData) Then
         LoadMasterDataToMemory
     Else
@@ -19,16 +17,10 @@ Private Sub UserForm_Initialize()
     End If
 End Sub
 
-'===========================================================
-' フォーム表示完了後にTextBox1にフォーカス
-'===========================================================
 Private Sub UserForm_Activate()
     Me.TextBox1.SetFocus
 End Sub
 
-'===========================================================
-' ListViewの初期設定
-'===========================================================
 Private Sub SetupListView()
     With Me.ListView1
         .View = lvwReport
@@ -37,13 +29,13 @@ Private Sub SetupListView()
         .HideColumnHeaders = False
         .MultiSelect = False
         .ColumnHeaders.Clear
-        .ColumnHeaders.Add , , "", 0                            ' 1列目：ダミー（幅0）
-        .ColumnHeaders.Add , , "工事番号", 100, lvwColumnCenter ' 2列目：中央揃え
-        .ColumnHeaders.Add , , "工事件名", 500                 ' 3列目：左揃え
-        .ColumnHeaders.Add , , "", 0                           ' 4列目：C10用（非表示）
-        .ColumnHeaders.Add , , "", 0                           ' 5列目：C11用（非表示）
-        .ColumnHeaders.Add , , "", 0                           ' 6列目：C15用（非表示）
-        .ColumnHeaders.Add , , "", 0                           ' 7列目：C16用（非表示）
+        .ColumnHeaders.Add , , "", 0
+        .ColumnHeaders.Add , , "工事番号", 100, lvwColumnCenter
+        .ColumnHeaders.Add , , "工事件名", 500
+        .ColumnHeaders.Add , , "", 0
+        .ColumnHeaders.Add , , "", 0
+        .ColumnHeaders.Add , , "", 0
+        .ColumnHeaders.Add , , "", 0
     End With
 End Sub
 
@@ -416,15 +408,12 @@ Private Function RemoveProjectContractWeekday(ByVal sourceText As String) As Str
     Dim p As Long
     sourceText = Trim$(sourceText)
 
-    ' 半角括弧の曜日を除去（例：2024/4/1(月)）
     p = InStr(sourceText, "(")
     If p > 0 Then sourceText = Left$(sourceText, p - 1)
 
-    ' 全角括弧の曜日を除去（例：2024年4月1日（月））
     p = InStr(sourceText, "（")
     If p > 0 Then sourceText = Left$(sourceText, p - 1)
 
-    ' 「スペース＋曜日名」形式を除去（例：2026/03/06 金曜、2026/03/06 金曜日）
     Dim weekdayNames As Variant
     weekdayNames = Array("月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日", "日曜日", _
                          "月曜", "火曜", "水曜", "木曜", "金曜", "土曜", "日曜")
@@ -446,7 +435,6 @@ Private Function RemoveProjectContractWeekday(ByVal sourceText As String) As Str
         End If
     Next j
 
-    ' 括弧なしで末尾に曜日1文字（月火水木金土日）が付くケースも除去
     Dim weekdays As Variant
     weekdays = Array("月", "火", "水", "木", "金", "土", "日")
     Dim i As Long
@@ -473,10 +461,10 @@ Private Sub RefreshList(ByVal keyword As String)
     Me.ListView1.ListItems.Clear
     For i = 1 To UBound(SharedMasterData, 1)
         If (SharedMasterData(i, 1) & SharedMasterData(i, 2) <> "") And (keyword = "" Or InStr(1, SharedMasterData(i, 1) & SharedMasterData(i, 2), keyword, vbTextCompare) > 0) Then
-            Set itmX = Me.ListView1.ListItems.Add(, , "")  ' 1列目：ダミー
+            Set itmX = Me.ListView1.ListItems.Add(, , "")
             itmX.Tag = CStr(i)
-            itmX.SubItems(1) = SharedMasterData(i, 1)     ' 2列目：工事番号
-            itmX.SubItems(2) = SharedMasterData(i, 2)     ' 3列目：工事件名
+            itmX.SubItems(1) = SharedMasterData(i, 1)
+            itmX.SubItems(2) = SharedMasterData(i, 2)
             If UBound(SharedMasterData, 2) >= 3 Then itmX.SubItems(3) = CStr(SharedMasterData(i, 3))
             If UBound(SharedMasterData, 2) >= 4 Then itmX.SubItems(4) = CStr(SharedMasterData(i, 4))
             If UBound(SharedMasterData, 2) >= 5 Then itmX.SubItems(5) = CStr(SharedMasterData(i, 5))

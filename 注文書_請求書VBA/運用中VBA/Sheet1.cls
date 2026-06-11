@@ -50,7 +50,6 @@ Private Sub Worksheet_Change(ByVal target As Range)
         Set vendorNameRange = mod_VendorMaster.GetVendorNameRange(Me)
     End If
 
-    ' B6 または C6 が変更された場合：確認なしで基本情報・単価シートをクリア
     If Not Intersect(target, Me.Range("B6,C6")) Is Nothing Then
         mod_DebugLog.Log "[Sheet1] B6/C6変更 IsSuppressing=" & mod_FillManagerName.IsSuppressingC6Change()
         If Not mod_FillManagerName.IsSuppressingC6Change() Then
@@ -160,7 +159,6 @@ Private Sub Worksheet_SelectionChange(ByVal target As Range)
     mod_DebugLog.Log "[Sheet1] SelectionChange: " & target.Address & " IsPrompting=" & mod_FillManagerName.IsPromptingOfficeComboBox()
     mod_BasicInfoCalendar.HandleBasicInfoSelectionChange target
 
-    ' (#22) PromptOfficeComboBox 処理中はコンボを消さない
     If Not mod_FillManagerName.IsPromptingOfficeComboBox() Then
         If Intersect(target, Me.Range("C6")) Is Nothing Then
             mod_DebugLog.Log "[Sheet1] SelectionChange: C6以外 -> HideOfficeComboBox"
@@ -198,8 +196,6 @@ End Sub
 
 Private Sub ComboBox1_LostFocus()
     mod_DebugLog.Log "[Sheet1] ComboBox1_LostFocus IsPrompting=" & mod_FillManagerName.IsPromptingOfficeComboBox()
-    ' (#22) PromptOfficeComboBox 処理中の LostFocus は無視する
-    '       （コンボ表示直後に誤って確定処理が走るのを防ぐ）
     If mod_FillManagerName.IsPromptingOfficeComboBox() Then
         mod_DebugLog.Log "[Sheet1] ComboBox1_LostFocus: IsPrompting=True -> スキップ"
         Exit Sub

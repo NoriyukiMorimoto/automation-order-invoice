@@ -1,17 +1,5 @@
 Option Explicit
 
-'==========================================================================
-'  基本情報シート 日付ダブルクリック用カレンダー＆工事番号選択ディスパッチ
-'    改修内容：
-'      #9  : ExtractYear4Digits / 基本情報シート取得を mod_Common 経由に統一。
-'            候補シート名配列の重複定義を削減。
-'      #10 : DrawBasicInfoCalendar / DeleteBasicInfoCalendar の前後で
-'            ScreenUpdating を OFF にし、Shape の追加・削除でちらつきが
-'            出ないようにする（描画のもたつき緩和）。
-'      #11 : C9 / 日付セルの対象判定で Target.MergeArea が 1004 を出す
-'            場合に備え、MergeArea 左上セル取得を安全化。
-'==========================================================================
-
 Private Const CALENDAR_PREFIX As String = "BICal_"
 Private Const LEGACY_CALENDAR_PREFIX As String = "__BasicInfoCalendar_"
 Private Const CALENDAR_TARGET_SHEET_NAME As String = "__BasicInfoCalendarTargetSheet"
@@ -120,9 +108,7 @@ Public Sub BasicInfoCalendarSelectDay()
 
     Dim selectedDate As Date
     If TryGetDateFromCallerName(callerName, selectedDate) Then
-        ' shape 名に埋め込んだ日付を採用
     ElseIf TryGetDateFromSelection(selectedDate) Then
-        ' 選択中の shape から日付取得
     Else
         selectedDate = DateFromIsoText(ws.Shapes(callerName).AlternativeText)
     End If
@@ -184,12 +170,6 @@ Private Sub MoveBasicInfoCalendarMonth(ByVal monthOffset As Long)
 ExitHandler:
 End Sub
 
-'--------------------------------------------------------------------------
-'  カレンダー本体描画
-'  改修（#10）：Shape の生成・削除でちらつきが出るため ScreenUpdating
-'                を OFF にして一括描画。元から呼び出される DeleteBasicInfoCalendar
-'                とのネスト整合のため、状態を保存・復元する。
-'--------------------------------------------------------------------------
 Private Sub DrawBasicInfoCalendar(ByVal ws As Worksheet, ByVal targetCell As Range, ByVal displayMonth As Date, ByVal baseDate As Date)
     Dim previousScreenUpdating As Boolean
     previousScreenUpdating = Application.screenUpdating
@@ -478,7 +458,6 @@ Private Function GetYearFromB4(ByVal ws As Worksheet) As Long
     If yearText <> "" Then GetYearFromB4 = CLng(yearText)
 End Function
 
-' 基本情報シート名を返す（存在しない場合は空文字）。
 Private Function GetBasicInfoWorksheetName() As String
     Dim ws As Worksheet
     Set ws = CommonGetBasicInfoWorksheet()

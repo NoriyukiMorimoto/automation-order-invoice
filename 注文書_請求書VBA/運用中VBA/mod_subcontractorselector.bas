@@ -1,35 +1,20 @@
 Option Explicit
 
-'==========================================================================
-'  施工会社(施工業者)選択モジュール  mod_SubcontractorSelector
-'    ・施工指示書/施工通知書シートのA列(施工業者)にドロップダウンを設定
-'    ・基本情報の会社名を業者マスタB列で照合し、対応するA列値を候補にする
-'    ・frmSubconSelector を使い、選択行(複数可)へ一括適用(Project_Number_Posting
-'      の複数行一括選択の発想を踏襲)
-'==========================================================================
-
-' 出力シート列(A=施工業者, B=整理番号)
 Private Const COL_VENDOR As Long = 1
 Private Const COL_SEIRI As Long = 2
 Private Const DATA_START_ROW As Long = 2
 
-'--- 産廃処理行の制御 ------------------------------------------------------
 Private Const SANPAI_KEYWORD As String = "産廃処理"
-Private Const COL_TYPE As Long = 3   ' C列(工事種類)
+Private Const COL_TYPE As Long = 3
 
-' 基本情報シートの業者ブロック(行11・F列から3列おき、最大20ブロック)
 Private Const VENDOR_NAME_ROW As Long = 11
-Private Const VENDOR_FIRST_COL As Long = 6      ' F列
-Private Const VENDOR_STEP_COLS As Long = 3      ' F,I,L,O…
+Private Const VENDOR_FIRST_COL As Long = 6
+Private Const VENDOR_STEP_COLS As Long = 3
 Private Const VENDOR_MAX_BLOCKS As Long = 20
-Private Const VENDOR_COUNT_CELL As String = "F9"  ' 下請負会社数(この数だけ候補を読む)
+Private Const VENDOR_COUNT_CELL As String = "F9"
 
-' リストが長い(255文字超)場合に使う非表示の補助列
 Private Const HELPER_COL As Long = 100
 
-'==========================================================================
-'  基本情報の会社名を業者マスタB列で照合し、A列表示名のリストを取得
-'==========================================================================
 Public Function GetSubcontractorList() As Variant
     Dim wsInfo As Worksheet
     Set wsInfo = CommonGetBasicInfoWorksheet(ThisWorkbook)
@@ -46,7 +31,6 @@ Public Function GetSubcontractorList() As Variant
     Set vendorNameMap = mod_VendorMaster.BuildVendorUnitPriceNameMap(wsInfo)
     If vendorNameMap Is Nothing Then Exit Function
 
-    ' 下請負会社数(F9)を上限にする(古い業者ブロックの残骸を候補に含めない)
     Dim vendorCount As Long
     vendorCount = CLng(Val(StrConv(CStr(CommonNzText(wsInfo.Range(VENDOR_COUNT_CELL).value)), vbNarrow)))
     If vendorCount < 1 Then vendorCount = 1
@@ -78,16 +62,10 @@ Public Function GetSubcontractorList() As Variant
     GetSubcontractorList = arr
 End Function
 
-'==========================================================================
-'  アクティブシート(施工指示書/施工通知書)のA列にドロップダウンを設定
-'==========================================================================
 Public Sub ApplySubcontractorDropdownsToActiveSheet()
     ApplySubcontractorDropdowns ActiveSheet
 End Sub
 
-'==========================================================================
-'  指定シートのA列(B列に値がある行)にドロップダウンを設定
-'==========================================================================
 Public Sub ApplySubcontractorDropdowns(ByVal ws As Worksheet)
     If ws Is Nothing Then Exit Sub
 
@@ -115,7 +93,7 @@ Public Sub ApplySubcontractorDropdowns(ByVal ws As Worksheet)
     Dim r As Long
     For r = DATA_START_ROW To lastRow
         If Trim$(CommonNzText(ws.Cells(r, COL_SEIRI).value)) <> "" Then
-            If Not IsSanpaiRow(ws, r) Then   ' 産廃処理行はスキップ(入力不可規則を維持)
+            If Not IsSanpaiRow(ws, r) Then
                 With ws.Cells(r, COL_VENDOR).Validation
                     .Delete
                     .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, _
@@ -141,11 +119,6 @@ ErrorHandler:
     Resume Cleanup
 End Sub
 
-'==========================================================================
-'  入力規則の Formula1 を構築
-'    255文字以内 かつ 社名にカンマが無い -> 直接リスト
-'    それ以外 -> 非表示の補助列に縦並びで書き出して範囲参照
-'==========================================================================
 Private Function BuildValidationListFormula(ByVal ws As Worksheet, ByVal names As Variant) As String
     Dim joined As String, i As Long, hasComma As Boolean
     For i = LBound(names) To UBound(names)
@@ -176,10 +149,6 @@ Private Function BuildValidationListFormula(ByVal ws As Worksheet, ByVal names A
     BuildValidationListFormula = "=" & helper.Address(True, True)
 End Function
 
-'==========================================================================
-'  選択行(複数可)に施工会社を一括適用(frmSubconSelector を使用)
-'    使い方: A列を含む対象行を選択 -> 本マクロ実行 -> フォームで1社選択
-'==========================================================================
 Public Sub SelectSubcontractorForSelection()
     Dim ws As Worksheet
     Set ws = ActiveSheet
@@ -191,7 +160,6 @@ Public Sub SelectSubcontractorForSelection()
         Exit Sub
     End If
 
-    ' 対象行(選択範囲のうちB列に値がある行)を収集
     Dim targetRows As Collection
     Set targetRows = New Collection
 
@@ -208,17 +176,16 @@ Public Sub SelectSubcontractorForSelection()
         If Not hit Is Nothing Then
             For Each c In hit.Cells
                 If Trim$(CommonNzText(ws.Cells(c.Row, COL_SEIRI).value)) <> "" Then
-                    If Not IsSanpaiRow(ws, c.Row) Then targetRows.Add c.Row   ' 産廃処理行は対象外
+                    If Not IsSanpaiRow(ws, c.Row) Then targetRows.Add c.Row
                 End If
             Next c
         End If
     End If
 
     If targetRows.Count = 0 Then
-        ' 選択が無効ならアクティブセルの行
         If ActiveCell.Row >= DATA_START_ROW And ActiveCell.Row <= lastRow Then
             If Trim$(CommonNzText(ws.Cells(ActiveCell.Row, COL_SEIRI).value)) <> "" Then
-                If Not IsSanpaiRow(ws, ActiveCell.Row) Then targetRows.Add ActiveCell.Row   ' 産廃処理行は対象外
+                If Not IsSanpaiRow(ws, ActiveCell.Row) Then targetRows.Add ActiveCell.Row
             End If
         End If
     End If
@@ -257,7 +224,6 @@ Public Sub SelectSubcontractorForSelection()
 
     mod_Construction_Order_Import.RefreshSubcontractorPriceColumns ws
 
-    ' A列幅を施工会社名にフィット(内容に合わせて自動調整)
     ws.Columns(COL_VENDOR).AutoFit
 
     Application.EnableEvents = prevEvents
@@ -271,9 +237,6 @@ ErrorHandler:
            Err.Description, vbExclamation
 End Sub
 
-'==========================================================================
-'  産廃処理行: C列(工事種類)に「産廃処理」を含む行か判定
-'==========================================================================
 Private Function IsSanpaiRow(ByVal ws As Worksheet, ByVal rowIndex As Long) As Boolean
     IsSanpaiRow = (InStr(1, CommonRemoveAllSpaces(CommonNzText(ws.Cells(rowIndex, COL_TYPE).value)), _
                          SANPAI_KEYWORD, vbTextCompare) > 0)

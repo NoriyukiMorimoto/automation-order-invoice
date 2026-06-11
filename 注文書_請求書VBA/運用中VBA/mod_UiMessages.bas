@@ -391,4 +391,3 @@ Public Function UiMsgProjectApplyToBasicInfoFailedText() As String
     If cached = "" Then cached = CommonTextFromChars(&H5DE5,&H4E8B,&H60C5,&H5831,&H3092,&H57FA,&H672C,&H60C5,&H5831,&H30B7,&H30FC,&H30C8,&H3078,&H53CD,&H6620,&H3067,&H304D,&H307E,&H305B,&H3093,&H3067,&H3057,&H305F,&H3002)
     UiMsgProjectApplyToBasicInfoFailedText = cached
 End Function
-

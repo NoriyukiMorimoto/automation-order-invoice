@@ -1,10 +1,5 @@
 Option Explicit
 
-'==========================================================================
-'  業者マスタ参照・業者情報選択モジュール
-'  改修履歴: CHANGELOG.md 参照
-'==========================================================================
-
 Private Const VENDOR_LIST_COL As String = "AD"
 Private Const VENDOR_LIST_START_ROW As Long = 2
 Private Const BASIC_INFO_VENDOR_NAME_CELL As String = "F11"
@@ -318,9 +313,6 @@ Private Sub FitVendorComboBoxToTarget(ByVal targetCell As Range, ByVal ole As OL
     End With
 End Sub
 
-'--------------------------------------------------------------------------
-'  ComboBox 用の業者候補を配列から設定
-'--------------------------------------------------------------------------
 Private Sub LoadVendorComboBoxItems(ByVal wsInfo As Worksheet, ByVal ole As OLEObject, ByVal targetCell As Range)
     Dim lastRow As Long
     lastRow = wsInfo.Cells(wsInfo.rows.Count, VENDOR_LIST_COL).End(xlUp).Row
@@ -352,9 +344,6 @@ Private Sub LoadVendorComboBoxItems(ByVal wsInfo As Worksheet, ByVal ole As OLEO
     End With
 End Sub
 
-'--------------------------------------------------------------------------
-'  業者名の入力規則リストを非表示列へ作成
-'--------------------------------------------------------------------------
 Private Sub WriteVendorValidationList(ByVal wsInfo As Worksheet, ByVal vendorRows As Collection)
     wsInfo.Columns(VENDOR_LIST_COL & ":" & VENDOR_LIST_COL).Hidden = False
     wsInfo.Range(VENDOR_LIST_COL & ":" & VENDOR_LIST_COL).ClearContents

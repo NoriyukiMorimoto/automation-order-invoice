@@ -1,10 +1,5 @@
 Option Explicit
 
-'==========================================================================
-'  出張所長名 自動入力／支店・出張所バリデーション再構築モジュール
-'  改修履歴: CHANGELOG.md 参照
-'==========================================================================
-
 Private Const LIST_BRANCH_COL As String = "AA"
 Private Const LIST_OFFICE_COL As String = "AB"
 Private Const LIST_START_ROW As Long = 2
