@@ -56,6 +56,12 @@ Private Const BASIC_INFO_VENDOR_STEP_COLS As Long = 3
 Private Const BASIC_INFO_VENDOR_MAX_BLOCKS As Long = 20
 Private Const BASIC_INFO_VENDOR_COUNT_CELL As String = "F9"
 Private Const BASIC_INFO_TOTAL_NUMBER_FORMAT As String = "#,##0;[赤]-#,##0"
+Private Const BASIC_INFO_SUBTOTAL_CELL As String = "C33"
+Private Const BASIC_INFO_TAX_CELL As String = "C34"
+Private Const BASIC_INFO_GRAND_TOTAL_CELL As String = "C35"
+Private Const BASIC_INFO_TAX_LABEL_CELL As String = "B34"
+Private Const BASIC_INFO_TAX_RATE_DEFAULT As Double = 0.1
+Private Const BASIC_INFO_YEN_TOTAL_RANGE As String = "C31:C35"
 Private Const PRICE_GUIDANCE_AMOUNT_TYPE_MESSAGE As String = _
     "基本情報シートのC22セル：単価適用区分(年初単価or設計変更単価)を確認して下さい。"
 
@@ -894,6 +900,7 @@ Public Sub RefreshBasicInfoConstructionTotals()
 
     WriteBasicInfoAmount wsInfo, BASIC_INFO_WORKS_TOTAL_CELL, worksTotal
     WriteBasicInfoAmount wsInfo, BASIC_INFO_PURCHASE_TOTAL_CELL, purchaseTotal
+    UpdateBasicInfoTaxTotals wsInfo
 
     Dim totalCellAddress As String
     For i = 1 To BASIC_INFO_VENDOR_MAX_BLOCKS
@@ -1047,6 +1054,105 @@ Private Sub WriteBasicInfoAmount(ByVal wsInfo As Worksheet, _
     Else
         targetCell.ClearContents
     End If
+End Sub
+
+'  UpdateBasicInfoTaxTotals
+'  基本情報シートの C33(小計)・C34(消費税)・C35(税込合計) を更新し、
+'  C31:C35 に「\＋桁区切り」の表示形式を適用する。
+'  C33 = C31 + C32
+'  C34 = C33 × 税率(B34の表記から取得。取得できない場合は10%) ※小数点以下切り捨て
+'  C35 = C33 + C34
+Public Sub UpdateBasicInfoTaxTotals(Optional ByVal wsInfo As Worksheet = Nothing)
+    On Error GoTo ErrorHandler
+
+    If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet(ThisWorkbook)
+    If wsInfo Is Nothing Then Exit Sub
+
+    Dim subtotal As Double
+    subtotal = GetBasicInfoCellAmount(wsInfo, BASIC_INFO_WORKS_TOTAL_CELL) + _
+               GetBasicInfoCellAmount(wsInfo, BASIC_INFO_PURCHASE_TOTAL_CELL)
+
+    Dim taxAmount As Double
+    taxAmount = Fix(subtotal * ResolveBasicInfoTaxRate(wsInfo))
+
+    WriteBasicInfoPlainValue wsInfo, BASIC_INFO_SUBTOTAL_CELL, subtotal
+    WriteBasicInfoPlainValue wsInfo, BASIC_INFO_TAX_CELL, taxAmount
+    WriteBasicInfoPlainValue wsInfo, BASIC_INFO_GRAND_TOTAL_CELL, subtotal + taxAmount
+
+    ApplyBasicInfoYenTotalFormat wsInfo
+
+    LogCI "税込合計更新: 小計=" & subtotal & " / 消費税=" & taxAmount & _
+          " / 税込合計=" & (subtotal + taxAmount)
+    Exit Sub
+
+ErrorHandler:
+    LogCI "基本情報税込合計更新エラー Err " & Err.Number & ": " & Err.Description
+End Sub
+
+'  GetBasicInfoCellAmount
+'  指定セルの数値を取得する(結合セル対応。空欄・非数値・エラー値は0)。
+Private Function GetBasicInfoCellAmount(ByVal wsInfo As Worksheet, _
+                                        ByVal cellAddress As String) As Double
+    Dim targetCell As Range
+    Set targetCell = wsInfo.Range(cellAddress)
+    If targetCell.MergeCells Then Set targetCell = targetCell.MergeArea.Cells(1, 1)
+
+    Dim cellValue As Variant
+    cellValue = targetCell.value
+    If Not IsError(cellValue) Then
+        If IsNumeric(cellValue) Then GetBasicInfoCellAmount = CDbl(cellValue)
+    End If
+End Function
+
+'  WriteBasicInfoPlainValue
+'  指定セルへ値のみを書き込む(結合セル対応。表示形式は変更しない)。
+Private Sub WriteBasicInfoPlainValue(ByVal wsInfo As Worksheet, _
+                                     ByVal cellAddress As String, _
+                                     ByVal amount As Double)
+    Dim targetCell As Range
+    Set targetCell = wsInfo.Range(cellAddress)
+    If targetCell.MergeCells Then Set targetCell = targetCell.MergeArea.Cells(1, 1)
+    targetCell.value = amount
+End Sub
+
+'  ResolveBasicInfoTaxRate
+'  B34 のラベル(例:「消費税(10%)」)から税率を抽出する。
+'  「%」直前の数値を税率として解釈し、取得できない場合は既定の10%を返す。
+Private Function ResolveBasicInfoTaxRate(ByVal wsInfo As Worksheet) As Double
+    ResolveBasicInfoTaxRate = BASIC_INFO_TAX_RATE_DEFAULT
+
+    Dim labelText As String
+    On Error Resume Next
+    labelText = StrConv(CommonNzText(wsInfo.Range(BASIC_INFO_TAX_LABEL_CELL).value), vbNarrow)
+    On Error GoTo 0
+    If labelText = "" Then Exit Function
+
+    Dim numText As String
+    Dim i As Long
+    Dim ch As String
+    For i = 1 To Len(labelText)
+        ch = Mid$(labelText, i, 1)
+        If (ch >= "0" And ch <= "9") Or ch = "." Then
+            numText = numText & ch
+        ElseIf ch = "%" Then
+            If numText <> "" And IsNumeric(numText) Then
+                ResolveBasicInfoTaxRate = CDbl(numText) / 100
+            End If
+            Exit Function
+        Else
+            numText = ""
+        End If
+    Next i
+End Function
+
+'  ApplyBasicInfoYenTotalFormat
+'  C31:C35 に「\＋桁区切り」(負数は赤字)の表示形式を適用する。
+Private Sub ApplyBasicInfoYenTotalFormat(ByVal wsInfo As Worksheet)
+    Dim yenMark As String
+    yenMark = ChrW$(&HA5)   ' \
+
+    wsInfo.Range(BASIC_INFO_YEN_TOTAL_RANGE).NumberFormatLocal = _
+        yenMark & "#,##0;[赤]-" & yenMark & "#,##0"
 End Sub
 
 Private Function CollectSelectedSubcontractors(ByVal ws As Worksheet, _
