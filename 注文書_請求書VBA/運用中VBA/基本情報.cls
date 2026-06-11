@@ -9,6 +9,7 @@ Private Sub Worksheet_Activate()
     mod_VendorMaster.InitVendorBlockCountFromSheet Me
     mod_VendorMaster.RefreshVendorListForBasicInfo Me
     mod_MaterialPriceImport.RefreshUnitPriceProjectNameValidation Me
+    mod_Construction_Order_Import.RefreshBasicInfoConstructionTotals
 
 ExitHandler:
     Application.EnableEvents = True
@@ -48,6 +49,7 @@ Private Sub Worksheet_Change(ByVal target As Range)
     If Not Intersect(target, Me.Range("F9")) Is Nothing Then
         mod_VendorMaster.SyncVendorBlocksFromCount Me
         Set vendorNameRange = mod_VendorMaster.GetVendorNameRange(Me)
+        mod_Construction_Order_Import.RefreshBasicInfoConstructionTotals
     End If
 
     If Not Intersect(target, Me.Range("B6,C6")) Is Nothing Then
@@ -98,6 +100,7 @@ Private Sub Worksheet_Change(ByVal target As Range)
         mod_VendorMaster.FillVendorInfoToBasicInfo Me, Intersect(target, vendorNameRange).Cells(1, 1)
         mod_VendorMaster.CancelScheduledVendorListDropdown
         mod_VendorMaster.HideVendorComboBox Me
+        mod_Construction_Order_Import.RefreshBasicInfoConstructionTotals
     End If
 
     If Not Intersect(target, vendorUnitPriceMonitorRange) Is Nothing Then

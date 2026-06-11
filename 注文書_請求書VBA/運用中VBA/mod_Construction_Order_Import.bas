@@ -47,6 +47,13 @@ Private Const BASIC_INFO_PUBLIC_CELL As String = "B4"
 Private Const BASIC_INFO_AMOUNT_CELL As String = "C22"
 Private Const BASIC_INFO_LINE_TYPE_CELL As String = "C20"
 Private Const BASIC_INFO_PROJECT_NAME_CELL As String = "C21"
+Private Const BASIC_INFO_WORKS_TOTAL_CELL As String = "C31"
+Private Const BASIC_INFO_PURCHASE_TOTAL_CELL As String = "C32"
+Private Const BASIC_INFO_VENDOR1_NAME_CELL As String = "F11"
+Private Const BASIC_INFO_VENDOR1_TOTAL_CELL As String = "F33"
+Private Const BASIC_INFO_VENDOR2_NAME_CELL As String = "I11"
+Private Const BASIC_INFO_VENDOR2_TOTAL_CELL As String = "I33"
+Private Const BASIC_INFO_TOTAL_NUMBER_FORMAT As String = "#,##0;[ê‘]-#,##0"
 Private Const PRICE_GUIDANCE_AMOUNT_TYPE_MESSAGE As String = _
     "äÓñ{èÓïÒÉVÅ[ÉgÇÃC22ÉZÉãÅFíPâøìKópãÊï™(îNèâíPâøorê›åvïœçXíPâø)ÇämîFÇµÇƒâ∫Ç≥Ç¢ÅB"
 
@@ -66,6 +73,8 @@ Private Const PRICE_LINE_OFFICE_COL As Long = 3
 Private Const PRICE_LINE_NAME_COL As Long = 5
 Private Const PRICE_LINE_START_ROW As Long = 2
 Private Const PURCHASE_PRICE_SHEET_SUFFIX As String = "_çwì¸è[ìñíPâø"
+Private Const PURCHASE_ORDER_SHEET_NAME As String = "çwì¸è[ìñéwé¶"
+Private Const PURCHASE_NOTICE_SHEET_NAME As String = "çwì¸è[ìñí ím"
 Private Const PURCHASE_PRICE_KEY_COL As Long = 1
 Private Const PURCHASE_PRICE_VALUE_COL As Long = 6
 Private Const PURCHASE_PRICE_DATA_START_ROW As Long = 2
@@ -319,6 +328,8 @@ Public Sub ImportConstructionDocument()
             End If
         End If
     End If
+
+    RefreshBasicInfoConstructionTotals
 
     wsWorks.Activate
     wsWorks.Range("A1").Select
@@ -755,7 +766,10 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet)
         ws.Range(ws.Columns(SUBCON_PRICE_FIRST_COL), _
                  ws.Columns(kindColumn - 1)).Delete Shift:=xlToLeft
     End If
-    If vendorNames.Count = 0 Or lastRow < 2 Then Exit Sub
+    If vendorNames.Count = 0 Or lastRow < 2 Then
+        RefreshBasicInfoConstructionTotals
+        Exit Sub
+    End If
 
     Dim insertedColumnCount As Long
     insertedColumnCount = vendorNames.Count * 2
@@ -832,8 +846,179 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet)
     Next vendorIndex
 
     RedrawTotalBorders ws, lastRow + 1, COL_JR_PRICE, COL_JR_AMOUNT
+    RefreshBasicInfoConstructionTotals
     LogCI "é{çHâÔé–ï íPâøóÒ: âÔé–êî=" & vendorNames.Count & _
           " / íPâøàÍív=" & matchedCount
+End Sub
+
+Public Sub RefreshBasicInfoConstructionTotals()
+    On Error GoTo ErrorHandler
+
+    Dim wsInfo As Worksheet
+    Set wsInfo = CommonGetBasicInfoWorksheet(ThisWorkbook)
+    If wsInfo Is Nothing Then Exit Sub
+
+    Dim vendor1Name As String
+    Dim vendor2Name As String
+    vendor1Name = GetBasicInfoCellText(wsInfo, BASIC_INFO_VENDOR1_NAME_CELL)
+    vendor2Name = GetBasicInfoCellText(wsInfo, BASIC_INFO_VENDOR2_NAME_CELL)
+
+    Dim worksTotal As Double
+    Dim purchaseTotal As Double
+    Dim vendor1Total As Double
+    Dim vendor2Total As Double
+
+    Dim ws As Worksheet
+    For Each ws In ThisWorkbook.Worksheets
+        If IsPurchaseOutputSheet(ws) Then
+            purchaseTotal = purchaseTotal + SumOutputJrAmount(ws)
+        ElseIf IsConstructionOutputSheet(ws) Then
+            worksTotal = worksTotal + SumOutputJrAmount(ws)
+            If vendor1Name <> "" Then
+                vendor1Total = vendor1Total + SumVendorAmountOnSheet(ws, vendor1Name)
+            End If
+            If vendor2Name <> "" Then
+                vendor2Total = vendor2Total + SumVendorAmountOnSheet(ws, vendor2Name)
+            End If
+        End If
+    Next ws
+
+    WriteBasicInfoAmount wsInfo, BASIC_INFO_WORKS_TOTAL_CELL, worksTotal
+    WriteBasicInfoAmount wsInfo, BASIC_INFO_PURCHASE_TOTAL_CELL, purchaseTotal
+    WriteBasicInfoAmount wsInfo, BASIC_INFO_VENDOR1_TOTAL_CELL, vendor1Total, (vendor1Name <> "")
+    WriteBasicInfoAmount wsInfo, BASIC_INFO_VENDOR2_TOTAL_CELL, vendor2Total, (vendor2Name <> "")
+    Exit Sub
+
+ErrorHandler:
+    LogCI "äÓñ{èÓïÒçáåvã‡äzçXêVÉGÉâÅ[ Err " & Err.Number & ": " & Err.Description
+End Sub
+
+Private Function IsPurchaseOutputSheet(ByVal ws As Worksheet) As Boolean
+    If ws Is Nothing Then Exit Function
+
+    IsPurchaseOutputSheet = _
+        (StrComp(ws.Name, PURCHASE_ORDER_SHEET_NAME, vbTextCompare) = 0) Or _
+        (StrComp(ws.Name, PURCHASE_NOTICE_SHEET_NAME, vbTextCompare) = 0)
+End Function
+
+Private Function IsConstructionOutputSheet(ByVal ws As Worksheet) As Boolean
+    If ws Is Nothing Then Exit Function
+    If IsPurchaseOutputSheet(ws) Then Exit Function
+
+    IsConstructionOutputSheet = _
+        (FindHeaderColumn(ws, "é{çHã∆é“") > 0) And _
+        (FindHeaderColumn(ws, "êÆóùî‘çÜ") > 0) And _
+        (FindHeaderColumn(ws, "JRã‡äz") > 0) And _
+        (FindHeaderColumn(ws, "çHéÌï™óﬁ") > 0)
+End Function
+
+Private Function SumOutputJrAmount(ByVal ws As Worksheet) As Double
+    Dim seiriColumn As Long
+    Dim amountColumn As Long
+    seiriColumn = FindHeaderColumn(ws, "êÆóùî‘çÜ")
+    amountColumn = FindHeaderColumn(ws, "JRã‡äz")
+    If seiriColumn = 0 Or amountColumn = 0 Then Exit Function
+
+    Dim lastRow As Long
+    lastRow = GetLastDataRow(ws, seiriColumn)
+    If lastRow < 2 Then Exit Function
+
+    SumOutputJrAmount = RoundDownAmount(SumNumericColumn(ws, amountColumn, lastRow))
+End Function
+
+Private Function SumVendorAmountOnSheet(ByVal ws As Worksheet, _
+                                        ByVal vendorName As String) As Double
+    Dim vendorKey As String
+    vendorKey = NormalizeVendorPriceName(vendorName)
+    If vendorKey = "" Then Exit Function
+
+    Dim seiriColumn As Long
+    Dim kindColumn As Long
+    seiriColumn = FindHeaderColumn(ws, "êÆóùî‘çÜ")
+    kindColumn = FindHeaderColumn(ws, "çHéÌï™óﬁ")
+    If seiriColumn = 0 Or kindColumn <= SUBCON_PRICE_FIRST_COL Then Exit Function
+
+    Dim amountColumn As Long
+    Dim c As Long
+    For c = SUBCON_PRICE_FIRST_COL To kindColumn - 1
+        Dim headerText As String
+        headerText = CommonNzText(ws.Cells(1, c).value)
+        If Len(headerText) > Len("ã‡äz") Then
+            If Right$(headerText, Len("ã‡äz")) = "ã‡äz" Then
+                If NormalizeVendorPriceName(Left$(headerText, Len(headerText) - Len("ã‡äz"))) = vendorKey Then
+                    amountColumn = c
+                    Exit For
+                End If
+            End If
+        End If
+    Next c
+    If amountColumn = 0 Then Exit Function
+
+    Dim lastRow As Long
+    lastRow = GetLastDataRow(ws, seiriColumn)
+    If lastRow < 2 Then Exit Function
+
+    Dim totalAmount As Double
+    Dim r As Long
+    For r = 2 To lastRow
+        If NormalizeVendorPriceName(CommonNzText(ws.Cells(r, COL_VENDOR).value)) = vendorKey Then
+            Dim unitPrice As Variant
+            Dim quantity As Variant
+            unitPrice = ws.Cells(r, amountColumn - 1).value
+            quantity = ws.Cells(r, COL_QTY).value
+            If Not IsError(unitPrice) And Not IsError(quantity) Then
+                If IsNumeric(unitPrice) And IsNumeric(quantity) Then
+                    totalAmount = totalAmount + (CDbl(unitPrice) * CDbl(quantity))
+                End If
+            End If
+        End If
+    Next r
+
+    SumVendorAmountOnSheet = RoundDownAmount(totalAmount)
+End Function
+
+Private Function SumNumericColumn(ByVal ws As Worksheet, _
+                                  ByVal targetColumn As Long, _
+                                  ByVal lastRow As Long) As Double
+    Dim totalAmount As Double
+    Dim r As Long
+    For r = 2 To lastRow
+        Dim cellValue As Variant
+        cellValue = ws.Cells(r, targetColumn).value
+        If Not IsError(cellValue) Then
+            If IsNumeric(cellValue) Then totalAmount = totalAmount + CDbl(cellValue)
+        End If
+    Next r
+
+    SumNumericColumn = totalAmount
+End Function
+
+Private Function RoundDownAmount(ByVal amount As Double) As Double
+    RoundDownAmount = Fix(amount)
+End Function
+
+Private Function GetBasicInfoCellText(ByVal wsInfo As Worksheet, _
+                                      ByVal cellAddress As String) As String
+    Dim targetCell As Range
+    Set targetCell = wsInfo.Range(cellAddress)
+    If targetCell.MergeCells Then Set targetCell = targetCell.MergeArea.Cells(1, 1)
+    GetBasicInfoCellText = Trim$(CommonNzText(targetCell.value))
+End Function
+
+Private Sub WriteBasicInfoAmount(ByVal wsInfo As Worksheet, _
+                                 ByVal cellAddress As String, _
+                                 ByVal amount As Double, _
+                                 Optional ByVal hasValue As Boolean = True)
+    Dim targetCell As Range
+    Set targetCell = wsInfo.Range(cellAddress)
+    If targetCell.MergeCells Then Set targetCell = targetCell.MergeArea.Cells(1, 1)
+
+    targetCell.NumberFormatLocal = BASIC_INFO_TOTAL_NUMBER_FORMAT
+    If hasValue Then
+        targetCell.value = RoundDownAmount(amount)
+    Else
+        targetCell.ClearContents
+    End If
 End Sub
 
 Private Function CollectSelectedSubcontractors(ByVal ws As Worksheet, _
