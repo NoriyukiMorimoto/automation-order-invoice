@@ -49,10 +49,12 @@ Private Const BASIC_INFO_LINE_TYPE_CELL As String = "C20"
 Private Const BASIC_INFO_PROJECT_NAME_CELL As String = "C21"
 Private Const BASIC_INFO_WORKS_TOTAL_CELL As String = "C31"
 Private Const BASIC_INFO_PURCHASE_TOTAL_CELL As String = "C32"
-Private Const BASIC_INFO_VENDOR1_NAME_CELL As String = "F11"
-Private Const BASIC_INFO_VENDOR1_TOTAL_CELL As String = "F33"
-Private Const BASIC_INFO_VENDOR2_NAME_CELL As String = "I11"
-Private Const BASIC_INFO_VENDOR2_TOTAL_CELL As String = "I33"
+Private Const BASIC_INFO_VENDOR_NAME_ROW As Long = 11
+Private Const BASIC_INFO_VENDOR_TOTAL_ROW As Long = 33
+Private Const BASIC_INFO_VENDOR_FIRST_COL As Long = 6
+Private Const BASIC_INFO_VENDOR_STEP_COLS As Long = 3
+Private Const BASIC_INFO_VENDOR_MAX_BLOCKS As Long = 20
+Private Const BASIC_INFO_VENDOR_COUNT_CELL As String = "F9"
 Private Const BASIC_INFO_TOTAL_NUMBER_FORMAT As String = "#,##0;[赤]-#,##0"
 Private Const PRICE_GUIDANCE_AMOUNT_TYPE_MESSAGE As String = _
     "基本情報シートのC22セル：単価適用区分(年初単価or設計変更単価)を確認して下さい。"
@@ -859,15 +861,22 @@ Public Sub RefreshBasicInfoConstructionTotals()
     Set wsInfo = CommonGetBasicInfoWorksheet(ThisWorkbook)
     If wsInfo Is Nothing Then Exit Sub
 
-    Dim vendor1Name As String
-    Dim vendor2Name As String
-    vendor1Name = GetBasicInfoCellText(wsInfo, BASIC_INFO_VENDOR1_NAME_CELL)
-    vendor2Name = GetBasicInfoCellText(wsInfo, BASIC_INFO_VENDOR2_NAME_CELL)
+    Dim vendorCount As Long
+    vendorCount = GetBasicInfoVendorBlockCount(wsInfo)
+
+    Dim vendorNames() As String
+    Dim vendorTotals() As Double
+    ReDim vendorNames(1 To BASIC_INFO_VENDOR_MAX_BLOCKS)
+    ReDim vendorTotals(1 To BASIC_INFO_VENDOR_MAX_BLOCKS)
+
+    Dim i As Long
+    For i = 1 To vendorCount
+        vendorNames(i) = GetBasicInfoCellText(wsInfo, _
+            wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, BasicInfoVendorColumn(i)).Address)
+    Next i
 
     Dim worksTotal As Double
     Dim purchaseTotal As Double
-    Dim vendor1Total As Double
-    Dim vendor2Total As Double
 
     Dim ws As Worksheet
     For Each ws In ThisWorkbook.Worksheets
@@ -875,24 +884,46 @@ Public Sub RefreshBasicInfoConstructionTotals()
             purchaseTotal = purchaseTotal + SumOutputJrAmount(ws)
         ElseIf IsConstructionOutputSheet(ws) Then
             worksTotal = worksTotal + SumOutputJrAmount(ws)
-            If vendor1Name <> "" Then
-                vendor1Total = vendor1Total + SumVendorAmountOnSheet(ws, vendor1Name)
-            End If
-            If vendor2Name <> "" Then
-                vendor2Total = vendor2Total + SumVendorAmountOnSheet(ws, vendor2Name)
-            End If
+            For i = 1 To vendorCount
+                If vendorNames(i) <> "" Then
+                    vendorTotals(i) = vendorTotals(i) + SumVendorAmountOnSheet(ws, vendorNames(i))
+                End If
+            Next i
         End If
     Next ws
 
     WriteBasicInfoAmount wsInfo, BASIC_INFO_WORKS_TOTAL_CELL, worksTotal
     WriteBasicInfoAmount wsInfo, BASIC_INFO_PURCHASE_TOTAL_CELL, purchaseTotal
-    WriteBasicInfoAmount wsInfo, BASIC_INFO_VENDOR1_TOTAL_CELL, vendor1Total, (vendor1Name <> "")
-    WriteBasicInfoAmount wsInfo, BASIC_INFO_VENDOR2_TOTAL_CELL, vendor2Total, (vendor2Name <> "")
+
+    Dim totalCellAddress As String
+    For i = 1 To BASIC_INFO_VENDOR_MAX_BLOCKS
+        totalCellAddress = wsInfo.Cells(BASIC_INFO_VENDOR_TOTAL_ROW, _
+                                        BasicInfoVendorColumn(i)).Address
+        If i <= vendorCount And vendorNames(i) <> "" Then
+            WriteBasicInfoAmount wsInfo, totalCellAddress, vendorTotals(i), True
+        Else
+            WriteBasicInfoAmount wsInfo, totalCellAddress, 0, False
+        End If
+    Next i
     Exit Sub
 
 ErrorHandler:
     LogCI "基本情報合計金額更新エラー Err " & Err.Number & ": " & Err.Description
 End Sub
+
+Private Function BasicInfoVendorColumn(ByVal vendorIndex As Long) As Long
+    BasicInfoVendorColumn = BASIC_INFO_VENDOR_FIRST_COL + _
+                            ((vendorIndex - 1) * BASIC_INFO_VENDOR_STEP_COLS)
+End Function
+
+Private Function GetBasicInfoVendorBlockCount(ByVal wsInfo As Worksheet) As Long
+    Dim countValue As Long
+    countValue = CLng(Val(StrConv(CommonNzText( _
+        wsInfo.Range(BASIC_INFO_VENDOR_COUNT_CELL).value), vbNarrow)))
+    If countValue < 1 Then countValue = 1
+    If countValue > BASIC_INFO_VENDOR_MAX_BLOCKS Then countValue = BASIC_INFO_VENDOR_MAX_BLOCKS
+    GetBasicInfoVendorBlockCount = countValue
+End Function
 
 Private Function IsPurchaseOutputSheet(ByVal ws As Worksheet) As Boolean
     If ws Is Nothing Then Exit Function
@@ -961,16 +992,12 @@ Private Function SumVendorAmountOnSheet(ByVal ws As Worksheet, _
 
     Dim totalAmount As Double
     Dim r As Long
+    Dim amountValue As Variant
     For r = 2 To lastRow
-        If NormalizeVendorPriceName(CommonNzText(ws.Cells(r, COL_VENDOR).value)) = vendorKey Then
-            Dim unitPrice As Variant
-            Dim quantity As Variant
-            unitPrice = ws.Cells(r, amountColumn - 1).value
-            quantity = ws.Cells(r, COL_QTY).value
-            If Not IsError(unitPrice) And Not IsError(quantity) Then
-                If IsNumeric(unitPrice) And IsNumeric(quantity) Then
-                    totalAmount = totalAmount + (CDbl(unitPrice) * CDbl(quantity))
-                End If
+        amountValue = ws.Cells(r, amountColumn).value
+        If Not IsError(amountValue) Then
+            If IsNumeric(amountValue) Then
+                totalAmount = totalAmount + CDbl(amountValue)
             End If
         End If
     Next r

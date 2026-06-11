@@ -137,6 +137,7 @@ Public Sub ClearBasicInfo()
     HideOfficeComboBoxForUpdate wsInfo
     mod_MaterialPriceImport.ConfirmAndClearUnitPriceForBasicInfo wsInfo
     wsInfo.Range(BASIC_INFO_CLEAR_RANGES).ClearContents
+    ClearVendorTotalCells wsInfo
     wsInfo.Range(BASIC_INFO_BILLING_SEQUENCE_CELL).value = 1
     mod_VendorMaster.SyncVendorBlocksFromCount wsInfo
 
@@ -176,6 +177,7 @@ Public Sub SilentClearBasicInfo(ByVal wsInfo As Worksheet)
     HideOfficeComboBoxForUpdate wsInfo
     mod_MaterialPriceImport.SilentClearUnitPriceForBasicInfo wsInfo
     wsInfo.Range(BASIC_INFO_CLEAR_RANGES).ClearContents
+    ClearVendorTotalCells wsInfo
     wsInfo.Range(BASIC_INFO_BILLING_SEQUENCE_CELL).value = 1
     mod_VendorMaster.SyncVendorBlocksFromCount wsInfo
 
@@ -304,4 +306,20 @@ End Function
 
 Private Sub ApplyJapaneseDateFormat(ByVal targetCell As Range)
     targetCell.NumberFormatLocal = "yyyy" & ChrW$(&H5E74) & "m" & ChrW$(&H6708) & "d" & ChrW$(&H65E5)
+End Sub
+
+Private Sub ClearVendorTotalCells(ByVal wsInfo As Worksheet)
+    Const VENDOR_TOTAL_ROW As Long = 33
+    Const VENDOR_TOTAL_FIRST_COL As Long = 6
+    Const VENDOR_TOTAL_STEP_COLS As Long = 3
+    Const VENDOR_TOTAL_MAX_BLOCKS As Long = 20
+
+    Dim i As Long
+    Dim targetCell As Range
+    For i = 1 To VENDOR_TOTAL_MAX_BLOCKS
+        Set targetCell = wsInfo.Cells(VENDOR_TOTAL_ROW, _
+                                      VENDOR_TOTAL_FIRST_COL + ((i - 1) * VENDOR_TOTAL_STEP_COLS))
+        If targetCell.MergeCells Then Set targetCell = targetCell.MergeArea.Cells(1, 1)
+        targetCell.ClearContents
+    Next i
 End Sub
