@@ -830,6 +830,8 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet)
                         priceColumn, CStr(vendorNames(vendorIndex)) & "çáåv", _
                         priceColumn + 1, lastRow
     Next vendorIndex
+
+    RedrawTotalBorders ws, lastRow + 1, COL_JR_PRICE, COL_JR_AMOUNT
     LogCI "é{çHâÔé–ï íPâøóÒ: âÔé–êî=" & vendorNames.Count & _
           " / íPâøàÍív=" & matchedCount
 End Sub
@@ -1069,8 +1071,24 @@ Private Sub WriteTotalCells(ByVal ws As Worksheet, ByVal totalRow As Long, _
         .NumberFormatLocal = "#,##0;[ê‘]-#,##0"
     End With
 
-    ws.Cells(totalRow, labelColumn).BorderAround LineStyle:=xlDouble, Color:=RGB(0, 0, 0)
-    ws.Cells(totalRow, sumColumn).BorderAround LineStyle:=xlDouble, Color:=RGB(255, 0, 0)
+    DrawDoubleBorder ws.Cells(totalRow, labelColumn), RGB(0, 0, 0)
+    DrawDoubleBorder ws.Cells(totalRow, sumColumn), RGB(255, 0, 0)
+End Sub
+
+Private Sub DrawDoubleBorder(ByVal target As Range, ByVal lineColor As Long)
+    Dim edgeId As Variant
+    For Each edgeId In Array(xlEdgeLeft, xlEdgeTop, xlEdgeRight, xlEdgeBottom)
+        With target.Borders(edgeId)
+            .LineStyle = xlDouble
+            .Color = lineColor
+        End With
+    Next edgeId
+End Sub
+
+Private Sub RedrawTotalBorders(ByVal ws As Worksheet, ByVal totalRow As Long, _
+                               ByVal labelColumn As Long, ByVal sumColumn As Long)
+    DrawDoubleBorder ws.Cells(totalRow, labelColumn), RGB(0, 0, 0)
+    DrawDoubleBorder ws.Cells(totalRow, sumColumn), RGB(255, 0, 0)
 End Sub
 
 Private Sub WriteJrTotalRow(ByVal ws As Worksheet)
