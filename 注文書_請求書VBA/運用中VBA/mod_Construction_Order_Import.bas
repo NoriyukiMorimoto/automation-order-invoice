@@ -64,7 +64,8 @@ Private Const BASIC_INFO_REF_FONT_NAME As String = "BIZ UDゴシック"
 Private Const PROJECT_MASTER_START_ROW As Long = 2
 Private Const PROJECT_MASTER_UNIT_PRICE_LINE_COL As Long = 6
 Private Const PROJECT_MASTER_SOURCE_LINE_COL As Long = 7
-Private Const PROJECT_MASTER_FOLDER As String = "工事件名別マスタ"
+Private Const MASTER_DATA_FOLDER As String = "マスタデータ"
+Private Const UNIT_PRICE_LINE_MASTER_FILE As String = "出張所別_単価適用線区.xlsx"
 Private Const UNIT_PRICE_DATA_START_ROW As Long = 7
 
 Private Const PRICE_LINE_SHEET As String = "単価適用線区"
@@ -1671,22 +1672,14 @@ Private Function ResolveProjectLineMasterPath() As String
 
     Dim documentRoot As Variant
     For Each documentRoot In documentRoots
-        Dim masterFolders As Collection
-        Set masterFolders = New Collection
-        AddUniqueText masterFolders, fso.BuildPath(CStr(documentRoot), _
-                      "単価マスタ\" & PROJECT_MASTER_FOLDER & "\" & lineType)
-        AddUniqueText masterFolders, fso.BuildPath(CStr(documentRoot), _
-                      "マスタデータ\" & lineType)
-
-        Dim masterFolder As Variant
-        For Each masterFolder In masterFolders
-            LogCI "工事件名別マスタ探索 folder=[" & CStr(masterFolder) & "]"
-            ResolveProjectLineMasterPath = FindProjectMasterFile(CStr(masterFolder), projectName)
-            If ResolveProjectLineMasterPath <> "" Then
-                LogCI "工事件名別マスタ解決 path=[" & ResolveProjectLineMasterPath & "]"
-                Exit Function
-            End If
-        Next masterFolder
+        Dim masterFolder As String
+        masterFolder = fso.BuildPath(CStr(documentRoot), MASTER_DATA_FOLDER & "\" & lineType)
+        LogCI "工事件名別マスタ探索 folder=[" & masterFolder & "]"
+        ResolveProjectLineMasterPath = FindProjectMasterFile(masterFolder, projectName)
+        If ResolveProjectLineMasterPath <> "" Then
+            LogCI "工事件名別マスタ解決 path=[" & ResolveProjectLineMasterPath & "]"
+            Exit Function
+        End If
     Next documentRoot
 
     LogCI "工事件名別マスタ解決失敗 lineType=[" & lineType & "] projectName=[" & projectName & "]"
@@ -2260,7 +2253,7 @@ Private Function OpenUnitPriceMasterAdoConnection(ByRef resolvedPath As String) 
     If Len(ThisWorkbook.Path) > 0 Then
         documentRoot = fso.GetParentFolderName(ThisWorkbook.Path)
         AddUniqueText candidates, fso.BuildPath(documentRoot, _
-            "単価マスタ\" & PROJECT_MASTER_FOLDER & "\出張所別_単価適用線区.xlsx")
+            MASTER_DATA_FOLDER & "\" & UNIT_PRICE_LINE_MASTER_FILE)
     End If
 
     Dim userProfilePath As String
@@ -2270,8 +2263,8 @@ Private Function OpenUnitPriceMasterAdoConnection(ByRef resolvedPath As String) 
     End If
     If Len(Trim$(userProfilePath)) > 0 Then
         AddUniqueText candidates, userProfilePath & "\" & CommonCompanyNameText() & "\" & _
-            "線路出張所用_注文書_請求書アクセスサイト - ドキュメント\単価マスタ\" & _
-            PROJECT_MASTER_FOLDER & "\出張所別_単価適用線区.xlsx"
+            "線路出張所用_注文書_請求書アクセスサイト - ドキュメント\" & _
+            MASTER_DATA_FOLDER & "\" & UNIT_PRICE_LINE_MASTER_FILE
     End If
 
     Dim candidate As Variant
