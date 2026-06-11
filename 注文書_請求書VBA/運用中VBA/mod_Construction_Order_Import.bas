@@ -822,14 +822,14 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet)
         End If
     Next r
 
+    FormatSubcontractorPriceColumns ws, lastRow, insertedColumnCount
+
     For vendorIndex = 1 To vendorNames.Count
         priceColumn = SUBCON_PRICE_FIRST_COL + ((vendorIndex - 1) * 2)
         WriteTotalCells ws, lastRow + 1, _
                         priceColumn, CStr(vendorNames(vendorIndex)) & "çáåv", _
                         priceColumn + 1, lastRow
     Next vendorIndex
-
-    FormatSubcontractorPriceColumns ws, lastRow, insertedColumnCount
     LogCI "é{çHâÔé–ï íPâøóÒ: âÔé–êî=" & vendorNames.Count & _
           " / íPâøàÍív=" & matchedCount
 End Sub
@@ -972,11 +972,18 @@ Private Sub FormatSubcontractorPriceColumns(ByVal ws As Worksheet, _
     If lastRow >= 2 Then
         Dim sanpaiFillColor As Long
         Dim sanpaiRow As Long
+        Dim fillCol As Long
         sanpaiFillColor = GetSanpaiFillColor()
         For sanpaiRow = 2 To lastRow
             If IsSanpaiRow(ws, sanpaiRow) Then
                 ws.Range(ws.Cells(sanpaiRow, firstColumn), _
                          ws.Cells(sanpaiRow, lastColumn)).Interior.Color = sanpaiFillColor
+            Else
+                For fillCol = firstColumn To lastColumn
+                    If Len(CommonNzText(ws.Cells(sanpaiRow, fillCol).value)) = 0 Then
+                        ws.Cells(sanpaiRow, fillCol).Interior.Color = sanpaiFillColor
+                    End If
+                Next fillCol
             End If
         Next sanpaiRow
     End If
@@ -1055,14 +1062,15 @@ Private Sub WriteTotalCells(ByVal ws As Worksheet, ByVal totalRow As Long, _
         .HorizontalAlignment = xlCenter
         .VerticalAlignment = xlCenter
         .ShrinkToFit = True
-        .BorderAround LineStyle:=xlDouble, Color:=RGB(0, 0, 0)
     End With
 
     With ws.Cells(totalRow, sumColumn)
         .FormulaR1C1 = "=ROUNDDOWN(SUM(R2C:R" & sumLastRow & "C),0)"
         .NumberFormatLocal = "#,##0;[ê‘]-#,##0"
-        .BorderAround LineStyle:=xlContinuous, Weight:=xlMedium, Color:=RGB(255, 0, 0)
     End With
+
+    ws.Cells(totalRow, labelColumn).BorderAround LineStyle:=xlDouble, Color:=RGB(0, 0, 0)
+    ws.Cells(totalRow, sumColumn).BorderAround LineStyle:=xlDouble, Color:=RGB(255, 0, 0)
 End Sub
 
 Private Sub WriteJrTotalRow(ByVal ws As Worksheet)
