@@ -917,6 +917,7 @@ Public Sub RefreshBasicInfoConstructionTotals()
     UpdateBasicInfoTaxTotals wsInfo
 
     Dim totalCellAddress As String
+    Dim totalCell As Range
     For i = 1 To BASIC_INFO_VENDOR_MAX_BLOCKS
         totalCellAddress = wsInfo.Cells(BASIC_INFO_VENDOR_TOTAL_ROW, _
                                         BasicInfoVendorColumn(i)).Address
@@ -925,6 +926,11 @@ Public Sub RefreshBasicInfoConstructionTotals()
         Else
             WriteBasicInfoAmount wsInfo, totalCellAddress, 0, False
         End If
+
+        ' 業者別合計セルにも「\＋桁区切り」の表示形式を適用
+        Set totalCell = wsInfo.Range(totalCellAddress)
+        If totalCell.MergeCells Then Set totalCell = totalCell.MergeArea.Cells(1, 1)
+        totalCell.NumberFormatLocal = BasicInfoYenNumberFormat()
     Next i
     Exit Sub
 
@@ -1174,12 +1180,18 @@ End Function
 '  ApplyBasicInfoYenTotalFormat
 '  C31:C35 に「\＋桁区切り」(負数は赤字)の表示形式を適用する。
 Private Sub ApplyBasicInfoYenTotalFormat(ByVal wsInfo As Worksheet)
+    wsInfo.Range(BASIC_INFO_YEN_TOTAL_RANGE).NumberFormatLocal = BasicInfoYenNumberFormat()
+End Sub
+
+'  BasicInfoYenNumberFormat
+'  「\＋桁区切り」(負数は赤字)の表示形式文字列を返す。
+'  \記号はCP932での文字化けを避けるため ChrW$ で生成する。
+Private Function BasicInfoYenNumberFormat() As String
     Dim yenMark As String
     yenMark = ChrW$(&HA5)   ' \
 
-    wsInfo.Range(BASIC_INFO_YEN_TOTAL_RANGE).NumberFormatLocal = _
-        yenMark & "#,##0;[赤]-" & yenMark & "#,##0"
-End Sub
+    BasicInfoYenNumberFormat = yenMark & "#,##0;[赤]-" & yenMark & "#,##0"
+End Function
 
 Private Function CollectSelectedSubcontractors(ByVal ws As Worksheet, _
                                                 ByVal lastRow As Long) As Collection
