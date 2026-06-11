@@ -2,9 +2,8 @@ Option Explicit
 
 Private Const DEFAULT_SOURCE_ROOT As String = "\\dt-ims\公開フォルダ\090_線路本部\008_単価契約関係\2026年度 R8年度単価契約工事"
 Private Const PROJECT_LIST_BOOK As String = "出張所別_単価適用線区.xlsx"
-Private Const PROJECT_LIST_DIR As String = "工事件名別マスタ"
+Private Const MASTER_DATA_FOLDER As String = "マスタデータ"
 Private Const PROJECT_LIST_SHEET As String = "単価適用工事件名マスタ"
-Private Const PROJECT_MASTER_DIR As String = "工事件名別マスタ"
 Private Const OUTPUT_DATA_DIR As String = "単価データ"
 Private Const OUTPUT_CONVENTIONAL_LINE_DIR As String = "01_在来線"
 Private Const OUTPUT_SHINKANSEN_LINE_DIR As String = "02_新幹線"
@@ -229,12 +228,22 @@ Private Function ResolveRootPath() As String
     End If
 
     Err.Raise vbObjectError + 1, , "単価マスタフォルダを自動検出できませんでした。SharePointをローカル同期し、次のファイルが存在することを確認してください。" & vbCrLf & _
-        CombinePath(PROJECT_LIST_DIR, PROJECT_LIST_BOOK) & vbCrLf & _
-        CombinePath(PROJECT_MASTER_DIR, ConventionalLineName())
+        CombinePath(MASTER_DATA_FOLDER, PROJECT_LIST_BOOK) & vbCrLf & _
+        CombinePath(MASTER_DATA_FOLDER, ConventionalLineName())
+End Function
+
+Private Function GetMasterDataRootPath(Optional ByVal unitPriceRootPath As String = "") As String
+    Dim rootPath As String
+
+    rootPath = unitPriceRootPath
+    If Len(rootPath) = 0 Then rootPath = mRootPath
+    If Len(rootPath) = 0 Then rootPath = ThisWorkbook.path
+    rootPath = TrimTrailingSlash(rootPath)
+    GetMasterDataRootPath = CombinePath(Left$(rootPath, InStrRev(rootPath, "\") - 1), MASTER_DATA_FOLDER)
 End Function
 
 Private Function GetProjectListPath(ByVal rootPath As String) As String
-    GetProjectListPath = CombinePath(CombinePath(rootPath, PROJECT_LIST_DIR), PROJECT_LIST_BOOK)
+    GetProjectListPath = CombinePath(GetMasterDataRootPath(rootPath), PROJECT_LIST_BOOK)
 End Function
 
 Private Function IsValidRootPath(ByVal candidate As String) As Boolean
@@ -242,7 +251,7 @@ Private Function IsValidRootPath(ByVal candidate As String) As Boolean
     If Left$(LCase$(candidate), 4) = "http" Then Exit Function
 
     candidate = TrimTrailingSlash(candidate)
-    IsValidRootPath = FileExists(GetProjectListPath(candidate)) And FolderExists(CombinePath(CombinePath(candidate, PROJECT_MASTER_DIR), ConventionalLineName()))
+    IsValidRootPath = FileExists(GetProjectListPath(candidate)) And FolderExists(CombinePath(GetMasterDataRootPath(candidate), ConventionalLineName()))
 End Function
 
 Private Function OpenReadOnlyWorkbook(ByVal path As String, Optional ByRef openedByTool As Boolean = True) As Workbook
@@ -526,7 +535,7 @@ Private Function ConventionalLineName() As String
 End Function
 
 Private Function GetConventionalMasterDir() As String
-    GetConventionalMasterDir = CombinePath(CombinePath(mRootPath, PROJECT_MASTER_DIR), ConventionalLineName())
+    GetConventionalMasterDir = CombinePath(GetMasterDataRootPath(), ConventionalLineName())
 End Function
 
 Private Function ShinkansenLineName() As String
@@ -545,7 +554,7 @@ Private Function ShinkansenProjectListSheetName() As String
 End Function
 
 Private Function GetShinkansenMasterDir() As String
-    GetShinkansenMasterDir = CombinePath(CombinePath(mRootPath, PROJECT_MASTER_DIR), ShinkansenLineName())
+    GetShinkansenMasterDir = CombinePath(GetMasterDataRootPath(), ShinkansenLineName())
 End Function
 
 Private Function ResolveShinkansenSourceRoots(ByVal selectedPath As String) As collection
@@ -716,7 +725,7 @@ Private Function ResolveConventionalMasterPath(ByVal projectName As String) As S
         Exit Function
     End If
 
-    legacyPath = CombinePath(CombinePath(mRootPath, PROJECT_MASTER_DIR), projectName & ".xlsx")
+    legacyPath = CombinePath(GetMasterDataRootPath(), projectName & ".xlsx")
     If FileExists(legacyPath) Then
         ResolveConventionalMasterPath = legacyPath
     Else
