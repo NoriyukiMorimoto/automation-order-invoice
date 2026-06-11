@@ -14,7 +14,7 @@ Private mVisibleCompanyCount As Long
 Private Sub UserForm_Initialize()
     confirmed = False
     SelectedCompany = ""
-    Me.Caption = "{H‰ïĞ‘I‘ğ"
+    Me.Caption = "æ–½å·¥ä¼šç¤¾é¸æŠ"
 
     ConfigureStaticControls
     HideCompanyOptions
@@ -78,7 +78,7 @@ Private Sub ConfirmSelection()
     Dim chosen As String
     chosen = GetSelectedCompanyName()
     If chosen = "" Then
-        MsgBox "{H‰ïĞ‚ğ‘I‘ğ‚µ‚Ä‚­‚¾‚³‚¢B", vbExclamation
+        MsgBox "æ–½å·¥ä¼šç¤¾ã‚’é¸æŠã—ã¦ãã ã•ã„ã€‚", vbExclamation
         Exit Sub
     End If
 
@@ -178,8 +178,8 @@ End Function
 
 Private Sub ConfigureStaticControls()
     On Error Resume Next
-    Me.Controls("cmdOK").Caption = "“K—p"
-    Me.Controls("cmdCancel").Caption = "ƒLƒƒƒ“ƒZƒ‹"
+    Me.Controls("cmdOK").Caption = "é©ç”¨"
+    Me.Controls("cmdCancel").Caption = "ã‚­ãƒ£ãƒ³ã‚»ãƒ«"
     On Error GoTo 0
 
     ApplyControlFont Me, False

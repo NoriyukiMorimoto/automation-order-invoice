@@ -49,11 +49,19 @@ Private Const BASIC_INFO_LINE_TYPE_CELL As String = "C20"
 Private Const BASIC_INFO_PROJECT_NAME_CELL As String = "C21"
 Private Const BASIC_INFO_WORKS_TOTAL_CELL As String = "C31"
 Private Const BASIC_INFO_PURCHASE_TOTAL_CELL As String = "C32"
-Private Const BASIC_INFO_VENDOR1_NAME_CELL As String = "F11"
-Private Const BASIC_INFO_VENDOR1_TOTAL_CELL As String = "F33"
-Private Const BASIC_INFO_VENDOR2_NAME_CELL As String = "I11"
-Private Const BASIC_INFO_VENDOR2_TOTAL_CELL As String = "I33"
+Private Const BASIC_INFO_VENDOR_NAME_ROW As Long = 11
+Private Const BASIC_INFO_VENDOR_TOTAL_ROW As Long = 33
+Private Const BASIC_INFO_VENDOR_FIRST_COL As Long = 6
+Private Const BASIC_INFO_VENDOR_STEP_COLS As Long = 3
+Private Const BASIC_INFO_VENDOR_MAX_BLOCKS As Long = 20
+Private Const BASIC_INFO_VENDOR_COUNT_CELL As String = "F9"
 Private Const BASIC_INFO_TOTAL_NUMBER_FORMAT As String = "#,##0;[赤]-#,##0"
+Private Const BASIC_INFO_SUBTOTAL_CELL As String = "C33"
+Private Const BASIC_INFO_TAX_CELL As String = "C34"
+Private Const BASIC_INFO_GRAND_TOTAL_CELL As String = "C35"
+Private Const BASIC_INFO_TAX_LABEL_CELL As String = "B34"
+Private Const BASIC_INFO_TAX_RATE_DEFAULT As Double = 0.1
+Private Const BASIC_INFO_YEN_TOTAL_RANGE As String = "C31:C35"
 Private Const PRICE_GUIDANCE_AMOUNT_TYPE_MESSAGE As String = _
     "基本情報シートのC22セル：単価適用区分(年初単価or設計変更単価)を確認して下さい。"
 
@@ -64,7 +72,11 @@ Private Const BASIC_INFO_REF_FONT_NAME As String = "BIZ UDゴシック"
 Private Const PROJECT_MASTER_START_ROW As Long = 2
 Private Const PROJECT_MASTER_UNIT_PRICE_LINE_COL As Long = 6
 Private Const PROJECT_MASTER_SOURCE_LINE_COL As Long = 7
-Private Const PROJECT_MASTER_FOLDER As String = "工事件名別マスタ"
+Private Const MASTER_DATA_FOLDER As String = "マスタデータ"
+Private Const UNIT_PRICE_LINE_MASTER_FILE As String = "出張所別_単価適用線区.xlsx"
+Private Const VENDOR_MASTER_FILE As String = "業者マスタ(全社版).xlsx"
+Private Const VENDOR_MASTER_ABBREV_COL As Long = 1     ' A列 業者名(略称) … 帳票・シートヘッダー表記
+Private Const VENDOR_MASTER_OFFICIAL_COL As Long = 2   ' B列 請求者氏名(正規名) … 基本情報F11表記
 Private Const UNIT_PRICE_DATA_START_ROW As Long = 7
 
 Private Const PRICE_LINE_SHEET As String = "単価適用線区"
@@ -858,15 +870,33 @@ Public Sub RefreshBasicInfoConstructionTotals()
     Set wsInfo = CommonGetBasicInfoWorksheet(ThisWorkbook)
     If wsInfo Is Nothing Then Exit Sub
 
-    Dim vendor1Name As String
-    Dim vendor2Name As String
-    vendor1Name = GetBasicInfoCellText(wsInfo, BASIC_INFO_VENDOR1_NAME_CELL)
-    vendor2Name = GetBasicInfoCellText(wsInfo, BASIC_INFO_VENDOR2_NAME_CELL)
+    Dim vendorCount As Long
+    vendorCount = GetBasicInfoVendorBlockCount(wsInfo)
+
+    Dim vendorNames() As String
+    Dim vendorTotals() As Double
+    ReDim vendorNames(1 To BASIC_INFO_VENDOR_MAX_BLOCKS)
+    ReDim vendorTotals(1 To BASIC_INFO_VENDOR_MAX_BLOCKS)
+
+    Dim i As Long
+    For i = 1 To vendorCount
+        vendorNames(i) = GetBasicInfoCellText(wsInfo, _
+            wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, BasicInfoVendorColumn(i)).Address)
+    Next i
+
+    Dim vendorNameLog As String
+    For i = 1 To vendorCount
+        vendorNameLog = vendorNameLog & " [" & i & ":" & vendorNames(i) & "]"
+    Next i
+    LogCI "基本情報業者 F9件数=" & vendorCount & vendorNameLog
+
+    Dim BranchName As String
+    BranchName = GetBasicInfoCellText(wsInfo, BASIC_INFO_BRANCH_CELL)
+    Dim vendorAliasMap As Object
+    Set vendorAliasMap = BuildVendorAliasMap(BranchName)
 
     Dim worksTotal As Double
     Dim purchaseTotal As Double
-    Dim vendor1Total As Double
-    Dim vendor2Total As Double
 
     Dim ws As Worksheet
     For Each ws In ThisWorkbook.Worksheets
@@ -874,24 +904,53 @@ Public Sub RefreshBasicInfoConstructionTotals()
             purchaseTotal = purchaseTotal + SumOutputJrAmount(ws)
         ElseIf IsConstructionOutputSheet(ws) Then
             worksTotal = worksTotal + SumOutputJrAmount(ws)
-            If vendor1Name <> "" Then
-                vendor1Total = vendor1Total + SumVendorAmountOnSheet(ws, vendor1Name)
-            End If
-            If vendor2Name <> "" Then
-                vendor2Total = vendor2Total + SumVendorAmountOnSheet(ws, vendor2Name)
-            End If
+            For i = 1 To vendorCount
+                If vendorNames(i) <> "" Then
+                    vendorTotals(i) = vendorTotals(i) + SumVendorAmountOnSheet(ws, vendorNames(i), vendorAliasMap)
+                End If
+            Next i
         End If
     Next ws
 
     WriteBasicInfoAmount wsInfo, BASIC_INFO_WORKS_TOTAL_CELL, worksTotal
     WriteBasicInfoAmount wsInfo, BASIC_INFO_PURCHASE_TOTAL_CELL, purchaseTotal
-    WriteBasicInfoAmount wsInfo, BASIC_INFO_VENDOR1_TOTAL_CELL, vendor1Total, (vendor1Name <> "")
-    WriteBasicInfoAmount wsInfo, BASIC_INFO_VENDOR2_TOTAL_CELL, vendor2Total, (vendor2Name <> "")
+    UpdateBasicInfoTaxTotals wsInfo
+
+    Dim totalCellAddress As String
+    Dim totalCell As Range
+    For i = 1 To BASIC_INFO_VENDOR_MAX_BLOCKS
+        totalCellAddress = wsInfo.Cells(BASIC_INFO_VENDOR_TOTAL_ROW, _
+                                        BasicInfoVendorColumn(i)).Address
+        If i <= vendorCount And vendorNames(i) <> "" Then
+            WriteBasicInfoAmount wsInfo, totalCellAddress, vendorTotals(i), True
+        Else
+            WriteBasicInfoAmount wsInfo, totalCellAddress, 0, False
+        End If
+
+        ' 業者別合計セルにも「\＋桁区切り」の表示形式を適用
+        Set totalCell = wsInfo.Range(totalCellAddress)
+        If totalCell.MergeCells Then Set totalCell = totalCell.MergeArea.Cells(1, 1)
+        totalCell.NumberFormatLocal = BasicInfoYenNumberFormat()
+    Next i
     Exit Sub
 
 ErrorHandler:
     LogCI "基本情報合計金額更新エラー Err " & Err.Number & ": " & Err.Description
 End Sub
+
+Private Function BasicInfoVendorColumn(ByVal vendorIndex As Long) As Long
+    BasicInfoVendorColumn = BASIC_INFO_VENDOR_FIRST_COL + _
+                            ((vendorIndex - 1) * BASIC_INFO_VENDOR_STEP_COLS)
+End Function
+
+Private Function GetBasicInfoVendorBlockCount(ByVal wsInfo As Worksheet) As Long
+    Dim countValue As Long
+    countValue = CLng(Val(StrConv(CommonNzText( _
+        wsInfo.Range(BASIC_INFO_VENDOR_COUNT_CELL).value), vbNarrow)))
+    If countValue < 1 Then countValue = 1
+    If countValue > BASIC_INFO_VENDOR_MAX_BLOCKS Then countValue = BASIC_INFO_VENDOR_MAX_BLOCKS
+    GetBasicInfoVendorBlockCount = countValue
+End Function
 
 Private Function IsPurchaseOutputSheet(ByVal ws As Worksheet) As Boolean
     If ws Is Nothing Then Exit Function
@@ -927,9 +986,10 @@ Private Function SumOutputJrAmount(ByVal ws As Worksheet) As Double
 End Function
 
 Private Function SumVendorAmountOnSheet(ByVal ws As Worksheet, _
-                                        ByVal vendorName As String) As Double
+                                        ByVal vendorName As String, _
+                                        ByVal aliasMap As Object) As Double
     Dim vendorKey As String
-    vendorKey = NormalizeVendorPriceName(vendorName)
+    vendorKey = ResolveVendorCanonicalKey(vendorName, aliasMap)
     If vendorKey = "" Then Exit Function
 
     Dim seiriColumn As Long
@@ -940,19 +1000,28 @@ Private Function SumVendorAmountOnSheet(ByVal ws As Worksheet, _
 
     Dim amountColumn As Long
     Dim c As Long
+    Dim scannedHeaders As String
     For c = SUBCON_PRICE_FIRST_COL To kindColumn - 1
         Dim headerText As String
         headerText = CommonNzText(ws.Cells(1, c).value)
+        If headerText <> "" Then
+            scannedHeaders = scannedHeaders & " [" & c & ":" & headerText & "]"
+        End If
         If Len(headerText) > Len("金額") Then
             If Right$(headerText, Len("金額")) = "金額" Then
-                If NormalizeVendorPriceName(Left$(headerText, Len(headerText) - Len("金額"))) = vendorKey Then
+                If ResolveVendorCanonicalKey(Left$(headerText, Len(headerText) - Len("金額")), aliasMap) = vendorKey Then
                     amountColumn = c
                     Exit For
                 End If
             End If
         End If
     Next c
-    If amountColumn = 0 Then Exit Function
+    If amountColumn = 0 Then
+        LogCI "合計突合NG sheet=[" & ws.Name & "] 業者=[" & vendorName & _
+              "] key=[" & vendorKey & "] kindCol=" & kindColumn & _
+              " 走査列=" & SUBCON_PRICE_FIRST_COL & "～" & (kindColumn - 1) & scannedHeaders
+        Exit Function
+    End If
 
     Dim lastRow As Long
     lastRow = GetLastDataRow(ws, seiriColumn)
@@ -960,21 +1029,19 @@ Private Function SumVendorAmountOnSheet(ByVal ws As Worksheet, _
 
     Dim totalAmount As Double
     Dim r As Long
+    Dim amountValue As Variant
     For r = 2 To lastRow
-        If NormalizeVendorPriceName(CommonNzText(ws.Cells(r, COL_VENDOR).value)) = vendorKey Then
-            Dim unitPrice As Variant
-            Dim quantity As Variant
-            unitPrice = ws.Cells(r, amountColumn - 1).value
-            quantity = ws.Cells(r, COL_QTY).value
-            If Not IsError(unitPrice) And Not IsError(quantity) Then
-                If IsNumeric(unitPrice) And IsNumeric(quantity) Then
-                    totalAmount = totalAmount + (CDbl(unitPrice) * CDbl(quantity))
-                End If
+        amountValue = ws.Cells(r, amountColumn).value
+        If Not IsError(amountValue) Then
+            If IsNumeric(amountValue) Then
+                totalAmount = totalAmount + CDbl(amountValue)
             End If
         End If
     Next r
 
     SumVendorAmountOnSheet = RoundDownAmount(totalAmount)
+    LogCI "合計突合OK sheet=[" & ws.Name & "] 業者=[" & vendorName & _
+          "] 金額列=" & amountColumn & " 合計=" & SumVendorAmountOnSheet
 End Function
 
 Private Function SumNumericColumn(ByVal ws As Worksheet, _
@@ -1021,24 +1088,189 @@ Private Sub WriteBasicInfoAmount(ByVal wsInfo As Worksheet, _
     End If
 End Sub
 
+'  UpdateBasicInfoTaxTotals
+'  基本情報シートの C33(小計)・C34(消費税)・C35(税込合計) を更新し、
+'  C31:C35 に「\＋桁区切り」の表示形式を適用する。
+'  C33 = C31 + C32
+'  C34 = C33 × 税率(B34の表記から取得。取得できない場合は10%) ※小数点以下切り捨て
+'  C35 = C33 + C34
+Public Sub UpdateBasicInfoTaxTotals(Optional ByVal wsInfo As Worksheet)
+    On Error GoTo ErrorHandler
+
+    If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet(ThisWorkbook)
+    If wsInfo Is Nothing Then Exit Sub
+
+    Dim subtotal As Double
+    subtotal = GetBasicInfoCellAmount(wsInfo, BASIC_INFO_WORKS_TOTAL_CELL) + _
+               GetBasicInfoCellAmount(wsInfo, BASIC_INFO_PURCHASE_TOTAL_CELL)
+
+    Dim taxAmount As Double
+    taxAmount = Fix(subtotal * ResolveBasicInfoTaxRate(wsInfo))
+
+    WriteBasicInfoPlainValue wsInfo, BASIC_INFO_SUBTOTAL_CELL, subtotal
+    WriteBasicInfoPlainValue wsInfo, BASIC_INFO_TAX_CELL, taxAmount
+    WriteBasicInfoPlainValue wsInfo, BASIC_INFO_GRAND_TOTAL_CELL, subtotal + taxAmount
+
+    ApplyBasicInfoYenTotalFormat wsInfo
+
+    LogCI "税込合計更新: 小計=" & subtotal & " / 消費税=" & taxAmount & _
+          " / 税込合計=" & (subtotal + taxAmount)
+    Exit Sub
+
+ErrorHandler:
+    LogCI "基本情報税込合計更新エラー Err " & Err.Number & ": " & Err.Description
+End Sub
+
+'  GetBasicInfoCellAmount
+'  指定セルの数値を取得する(結合セル対応。空欄・非数値・エラー値は0)。
+Private Function GetBasicInfoCellAmount(ByVal wsInfo As Worksheet, _
+                                        ByVal cellAddress As String) As Double
+    Dim targetCell As Range
+    Set targetCell = wsInfo.Range(cellAddress)
+    If targetCell.MergeCells Then Set targetCell = targetCell.MergeArea.Cells(1, 1)
+
+    Dim cellValue As Variant
+    cellValue = targetCell.value
+    If Not IsError(cellValue) Then
+        If IsNumeric(cellValue) Then GetBasicInfoCellAmount = CDbl(cellValue)
+    End If
+End Function
+
+'  WriteBasicInfoPlainValue
+'  指定セルへ値のみを書き込む(結合セル対応。表示形式は変更しない)。
+Private Sub WriteBasicInfoPlainValue(ByVal wsInfo As Worksheet, _
+                                     ByVal cellAddress As String, _
+                                     ByVal amount As Double)
+    Dim targetCell As Range
+    Set targetCell = wsInfo.Range(cellAddress)
+    If targetCell.MergeCells Then Set targetCell = targetCell.MergeArea.Cells(1, 1)
+    targetCell.value = amount
+End Sub
+
+'  ResolveBasicInfoTaxRate
+'  B34 のラベル(例:「消費税(10%)」)から税率を抽出する。
+'  「%」直前の数値を税率として解釈し、取得できない場合は既定の10%を返す。
+Private Function ResolveBasicInfoTaxRate(ByVal wsInfo As Worksheet) As Double
+    ResolveBasicInfoTaxRate = BASIC_INFO_TAX_RATE_DEFAULT
+
+    Dim labelText As String
+    On Error Resume Next
+    labelText = StrConv(CommonNzText(wsInfo.Range(BASIC_INFO_TAX_LABEL_CELL).value), vbNarrow)
+    On Error GoTo 0
+    If labelText = "" Then Exit Function
+
+    Dim numText As String
+    Dim i As Long
+    Dim ch As String
+    For i = 1 To Len(labelText)
+        ch = Mid$(labelText, i, 1)
+        If (ch >= "0" And ch <= "9") Or ch = "." Then
+            numText = numText & ch
+        ElseIf ch = "%" Then
+            If numText <> "" And IsNumeric(numText) Then
+                ResolveBasicInfoTaxRate = CDbl(numText) / 100
+            End If
+            Exit Function
+        Else
+            numText = ""
+        End If
+    Next i
+End Function
+
+'  ApplyBasicInfoYenTotalFormat
+'  C31:C35 に「\＋桁区切り」(負数は赤字)の表示形式を適用する。
+Private Sub ApplyBasicInfoYenTotalFormat(ByVal wsInfo As Worksheet)
+    wsInfo.Range(BASIC_INFO_YEN_TOTAL_RANGE).NumberFormatLocal = BasicInfoYenNumberFormat()
+End Sub
+
+'  BasicInfoYenNumberFormat
+'  「\＋桁区切り」(負数は赤字)の表示形式文字列を返す。
+'  \記号はCP932での文字化けを避けるため ChrW$ で生成する。
+Private Function BasicInfoYenNumberFormat() As String
+    Dim yenMark As String
+    yenMark = ChrW$(&HA5)   ' \
+
+    BasicInfoYenNumberFormat = yenMark & "#,##0;[赤]-" & yenMark & "#,##0"
+End Function
+
 Private Function CollectSelectedSubcontractors(ByVal ws As Worksheet, _
                                                 ByVal lastRow As Long) As Collection
     Dim result As New Collection
-    Dim seen As Object
-    Set seen = CreateObject("Scripting.Dictionary")
-    seen.CompareMode = vbTextCompare
+    If lastRow < 2 Then
+        Set CollectSelectedSubcontractors = result
+        Exit Function
+    End If
+
+    Dim wsInfo As Worksheet
+    Set wsInfo = CommonGetBasicInfoWorksheet(ThisWorkbook)
+
+    Dim aliasMap As Object
+    Set aliasMap = Nothing
+    If Not wsInfo Is Nothing Then
+        Set aliasMap = BuildVendorAliasMap(GetBasicInfoCellText(wsInfo, BASIC_INFO_BRANCH_CELL))
+    End If
+
+    Dim sheetByCanonical As Object
+    Set sheetByCanonical = CreateObject("Scripting.Dictionary")
+    sheetByCanonical.CompareMode = vbTextCompare
+
+    Dim sheetOrderKeys As New Collection
 
     Dim r As Long
     For r = 2 To lastRow
         Dim vendorName As String
-        Dim vendorKey As String
+        Dim canonicalKey As String
         vendorName = Trim$(CommonNzText(ws.Cells(r, COL_VENDOR).value))
-        vendorKey = NormalizeVendorPriceName(vendorName)
-        If vendorKey <> "" And Not seen.Exists(vendorKey) Then
-            seen.Add vendorKey, True
-            result.Add vendorName
+        If vendorName = "" Then GoTo NextSheetRow
+
+        canonicalKey = ResolveVendorCanonicalKey(vendorName, aliasMap)
+        If canonicalKey = "" Then GoTo NextSheetRow
+
+        If Not sheetByCanonical.Exists(canonicalKey) Then
+            sheetByCanonical.Add canonicalKey, vendorName
+            sheetOrderKeys.Add canonicalKey
         End If
+NextSheetRow:
     Next r
+
+    If sheetByCanonical.Count = 0 Then
+        Set CollectSelectedSubcontractors = result
+        Exit Function
+    End If
+
+    Dim usedCanonical As Object
+    Set usedCanonical = CreateObject("Scripting.Dictionary")
+    usedCanonical.CompareMode = vbTextCompare
+
+    If Not wsInfo Is Nothing Then
+        Dim vendorCount As Long
+        Dim i As Long
+        vendorCount = GetBasicInfoVendorBlockCount(wsInfo)
+
+        For i = 1 To vendorCount
+            Dim basicInfoName As String
+            Dim basicInfoKey As String
+            basicInfoName = GetBasicInfoCellText(wsInfo, _
+                wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, BasicInfoVendorColumn(i)).Address)
+            If basicInfoName = "" Then GoTo NextBasicInfoVendor
+
+            basicInfoKey = ResolveVendorCanonicalKey(basicInfoName, aliasMap)
+            If basicInfoKey <> "" And sheetByCanonical.Exists(basicInfoKey) Then
+                If Not usedCanonical.Exists(basicInfoKey) Then
+                    usedCanonical.Add basicInfoKey, True
+                    result.Add CStr(sheetByCanonical(basicInfoKey))
+                End If
+            End If
+NextBasicInfoVendor:
+        Next i
+    End If
+
+    Dim fallbackKey As Variant
+    For Each fallbackKey In sheetOrderKeys
+        If Not usedCanonical.Exists(CStr(fallbackKey)) Then
+            result.Add CStr(sheetByCanonical(CStr(fallbackKey)))
+        End If
+    Next fallbackKey
 
     Set CollectSelectedSubcontractors = result
 End Function
@@ -1126,6 +1358,148 @@ End Function
 
 Private Function NormalizeVendorPriceName(ByVal vendorName As String) As String
     NormalizeVendorPriceName = CommonRemoveAllSpaces(CommonNormalizeText(vendorName))
+End Function
+
+'  ResolveVendorCanonicalKey
+'  業者マスタ(別名表)を正として、正規名・略称名のどちらの表記でも
+'  同一の正規名キーへ解決する。マスタに無い名称は正規化文字列をそのまま返す
+'  ためフォールバックされ、参照エラーにはならない。
+Private Function ResolveVendorCanonicalKey(ByVal vendorName As String, _
+                                           ByVal aliasMap As Object) As String
+    Dim normalizedKey As String
+    normalizedKey = NormalizeVendorPriceName(vendorName)
+    If normalizedKey = "" Then Exit Function
+
+    If Not aliasMap Is Nothing Then
+        If aliasMap.Exists(normalizedKey) Then
+            ResolveVendorCanonicalKey = CStr(aliasMap(normalizedKey))
+            Exit Function
+        End If
+    End If
+
+    ResolveVendorCanonicalKey = normalizedKey
+End Function
+
+'  BuildVendorAliasMap
+'  業者マスタ(全社版).xlsx の「支店名(基本情報B6)」シートを開き、
+'  A列=業者名(略称) / B列=請求者氏名(正規名) を読み込んで、
+'  正規化(略称)・正規化(正規名) の双方を 正規化(正規名) へ対応付けた辞書を返す。
+'  (1行目は見出し行だが、実業者名と一致しない無害なエントリになるだけ)
+'  マスタ未検出・シート未検出・読込失敗時は空辞書を返す(突合は正規化のみで継続)。
+Private Function BuildVendorAliasMap(ByVal branchName As String) As Object
+    Dim result As Object
+    Set result = CreateObject("Scripting.Dictionary")
+    result.CompareMode = vbTextCompare
+
+    Dim connection As Object
+    Dim recordset As Object
+
+    On Error GoTo Cleanup
+
+    If Trim$(branchName) = "" Then
+        LogCI "業者マスタ別名: 基本情報B6(支店名)が空のため名寄せなし"
+        GoTo Cleanup
+    End If
+
+    Dim masterPath As String
+    masterPath = ResolveVendorMasterPath()
+    If masterPath = "" Then
+        LogCI "業者マスタ未検出 -> 名寄せなし(正規化のみで突合)"
+        GoTo Cleanup
+    End If
+
+    Set connection = CommonOpenExcelAdoConnection(masterPath)
+    If connection Is Nothing Then
+        LogCI "業者マスタADO接続不可 path=[" & masterPath & "]"
+        GoTo Cleanup
+    End If
+
+    Dim actualSheetName As String
+    actualSheetName = FindAdoWorksheetName(connection, branchName)
+    If actualSheetName = "" Then
+        LogCI "業者マスタに支店シート[" & branchName & "]が見つかりません -> 名寄せなし"
+        GoTo Cleanup
+    End If
+
+    Set recordset = CreateObject("ADODB.Recordset")
+    recordset.Open "SELECT [F" & VENDOR_MASTER_OFFICIAL_COL & "], [F" & VENDOR_MASTER_ABBREV_COL & "] FROM " & _
+                   BuildAdoSheetTableName(actualSheetName), connection, 0, 1, 1
+
+    Dim official As String, abbrev As String, canonicalKey As String
+    Do Until recordset.EOF
+        official = CommonNzText(recordset.Fields(0).value)
+        abbrev = CommonNzText(recordset.Fields(1).value)
+        canonicalKey = NormalizeVendorPriceName(official)
+        If canonicalKey <> "" Then
+            AddVendorAlias result, official, canonicalKey
+            AddVendorAlias result, abbrev, canonicalKey
+        End If
+        recordset.MoveNext
+    Loop
+
+    LogCI "業者マスタ別名 件数=" & result.Count & " 支店=[" & branchName & _
+          "] sheet=[" & actualSheetName & "]"
+
+Cleanup:
+    If Err.Number <> 0 Then
+        LogCI "業者マスタ読込エラー Err " & Err.Number & ": " & Err.Description
+    End If
+    CommonCloseAdoRecordset recordset
+    CommonCloseAdoConnection connection
+    Set BuildVendorAliasMap = result
+End Function
+
+'  AddVendorAlias
+'  正規化した別名を正規名キーへ登録する(空・重複は無視)。
+Private Sub AddVendorAlias(ByVal aliasMap As Object, _
+                           ByVal aliasName As String, _
+                           ByVal canonicalKey As String)
+    Dim normalizedAlias As String
+    normalizedAlias = NormalizeVendorPriceName(aliasName)
+    If normalizedAlias = "" Then Exit Sub
+    If Not aliasMap.Exists(normalizedAlias) Then aliasMap.Add normalizedAlias, canonicalKey
+End Sub
+
+'  ResolveVendorMasterPath
+'  業者マスタ(全社版).xlsx のパスを複数候補から解決する。
+Private Function ResolveVendorMasterPath() As String
+    Dim fso As Object
+    Set fso = CreateObject("Scripting.FileSystemObject")
+
+    Dim candidates As Collection
+    Set candidates = New Collection
+
+    Dim unitMasterPath As String
+    unitMasterPath = ResolveMasterFilePath()
+    If unitMasterPath <> "" Then
+        AddUniqueText candidates, _
+            fso.BuildPath(fso.GetParentFolderName(unitMasterPath), VENDOR_MASTER_FILE)
+    End If
+
+    If Len(ThisWorkbook.Path) > 0 Then
+        AddUniqueText candidates, _
+            fso.BuildPath(fso.GetParentFolderName(ThisWorkbook.Path), _
+                          MASTER_DATA_FOLDER & "\" & VENDOR_MASTER_FILE)
+    End If
+
+    Dim userProfilePath As String
+    userProfilePath = Environ$("USERPROFILE")
+    If Len(Trim$(userProfilePath)) = 0 Then
+        userProfilePath = Environ$("HOMEDRIVE") & Environ$("HOMEPATH")
+    End If
+    If Len(Trim$(userProfilePath)) > 0 Then
+        AddUniqueText candidates, userProfilePath & "\" & CommonCompanyNameText() & "\" & _
+            "線路出張所用_注文書_請求書アクセスサイト - ドキュメント\" & _
+            MASTER_DATA_FOLDER & "\" & VENDOR_MASTER_FILE
+    End If
+
+    Dim candidate As Variant
+    For Each candidate In candidates
+        If fso.FileExists(CStr(candidate)) Then
+            ResolveVendorMasterPath = CStr(candidate)
+            Exit Function
+        End If
+    Next candidate
 End Function
 
 Private Sub FormatSubcontractorPriceColumns(ByVal ws As Worksheet, _
@@ -1671,22 +2045,14 @@ Private Function ResolveProjectLineMasterPath() As String
 
     Dim documentRoot As Variant
     For Each documentRoot In documentRoots
-        Dim masterFolders As Collection
-        Set masterFolders = New Collection
-        AddUniqueText masterFolders, fso.BuildPath(CStr(documentRoot), _
-                      "単価マスタ\" & PROJECT_MASTER_FOLDER & "\" & lineType)
-        AddUniqueText masterFolders, fso.BuildPath(CStr(documentRoot), _
-                      "マスタデータ\" & lineType)
-
-        Dim masterFolder As Variant
-        For Each masterFolder In masterFolders
-            LogCI "工事件名別マスタ探索 folder=[" & CStr(masterFolder) & "]"
-            ResolveProjectLineMasterPath = FindProjectMasterFile(CStr(masterFolder), projectName)
-            If ResolveProjectLineMasterPath <> "" Then
-                LogCI "工事件名別マスタ解決 path=[" & ResolveProjectLineMasterPath & "]"
-                Exit Function
-            End If
-        Next masterFolder
+        Dim masterFolder As String
+        masterFolder = fso.BuildPath(CStr(documentRoot), MASTER_DATA_FOLDER & "\" & lineType)
+        LogCI "工事件名別マスタ探索 folder=[" & masterFolder & "]"
+        ResolveProjectLineMasterPath = FindProjectMasterFile(masterFolder, projectName)
+        If ResolveProjectLineMasterPath <> "" Then
+            LogCI "工事件名別マスタ解決 path=[" & ResolveProjectLineMasterPath & "]"
+            Exit Function
+        End If
     Next documentRoot
 
     LogCI "工事件名別マスタ解決失敗 lineType=[" & lineType & "] projectName=[" & projectName & "]"
@@ -2260,7 +2626,7 @@ Private Function OpenUnitPriceMasterAdoConnection(ByRef resolvedPath As String) 
     If Len(ThisWorkbook.Path) > 0 Then
         documentRoot = fso.GetParentFolderName(ThisWorkbook.Path)
         AddUniqueText candidates, fso.BuildPath(documentRoot, _
-            "単価マスタ\" & PROJECT_MASTER_FOLDER & "\出張所別_単価適用線区.xlsx")
+            MASTER_DATA_FOLDER & "\" & UNIT_PRICE_LINE_MASTER_FILE)
     End If
 
     Dim userProfilePath As String
@@ -2270,8 +2636,8 @@ Private Function OpenUnitPriceMasterAdoConnection(ByRef resolvedPath As String) 
     End If
     If Len(Trim$(userProfilePath)) > 0 Then
         AddUniqueText candidates, userProfilePath & "\" & CommonCompanyNameText() & "\" & _
-            "線路出張所用_注文書_請求書アクセスサイト - ドキュメント\単価マスタ\" & _
-            PROJECT_MASTER_FOLDER & "\出張所別_単価適用線区.xlsx"
+            "線路出張所用_注文書_請求書アクセスサイト - ドキュメント\" & _
+            MASTER_DATA_FOLDER & "\" & UNIT_PRICE_LINE_MASTER_FILE
     End If
 
     Dim candidate As Variant

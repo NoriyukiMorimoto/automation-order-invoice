@@ -1,19 +1,19 @@
 Option Explicit
 
-Private Const DEFAULT_SOURCE_ROOT As String = "\\dt-ims\ŒöŠJƒtƒHƒ‹ƒ_\090_ü˜H–{•”\008_’P‰¿Œ_–ñŠÖŒW\2026”N“x R8”N“x’P‰¿Œ_–ñH–"
-Private Const PROJECT_LIST_BOOK As String = "o’£Š•Ê_’P‰¿“K—pü‹æ.xlsx"
-Private Const MASTER_DATA_FOLDER As String = "ƒ}ƒXƒ^ƒf[ƒ^"
-Private Const PROJECT_LIST_SHEET As String = "’P‰¿“K—pH–Œ–¼ƒ}ƒXƒ^"
-Private Const OUTPUT_DATA_DIR As String = "’P‰¿ƒf[ƒ^"
-Private Const OUTPUT_CONVENTIONAL_LINE_DIR As String = "01_İ—ˆü"
-Private Const OUTPUT_SHINKANSEN_LINE_DIR As String = "02_VŠ²ü"
-Private Const SYNC_COMPANY_FOLDER As String = "‘å“SH‹ÆŠ”®‰ïĞ"
-Private Const SYNC_LIBRARY_FOLDER As String = "ü˜Ho’£Š—p_’•¶‘_¿‹‘ƒAƒNƒZƒXƒTƒCƒg - ƒhƒLƒ…ƒƒ“ƒg"
-Private Const ROOT_FOLDER_NAME As String = "’P‰¿ƒ}ƒXƒ^"
+Private Const DEFAULT_SOURCE_ROOT As String = "\\dt-ims\å…¬é–‹ãƒ•ã‚©ãƒ«ãƒ€\090_ç·šè·¯æœ¬éƒ¨\008_å˜ä¾¡å¥‘ç´„é–¢ä¿‚\2026å¹´åº¦ R8å¹´åº¦å˜ä¾¡å¥‘ç´„å·¥äº‹"
+Private Const PROJECT_LIST_BOOK As String = "å‡ºå¼µæ‰€åˆ¥_å˜ä¾¡é©ç”¨ç·šåŒº.xlsx"
+Private Const MASTER_DATA_FOLDER As String = "ãƒã‚¹ã‚¿ãƒ‡ãƒ¼ã‚¿"
+Private Const PROJECT_LIST_SHEET As String = "å˜ä¾¡é©ç”¨å·¥äº‹ä»¶åãƒã‚¹ã‚¿"
+Private Const OUTPUT_DATA_DIR As String = "å˜ä¾¡ãƒ‡ãƒ¼ã‚¿"
+Private Const OUTPUT_CONVENTIONAL_LINE_DIR As String = "01_åœ¨æ¥ç·š"
+Private Const OUTPUT_SHINKANSEN_LINE_DIR As String = "02_æ–°å¹¹ç·š"
+Private Const SYNC_COMPANY_FOLDER As String = "å¤§é‰„å·¥æ¥­æ ªå¼ä¼šç¤¾"
+Private Const SYNC_LIBRARY_FOLDER As String = "ç·šè·¯å‡ºå¼µæ‰€ç”¨_æ³¨æ–‡æ›¸_è«‹æ±‚æ›¸ã‚¢ã‚¯ã‚»ã‚¹ã‚µã‚¤ãƒˆ - ãƒ‰ã‚­ãƒ¥ãƒ¡ãƒ³ãƒˆ"
+Private Const ROOT_FOLDER_NAME As String = "å˜ä¾¡ãƒã‚¹ã‚¿"
 Private Const SOURCE_SEARCH_MAX_DEPTH As Long = 8
 Private Const PURCHASE_PROJECT_CODE As String = "10"
-Private Const PURCHASE_TITLE_PREFIX_NORMAL As String = "‘Šú”­’"
-Private Const PURCHASE_TITLE_PREFIX_CHANGE As String = "İŒv•ÏX"
+Private Const PURCHASE_TITLE_PREFIX_NORMAL As String = "æ—©æœŸç™ºæ³¨"
+Private Const PURCHASE_TITLE_PREFIX_CHANGE As String = "è¨­è¨ˆå¤‰æ›´"
 
 Private mRootPath As String
 Private mLogPath As String
@@ -60,10 +60,10 @@ Public Sub CreateUnitPriceLists()
     mRootPath = ResolveRootPath()
     mSourceYearText = GetYearFromSourcePath(sourcePath)
     StartLog
-    WriteLog "‹N“®‚µ‚Ü‚µ‚½B"
-    WriteLog "’P‰¿ƒ}ƒXƒ^ƒtƒHƒ‹ƒ_: " & mRootPath
-    WriteLog "QÆw’è: " & sourcePath
-    If Len(mSourceYearText) > 0 Then WriteLog "QÆ”N“x: " & mSourceYearText
+    WriteLog "èµ·å‹•ã—ã¾ã—ãŸã€‚"
+    WriteLog "å˜ä¾¡ãƒã‚¹ã‚¿ãƒ•ã‚©ãƒ«ãƒ€: " & mRootPath
+    WriteLog "å‚ç…§æŒ‡å®š: " & sourcePath
+    If Len(mSourceYearText) > 0 Then WriteLog "å‚ç…§å¹´åº¦: " & mSourceYearText
 
     On Error Resume Next
     Set branches = ResolveBranches(sourcePath)
@@ -78,18 +78,18 @@ Public Sub CreateUnitPriceLists()
         If Len(branchResolveError) > 0 Then
             Err.Raise vbObjectError + 4, , branchResolveError
         Else
-            Err.Raise vbObjectError + 4, , "ˆ—‘ÎÛƒtƒHƒ‹ƒ_‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB"
+            Err.Raise vbObjectError + 4, , "å‡¦ç†å¯¾è±¡ãƒ•ã‚©ãƒ«ãƒ€ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚"
         End If
     End If
 
-    WriteLog "İ—ˆüˆ—‘ÎÛƒtƒHƒ‹ƒ_”: " & CStr(conventionalBranches.Count)
-    WriteLog "VŠ²ü‹N“_ƒtƒHƒ‹ƒ_”: " & CStr(shinkansenRoots.Count)
+    WriteLog "åœ¨æ¥ç·šå‡¦ç†å¯¾è±¡ãƒ•ã‚©ãƒ«ãƒ€æ•°: " & CStr(conventionalBranches.Count)
+    WriteLog "æ–°å¹¹ç·šèµ·ç‚¹ãƒ•ã‚©ãƒ«ãƒ€æ•°: " & CStr(shinkansenRoots.Count)
 
     Dim projectName As Variant
     Set conventionalProjectNames = ReadProjectNames(PROJECT_LIST_SHEET)
     Set shinkansenProjectNames = ReadProjectNames(ShinkansenProjectListSheetName())
-    WriteLog "İ—ˆüH–Œ–¼”: " & CStr(conventionalProjectNames.Count)
-    WriteLog "VŠ²üH–Œ–¼”: " & CStr(shinkansenProjectNames.Count)
+    WriteLog "åœ¨æ¥ç·šå·¥äº‹ä»¶åæ•°: " & CStr(conventionalProjectNames.Count)
+    WriteLog "æ–°å¹¹ç·šå·¥äº‹ä»¶åæ•°: " & CStr(shinkansenProjectNames.Count)
 
     If conventionalBranches.Count > 0 Then totalProjectCount = totalProjectCount + conventionalProjectNames.Count
     If shinkansenRoots.Count > 0 Then totalProjectCount = totalProjectCount + shinkansenProjectNames.Count
@@ -104,58 +104,58 @@ Public Sub CreateUnitPriceLists()
     FlushLog
 
     If shinkansenRoots.Count > 0 Then
-        WriteLog "VŠ²üˆ—ŠJn"
+        WriteLog "æ–°å¹¹ç·šå‡¦ç†é–‹å§‹"
         FlushLog
         For Each projectName In shinkansenProjectNames
             mProgName = CStr(projectName)
-            WriteLog "VŠ²üH–Œ–¼ˆ—ŠJn: " & mProgName
+            WriteLog "æ–°å¹¹ç·šå·¥äº‹ä»¶åå‡¦ç†é–‹å§‹: " & mProgName
             FlushLog
             frmProgress.UpdateProgress mProgDone, mProgName
             Set targetBooks = CreateObject("Scripting.Dictionary")
             ProcessShinkansenProject mProgName, shinkansenRoots, targetBooks
             If targetBooks.Count > 0 Then
-                frmProgress.UpdateProgress mProgDone, "•Û‘¶ˆ—’†: " & mProgName
+                frmProgress.UpdateProgress mProgDone, "ä¿å­˜å‡¦ç†ä¸­: " & mProgName
                 SaveTargetBooks targetBooks
             End If
-            WriteLog "VŠ²üH–Œ–¼ˆ—I—¹: " & mProgName & " / ì¬Œó•â " & CStr(targetBooks.Count)
+            WriteLog "æ–°å¹¹ç·šå·¥äº‹ä»¶åå‡¦ç†çµ‚äº†: " & mProgName & " / ä½œæˆå€™è£œ " & CStr(targetBooks.Count)
             FlushLog
             Set targetBooks = Nothing
             mProgDone = mProgDone + 1
             frmProgress.UpdateProgress mProgDone, mProgName
         Next projectName
-        WriteLog "VŠ²üˆ—I—¹"
+        WriteLog "æ–°å¹¹ç·šå‡¦ç†çµ‚äº†"
         FlushLog
     End If
 
     If conventionalBranches.Count > 0 Then
-        WriteLog "İ—ˆüˆ—ŠJn"
+        WriteLog "åœ¨æ¥ç·šå‡¦ç†é–‹å§‹"
         FlushLog
         For Each projectName In conventionalProjectNames
             mProgName = CStr(projectName)
-            WriteLog "İ—ˆüH–Œ–¼ˆ—ŠJn: " & mProgName
+            WriteLog "åœ¨æ¥ç·šå·¥äº‹ä»¶åå‡¦ç†é–‹å§‹: " & mProgName
             FlushLog
             frmProgress.UpdateProgress mProgDone, mProgName
             Set targetBooks = CreateObject("Scripting.Dictionary")
             ProcessProjectAllBranches mProgName, conventionalBranches, targetBooks
             If targetBooks.Count > 0 Then
-                frmProgress.UpdateProgress mProgDone, "•Û‘¶ˆ—’†: " & mProgName
+                frmProgress.UpdateProgress mProgDone, "ä¿å­˜å‡¦ç†ä¸­: " & mProgName
                 SaveTargetBooks targetBooks
             End If
-            WriteLog "İ—ˆüH–Œ–¼ˆ—I—¹: " & mProgName & " / ì¬Œó•â " & CStr(targetBooks.Count)
+            WriteLog "åœ¨æ¥ç·šå·¥äº‹ä»¶åå‡¦ç†çµ‚äº†: " & mProgName & " / ä½œæˆå€™è£œ " & CStr(targetBooks.Count)
             FlushLog
             Set targetBooks = Nothing
             mProgDone = mProgDone + 1
             frmProgress.UpdateProgress mProgDone, mProgName
         Next projectName
-        WriteLog "İ—ˆüˆ—I—¹"
+        WriteLog "åœ¨æ¥ç·šå‡¦ç†çµ‚äº†"
         FlushLog
     End If
 
     frmProgress.CloseProgress
-    WriteLog "³íI—¹‚µ‚Ü‚µ‚½B"
+    WriteLog "æ­£å¸¸çµ‚äº†ã—ã¾ã—ãŸã€‚"
     FlushLog
     RestoreAppSettings settingsApplied, oldCalc, oldScreenUpdating, oldDisplayAlerts, oldEnableEvents
-    MsgBox "ì¬‚ªŠ®—¹‚µ‚Ü‚µ‚½B" & vbCrLf & mLogPath, vbInformation
+    MsgBox "ä½œæˆãŒå®Œäº†ã—ã¾ã—ãŸã€‚" & vbCrLf & mLogPath, vbInformation
     Exit Sub
 
 FatalError:
@@ -170,11 +170,11 @@ FatalError:
     FlushLog
     RestoreAppSettings settingsApplied, oldCalc, oldScreenUpdating, oldDisplayAlerts, oldEnableEvents
     If Len(mLogPath) > 0 Then
-        WriteErrorLogValues "ƒAƒvƒŠ‘S‘Ì", savedErrNumber, savedErrSource, savedErrDescription
+        WriteErrorLogValues "ã‚¢ãƒ—ãƒªå…¨ä½“", savedErrNumber, savedErrSource, savedErrDescription
         FlushLog
-        MsgBox "ƒGƒ‰[‚ª”­¶‚µ‚Ü‚µ‚½BƒƒO‚ğŠm”F‚µ‚Ä‚­‚¾‚³‚¢B" & vbCrLf & mLogPath, vbExclamation
+        MsgBox "ã‚¨ãƒ©ãƒ¼ãŒç™ºç”Ÿã—ã¾ã—ãŸã€‚ãƒ­ã‚°ã‚’ç¢ºèªã—ã¦ãã ã•ã„ã€‚" & vbCrLf & mLogPath, vbExclamation
     Else
-        MsgBox "ƒGƒ‰[‚ª”­¶‚µ‚Ü‚µ‚½B" & vbCrLf & savedErrDescription, vbExclamation
+        MsgBox "ã‚¨ãƒ©ãƒ¼ãŒç™ºç”Ÿã—ã¾ã—ãŸã€‚" & vbCrLf & savedErrDescription, vbExclamation
     End If
 End Sub
 
@@ -186,7 +186,7 @@ Private Sub RestoreAppSettings(ByVal applied As Boolean, ByVal oldCalc As XlCalc
     Application.ScreenUpdating = oldScreenUpdating
 End Sub
 
-' ’†’f: –¢•Û‘¶‚Ìì¬’†ƒuƒbƒN‚ğ•Â‚¶‚é(ŠJ‚«‚Á‚Ï‚È‚µ–h~)
+' ä¸­æ–­æ™‚: æœªä¿å­˜ã®ä½œæˆä¸­ãƒ–ãƒƒã‚¯ã‚’é–‰ã˜ã‚‹(é–‹ãã£ã±ãªã—é˜²æ­¢)
 Private Sub CloseUnsavedTargetBooks(ByVal targetBooks As Object)
     Dim key As Variant
     Dim book As Workbook
@@ -227,7 +227,7 @@ Private Function ResolveRootPath() As String
         Exit Function
     End If
 
-    Err.Raise vbObjectError + 1, , "’P‰¿ƒ}ƒXƒ^ƒtƒHƒ‹ƒ_‚ğ©“®ŒŸo‚Å‚«‚Ü‚¹‚ñ‚Å‚µ‚½BSharePoint‚ğƒ[ƒJƒ‹“¯Šú‚µAŸ‚Ìƒtƒ@ƒCƒ‹‚ª‘¶İ‚·‚é‚±‚Æ‚ğŠm”F‚µ‚Ä‚­‚¾‚³‚¢B" & vbCrLf & _
+    Err.Raise vbObjectError + 1, , "å˜ä¾¡ãƒã‚¹ã‚¿ãƒ•ã‚©ãƒ«ãƒ€ã‚’è‡ªå‹•æ¤œå‡ºã§ãã¾ã›ã‚“ã§ã—ãŸã€‚SharePointã‚’ãƒ­ãƒ¼ã‚«ãƒ«åŒæœŸã—ã€æ¬¡ã®ãƒ•ã‚¡ã‚¤ãƒ«ãŒå­˜åœ¨ã™ã‚‹ã“ã¨ã‚’ç¢ºèªã—ã¦ãã ã•ã„ã€‚" & vbCrLf & _
         CombinePath(MASTER_DATA_FOLDER, PROJECT_LIST_BOOK) & vbCrLf & _
         CombinePath(MASTER_DATA_FOLDER, ConventionalLineName())
 End Function
@@ -289,7 +289,7 @@ Private Function OpenReadOnlyWorkbook(ByVal path As String, Optional ByRef opene
 
     Set book = FindOpenWorkbook(path, True)
     If Not book Is Nothing Then
-        WriteLog "Šù‚ÉŠJ‚¢‚Ä‚¢‚éƒuƒbƒN‚ğQÆ‚µ‚Ü‚·: " & path
+        WriteLog "æ—¢ã«é–‹ã„ã¦ã„ã‚‹ãƒ–ãƒƒã‚¯ã‚’å‚ç…§ã—ã¾ã™: " & path
         Set OpenReadOnlyWorkbook = book
         Exit Function
     End If
@@ -297,7 +297,7 @@ Private Function OpenReadOnlyWorkbook(ByVal path As String, Optional ByRef opene
     If savedErrNumber = 0 Then
         savedErrNumber = vbObjectError + 23
         savedErrSource = "OpenReadOnlyWorkbook"
-        savedErrDescription = "ƒuƒbƒN‚ğŠJ‚¯‚Ü‚¹‚ñ‚Å‚µ‚½: " & path
+        savedErrDescription = "ãƒ–ãƒƒã‚¯ã‚’é–‹ã‘ã¾ã›ã‚“ã§ã—ãŸ: " & path
     End If
     Err.Raise savedErrNumber, savedErrSource, savedErrDescription
 End Function
@@ -332,7 +332,7 @@ End Function
 
 Private Function SelectSourceFolder() As String
     With Application.FileDialog(msoFileDialogFolderPicker)
-        .Title = "QÆƒtƒHƒ‹ƒ_‚ğ‘I‘ğ‚µ‚Ä‚­‚¾‚³‚¢"
+        .Title = "å‚ç…§ãƒ•ã‚©ãƒ«ãƒ€ã‚’é¸æŠã—ã¦ãã ã•ã„"
         .InitialFileName = DEFAULT_SOURCE_ROOT & "\"
         If .Show <> -1 Then
             SelectSourceFolder = vbNullString
@@ -396,19 +396,19 @@ Private Function ResolveBranches(ByVal selectedPath As String) As collection
     Set result = New collection
     Set seen = CreateObject("Scripting.Dictionary")
     selectedPath = TrimTrailingSlash(selectedPath)
-    If Not FolderExists(selectedPath) Then Err.Raise vbObjectError + 2, , "QÆƒtƒHƒ‹ƒ_‚ª‘¶İ‚µ‚Ü‚¹‚ñ: " & selectedPath
+    If Not FolderExists(selectedPath) Then Err.Raise vbObjectError + 2, , "å‚ç…§ãƒ•ã‚©ãƒ«ãƒ€ãŒå­˜åœ¨ã—ã¾ã›ã‚“: " & selectedPath
 
     If Not AddBranchesFromLineRoots(selectedPath, result, seen) Then
         outputLineDir = ResolveOutputLineDir(selectedPath)
         If Len(outputLineDir) = 0 Then outputLineDir = OUTPUT_CONVENTIONAL_LINE_DIR
         If Not AddBranchesFromSourceRoot(selectedPath, result, seen, outputLineDir) Then
-            WriteLog "‘I‘ğƒtƒHƒ‹ƒ_’¼‰º‚É‘ÎÛŒ`®‚È‚µB”z‰ºƒtƒHƒ‹ƒ_‚ğŒŸõ‚µ‚Ü‚·: " & selectedPath
+            WriteLog "é¸æŠãƒ•ã‚©ãƒ«ãƒ€ç›´ä¸‹ã«å¯¾è±¡å½¢å¼ãªã—ã€‚é…ä¸‹ãƒ•ã‚©ãƒ«ãƒ€ã‚’æ¤œç´¢ã—ã¾ã™: " & selectedPath
             ScanSourceRoots selectedPath, 0, result, seen, outputLineDir
         End If
     End If
 
     If result.Count = 0 Then
-        Err.Raise vbObjectError + 4, , "01_İ—ˆü/02_VŠ²üA‹ß‹E“Š‡–{•”‚Ü‚½‚Í‹à‘òxĞ‚ÌƒtƒHƒ‹ƒ_A•Ûü‹æƒtƒHƒ‹ƒ_‚ª•À‚ÔƒtƒHƒ‹ƒ_A‚Ü‚½‚Í‚»‚ê‚ç‚ğ”z‰º‚ÉŠÜ‚ŞƒtƒHƒ‹ƒ_‚ğ‘I‘ğ‚µ‚Ä‚­‚¾‚³‚¢B"
+        Err.Raise vbObjectError + 4, , "01_åœ¨æ¥ç·š/02_æ–°å¹¹ç·šã€è¿‘ç•¿çµ±æ‹¬æœ¬éƒ¨ã¾ãŸã¯é‡‘æ²¢æ”¯ç¤¾ã®ãƒ•ã‚©ãƒ«ãƒ€ã€ä¿ç·šåŒºãƒ•ã‚©ãƒ«ãƒ€ãŒä¸¦ã¶ãƒ•ã‚©ãƒ«ãƒ€ã€ã¾ãŸã¯ãã‚Œã‚‰ã‚’é…ä¸‹ã«å«ã‚€ãƒ•ã‚©ãƒ«ãƒ€ã‚’é¸æŠã—ã¦ãã ã•ã„ã€‚"
     End If
 
     Set ResolveBranches = result
@@ -430,7 +430,7 @@ Private Function AddBranchesFromLineRoot(ByVal sourcePath As String, ByVal outpu
     If Not FolderExists(linePath) Then Exit Function
 
     beforeCount = result.Count
-    WriteLog "ü‹æƒtƒHƒ‹ƒ_‹N“_: " & linePath
+    WriteLog "ç·šåŒºãƒ•ã‚©ãƒ«ãƒ€èµ·ç‚¹: " & linePath
     If Not AddBranchesFromSourceRoot(linePath, result, seen, outputLineDir) Then
         ScanSourceRoots linePath, 0, result, seen, outputLineDir
     End If
@@ -439,9 +439,9 @@ Private Function AddBranchesFromLineRoot(ByVal sourcePath As String, ByVal outpu
 End Function
 
 Private Function ResolveOutputLineDir(ByVal sourcePath As String) As String
-    If InStr(sourcePath, OUTPUT_SHINKANSEN_LINE_DIR) > 0 Or InStr(sourcePath, "VŠ²ü") > 0 Then
+    If InStr(sourcePath, OUTPUT_SHINKANSEN_LINE_DIR) > 0 Or InStr(sourcePath, "æ–°å¹¹ç·š") > 0 Then
         ResolveOutputLineDir = OUTPUT_SHINKANSEN_LINE_DIR
-    ElseIf InStr(sourcePath, OUTPUT_CONVENTIONAL_LINE_DIR) > 0 Or InStr(sourcePath, "İ—ˆü") > 0 Then
+    ElseIf InStr(sourcePath, OUTPUT_CONVENTIONAL_LINE_DIR) > 0 Or InStr(sourcePath, "åœ¨æ¥ç·š") > 0 Then
         ResolveOutputLineDir = OUTPUT_CONVENTIONAL_LINE_DIR
     End If
 End Function
@@ -459,34 +459,34 @@ Private Function AddBranchesFromSourceRoot(ByVal sourcePath As String, ByVal res
     If Len(outputLineDir) = 0 Then outputLineDir = OUTPUT_CONVENTIONAL_LINE_DIR
 
     leaf = GetFileName(sourcePath)
-    If leaf = "‹ß‹E“Š‡–{•”" Or leaf = "‹à‘òxĞ" Then
+    If leaf = "è¿‘ç•¿çµ±æ‹¬æœ¬éƒ¨" Or leaf = "é‡‘æ²¢æ”¯ç¤¾" Then
         AddBranchInfo result, seen, leaf, sourcePath, outputLineDir
-        WriteLog "‘ÎÛƒtƒHƒ‹ƒ_ŒŸo: " & outputLineDir & " / " & sourcePath
+        WriteLog "å¯¾è±¡ãƒ•ã‚©ãƒ«ãƒ€æ¤œå‡º: " & outputLineDir & " / " & sourcePath
         AddBranchesFromSourceRoot = True
         Exit Function
     End If
 
-    kinkiPath = CombinePath(sourcePath, "‹ß‹E“Š‡–{•”")
-    kanazawaPath = CombinePath(sourcePath, "‹à‘òxĞ")
+    kinkiPath = CombinePath(sourcePath, "è¿‘ç•¿çµ±æ‹¬æœ¬éƒ¨")
+    kanazawaPath = CombinePath(sourcePath, "é‡‘æ²¢æ”¯ç¤¾")
 
     If FolderExists(kinkiPath) Then
-        AddBranchInfo result, seen, "‹ß‹E“Š‡–{•”", kinkiPath, outputLineDir
+        AddBranchInfo result, seen, "è¿‘ç•¿çµ±æ‹¬æœ¬éƒ¨", kinkiPath, outputLineDir
         foundBranchFolder = True
     End If
     If FolderExists(kanazawaPath) Then
-        AddBranchInfo result, seen, "‹à‘òxĞ", kanazawaPath, outputLineDir
+        AddBranchInfo result, seen, "é‡‘æ²¢æ”¯ç¤¾", kanazawaPath, outputLineDir
         foundBranchFolder = True
     End If
     If foundBranchFolder Then
-        WriteLog "‘ÎÛƒtƒHƒ‹ƒ_ŒŸo: " & outputLineDir & " / " & sourcePath
+        WriteLog "å¯¾è±¡ãƒ•ã‚©ãƒ«ãƒ€æ¤œå‡º: " & outputLineDir & " / " & sourcePath
         AddBranchesFromSourceRoot = True
         Exit Function
     End If
 
     If HasAreaFolders(sourcePath) Then
-        AddBranchInfo result, seen, "‹ß‹E“Š‡–{•”", sourcePath, outputLineDir
-        AddBranchInfo result, seen, "‹à‘òxĞ", sourcePath, outputLineDir
-        WriteLog "–{•”xĞƒtƒHƒ‹ƒ_‚È‚µB•Ûü‹æƒtƒHƒ‹ƒ_’¼‰ºŒ`®‚Æ‚µ‚Äˆ—‚µ‚Ü‚·: " & outputLineDir & " / " & sourcePath
+        AddBranchInfo result, seen, "è¿‘ç•¿çµ±æ‹¬æœ¬éƒ¨", sourcePath, outputLineDir
+        AddBranchInfo result, seen, "é‡‘æ²¢æ”¯ç¤¾", sourcePath, outputLineDir
+        WriteLog "æœ¬éƒ¨æ”¯ç¤¾ãƒ•ã‚©ãƒ«ãƒ€ãªã—ã€‚ä¿ç·šåŒºãƒ•ã‚©ãƒ«ãƒ€ç›´ä¸‹å½¢å¼ã¨ã—ã¦å‡¦ç†ã—ã¾ã™: " & outputLineDir & " / " & sourcePath
         AddBranchesFromSourceRoot = True
     End If
 End Function
@@ -755,17 +755,17 @@ Private Sub ProcessProjectAllBranches(ByVal projectName As String, ByVal branche
 
     projectCode = GetProjectCode(projectName)
     If Len(projectCode) = 0 Then
-        WriteLog "ƒXƒLƒbƒv: H–Œ–¼ƒR[ƒh‚ğæ“¾‚Å‚«‚Ü‚¹‚ñ: " & projectName
+        WriteLog "ã‚¹ã‚­ãƒƒãƒ—: å·¥äº‹ä»¶åã‚³ãƒ¼ãƒ‰ã‚’å–å¾—ã§ãã¾ã›ã‚“: " & projectName
         Exit Sub
     End If
 
     masterPath = ResolveConventionalMasterPath(projectName)
     If Not FileExists(masterPath) Then
-        WriteLog "ƒXƒLƒbƒv: H–Œ–¼•Êƒ}ƒXƒ^‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñ: " & masterPath
+        WriteLog "ã‚¹ã‚­ãƒƒãƒ—: å·¥äº‹ä»¶ååˆ¥ãƒã‚¹ã‚¿ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“: " & masterPath
         Exit Sub
     End If
 
-    WriteLog "H–Œ–¼•Êƒ}ƒXƒ^: " & masterPath & " / ƒR[ƒh " & projectCode
+    WriteLog "å·¥äº‹ä»¶ååˆ¥ãƒã‚¹ã‚¿: " & masterPath & " / ã‚³ãƒ¼ãƒ‰ " & projectCode
     Err.Clear
     On Error Resume Next
     Set masterBook = OpenReadOnlyWorkbook(masterPath, masterOpenedByTool)
@@ -774,7 +774,7 @@ Private Sub ProcessProjectAllBranches(ByVal projectName As String, ByVal branche
     savedErrDescription = Err.Description
     On Error GoTo ProjectError
     If savedErrNumber <> 0 Or masterBook Is Nothing Then
-        WriteErrorLogValues "H–Œ–¼•Êƒ}ƒXƒ^‚ğŠJ‚¯‚È‚¢‚½‚ßƒXƒLƒbƒv: " & projectName, savedErrNumber, savedErrSource, savedErrDescription
+        WriteErrorLogValues "å·¥äº‹ä»¶ååˆ¥ãƒã‚¹ã‚¿ã‚’é–‹ã‘ãªã„ãŸã‚ã‚¹ã‚­ãƒƒãƒ—: " & projectName, savedErrNumber, savedErrSource, savedErrDescription
         Exit Sub
     End If
     Set areaCache = CreateObject("Scripting.Dictionary")
@@ -785,7 +785,7 @@ Private Sub ProcessProjectAllBranches(ByVal projectName As String, ByVal branche
         branchPath = CStr(branchInfo(1))
         outputLineDir = CStr(branchInfo(2))
         If Not SheetExists(masterBook, branchName) Then
-            WriteLog "ƒXƒLƒbƒv: ƒ}ƒXƒ^‚ÉxĞƒV[ƒg‚ª‚ ‚è‚Ü‚¹‚ñ: " & projectName & " / " & branchName
+            WriteLog "ã‚¹ã‚­ãƒƒãƒ—: ãƒã‚¹ã‚¿ã«æ”¯ç¤¾ã‚·ãƒ¼ãƒˆãŒã‚ã‚Šã¾ã›ã‚“: " & projectName & " / " & branchName
         Else
             Set masterSheet = masterBook.Worksheets(branchName)
             lastRow = masterSheet.Cells(masterSheet.Rows.Count, 3).End(xlUp).Row
@@ -802,7 +802,7 @@ ProjectError:
     savedErrNumber = Err.Number
     savedErrSource = Err.Source
     savedErrDescription = Err.Description
-    WriteErrorLogValues "H–Œ–¼ˆ—: " & projectName, savedErrNumber, savedErrSource, savedErrDescription
+    WriteErrorLogValues "å·¥äº‹ä»¶åå‡¦ç†: " & projectName, savedErrNumber, savedErrSource, savedErrDescription
     On Error Resume Next
     If masterOpenedByTool Then
         If Not masterBook Is Nothing Then masterBook.Close SaveChanges:=False
@@ -874,12 +874,12 @@ Private Sub ProcessShinkansenProject(ByVal projectName As String, ByVal sourceRo
 
     masterPath = ResolveShinkansenMasterPath(projectName)
     If Len(masterPath) = 0 Then
-        WriteLog "ƒXƒLƒbƒv: VŠ²üH–Œ–¼•Êƒ}ƒXƒ^‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñ: " & projectName
+        WriteLog "ã‚¹ã‚­ãƒƒãƒ—: æ–°å¹¹ç·šå·¥äº‹ä»¶ååˆ¥ãƒã‚¹ã‚¿ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“: " & projectName
         Exit Sub
     End If
     masterBaseName = RemoveExtension(GetFileName(masterPath))
 
-    WriteLog "VŠ²üH–Œ–¼•Êƒ}ƒXƒ^: " & masterPath
+    WriteLog "æ–°å¹¹ç·šå·¥äº‹ä»¶ååˆ¥ãƒã‚¹ã‚¿: " & masterPath
     Err.Clear
     On Error Resume Next
     Set masterBook = OpenReadOnlyWorkbook(masterPath, masterOpenedByTool)
@@ -888,7 +888,7 @@ Private Sub ProcessShinkansenProject(ByVal projectName As String, ByVal sourceRo
     savedErrDescription = Err.Description
     On Error GoTo ProjectError
     If savedErrNumber <> 0 Or masterBook Is Nothing Then
-        WriteErrorLogValues "VŠ²üH–Œ–¼•Êƒ}ƒXƒ^‚ğŠJ‚¯‚È‚¢‚½‚ßƒXƒLƒbƒv: " & projectName, savedErrNumber, savedErrSource, savedErrDescription
+        WriteErrorLogValues "æ–°å¹¹ç·šå·¥äº‹ä»¶ååˆ¥ãƒã‚¹ã‚¿ã‚’é–‹ã‘ãªã„ãŸã‚ã‚¹ã‚­ãƒƒãƒ—: " & projectName, savedErrNumber, savedErrSource, savedErrDescription
         Exit Sub
     End If
 
@@ -896,7 +896,7 @@ Private Sub ProcessShinkansenProject(ByVal projectName As String, ByVal sourceRo
     For Each sourceRoot In sourceRoots
         Set projectDirs = FindShinkansenProjectFolders(CStr(sourceRoot), projectName, masterBaseName)
         If projectDirs.Count = 0 Then
-            WriteLog "–¢ŒŸo: VŠ²üƒtƒHƒ‹ƒ_ " & projectName & " / " & CStr(sourceRoot)
+            WriteLog "æœªæ¤œå‡º: æ–°å¹¹ç·šãƒ•ã‚©ãƒ«ãƒ€ " & projectName & " / " & CStr(sourceRoot)
         Else
             For Each projectDir In projectDirs
                 dirKey = LCase$(TrimTrailingSlash(CStr(projectDir)))
@@ -911,7 +911,7 @@ Private Sub ProcessShinkansenProject(ByVal projectName As String, ByVal sourceRo
                         End If
                         fileName = Dir$()
                     Loop
-                    If matchedFileCount = 0 Then WriteLog "‘ÎÛƒtƒ@ƒCƒ‹‚È‚µ: " & CStr(projectDir)
+                    If matchedFileCount = 0 Then WriteLog "å¯¾è±¡ãƒ•ã‚¡ã‚¤ãƒ«ãªã—: " & CStr(projectDir)
                 End If
             Next projectDir
         End If
@@ -924,7 +924,7 @@ ProjectError:
     savedErrNumber = Err.Number
     savedErrSource = Err.Source
     savedErrDescription = Err.Description
-    WriteErrorLogValues "VŠ²üH–Œ–¼ˆ—: " & projectName, savedErrNumber, savedErrSource, savedErrDescription
+    WriteErrorLogValues "æ–°å¹¹ç·šå·¥äº‹ä»¶åå‡¦ç†: " & projectName, savedErrNumber, savedErrSource, savedErrDescription
     On Error Resume Next
     If masterOpenedByTool Then
         If Not masterBook Is Nothing Then masterBook.Close SaveChanges:=False
@@ -1028,7 +1028,7 @@ Private Function ShouldUseShinkansenSourceFile(ByVal fileName As String) As Bool
     Dim ext As String
 
     If Left$(fileName, 2) = "~$" Then Exit Function
-    If InStr(fileName, "¼½ÃÑ") > 0 Or InStr(fileName, "ƒVƒXƒeƒ€") > 0 Then Exit Function
+    If InStr(fileName, "ï½¼ï½½ï¾ƒï¾‘") > 0 Or InStr(fileName, "ã‚·ã‚¹ãƒ†ãƒ ") > 0 Then Exit Function
     ext = LCase$(Mid$(fileName, InStrRev(fileName, ".") + 1))
     ShouldUseShinkansenSourceFile = (ext = "xlsx" Or ext = "xlsm" Or ext = "xls")
 End Function
@@ -1060,11 +1060,11 @@ Private Sub CopyShinkansenSourceToTarget(ByVal sourcePath As String, ByVal sourc
     If Len(yearText) = 0 Then yearText = GetYearFromFileName(sourcePath)
     If Len(yearText) = 0 Then yearText = mSourceYearText
     If Len(yearText) = 0 Then
-        WriteLog "ƒXƒLƒbƒv: ”N“x‚ğæ“¾‚Å‚«‚Ü‚¹‚ñ: " & sourcePath
+        WriteLog "ã‚¹ã‚­ãƒƒãƒ—: å¹´åº¦ã‚’å–å¾—ã§ãã¾ã›ã‚“: " & sourcePath
         Exit Sub
     End If
 
-    isChange = (InStr(sourceFileName, "(•Ï)") > 0 Or InStr(sourcePath, "(•Ï)") > 0 Or _
+    isChange = (InStr(sourceFileName, "(å¤‰)") > 0 Or InStr(sourcePath, "(å¤‰)") > 0 Or _
                 InStr(sourceFileName, PURCHASE_TITLE_PREFIX_CHANGE) > 0 Or InStr(sourcePath, PURCHASE_TITLE_PREFIX_CHANGE) > 0)
 
     Set sourceBook = OpenReadOnlyWorkbook(sourcePath, sourceOpenedByTool)
@@ -1072,7 +1072,7 @@ Private Sub CopyShinkansenSourceToTarget(ByVal sourcePath As String, ByVal sourc
     isPurchaseProject = IsShinkansenPurchaseSource(sourceSheet, projectName)
 
     If Not ResolveShinkansenMasterRow(masterBook, sourceSheet, projectName, isPurchaseProject, branchName, areaName, projectTitle, lineName) Then
-        WriteLog "ƒXƒLƒbƒv: VŠ²üƒ}ƒXƒ^s‚Éˆê’v‚µ‚Ü‚¹‚ñ: " & sourceFileName
+        WriteLog "ã‚¹ã‚­ãƒƒãƒ—: æ–°å¹¹ç·šãƒã‚¹ã‚¿è¡Œã«ä¸€è‡´ã—ã¾ã›ã‚“: " & sourceFileName
         If sourceOpenedByTool Then sourceBook.Close SaveChanges:=False
         Set sourceBook = Nothing
         Exit Sub
@@ -1082,7 +1082,7 @@ Private Sub CopyShinkansenSourceToTarget(ByVal sourcePath As String, ByVal sourc
     targetPath = BuildTargetPath(OUTPUT_SHINKANSEN_LINE_DIR, branchName, areaName, yearText, isChange, targetProjectName)
 
     If FileExists(targetPath) And Not targetBooks.Exists(targetPath) Then
-        WriteLog "ƒXƒLƒbƒv: o—Íƒtƒ@ƒCƒ‹‚ªŠù‚É‘¶İ‚µ‚Ü‚·: " & targetPath
+        WriteLog "ã‚¹ã‚­ãƒƒãƒ—: å‡ºåŠ›ãƒ•ã‚¡ã‚¤ãƒ«ãŒæ—¢ã«å­˜åœ¨ã—ã¾ã™: " & targetPath
         If sourceOpenedByTool Then sourceBook.Close SaveChanges:=False
         Set sourceBook = Nothing
         Exit Sub
@@ -1109,7 +1109,7 @@ Private Sub CopyShinkansenSourceToTarget(ByVal sourcePath As String, ByVal sourc
         If isPurchaseProject Then FormatShinkansenPurchaseUnitPriceSheet copiedSheet, sourceFileName, isChange, areaName, yearText
     End If
 
-    WriteLog "  VŠ²ü’Ç‰Á: " & sourceFileName & " -> " & targetPath
+    WriteLog "  æ–°å¹¹ç·šè¿½åŠ : " & sourceFileName & " -> " & targetPath
     FlushLog
     If sourceOpenedByTool Then sourceBook.Close SaveChanges:=False
     Set sourceBook = Nothing
@@ -1120,7 +1120,7 @@ CopyError:
     savedErrNumber = Err.Number
     savedErrSource = Err.Source
     savedErrDescription = Err.Description
-    WriteErrorLogValues "VŠ²ü’P‰¿ˆê——ƒRƒs[: " & sourcePath, savedErrNumber, savedErrSource, savedErrDescription
+    WriteErrorLogValues "æ–°å¹¹ç·šå˜ä¾¡ä¸€è¦§ã‚³ãƒ”ãƒ¼: " & sourcePath, savedErrNumber, savedErrSource, savedErrDescription
     On Error Resume Next
     If Not copiedSheet Is Nothing Then
         Application.DisplayAlerts = False
@@ -1201,11 +1201,11 @@ Private Function IsShinkansenPurchaseSource(ByVal sourceSheet As Worksheet, ByVa
 End Function
 
 Private Function PurchaseProjectKeyword() As String
-    PurchaseProjectKeyword = "w“ü[“–"
+    PurchaseProjectKeyword = "è³¼å…¥å……å½“"
 End Function
 
 Private Function IsShinkansenInspectionProject(ByVal projectName As String) As Boolean
-    IsShinkansenInspectionProject = (InStr(projectName, "ŒŸ¸") > 0)
+    IsShinkansenInspectionProject = (InStr(projectName, "æ¤œæŸ»") > 0)
 End Function
 
 Private Function GetShinkansenInspectionProjectTitle(ByVal sourceSheet As Worksheet) As String
@@ -1238,11 +1238,11 @@ Private Function ExtractShinkansenInspectionProjectTitle(ByVal text As String) A
     Dim result As String
 
     normalizedText = NormalizeCompareText(text)
-    pos = InStr(normalizedText, "Œ–¼")
+    pos = InStr(normalizedText, "ä»¶å")
     If pos = 0 Then Exit Function
 
-    result = Mid$(normalizedText, pos + Len("Œ–¼"))
-    Do While Len(result) > 0 And (Left$(result, 1) = ":" Or Left$(result, 1) = "F" Or Left$(result, 1) = "E")
+    result = Mid$(normalizedText, pos + Len("ä»¶å"))
+    Do While Len(result) > 0 And (Left$(result, 1) = ":" Or Left$(result, 1) = "ï¼š" Or Left$(result, 1) = "ãƒ»")
         result = Mid$(result, 2)
     Loop
 
@@ -1255,7 +1255,7 @@ Private Function GetShinkansenPurchaseOfficeKey(ByVal sourceSheet As Worksheet) 
 
     For Each address In Array("H2", "H3", "H1", "H4")
         value = Trim$(CStr(sourceSheet.Range(CStr(address)).value))
-        If Len(value) > 0 And Not IsNumeric(value) And InStr(value, "’P‰¿") = 0 And InStr(value, "‰~") = 0 Then
+        If Len(value) > 0 And Not IsNumeric(value) And InStr(value, "å˜ä¾¡") = 0 And InStr(value, "å††") = 0 Then
             GetShinkansenPurchaseOfficeKey = value
             Exit Function
         End If
@@ -1307,10 +1307,10 @@ Private Sub FormatShinkansenPurchaseUnitPriceSheet(ByVal ws As Worksheet, ByVal 
     Dim prefixText As String
 
     tableName = CleanListObjectName(areaText)
-    If Len(tableName) = 0 Then tableName = "•i–ÚƒR[ƒhTable"
+    If Len(tableName) = 0 Then tableName = "å“ç›®ã‚³ãƒ¼ãƒ‰Table"
 
     lastRow = ws.Cells(ws.Rows.Count, "A").End(xlUp).Row
-    If lastRow < SOURCE_FIRST_ROW Then Err.Raise vbObjectError + 31, , "VŠ²üw“ü[“–’P‰¿•\‚ÌA—ñ4s–ÚˆÈ~‚Éƒf[ƒ^‚ª‚ ‚è‚Ü‚¹‚ñ: " & sourceFileName
+    If lastRow < SOURCE_FIRST_ROW Then Err.Raise vbObjectError + 31, , "æ–°å¹¹ç·šè³¼å…¥å……å½“å˜ä¾¡è¡¨ã®Aåˆ—4è¡Œç›®ä»¥é™ã«ãƒ‡ãƒ¼ã‚¿ãŒã‚ã‚Šã¾ã›ã‚“: " & sourceFileName
 
     ws.Range("A:A").NumberFormat = "@"
     For rowIndex = SOURCE_FIRST_ROW To lastRow
@@ -1335,7 +1335,7 @@ Private Sub FormatShinkansenPurchaseUnitPriceSheet(ByVal ws As Worksheet, ByVal 
     ws.Columns("E").Delete Shift:=xlShiftToLeft
     ws.Columns("C").Delete Shift:=xlShiftToLeft
 
-    ws.Cells(SOURCE_HEADER_ROW, "G").value = "•Ûü‹æ–¼"
+    ws.Cells(SOURCE_HEADER_ROW, "G").value = "ä¿ç·šåŒºå"
     For rowIndex = SOURCE_FIRST_ROW To lastRow
         ws.Cells(rowIndex, "G").value = areaText
     Next rowIndex
@@ -1363,8 +1363,8 @@ Private Sub FormatShinkansenPurchaseUnitPriceSheet(ByVal ws As Worksheet, ByVal 
     ws.Columns("E").HorizontalAlignment = xlHAlignCenter
     ws.Columns("G").HorizontalAlignment = xlHAlignCenter
     ws.Columns("F").NumberFormat = "#,##0"
-    ws.Cells(5, "E").value = "’PˆÊ"
-    ws.Cells(5, "F").value = "’P‰¿"
+    ws.Cells(5, "E").value = "å˜ä½"
+    ws.Cells(5, "F").value = "å˜ä¾¡"
 
     yearText = sourceYearText
     If Len(yearText) = 0 Then yearText = GetYearFromFileName(RemoveExtension(sourceFileName))
@@ -1375,9 +1375,9 @@ Private Sub FormatShinkansenPurchaseUnitPriceSheet(ByVal ws As Worksheet, ByVal 
     If isChange Then
         prefixText = PURCHASE_TITLE_PREFIX_CHANGE
     Else
-        prefixText = "’Êí"
+        prefixText = "é€šå¸¸"
     End If
-    titleText = yearText & "”N“x_w“ü[“–’P‰¿•\_" & prefixText & "_" & areaText
+    titleText = yearText & "å¹´åº¦_è³¼å…¥å……å½“å˜ä¾¡è¡¨_" & prefixText & "_" & areaText
 
     Set titleRange = ws.Range("A1:G1")
     With titleRange
@@ -1449,7 +1449,7 @@ Private Sub ProcessMasterRow(ByVal sheet As Worksheet, ByVal rowIndex As Long, B
         areaCache.Add areaKey, areaDir
     End If
     If Len(areaDir) = 0 Then
-        If Not areaWasCached Then WriteLog "–¢ŒŸo: •Ûü‹æƒtƒHƒ‹ƒ_ " & areaFolderName
+        If Not areaWasCached Then WriteLog "æœªæ¤œå‡º: ä¿ç·šåŒºãƒ•ã‚©ãƒ«ãƒ€ " & areaFolderName
         Exit Sub
     End If
 
@@ -1462,7 +1462,7 @@ Private Sub ProcessMasterRow(ByVal sheet As Worksheet, ByVal rowIndex As Long, B
         projectFolderCache.Add projectKey, projectDir
     End If
     If Len(projectDir) = 0 Then
-        If Not projectWasCached Then WriteLog "–¢ŒŸo: " & GetFileName(areaDir) & " “à‚Ì " & projectName
+        If Not projectWasCached Then WriteLog "æœªæ¤œå‡º: " & GetFileName(areaDir) & " å†…ã® " & projectName
         Exit Sub
     End If
 
@@ -1476,12 +1476,12 @@ Private Sub ProcessMasterRow(ByVal sheet As Worksheet, ByVal rowIndex As Long, B
         End If
         fileName = Dir$()
     Loop
-    If matchedFileCount = 0 Then WriteLog "‘ÎÛƒtƒ@ƒCƒ‹‚È‚µ: " & projectDir & " / Šú‘Òæ“ª=" & filePrefix
+    If matchedFileCount = 0 Then WriteLog "å¯¾è±¡ãƒ•ã‚¡ã‚¤ãƒ«ãªã—: " & projectDir & " / æœŸå¾…å…ˆé ­=" & filePrefix
 End Sub
 
 Private Function ShouldUseSourceFile(ByVal fileName As String, ByVal filePrefix As String) As Boolean
     If Left$(fileName, 2) = "~$" Then Exit Function
-    If InStr(fileName, "¼½ÃÑ") > 0 Or InStr(fileName, "ƒVƒXƒeƒ€") > 0 Then Exit Function
+    If InStr(fileName, "ï½¼ï½½ï¾ƒï¾‘") > 0 Or InStr(fileName, "ã‚·ã‚¹ãƒ†ãƒ ") > 0 Then Exit Function
     ShouldUseSourceFile = (Left$(RemoveExtension(fileName), Len(filePrefix)) = filePrefix)
 End Function
 
@@ -1523,16 +1523,16 @@ Private Sub CopySourceToTarget(ByVal sourcePath As String, ByVal sourceFileName 
     If Len(yearText) = 0 Then yearText = GetYearFromFileName(sourcePath)
     If Len(yearText) = 0 Then yearText = mSourceYearText
     If Len(yearText) = 0 Then
-        WriteLog "ƒXƒLƒbƒv: ”N“x‚ğæ“¾‚Å‚«‚Ü‚¹‚ñ: " & sourcePath
+        WriteLog "ã‚¹ã‚­ãƒƒãƒ—: å¹´åº¦ã‚’å–å¾—ã§ãã¾ã›ã‚“: " & sourcePath
         Exit Sub
     End If
 
-    isChange = (InStr(sourceFileName, "(•Ï)") > 0 Or InStr(sourcePath, "(•Ï)") > 0 Or _
+    isChange = (InStr(sourceFileName, "(å¤‰)") > 0 Or InStr(sourcePath, "(å¤‰)") > 0 Or _
                 InStr(sourceFileName, PURCHASE_TITLE_PREFIX_CHANGE) > 0 Or InStr(sourcePath, PURCHASE_TITLE_PREFIX_CHANGE) > 0)
     targetPath = BuildTargetPath(outputLineDir, branchName, areaFolderName, yearText, isChange, projectName)
 
     If FileExists(targetPath) And Not targetBooks.Exists(targetPath) Then
-        WriteLog "ƒXƒLƒbƒv: o—Íƒtƒ@ƒCƒ‹‚ªŠù‚É‘¶İ‚µ‚Ü‚·: " & targetPath
+        WriteLog "ã‚¹ã‚­ãƒƒãƒ—: å‡ºåŠ›ãƒ•ã‚¡ã‚¤ãƒ«ãŒæ—¢ã«å­˜åœ¨ã—ã¾ã™: " & targetPath
         Exit Sub
     End If
 
@@ -1570,7 +1570,7 @@ Private Sub CopySourceToTarget(ByVal sourcePath As String, ByVal sourceFileName 
         If Not isPurchaseProject Then ApplyConventionalUnitPriceTitle copiedSheet, isChange
     End If
 
-    WriteLog "  ’Ç‰Á: " & sourceFileName & " -> " & targetPath
+    WriteLog "  è¿½åŠ : " & sourceFileName & " -> " & targetPath
     FlushLog
     If sourceOpenedByTool Then sourceBook.Close SaveChanges:=False
     Set sourceBook = Nothing
@@ -1581,7 +1581,7 @@ CopyError:
     savedErrNumber = Err.Number
     savedErrSource = Err.Source
     savedErrDescription = Err.Description
-    WriteErrorLogValues "’P‰¿ˆê——ƒRƒs[: " & sourcePath, savedErrNumber, savedErrSource, savedErrDescription
+    WriteErrorLogValues "å˜ä¾¡ä¸€è¦§ã‚³ãƒ”ãƒ¼: " & sourcePath, savedErrNumber, savedErrSource, savedErrDescription
     On Error Resume Next
     If Not copiedSheet Is Nothing Then
         Application.DisplayAlerts = False
@@ -1606,9 +1606,9 @@ End Sub
 
 Private Function ConventionalUnitPriceTitle(ByVal isChange As Boolean) As String
     If isChange Then
-        ConventionalUnitPriceTitle = "ÏZü‹æ•Ê@@’P‰¿ˆê——•\iİŒv•ÏXj"
+        ConventionalUnitPriceTitle = "ç©ç®—ç·šåŒºåˆ¥ã€€ã€€å˜ä¾¡ä¸€è¦§è¡¨ï¼ˆè¨­è¨ˆå¤‰æ›´ï¼‰"
     Else
-        ConventionalUnitPriceTitle = "ÏZü‹æ•Ê@@’P‰¿ˆê——•\i”N‰’P‰¿j"
+        ConventionalUnitPriceTitle = "ç©ç®—ç·šåŒºåˆ¥ã€€ã€€å˜ä¾¡ä¸€è¦§è¡¨ï¼ˆå¹´åˆå˜ä¾¡ï¼‰"
     End If
 End Function
 
@@ -1637,10 +1637,10 @@ Private Sub FormatPurchaseUnitPriceSheet(ByVal ws As Worksheet, ByVal sourceFile
     Dim areaText As String
 
     tableName = CleanListObjectName(CStr(ws.Cells(2, "C").value))
-    If Len(tableName) = 0 Then tableName = "•i–ÚƒR[ƒhTable"
+    If Len(tableName) = 0 Then tableName = "å“ç›®ã‚³ãƒ¼ãƒ‰Table"
 
     lastRow = ws.Cells(ws.Rows.Count, "D").End(xlUp).Row
-    If lastRow < FIRST_ROW Then Err.Raise vbObjectError + 30, , "w“ü[“–’P‰¿•\‚ÌD—ñ2s–ÚˆÈ~‚Éƒf[ƒ^‚ª‚ ‚è‚Ü‚¹‚ñ: " & sourceFileName
+    If lastRow < FIRST_ROW Then Err.Raise vbObjectError + 30, , "è³¼å…¥å……å½“å˜ä¾¡è¡¨ã®Dåˆ—2è¡Œç›®ä»¥é™ã«ãƒ‡ãƒ¼ã‚¿ãŒã‚ã‚Šã¾ã›ã‚“: " & sourceFileName
 
     ws.Range("A:A").NumberFormat = "@"
     For rowIndex = FIRST_ROW To lastRow
@@ -1676,7 +1676,7 @@ Private Sub FormatPurchaseUnitPriceSheet(ByVal ws As Worksheet, ByVal sourceFile
     ws.Columns("B").Delete Shift:=xlShiftToLeft
 
     ws.Cells.VerticalAlignment = xlVAlignCenter
-    ws.Cells(HEADER_ROW, "A").value = "•i–ÚƒR[ƒh"
+    ws.Cells(HEADER_ROW, "A").value = "å“ç›®ã‚³ãƒ¼ãƒ‰"
 
     newLastCol = ws.Cells(HEADER_ROW, ws.Columns.Count).End(xlToLeft).Column
     newLastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
@@ -1697,9 +1697,9 @@ Private Sub FormatPurchaseUnitPriceSheet(ByVal ws As Worksheet, ByVal sourceFile
     ws.Columns("G").HorizontalAlignment = xlHAlignCenter
     ws.Columns("H").HorizontalAlignment = xlHAlignCenter
     ws.Columns("F").NumberFormat = "#,##0"
-    ws.Cells(2, "A").value = "•i–ÚƒR[ƒh"
-    ws.Cells(2, "E").value = "’PˆÊ"
-    ws.Cells(2, "F").value = "’P‰¿"
+    ws.Cells(2, "A").value = "å“ç›®ã‚³ãƒ¼ãƒ‰"
+    ws.Cells(2, "E").value = "å˜ä½"
+    ws.Cells(2, "F").value = "å˜ä¾¡"
 
     yearText = GetYearFromFileName(RemoveExtension(sourceFileName))
     If Len(yearText) = 0 Then
@@ -1708,7 +1708,7 @@ Private Sub FormatPurchaseUnitPriceSheet(ByVal ws As Worksheet, ByVal sourceFile
     End If
     prefixText = PurchaseTitlePrefix(sourceFileName, isChange)
     areaText = CStr(ws.Cells(3, "G").value)
-    titleText = yearText & "”N“x_w“ü[“–’P‰¿•\_" & prefixText & "_" & areaText
+    titleText = yearText & "å¹´åº¦_è³¼å…¥å……å½“å˜ä¾¡è¡¨_" & prefixText & "_" & areaText
 
     Set titleRange = ws.Range("A1:G1")
     With titleRange
@@ -1742,7 +1742,7 @@ Private Function PurchaseTitlePrefix(ByVal sourceFileName As String, ByVal isCha
 End Function
 
 Private Function IsPurchaseProjectName(ByVal projectName As String, ByVal projectCode As String) As Boolean
-    IsPurchaseProjectName = (projectCode = PURCHASE_PROJECT_CODE Or InStr(projectName, "‹O“¹Ş—¿w“ü[“–") > 0)
+    IsPurchaseProjectName = (projectCode = PURCHASE_PROJECT_CODE Or InStr(projectName, "è»Œé“ææ–™è³¼å…¥å……å½“") > 0)
 End Function
 
 Private Function NormalizePurchaseBranchSuffix(ByVal value As Variant) As String
@@ -1751,7 +1751,7 @@ Private Function NormalizePurchaseBranchSuffix(ByVal value As Variant) As String
     Dim numericValue As Long
 
     text = Trim$(StrConv(CStr(value), vbNarrow))
-    text = Replace$(text, "|", "-")
+    text = Replace$(text, "ï¼", "-")
     text = Replace$(text, " ", "")
     If Len(text) = 0 Then Exit Function
 
@@ -1819,7 +1819,7 @@ Private Function UniqueListObjectName(ByVal book As Workbook, ByVal baseName As 
     Dim i As Long
 
     candidate = CleanListObjectName(baseName)
-    If Len(candidate) = 0 Then candidate = "•i–ÚƒR[ƒhTable"
+    If Len(candidate) = 0 Then candidate = "å“ç›®ã‚³ãƒ¼ãƒ‰Table"
     If Not ListObjectNameExists(book, candidate) Then
         UniqueListObjectName = candidate
         Exit Function
@@ -1834,7 +1834,7 @@ Private Function UniqueListObjectName(ByVal book As Workbook, ByVal baseName As 
         End If
     Next i
 
-    Err.Raise vbObjectError + 31, , "ƒe[ƒuƒ‹–¼‚ğì¬‚Å‚«‚Ü‚¹‚ñ: " & baseName
+    Err.Raise vbObjectError + 31, , "ãƒ†ãƒ¼ãƒ–ãƒ«åã‚’ä½œæˆã§ãã¾ã›ã‚“: " & baseName
 End Function
 
 Private Function ListObjectNameExists(ByVal book As Workbook, ByVal tableName As String) As Boolean
@@ -1855,18 +1855,18 @@ Private Sub SaveTargetBooks(ByVal targetBooks As Object)
     Dim book As Workbook
     Dim targetPath As String
 
-    WriteLog "ì¬‘ÎÛƒtƒ@ƒCƒ‹”: " & CStr(targetBooks.Count)
+    WriteLog "ä½œæˆå¯¾è±¡ãƒ•ã‚¡ã‚¤ãƒ«æ•°: " & CStr(targetBooks.Count)
 
     For Each key In targetBooks.Keys
         targetPath = CStr(key)
-        frmProgress.UpdateProgress mProgDone, "•Û‘¶: " & GetFileName(targetPath)
+        frmProgress.UpdateProgress mProgDone, "ä¿å­˜: " & GetFileName(targetPath)
         Set book = targetBooks(key)
         SaveOneBook book, targetPath
-        frmProgress.UpdateProgress mProgDone, "•Û‘¶Š®—¹: " & GetFileName(targetPath)
+        frmProgress.UpdateProgress mProgDone, "ä¿å­˜å®Œäº†: " & GetFileName(targetPath)
     Next key
 End Sub
 
-' 1ƒuƒbƒN‚ğˆêƒtƒ@ƒCƒ‹–¼‚Å•Û‘¶‚µA¬Œ÷Œã‚É³®–¼‚Ö•ÏX‚·‚é
+' 1ãƒ–ãƒƒã‚¯ã‚’ä¸€æ™‚ãƒ•ã‚¡ã‚¤ãƒ«åã§ä¿å­˜ã—ã€æˆåŠŸå¾Œã«æ­£å¼åã¸å¤‰æ›´ã™ã‚‹
 Private Sub SaveOneBook(ByVal book As Workbook, ByVal targetPath As String)
     On Error GoTo SaveErr
     Dim targetDir As String
@@ -1874,19 +1874,19 @@ Private Sub SaveOneBook(ByVal book As Workbook, ByVal targetPath As String)
 
     targetDir = Left$(targetPath, InStrRev(targetPath, "\") - 1)
     EnsureFolder targetDir
-    If IsWorkbookPathOpen(targetPath) Then Err.Raise vbObjectError + 20, , "o—ÍƒuƒbƒN‚ªŠJ‚¢‚Ä‚¢‚Ü‚·B•Â‚¶‚Ä‚©‚çÄÀs‚µ‚Ä‚­‚¾‚³‚¢: " & targetPath
+    If IsWorkbookPathOpen(targetPath) Then Err.Raise vbObjectError + 20, , "å‡ºåŠ›ãƒ–ãƒƒã‚¯ãŒé–‹ã„ã¦ã„ã¾ã™ã€‚é–‰ã˜ã¦ã‹ã‚‰å†å®Ÿè¡Œã—ã¦ãã ã•ã„: " & targetPath
 
     If FileExists(targetPath) Then
-        WriteLog "ƒXƒLƒbƒv: •Û‘¶“_‚Åo—Íƒtƒ@ƒCƒ‹‚ªŠù‚É‘¶İ‚µ‚Ü‚·: " & targetPath
+        WriteLog "ã‚¹ã‚­ãƒƒãƒ—: ä¿å­˜æ™‚ç‚¹ã§å‡ºåŠ›ãƒ•ã‚¡ã‚¤ãƒ«ãŒæ—¢ã«å­˜åœ¨ã—ã¾ã™: " & targetPath
         book.Close SaveChanges:=False
         Exit Sub
     End If
 
     tempPath = BuildTempPath(targetPath)
-    If IsWorkbookPathOpen(tempPath) Then Err.Raise vbObjectError + 22, , "ˆê•Û‘¶ƒuƒbƒN‚ªŠJ‚¢‚Ä‚¢‚Ü‚·B•Â‚¶‚Ä‚©‚çÄÀs‚µ‚Ä‚­‚¾‚³‚¢: " & tempPath
+    If IsWorkbookPathOpen(tempPath) Then Err.Raise vbObjectError + 22, , "ä¸€æ™‚ä¿å­˜ãƒ–ãƒƒã‚¯ãŒé–‹ã„ã¦ã„ã¾ã™ã€‚é–‰ã˜ã¦ã‹ã‚‰å†å®Ÿè¡Œã—ã¦ãã ã•ã„: " & tempPath
 
-    ApplyWorkbookFont book, "BIZ UDƒSƒVƒbƒN"
-    WriteLog "ˆê•Û‘¶ŠJn: " & tempPath
+    ApplyWorkbookFont book, "BIZ UDã‚´ã‚·ãƒƒã‚¯"
+    WriteLog "ä¸€æ™‚ä¿å­˜é–‹å§‹: " & tempPath
     FlushLog
     book.SaveAs fileName:=tempPath, FileFormat:=xlOpenXMLWorkbook
     book.Close SaveChanges:=False
@@ -1896,13 +1896,13 @@ Private Sub SaveOneBook(ByVal book As Workbook, ByVal targetPath As String)
         On Error Resume Next
         Kill tempPath
         On Error GoTo SaveErr
-        WriteLog "ƒXƒLƒbƒv: ˆê•Û‘¶Œã‚Éo—Íƒtƒ@ƒCƒ‹‚ªì¬Ï‚İ‚Å‚·: " & targetPath
+        WriteLog "ã‚¹ã‚­ãƒƒãƒ—: ä¸€æ™‚ä¿å­˜å¾Œã«å‡ºåŠ›ãƒ•ã‚¡ã‚¤ãƒ«ãŒä½œæˆæ¸ˆã¿ã§ã™: " & targetPath
         Exit Sub
     End If
 
     FileCopy tempPath, targetPath
     Kill tempPath
-    WriteLog "•Û‘¶Š®—¹: " & targetPath
+    WriteLog "ä¿å­˜å®Œäº†: " & targetPath
     FlushLog
     Exit Sub
 
@@ -1914,7 +1914,7 @@ SaveErr:
     savedNumber = Err.Number
     savedSource = Err.Source
     savedDescription = Err.Description
-    WriteErrorLogValues "•Û‘¶¸”s: " & targetPath, savedNumber, savedSource, savedDescription
+    WriteErrorLogValues "ä¿å­˜å¤±æ•—: " & targetPath, savedNumber, savedSource, savedDescription
     On Error Resume Next
     If Not book Is Nothing Then book.Close SaveChanges:=False
     If Len(tempPath) > 0 Then
@@ -1931,7 +1931,7 @@ Private Function BuildTempPath(ByVal targetPath As String) As String
 
     tempDir = Environ$("TEMP")
     If Len(tempDir) = 0 Then tempDir = Environ$("TMP")
-    If Len(tempDir) = 0 Then Err.Raise vbObjectError + 24, , "ˆê•Û‘¶ƒtƒHƒ‹ƒ_‚ğæ“¾‚Å‚«‚Ü‚¹‚ñB"
+    If Len(tempDir) = 0 Then Err.Raise vbObjectError + 24, , "ä¸€æ™‚ä¿å­˜ãƒ•ã‚©ãƒ«ãƒ€ã‚’å–å¾—ã§ãã¾ã›ã‚“ã€‚"
     tempDir = CombinePath(tempDir, "UnitPriceListTool")
     EnsureFolder tempDir
 
@@ -1943,9 +1943,9 @@ Private Function BuildTempPath(ByVal targetPath As String) As String
         End If
     Next i
 
-    Err.Raise vbObjectError + 23, , "ˆê•Û‘¶ƒtƒ@ƒCƒ‹–¼‚ğì¬‚Å‚«‚Ü‚¹‚ñ: " & targetPath
+    Err.Raise vbObjectError + 23, , "ä¸€æ™‚ä¿å­˜ãƒ•ã‚¡ã‚¤ãƒ«åã‚’ä½œæˆã§ãã¾ã›ã‚“: " & targetPath
 End Function
-' o—ÍæƒuƒbƒN‚ªŠJ‚¢‚Ä‚¢‚é‚©Šm”F‚·‚é
+' å‡ºåŠ›å…ˆãƒ–ãƒƒã‚¯ãŒé–‹ã„ã¦ã„ã‚‹ã‹ç¢ºèªã™ã‚‹
 Private Function IsWorkbookPathOpen(ByVal targetPath As String) As Boolean
     Dim wb As Workbook
 
@@ -1974,11 +1974,11 @@ Private Function BuildTargetPath(ByVal outputLineDir As String, ByVal branchName
     Dim targetDir As String
 
     If isChange Then
-        kindFolder = "İŒv•ÏX’P‰¿"
-        filePrefix = "İŒv•ÏX"
+        kindFolder = "è¨­è¨ˆå¤‰æ›´å˜ä¾¡"
+        filePrefix = "è¨­è¨ˆå¤‰æ›´"
     Else
-        kindFolder = "’Êí’P‰¿"
-        filePrefix = "’Êí"
+        kindFolder = "é€šå¸¸å˜ä¾¡"
+        filePrefix = "é€šå¸¸"
     End If
 
     If Len(outputLineDir) = 0 Then outputLineDir = OUTPUT_CONVENTIONAL_LINE_DIR
@@ -1995,26 +1995,26 @@ Private Function GetProjectCode(ByVal projectName As String) As String
     firstChar = Left$(Trim$(projectName), 1)
 
     Select Case firstChar
-        Case "‡@": GetProjectCode = "1"
-        Case "‡A": GetProjectCode = "2"
-        Case "‡B": GetProjectCode = "3"
-        Case "‡C": GetProjectCode = "4"
-        Case "‡D": GetProjectCode = "5"
-        Case "‡E": GetProjectCode = "6"
-        Case "‡F": GetProjectCode = "7"
-        Case "‡G": GetProjectCode = "8"
-        Case "‡H": GetProjectCode = "9"
-        Case "‡I": GetProjectCode = "10"
-        Case "‡J": GetProjectCode = "11"
-        Case "‡K": GetProjectCode = "12"
-        Case "‡L": GetProjectCode = "13"
-        Case "‡M": GetProjectCode = "14"
-        Case "‡N": GetProjectCode = "15"
-        Case "‡O": GetProjectCode = "16"
-        Case "‡P": GetProjectCode = "17"
-        Case "‡Q": GetProjectCode = "18"
-        Case "‡R": GetProjectCode = "19"
-        Case "‡S": GetProjectCode = "20"
+        Case "â‘ ": GetProjectCode = "1"
+        Case "â‘¡": GetProjectCode = "2"
+        Case "â‘¢": GetProjectCode = "3"
+        Case "â‘£": GetProjectCode = "4"
+        Case "â‘¤": GetProjectCode = "5"
+        Case "â‘¥": GetProjectCode = "6"
+        Case "â‘¦": GetProjectCode = "7"
+        Case "â‘§": GetProjectCode = "8"
+        Case "â‘¨": GetProjectCode = "9"
+        Case "â‘©": GetProjectCode = "10"
+        Case "â‘ª": GetProjectCode = "11"
+        Case "â‘«": GetProjectCode = "12"
+        Case "â‘¬": GetProjectCode = "13"
+        Case "â‘­": GetProjectCode = "14"
+        Case "â‘®": GetProjectCode = "15"
+        Case "â‘¯": GetProjectCode = "16"
+        Case "â‘°": GetProjectCode = "17"
+        Case "â‘±": GetProjectCode = "18"
+        Case "â‘²": GetProjectCode = "19"
+        Case "â‘³": GetProjectCode = "20"
         Case Else
             If firstChar Like "#" Then GetProjectCode = firstChar
     End Select
@@ -2064,9 +2064,9 @@ Private Function GetWesternYearFromJapaneseEra(ByVal text As String) As String
     If pos > 0 Then
         startPos = pos + Len("R")
     Else
-        pos = InStr(text, "—ß˜a")
+        pos = InStr(text, "ä»¤å’Œ")
         If pos = 0 Then Exit Function
-        startPos = pos + Len("—ß˜a")
+        startPos = pos + Len("ä»¤å’Œ")
     End If
 
     For i = startPos To Len(normalizedText)
@@ -2075,7 +2075,7 @@ Private Function GetWesternYearFromJapaneseEra(ByVal text As String) As String
             digits = digits & ch
         ElseIf Len(digits) > 0 Then
             Exit For
-        ElseIf ch = "Œ³" Then
+        ElseIf ch = "å…ƒ" Then
             digits = "1"
             Exit For
         End If
@@ -2093,17 +2093,17 @@ Private Function GetYearFromFileName(ByVal baseName As String) As String
     Dim beforeListName As String
     Dim afterListName As String
 
-    pos = InStr(baseName, "’P‰¿ˆê——•\")
+    pos = InStr(baseName, "å˜ä¾¡ä¸€è¦§è¡¨")
     If pos > 0 Then
         beforeListName = Left$(baseName, pos - 1)
-        afterListName = Mid$(baseName, pos + Len("’P‰¿ˆê——•\"))
+        afterListName = Mid$(baseName, pos + Len("å˜ä¾¡ä¸€è¦§è¡¨"))
     Else
         afterListName = baseName
     End If
 
-    changePos = InStr(afterListName, "(•Ï)")
+    changePos = InStr(afterListName, "(å¤‰)")
     If changePos > 0 Then
-        candidate = FindYearTextFromLeft(Mid$(afterListName, changePos + Len("(•Ï)")))
+        candidate = FindYearTextFromLeft(Mid$(afterListName, changePos + Len("(å¤‰)")))
         If Len(candidate) > 0 Then
             GetYearFromFileName = candidate
             Exit Function
@@ -2218,7 +2218,7 @@ Private Function UniqueSheetName(ByVal book As Workbook, ByVal baseName As Strin
         End If
     Next i
 
-    Err.Raise vbObjectError + 10, , "ƒV[ƒg–¼‚ğì¬‚Å‚«‚Ü‚¹‚ñ: " & baseName
+    Err.Raise vbObjectError + 10, , "ã‚·ãƒ¼ãƒˆåã‚’ä½œæˆã§ãã¾ã›ã‚“: " & baseName
 End Function
 
 Private Function SheetExists(ByVal book As Workbook, ByVal sheetName As String) As Boolean
