@@ -881,6 +881,12 @@ Public Sub RefreshBasicInfoConstructionTotals()
             wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, BasicInfoVendorColumn(i)).Address)
     Next i
 
+    Dim vendorNameLog As String
+    For i = 1 To vendorCount
+        vendorNameLog = vendorNameLog & " [" & i & ":" & vendorNames(i) & "]"
+    Next i
+    LogCI "äÓñ{èÓïÒã∆é“ F9åèêî=" & vendorCount & vendorNameLog
+
     Dim worksTotal As Double
     Dim purchaseTotal As Double
 
@@ -979,9 +985,13 @@ Private Function SumVendorAmountOnSheet(ByVal ws As Worksheet, _
 
     Dim amountColumn As Long
     Dim c As Long
+    Dim scannedHeaders As String
     For c = SUBCON_PRICE_FIRST_COL To kindColumn - 1
         Dim headerText As String
         headerText = CommonNzText(ws.Cells(1, c).value)
+        If headerText <> "" Then
+            scannedHeaders = scannedHeaders & " [" & c & ":" & headerText & "]"
+        End If
         If Len(headerText) > Len("ã‡äz") Then
             If Right$(headerText, Len("ã‡äz")) = "ã‡äz" Then
                 If NormalizeVendorPriceName(Left$(headerText, Len(headerText) - Len("ã‡äz"))) = vendorKey Then
@@ -991,7 +1001,12 @@ Private Function SumVendorAmountOnSheet(ByVal ws As Worksheet, _
             End If
         End If
     Next c
-    If amountColumn = 0 Then Exit Function
+    If amountColumn = 0 Then
+        LogCI "çáåvìÀçáNG sheet=[" & ws.Name & "] ã∆é“=[" & vendorName & _
+              "] key=[" & vendorKey & "] kindCol=" & kindColumn & _
+              " ëñç∏óÒ=" & SUBCON_PRICE_FIRST_COL & "Å`" & (kindColumn - 1) & scannedHeaders
+        Exit Function
+    End If
 
     Dim lastRow As Long
     lastRow = GetLastDataRow(ws, seiriColumn)
@@ -1010,6 +1025,8 @@ Private Function SumVendorAmountOnSheet(ByVal ws As Worksheet, _
     Next r
 
     SumVendorAmountOnSheet = RoundDownAmount(totalAmount)
+    LogCI "çáåvìÀçáOK sheet=[" & ws.Name & "] ã∆é“=[" & vendorName & _
+          "] ã‡äzóÒ=" & amountColumn & " çáåv=" & SumVendorAmountOnSheet
 End Function
 
 Private Function SumNumericColumn(ByVal ws As Worksheet, _
@@ -1062,7 +1079,7 @@ End Sub
 '  C33 = C31 + C32
 '  C34 = C33 Å~ ê≈ó¶(B34ÇÃï\ãLÇ©ÇÁéÊìæÅBéÊìæÇ≈Ç´Ç»Ç¢èÍçáÇÕ10%) Å¶è¨êîì_à»â∫êÿÇËéÃÇƒ
 '  C35 = C33 + C34
-Public Sub UpdateBasicInfoTaxTotals(Optional ByVal wsInfo As Worksheet = Nothing)
+Public Sub UpdateBasicInfoTaxTotals(Optional ByVal wsInfo As Worksheet)
     On Error GoTo ErrorHandler
 
     If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet(ThisWorkbook)
