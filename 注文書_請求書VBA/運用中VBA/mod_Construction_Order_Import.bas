@@ -74,6 +74,9 @@ Private Const PROJECT_MASTER_UNIT_PRICE_LINE_COL As Long = 6
 Private Const PROJECT_MASTER_SOURCE_LINE_COL As Long = 7
 Private Const MASTER_DATA_FOLDER As String = "マスタデータ"
 Private Const UNIT_PRICE_LINE_MASTER_FILE As String = "出張所別_単価適用線区.xlsx"
+Private Const VENDOR_MASTER_FILE As String = "業者マスタ(全社版).xlsx"
+Private Const VENDOR_MASTER_ABBREV_COL As Long = 1     ' A列 業者名(略称) … 帳票・シートヘッダー表記
+Private Const VENDOR_MASTER_OFFICIAL_COL As Long = 2   ' B列 請求者氏名(正規名) … 基本情報F11表記
 Private Const UNIT_PRICE_DATA_START_ROW As Long = 7
 
 Private Const PRICE_LINE_SHEET As String = "単価適用線区"
@@ -887,6 +890,11 @@ Public Sub RefreshBasicInfoConstructionTotals()
     Next i
     LogCI "基本情報業者 F9件数=" & vendorCount & vendorNameLog
 
+    Dim BranchName As String
+    BranchName = GetBasicInfoCellText(wsInfo, BASIC_INFO_BRANCH_CELL)
+    Dim vendorAliasMap As Object
+    Set vendorAliasMap = BuildVendorAliasMap(BranchName)
+
     Dim worksTotal As Double
     Dim purchaseTotal As Double
 
@@ -898,7 +906,7 @@ Public Sub RefreshBasicInfoConstructionTotals()
             worksTotal = worksTotal + SumOutputJrAmount(ws)
             For i = 1 To vendorCount
                 If vendorNames(i) <> "" Then
-                    vendorTotals(i) = vendorTotals(i) + SumVendorAmountOnSheet(ws, vendorNames(i))
+                    vendorTotals(i) = vendorTotals(i) + SumVendorAmountOnSheet(ws, vendorNames(i), vendorAliasMap)
                 End If
             Next i
         End If
@@ -972,9 +980,10 @@ Private Function SumOutputJrAmount(ByVal ws As Worksheet) As Double
 End Function
 
 Private Function SumVendorAmountOnSheet(ByVal ws As Worksheet, _
-                                        ByVal vendorName As String) As Double
+                                        ByVal vendorName As String, _
+                                        ByVal aliasMap As Object) As Double
     Dim vendorKey As String
-    vendorKey = NormalizeVendorPriceName(vendorName)
+    vendorKey = ResolveVendorCanonicalKey(vendorName, aliasMap)
     If vendorKey = "" Then Exit Function
 
     Dim seiriColumn As Long
@@ -994,7 +1003,7 @@ Private Function SumVendorAmountOnSheet(ByVal ws As Worksheet, _
         End If
         If Len(headerText) > Len("金額") Then
             If Right$(headerText, Len("金額")) = "金額" Then
-                If NormalizeVendorPriceName(Left$(headerText, Len(headerText) - Len("金額"))) = vendorKey Then
+                If ResolveVendorCanonicalKey(Left$(headerText, Len(headerText) - Len("金額")), aliasMap) = vendorKey Then
                     amountColumn = c
                     Exit For
                 End If
@@ -1277,6 +1286,148 @@ End Function
 
 Private Function NormalizeVendorPriceName(ByVal vendorName As String) As String
     NormalizeVendorPriceName = CommonRemoveAllSpaces(CommonNormalizeText(vendorName))
+End Function
+
+'  ResolveVendorCanonicalKey
+'  業者マスタ(別名表)を正として、正規名・略称名のどちらの表記でも
+'  同一の正規名キーへ解決する。マスタに無い名称は正規化文字列をそのまま返す
+'  ためフォールバックされ、参照エラーにはならない。
+Private Function ResolveVendorCanonicalKey(ByVal vendorName As String, _
+                                           ByVal aliasMap As Object) As String
+    Dim normalizedKey As String
+    normalizedKey = NormalizeVendorPriceName(vendorName)
+    If normalizedKey = "" Then Exit Function
+
+    If Not aliasMap Is Nothing Then
+        If aliasMap.Exists(normalizedKey) Then
+            ResolveVendorCanonicalKey = CStr(aliasMap(normalizedKey))
+            Exit Function
+        End If
+    End If
+
+    ResolveVendorCanonicalKey = normalizedKey
+End Function
+
+'  BuildVendorAliasMap
+'  業者マスタ(全社版).xlsx の「支店名(基本情報B6)」シートを開き、
+'  A列=業者名(略称) / B列=請求者氏名(正規名) を読み込んで、
+'  正規化(略称)・正規化(正規名) の双方を 正規化(正規名) へ対応付けた辞書を返す。
+'  (1行目は見出し行だが、実業者名と一致しない無害なエントリになるだけ)
+'  マスタ未検出・シート未検出・読込失敗時は空辞書を返す(突合は正規化のみで継続)。
+Private Function BuildVendorAliasMap(ByVal branchName As String) As Object
+    Dim result As Object
+    Set result = CreateObject("Scripting.Dictionary")
+    result.CompareMode = vbTextCompare
+
+    Dim connection As Object
+    Dim recordset As Object
+
+    On Error GoTo Cleanup
+
+    If Trim$(branchName) = "" Then
+        LogCI "業者マスタ別名: 基本情報B6(支店名)が空のため名寄せなし"
+        GoTo Cleanup
+    End If
+
+    Dim masterPath As String
+    masterPath = ResolveVendorMasterPath()
+    If masterPath = "" Then
+        LogCI "業者マスタ未検出 -> 名寄せなし(正規化のみで突合)"
+        GoTo Cleanup
+    End If
+
+    Set connection = CommonOpenExcelAdoConnection(masterPath)
+    If connection Is Nothing Then
+        LogCI "業者マスタADO接続不可 path=[" & masterPath & "]"
+        GoTo Cleanup
+    End If
+
+    Dim actualSheetName As String
+    actualSheetName = FindAdoWorksheetName(connection, branchName)
+    If actualSheetName = "" Then
+        LogCI "業者マスタに支店シート[" & branchName & "]が見つかりません -> 名寄せなし"
+        GoTo Cleanup
+    End If
+
+    Set recordset = CreateObject("ADODB.Recordset")
+    recordset.Open "SELECT [F" & VENDOR_MASTER_OFFICIAL_COL & "], [F" & VENDOR_MASTER_ABBREV_COL & "] FROM " & _
+                   BuildAdoSheetTableName(actualSheetName), connection, 0, 1, 1
+
+    Dim official As String, abbrev As String, canonicalKey As String
+    Do Until recordset.EOF
+        official = CommonNzText(recordset.Fields(0).value)
+        abbrev = CommonNzText(recordset.Fields(1).value)
+        canonicalKey = NormalizeVendorPriceName(official)
+        If canonicalKey <> "" Then
+            AddVendorAlias result, official, canonicalKey
+            AddVendorAlias result, abbrev, canonicalKey
+        End If
+        recordset.MoveNext
+    Loop
+
+    LogCI "業者マスタ別名 件数=" & result.Count & " 支店=[" & branchName & _
+          "] sheet=[" & actualSheetName & "]"
+
+Cleanup:
+    If Err.Number <> 0 Then
+        LogCI "業者マスタ読込エラー Err " & Err.Number & ": " & Err.Description
+    End If
+    CommonCloseAdoRecordset recordset
+    CommonCloseAdoConnection connection
+    Set BuildVendorAliasMap = result
+End Function
+
+'  AddVendorAlias
+'  正規化した別名を正規名キーへ登録する(空・重複は無視)。
+Private Sub AddVendorAlias(ByVal aliasMap As Object, _
+                           ByVal aliasName As String, _
+                           ByVal canonicalKey As String)
+    Dim normalizedAlias As String
+    normalizedAlias = NormalizeVendorPriceName(aliasName)
+    If normalizedAlias = "" Then Exit Sub
+    If Not aliasMap.Exists(normalizedAlias) Then aliasMap.Add normalizedAlias, canonicalKey
+End Sub
+
+'  ResolveVendorMasterPath
+'  業者マスタ(全社版).xlsx のパスを複数候補から解決する。
+Private Function ResolveVendorMasterPath() As String
+    Dim fso As Object
+    Set fso = CreateObject("Scripting.FileSystemObject")
+
+    Dim candidates As Collection
+    Set candidates = New Collection
+
+    Dim unitMasterPath As String
+    unitMasterPath = ResolveMasterFilePath()
+    If unitMasterPath <> "" Then
+        AddUniqueText candidates, _
+            fso.BuildPath(fso.GetParentFolderName(unitMasterPath), VENDOR_MASTER_FILE)
+    End If
+
+    If Len(ThisWorkbook.Path) > 0 Then
+        AddUniqueText candidates, _
+            fso.BuildPath(fso.GetParentFolderName(ThisWorkbook.Path), _
+                          MASTER_DATA_FOLDER & "\" & VENDOR_MASTER_FILE)
+    End If
+
+    Dim userProfilePath As String
+    userProfilePath = Environ$("USERPROFILE")
+    If Len(Trim$(userProfilePath)) = 0 Then
+        userProfilePath = Environ$("HOMEDRIVE") & Environ$("HOMEPATH")
+    End If
+    If Len(Trim$(userProfilePath)) > 0 Then
+        AddUniqueText candidates, userProfilePath & "\" & CommonCompanyNameText() & "\" & _
+            "線路出張所用_注文書_請求書アクセスサイト - ドキュメント\" & _
+            MASTER_DATA_FOLDER & "\" & VENDOR_MASTER_FILE
+    End If
+
+    Dim candidate As Variant
+    For Each candidate In candidates
+        If fso.FileExists(CStr(candidate)) Then
+            ResolveVendorMasterPath = CStr(candidate)
+            Exit Function
+        End If
+    Next candidate
 End Function
 
 Private Sub FormatSubcontractorPriceColumns(ByVal ws As Worksheet, _
