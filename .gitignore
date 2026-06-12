@@ -44,6 +44,5 @@ AGENTS.md
 # ���[7 VBA�R�[�h
 **/*7VBA*(*)/
 
-# reference data (local only)
+# 参考データ（ローカル参照用。Git管理対象外）
 注文書_請求書VBA/参考データ/
-**/参考データ/**
