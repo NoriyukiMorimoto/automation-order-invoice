@@ -412,6 +412,7 @@ Private Sub ImportUnitPriceData(ByVal wsInfo As Worksheet)
     LogUP "ImportWeldingUnitPriceSheetsIfRequired -> True createdSheet=[" & weldingSheetName & "]"
 
     mod_VendorMaster.RefreshAllVendorUnitPricesForBasicInfo wsInfo
+    mod_WeldingUnitPrice.ApplyWeldingVendorUnitPricesForBasicInfo wsInfo
 
     Application.Calculation = xlCalculationAutomatic
     On Error Resume Next
