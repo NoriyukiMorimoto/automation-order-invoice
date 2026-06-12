@@ -14,6 +14,7 @@ Private Const BASIC_INFO_VENDOR_VALUE_COL_WIDTH As Double = 42.5
 Private Const BASIC_INFO_VENDOR_SPACER_COL_WIDTH As Double = 0.92
 Private Const BASIC_INFO_VENDOR_PERCENT_ROW As Long = 25
 Private Const BASIC_INFO_VENDOR_OUTSOURCE_RATIO_ROW As Long = 29
+Private Const BASIC_INFO_VENDOR_WELDING_RATIO_ROW As Long = 31
 Private Const BASIC_INFO_YEAR_CELL As String = "B4"
 Private Const BASIC_INFO_BILLING_COUNT_CELL As String = "F4"
 Private Const BASIC_INFO_VENDOR_COUNT_CELL As String = "F9"
@@ -517,6 +518,7 @@ Public Sub SyncVendorBlocksFromCount(ByVal wsInfo As Worksheet)
     Application.CutCopyMode = False
     RefreshVendorListForBasicInfo wsInfo
     RefreshAllVendorUnitPricesForBasicInfo wsInfo
+    mod_WeldingUnitPrice.ApplyWeldingVendorUnitPricesForBasicInfo wsInfo
     mLastVendorBlockCount = vendorCount
     Exit Sub
 
@@ -539,7 +541,8 @@ Public Function GetVendorUnitPriceMonitorRange(ByVal wsInfo As Worksheet) As Ran
         Dim blockRange As Range
         Set blockRange = Union(wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, valueCol), _
                                wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, valueCol), _
-                               wsInfo.Cells(BASIC_INFO_VENDOR_OUTSOURCE_RATIO_ROW, valueCol))
+                               wsInfo.Cells(BASIC_INFO_VENDOR_OUTSOURCE_RATIO_ROW, valueCol), _
+                               wsInfo.Cells(BASIC_INFO_VENDOR_WELDING_RATIO_ROW, valueCol))
 
         If result Is Nothing Then
             Set result = blockRange
@@ -579,7 +582,29 @@ Public Sub HandleVendorUnitPriceMonitorChange(ByVal wsInfo As Worksheet, ByVal c
     If Intersect(changedRange, GetVendorUnitPriceMonitorRange(wsInfo)) Is Nothing Then Exit Sub
 
     RefreshAllVendorUnitPricesForBasicInfo wsInfo
+    mod_WeldingUnitPrice.ApplyWeldingVendorUnitPricesForBasicInfo wsInfo, False, _
+        GetPreferredWeldingRatioColumnFromChange(wsInfo, changedRange)
 End Sub
+
+Private Function GetPreferredWeldingRatioColumnFromChange(ByVal wsInfo As Worksheet, _
+                                                          ByVal changedRange As Range) As Long
+    Dim vendorCount As Long
+    Dim i As Long
+    Dim ratioCell As Range
+
+    GetPreferredWeldingRatioColumnFromChange = 0
+    If wsInfo Is Nothing Then Exit Function
+    If changedRange Is Nothing Then Exit Function
+
+    vendorCount = GetVendorBlockCount(wsInfo)
+    For i = 1 To vendorCount
+        Set ratioCell = wsInfo.Cells(BASIC_INFO_VENDOR_WELDING_RATIO_ROW, VendorValueColumnByIndex(i))
+        If Not Intersect(changedRange, ratioCell) Is Nothing Then
+            GetPreferredWeldingRatioColumnFromChange = ratioCell.Column
+            Exit Function
+        End If
+    Next i
+End Function
 
 Public Sub HandleConstructionUnitPriceSheetChange(ByVal wsUnitPrice As Worksheet, _
                                                    ByVal changedRange As Range)
