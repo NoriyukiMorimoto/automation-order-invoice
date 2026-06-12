@@ -8,6 +8,7 @@ Option Explicit
 '              単価 = JR単価 ×(1－手元比率)× 溶接工事外注比率(基本情報 31行目)
 ' ・軌道会社 : I列(昼)/J列(夜)から1社2列ずつ右へ追加
 '              単価 = JR単価 × 手元比率 × 軌道工事外注比率(基本情報 29行目)
+'              1行目の外注比率表示なし / 4行目ヘッダー=(回数)(年度)溶接手元単価
 ' ・手元比率 : マスタデータ\レール溶接_軌道会社外注費率一覧*.xlsx の
 '              「溶接手元割合」シートから整理番号で参照し、数式へ数値リテラルで埋め込む
 ' ・外注比率 : 基本情報シートのセル参照として数式に残す(既存ロジックと同様)
@@ -174,8 +175,10 @@ Private Sub ApplyWeldingVendorUnitPricesToSheet(ByVal wsWelding As Worksheet, _
         Exit Sub
     End If
 
-    Dim headerText As String
-    headerText = BuildWeldingUnitPriceHeaderText(wsInfo)
+    Dim outsourceHeaderText As String
+    Dim railHeaderText As String
+    outsourceHeaderText = BuildWeldingUnitPriceHeaderText(wsInfo, True)
+    railHeaderText = BuildWeldingUnitPriceHeaderText(wsInfo, False)
 
     Dim vendorUnitPriceNameMap As Object
     Set vendorUnitPriceNameMap = mod_VendorMaster.BuildVendorUnitPriceNameMap(wsInfo)
@@ -184,7 +187,7 @@ Private Sub ApplyWeldingVendorUnitPricesToSheet(ByVal wsWelding As Worksheet, _
     ' 会社名は業者マスタ(B6支店シート)のB列一致→A列値へ解決し、複数社は「・」で結合して表示
     If weldingBlock.valueColumn > 0 And weldingBlock.hasRatio Then
         ApplyWeldingVendorBlock wsWelding, lastRow, WUP_WELDING_DAY_COL, weldingBlock, True, _
-                                headerText, vendorUnitPriceNameMap, temotoMap, missingSeiriMap, _
+                                outsourceHeaderText, vendorUnitPriceNameMap, temotoMap, missingSeiriMap, _
                                 BuildWeldingDisplayName(weldingNameSources, vendorUnitPriceNameMap)
     Else
         ClearWeldingVendorBlock wsWelding, lastRow, WUP_WELDING_DAY_COL
@@ -197,7 +200,7 @@ Private Sub ApplyWeldingVendorUnitPricesToSheet(ByVal wsWelding As Worksheet, _
         railDayCol = WUP_FIRST_RAIL_DAY_COL + ((railIndex - 1) * 2)
         If railBlocks(railIndex).hasRatio Then
             ApplyWeldingVendorBlock wsWelding, lastRow, railDayCol, railBlocks(railIndex), False, _
-                                    headerText, vendorUnitPriceNameMap, temotoMap, missingSeiriMap
+                                    railHeaderText, vendorUnitPriceNameMap, temotoMap, missingSeiriMap
         Else
             ClearWeldingVendorBlock wsWelding, lastRow, railDayCol
         End If
@@ -231,8 +234,10 @@ Private Sub ApplyWeldingVendorBlock(ByVal wsWelding As Worksheet, _
     wsWelding.Columns(dayCol).ColumnWidth = wsWelding.Columns(WUP_JR_DAY_COL).ColumnWidth
     wsWelding.Columns(nightCol).ColumnWidth = wsWelding.Columns(WUP_JR_NIGHT_COL).ColumnWidth
 
-    ' 1行目: 外注比率表示
-    ApplyOutsourceRatioRow wsWelding, dayCol, nightCol, block.ratioPercent
+    ' 1行目: 溶接施工会社のみ外注比率表示(軌道会社は表示しない)
+    If isWeldingVendor Then
+        ApplyOutsourceRatioRow wsWelding, dayCol, nightCol, block.ratioPercent
+    End If
 
     ' 4行目: 結合ヘッダー / 5行目: 結合会社名 / 6行目: 昼間・夜間
     Dim displayName As String
@@ -929,11 +934,19 @@ Private Function CollectWeldingUnitPriceSheets(ByVal targetBook As Workbook) As 
     Set CollectWeldingUnitPriceSheets = result
 End Function
 
-' (回数)(年度4桁)外注単価 ※mod_VendorMaster.BuildVendorUnitPriceHeaderText と同一仕様
-Private Function BuildWeldingUnitPriceHeaderText(ByVal wsInfo As Worksheet) As String
+' (回数)(年度4桁)外注単価 / 軌道会社列は(回数)(年度4桁)溶接手元単価
+Private Function BuildWeldingUnitPriceHeaderText(ByVal wsInfo As Worksheet, _
+                                                 Optional ByVal isWeldingVendor As Boolean = True) As String
+    Dim labelText As String
+    If isWeldingVendor Then
+        labelText = OutsourceUnitPriceLabelText()
+    Else
+        labelText = WeldingTemotoUnitPriceLabelText()
+    End If
+
     BuildWeldingUnitPriceHeaderText = Trim$(CStr(wsInfo.Range(BASIC_INFO_BILLING_COUNT_CELL).Value)) & _
                                       CommonExtractYear4Digits(CStr(wsInfo.Range(BASIC_INFO_YEAR_CELL).Value)) & _
-                                      OutsourceUnitPriceLabelText()
+                                      labelText
 End Function
 
 Private Function ResolveVendorUnitPriceNameWUP(ByVal vendorUnitPriceNameMap As Object, _
@@ -1086,6 +1099,16 @@ Private Function OutsourceUnitPriceLabelText() As String
         cached = ChrW$(&H5916) & ChrW$(&H6CE8) & ChrW$(&H5358) & ChrW$(&H4FA1)
     End If
     OutsourceUnitPriceLabelText = cached
+End Function
+
+' "溶接手元単価"
+Private Function WeldingTemotoUnitPriceLabelText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = ChrW$(&H6EB6) & ChrW$(&H63A5) & ChrW$(&H624B) & ChrW$(&H5143) & _
+                 ChrW$(&H5358) & ChrW$(&H4FA1)
+    End If
+    WeldingTemotoUnitPriceLabelText = cached
 End Function
 
 ' "外注比率＝"
