@@ -81,6 +81,13 @@ Private Const IMPORTED_LINE_NAME_MIN_FONT_SIZE As Double = 5
 Private Const IMPORTED_LINE_NAME_LINE_HEIGHT_RATIO As Double = 1.25
 Private Const IMPORTED_LINE_NAME_VERTICAL_PADDING As Double = 4
 Private Const IMPORTED_UNIT_PRICE_CENTER_COL As Long = 2
+Private Const IMPORTED_UNIT_PRICE_MERGE_FIRST_ROW As Long = 1   ' A~F結合対象の開始行(1行目)
+Private Const IMPORTED_UNIT_PRICE_MERGE_LAST_ROW As Long = 2    ' A~F結合対象の終了行(2行目)
+Private Const IMPORTED_UNIT_PRICE_MERGE_FIRST_COL As Long = 1   ' A列
+Private Const IMPORTED_UNIT_PRICE_MERGE_LAST_COL As Long = 6    ' F列
+Private Const IMPORTED_UNIT_PRICE_COL_A_WIDTH As Double = 10#   ' A列のセル幅
+Private Const IMPORTED_UNIT_PRICE_LEFT_ALIGN_ROW_FIRST As Long = 3  ' B3
+Private Const IMPORTED_UNIT_PRICE_LEFT_ALIGN_ROW_LAST As Long = 4   ' B4
 
 Private Const ZAIRAISEN_PROJECT_NAME_FIRST_END_ROW  As Long = 8
 Private Const ZAIRAISEN_PROJECT_NAME_SKIP_ROW       As Long = 9
@@ -1837,6 +1844,35 @@ Private Sub ApplyImportedUnitPriceSheetFormat(ByVal targetSheet As Worksheet)
     End With
 
     targetSheet.Columns(IMPORTED_UNIT_PRICE_CENTER_COL).HorizontalAlignment = xlCenter
+
+    ' --- 1行目・2行目のA~F列を結合し、中央揃えで表示 ---
+    With targetSheet.Range( _
+            targetSheet.Cells(IMPORTED_UNIT_PRICE_MERGE_FIRST_ROW, IMPORTED_UNIT_PRICE_MERGE_FIRST_COL), _
+            targetSheet.Cells(IMPORTED_UNIT_PRICE_MERGE_LAST_ROW, IMPORTED_UNIT_PRICE_MERGE_LAST_COL))
+        On Error Resume Next
+        .UnMerge
+        On Error GoTo 0
+    End With
+
+    Dim mergeRowIndex As Long
+    For mergeRowIndex = IMPORTED_UNIT_PRICE_MERGE_FIRST_ROW To IMPORTED_UNIT_PRICE_MERGE_LAST_ROW
+        With targetSheet.Range( _
+                targetSheet.Cells(mergeRowIndex, IMPORTED_UNIT_PRICE_MERGE_FIRST_COL), _
+                targetSheet.Cells(mergeRowIndex, IMPORTED_UNIT_PRICE_MERGE_LAST_COL))
+            .Merge
+            .HorizontalAlignment = xlCenter
+            .VerticalAlignment = xlCenter
+        End With
+    Next mergeRowIndex
+
+    ' --- A列のセル幅 ---
+    targetSheet.Columns(IMPORTED_UNIT_PRICE_MERGE_FIRST_COL).ColumnWidth = IMPORTED_UNIT_PRICE_COL_A_WIDTH
+
+    ' --- B3・B4は左詰め(B列全体は中央揃えのため、この2行のみ上書き) ---
+    targetSheet.Range( _
+        targetSheet.Cells(IMPORTED_UNIT_PRICE_LEFT_ALIGN_ROW_FIRST, IMPORTED_UNIT_PRICE_CENTER_COL), _
+        targetSheet.Cells(IMPORTED_UNIT_PRICE_LEFT_ALIGN_ROW_LAST, IMPORTED_UNIT_PRICE_CENTER_COL) _
+    ).HorizontalAlignment = xlLeft
 End Sub
 
 Private Function ImportedUnitPriceSheetFontNameText() As String
