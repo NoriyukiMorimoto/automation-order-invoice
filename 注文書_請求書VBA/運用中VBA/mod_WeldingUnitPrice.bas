@@ -55,7 +55,18 @@ Private Const WUP_JR_NIGHT_COL As Long = 6        ' F列 JR単価(夜)
 Private Const WUP_WELDING_DAY_COL As Long = 7     ' G列 溶接会社(昼)
 Private Const WUP_FIRST_RAIL_DAY_COL As Long = 9  ' I列 軌道会社1社目(昼)
 Private Const WUP_RAIL_JR_FACTOR As String = "(100/100.7)"  ' 軌道会社: JR単価に掛ける係数(AG5)
+Private Const WUP_PATTERN_ROW As Long = 3              ' 外注費算出パターン行
+Private Const WUP_PATTERN_LABEL_COL_FIRST As Long = 4  ' D列(ラベル結合 開始)
+Private Const WUP_PATTERN_LABEL_COL_LAST As Long = 5   ' E列(ラベル結合 終了)
+Private Const WUP_PATTERN_SELECT_COL As Long = 6       ' F列(パターン選択ドロップダウン)
 Private Const WUP_PACK_SEIRI_MIN As Long = 5000   ' パック工種の整理番号下限
+' パック構成(マスタ): 0始まりフィールド = Excel列-1。J=9,K=10,L=11,M=12,N=13,O=14
+Private Const WUP_MASTER_PACK_COMP1_FIELD As Long = 9   ' J列 構成1の整理番号
+Private Const WUP_MASTER_PACK_QTY1_FIELD As Long = 10   ' K列 構成1の数量
+Private Const WUP_MASTER_PACK_COMP2_FIELD As Long = 11  ' L列 構成2の整理番号
+Private Const WUP_MASTER_PACK_QTY2_FIELD As Long = 12   ' M列 構成2の数量
+Private Const WUP_MASTER_PACK_COMP3_FIELD As Long = 13  ' N列 構成3の整理番号
+Private Const WUP_MASTER_PACK_QTY3_FIELD As Long = 14   ' O列 構成3の数量
 Private Const WUP_NUMBER_FORMAT As String = "#,##0"
 Private Const WUP_RATIO_NUMBER_FORMAT As String = "0.0%"
 Private Const WUP_RATIO_FONT_SIZE As Long = 11
@@ -70,6 +81,12 @@ Private Type WeldingVendorBlock
     ratioPercent As Variant   ' 0～1 正規化済み(表示用)
     hasRatio As Boolean
 End Type
+
+' パック工種計算用の参照マップ(実行中のみ使用)
+'   mPackMap     : 整理番号(5000+) -> 構成Collection(各要素 Array(構成整理番号As String, 数量As Double))。実行毎に設定。
+'   mSeiriRowMap : 整理番号 -> 当該シートの行番号。シート毎に設定。
+Private mPackMap As Object
+Private mSeiriRowMap As Object
 
 ' =====================================================================
 ' Public エントリポイント
@@ -198,6 +215,12 @@ Private Sub ApplyWeldingVendorUnitPricesToSheet(ByVal wsWelding As Worksheet, _
         Exit Sub
     End If
 
+    ' D3:E3=「外注費算出パターン：」/ F3=パターン選択ドロップダウン を整備
+    SetupOutsourcePatternSelector wsWelding
+
+    ' パック工種(5000番台)が構成工種の行を参照できるよう、整理番号->行 を構築
+    Set mSeiriRowMap = BuildSeiriRowMapWUP(wsWelding, lastRow)
+
     Dim outsourceHeaderText As String
     Dim railHeaderText As String
     outsourceHeaderText = BuildWeldingUnitPriceHeaderText(wsInfo, True)
@@ -315,10 +338,10 @@ Private Sub ApplyWeldingVendorRow(ByVal wsWelding As Worksheet, _
     Dim seiriNumber As Long
     seiriNumber = CLng(Val(StrConv(seiriText, vbNarrow)))
 
-    ' パック工種(5000番台)は計算対象外
+    ' パック工種(5000番台): 構成工種の同列セル×数量の合計を算出
+    '   溶接(G/H)=3工種(J/K,L/M,N/O) / 軌道(I/J等)=1工種(J/K)のみ
     If seiriNumber >= WUP_PACK_SEIRI_MIN Then
-        ApplyGreyFill wsWelding.Cells(rowIndex, dayCol)
-        ApplyGreyFill wsWelding.Cells(rowIndex, nightCol)
+        ApplyPackRowForBlock wsWelding, rowIndex, dayCol, nightCol, CStr(seiriNumber), isWeldingVendor
         Exit Sub
     End If
 
@@ -456,37 +479,147 @@ Private Sub ApplyRailMarkupCell(ByVal targetCell As Range, _
     targetCell.NumberFormat = WUP_NUMBER_FORMAT
 End Sub
 
-' 軌道会社単価の数式(ユーザー指定式):
-'   AG = JR単価 ×(100/100.7)                                    … 元値
-'   AK = 手元割合(マスタ溶接手元割合 昼E/夜F の値)               … リテラル
-'   R  = 軌道外注比率(基本情報31行 1社目F31/2社目I31/3列ずつ右)   … セル参照
-'   v  = (AG*AK)*R
-'   =IF(VALUE(LEN(TEXT(v,0)))>3,
-'       VALUE(MID(TEXT(v,0),1,3)&REPT(0,LEN(TEXT(v,0))-3)),
-'       (ROUNDDOWN(v,0)))
-'   ※整数部が4桁以上なら上位3桁＋残り0埋め(切り捨て3桁)、3桁以下はROUNDDOWNで整数化。
+' 軌道会社単価の数式。F3(外注費算出パターン)の選択値で計算方式を切替える。
+'   共通: jr=JR単価(E/F) / lit=手元割合(マスタ昼E/夜F リテラル) / R=軌道外注比率(基本情報31行)
+'   ■物価指数適用 : v=(jr×(100/100.7)×lit)×R を 整数部4桁以上は上位3桁＋0埋め(切り捨て3桁)、
+'                   3桁以下はROUNDDOWNで整数化。
+'   ■外注比率適用 : Y=lit×R, v=Y×jr を 桁数3以下はそのまま、4桁以上は上位4桁ROUND(,-1)で桁戻し。
+'                   (ユーザー指定式: =IF(J="","",IF(LEN(TEXT(Y*J,"#"))<=3,Y*J,
+'                     ROUND(VALUE(LEFT(TEXT(Y*J,"#"),4)),-1)*10^VALUE(LEN(TEXT(Y*J,"#"))-4))))
+'   ■前年度単価適用: 未定義のため空欄("")。
+' F3を切り替えるとExcelの再計算でそのまま単価が切り替わる。
 Private Function BuildRailMarkupFormula(ByVal wsWelding As Worksheet, _
                                         ByVal rowIndex As Long, _
                                         ByVal sourceCol As Long, _
                                         ByVal temotoRatio As Double, _
                                         ByVal ratioAddress As String) As String
+    Dim q As String
+    q = Chr$(34)
+
     Dim jrRef As String
     jrRef = wsWelding.Cells(rowIndex, sourceCol).Address(False, False)
+    Dim lit As String
+    lit = RatioLiteralText(temotoRatio)
 
-    Dim agExpr As String                          ' AG5: JR×(100/100.7)
-    agExpr = jrRef & "*" & WUP_RAIL_JR_FACTOR
+    Dim f3Ref As String
+    f3Ref = wsWelding.Cells(WUP_PATTERN_ROW, WUP_PATTERN_SELECT_COL).Address(True, True)  ' $F$3
 
-    Dim core As String                            ' (AG5*AK5)*R
-    core = "(" & agExpr & "*" & RatioLiteralText(temotoRatio) & ")*" & ratioAddress
+    ' --- 物価指数適用 ---
+    Dim coreBukka As String
+    coreBukka = "(" & jrRef & "*" & WUP_RAIL_JR_FACTOR & "*" & lit & ")*" & ratioAddress
+    Dim txBukka As String
+    txBukka = "TEXT((" & coreBukka & "),0)"
+    Dim exprBukka As String
+    exprBukka = "IF(VALUE(LEN(" & txBukka & "))>3," & _
+                "VALUE(MID(" & txBukka & ",1,3)&REPT(0,LEN(" & txBukka & ")-3))," & _
+                "(ROUNDDOWN(" & coreBukka & ",0)))"
 
-    Dim tx As String                              ' TEXT((core),0)
-    tx = "TEXT((" & core & "),0)"
+    ' --- 外注比率適用 ---  Y=lit×R, v=Y×jr
+    Dim prodGaibu As String
+    prodGaibu = "(" & lit & "*" & ratioAddress & ")*" & jrRef
+    Dim txGaibu As String
+    txGaibu = "TEXT(" & prodGaibu & "," & q & "#" & q & ")"
+    Dim exprGaibu As String
+    exprGaibu = "IF(" & jrRef & "=" & q & q & "," & q & q & "," & _
+                "IF(LEN(" & txGaibu & ")<=3," & prodGaibu & "," & _
+                "ROUND(VALUE(LEFT(" & txGaibu & ",4)),-1)*10^VALUE(LEN(" & txGaibu & ")-4)))"
 
+    ' --- F3で分岐(前年度単価適用は未定義のため空欄) ---
     BuildRailMarkupFormula = _
-        "=IF(VALUE(LEN(" & tx & "))>3," & _
-        "VALUE(MID(" & tx & ",1,3)&REPT(0,LEN(" & tx & ")-3))," & _
-        "(ROUNDDOWN(" & core & ",0)))"
+        "=IF(" & f3Ref & "=" & q & PatternOutsourceRatioText() & q & "," & exprGaibu & "," & _
+        "IF(" & f3Ref & "=" & q & PatternPriceIndexText() & q & "," & exprBukka & "," & _
+        q & q & "))"
 End Function
+
+' =====================================================================
+' パック工種(5000番台)の計算
+' =====================================================================
+
+' 当該シートの 整理番号 -> 行番号 マップ(パック構成工種の行参照用)
+Private Function BuildSeiriRowMapWUP(ByVal wsWelding As Worksheet, ByVal lastRow As Long) As Object
+    Dim m As Object
+    Set m = CreateObject("Scripting.Dictionary")
+    m.CompareMode = vbTextCompare
+
+    Dim r As Long, t As String
+    For r = WUP_DATA_START_ROW To lastRow
+        t = Trim$(StrConv(CStr(wsWelding.Cells(r, WUP_SEIRI_COL).Value), vbNarrow))
+        If Len(t) > 0 And IsNumeric(t) Then
+            Dim k As String
+            k = CStr(CLng(Val(t)))
+            If Not m.Exists(k) Then m.Add k, r
+        End If
+    Next r
+    Set BuildSeiriRowMapWUP = m
+End Function
+
+' パック行(dayCol/nightCol)へ構成工種の合計式を書き込む。
+' 構成や行が解決できない場合はグレー塗り。
+Private Sub ApplyPackRowForBlock(ByVal wsWelding As Worksheet, _
+                                 ByVal rowIndex As Long, _
+                                 ByVal dayCol As Long, _
+                                 ByVal nightCol As Long, _
+                                 ByVal packKey As String, _
+                                 ByVal isWeldingVendor As Boolean)
+    If mPackMap Is Nothing Or mSeiriRowMap Is Nothing Or Not mPackMap.Exists(packKey) Then
+        ApplyGreyFill wsWelding.Cells(rowIndex, dayCol)
+        ApplyGreyFill wsWelding.Cells(rowIndex, nightCol)
+        Exit Sub
+    End If
+
+    Dim comps As Collection
+    Set comps = mPackMap(packKey)
+
+    ApplyPackCell wsWelding.Cells(rowIndex, dayCol), _
+                  BuildPackSumFormula(wsWelding, dayCol, comps, isWeldingVendor)
+    ApplyPackCell wsWelding.Cells(rowIndex, nightCol), _
+                  BuildPackSumFormula(wsWelding, nightCol, comps, isWeldingVendor)
+End Sub
+
+' 構成工種の同列セル×数量 の合計式。溶接=全構成、軌道=先頭1工種(J/K)のみ。
+Private Function BuildPackSumFormula(ByVal wsWelding As Worksheet, _
+                                     ByVal col As Long, _
+                                     ByVal comps As Collection, _
+                                     ByVal isWeldingVendor As Boolean) As String
+    Dim maxComp As Long
+    maxComp = comps.Count
+    If Not isWeldingVendor Then maxComp = 1          ' 軌道はJ列(1工種)のみ
+    If maxComp > comps.Count Then maxComp = comps.Count
+
+    Dim terms As String
+    Dim i As Long
+    For i = 1 To maxComp
+        Dim comp As Variant
+        comp = comps(i)                              ' Array(構成整理番号, 数量)
+        Dim compKey As String
+        compKey = CStr(comp(0))
+        If mSeiriRowMap.Exists(compKey) Then
+            Dim compRow As Long
+            compRow = CLng(mSeiriRowMap(compKey))
+            Dim cellRef As String
+            cellRef = wsWelding.Cells(compRow, col).Address(False, False)
+            If Len(terms) > 0 Then terms = terms & "+"
+            terms = terms & cellRef & "*" & RatioLiteralText(CDbl(comp(1)))
+        End If
+    Next i
+
+    If Len(terms) = 0 Then
+        BuildPackSumFormula = ""
+    Else
+        BuildPackSumFormula = "=" & terms
+    End If
+End Function
+
+Private Sub ApplyPackCell(ByVal targetCell As Range, ByVal formulaText As String)
+    targetCell.Interior.ColorIndex = xlColorIndexNone
+    targetCell.ShrinkToFit = False
+    If Len(formulaText) = 0 Then
+        ApplyGreyFill targetCell                     ' 構成行が解決できない -> グレー
+    Else
+        targetCell.Formula = formulaText
+        targetCell.NumberFormat = WUP_NUMBER_FORMAT
+    End If
+End Sub
 
 ' =====================================================================
 ' 書式・罫線・クリア(mod_VendorMaster の単価シート作成ロジックと同一仕様)
@@ -581,6 +714,89 @@ Private Sub ApplyMergedCell(ByVal wsWelding As Worksheet, _
         .WrapText = False
     End With
 End Sub
+
+' D3:E3=「外注費算出パターン：」(右詰・縮小) / F3=パターン選択ドロップダウン(左詰・縮小)
+' F3の選択値で軌道会社の単価計算が切り替わる(各セルの数式がF3を参照して分岐する)。
+Private Sub SetupOutsourcePatternSelector(ByVal wsWelding As Worksheet)
+    If wsWelding Is Nothing Then Exit Sub
+    On Error GoTo CleanupErr
+
+    ' --- D3:E3 ラベル(右詰・縮小表示) ---
+    Dim labelRange As Range
+    Set labelRange = wsWelding.Range( _
+        wsWelding.Cells(WUP_PATTERN_ROW, WUP_PATTERN_LABEL_COL_FIRST), _
+        wsWelding.Cells(WUP_PATTERN_ROW, WUP_PATTERN_LABEL_COL_LAST))
+    SafeUnmergeRangeWUP labelRange
+    labelRange.Merge
+    With labelRange
+        .Value = OutsourcePatternLabelText()
+        .HorizontalAlignment = xlRight
+        .VerticalAlignment = xlCenter
+        .ShrinkToFit = True
+        .WrapText = False
+        .Font.Name = WeldingUnitPriceFontNameText()
+        On Error Resume Next
+        .Font.NameFarEast = WeldingUnitPriceFontNameText()
+        On Error GoTo CleanupErr
+    End With
+
+    ' --- F3 ドロップダウン(左詰・縮小表示) ---
+    Dim selectCell As Range
+    Set selectCell = wsWelding.Cells(WUP_PATTERN_ROW, WUP_PATTERN_SELECT_COL)
+    With selectCell
+        .HorizontalAlignment = xlLeft
+        .VerticalAlignment = xlCenter
+        .ShrinkToFit = True
+        .WrapText = False
+        .Font.Name = WeldingUnitPriceFontNameText()
+        On Error Resume Next
+        .Font.NameFarEast = WeldingUnitPriceFontNameText()
+        On Error GoTo CleanupErr
+    End With
+
+    With selectCell.Validation
+        .Delete
+        .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Operator:=xlBetween, _
+             Formula1:=PatternPrevYearText() & "," & PatternOutsourceRatioText() & "," & PatternPriceIndexText()
+        .IgnoreBlank = True
+        .InCellDropdown = True
+        .ShowError = False
+    End With
+
+    ' 既定値: 空欄なら現行ロジック=物価指数適用 を設定
+    If Len(Trim$(CStr(selectCell.Value))) = 0 Then
+        selectCell.Value = PatternPriceIndexText()
+    End If
+    Exit Sub
+
+CleanupErr:
+    LogWUP "SetupOutsourcePatternSelector: 失敗 sheet=[" & wsWelding.Name & "] err=" & CStr(Err.Number)
+End Sub
+
+' 外注費算出パターンのラベル・選択肢(ドロップダウンと数式の比較で同一文字列を使用)
+Private Function OutsourcePatternLabelText() As String
+    Static cached As String
+    If cached = "" Then cached = "外注費算出パターン："
+    OutsourcePatternLabelText = cached
+End Function
+
+Private Function PatternPrevYearText() As String
+    Static cached As String
+    If cached = "" Then cached = "前年度単価適用"
+    PatternPrevYearText = cached
+End Function
+
+Private Function PatternOutsourceRatioText() As String
+    Static cached As String
+    If cached = "" Then cached = "外注比率適用"
+    PatternOutsourceRatioText = cached
+End Function
+
+Private Function PatternPriceIndexText() As String
+    Static cached As String
+    If cached = "" Then cached = "物価指数適用"
+    PatternPriceIndexText = cached
+End Function
 
 Private Sub ApplyWeldingVendorFont(ByVal wsWelding As Worksheet, _
                                    ByVal lastRow As Long, _
@@ -1001,10 +1217,13 @@ Private Function BuildTemotoMapFromData(ByVal data As Variant, _
            " 整理番号列=" & CStr(seiriField + 1) & _
            " 昼列=" & CStr(dayField + 1) & " 夜列=" & CStr(nightField + 1)
 
-    ' --- 整理番号 -> Array(昼, 夜) の辞書を構築 ---
+    ' --- 整理番号 -> Array(昼, 夜) の辞書を構築 / 5000番台はパック構成も登録 ---
     Dim result As Object
     Set result = CreateObject("Scripting.Dictionary")
     result.CompareMode = vbTextCompare
+
+    Set mPackMap = CreateObject("Scripting.Dictionary")
+    mPackMap.CompareMode = vbTextCompare
 
     For r = headerRecord + 1 To recordCount - 1
         Dim seiriText As String
@@ -1023,8 +1242,23 @@ Private Function BuildTemotoMapFromData(ByVal data As Variant, _
             If Not result.Exists(seiriKey) Then
                 result.Add seiriKey, Array(dayRatio, nightRatio)
             End If
+
+            ' パック工種(5000番台): J/K, L/M, N/O から構成(整理番号, 数量)を読む
+            If CLng(Val(seiriText)) >= WUP_PACK_SEIRI_MIN And Not mPackMap.Exists(seiriKey) Then
+                Dim comps As Collection
+                Set comps = New Collection
+                AddPackComponent comps, data, fieldCount, r, _
+                                 WUP_MASTER_PACK_COMP1_FIELD, WUP_MASTER_PACK_QTY1_FIELD
+                AddPackComponent comps, data, fieldCount, r, _
+                                 WUP_MASTER_PACK_COMP2_FIELD, WUP_MASTER_PACK_QTY2_FIELD
+                AddPackComponent comps, data, fieldCount, r, _
+                                 WUP_MASTER_PACK_COMP3_FIELD, WUP_MASTER_PACK_QTY3_FIELD
+                If comps.Count > 0 Then mPackMap.Add seiriKey, comps
+            End If
         End If
     Next r
+
+    LogWUP "パック構成マスタ 件数=" & CStr(mPackMap.Count)
 
     If result.Count = 0 Then
         loadErrorText = "手元比率データを1件も読み込めませんでした。"
@@ -1033,6 +1267,19 @@ Private Function BuildTemotoMapFromData(ByVal data As Variant, _
 
     Set BuildTemotoMapFromData = result
 End Function
+
+' パック構成1件を追加(構成整理番号・数量がともに数値のときのみ)
+Private Sub AddPackComponent(ByVal comps As Collection, ByVal data As Variant, _
+                             ByVal fieldCount As Long, ByVal r As Long, _
+                             ByVal compField As Long, ByVal qtyField As Long)
+    If compField > fieldCount - 1 Or qtyField > fieldCount - 1 Then Exit Sub
+    Dim compText As String, qtyText As String
+    compText = Trim$(StrConv(CommonNzText(data(compField, r)), vbNarrow))
+    qtyText = Trim$(StrConv(CommonNzText(data(qtyField, r)), vbNarrow))
+    If Len(compText) = 0 Or Not IsNumeric(compText) Then Exit Sub
+    If Len(qtyText) = 0 Or Not IsNumeric(qtyText) Then Exit Sub
+    comps.Add Array(CStr(CLng(Val(compText))), CDbl(qtyText))
+End Sub
 
 ' マスタファイルのパス解決(業者マスタと同方式)
 '   1) %USERPROFILE%\大鉄工業株式会社\線路出張所用_注文書_請求書アクセスサイト - ドキュメント\マスタデータ\
