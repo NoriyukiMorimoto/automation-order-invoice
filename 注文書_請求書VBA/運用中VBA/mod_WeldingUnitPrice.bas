@@ -7,10 +7,10 @@ Option Explicit
 ' ・溶接会社 : G列(昼)/H列(夜)
 '              単価 = JR単価 ×(1－手元比率)× 溶接工事外注比率(基本情報 31行目)
 ' ・軌道会社 : I列(昼)/J列(夜)から1社2列ずつ右へ追加
-'              1行目 = 上昇率マスタ(レール溶接_軌道会社外注費率一覧*.xlsx 溶接手元割合シート)の
-'                      H1(ラベル文字列「上昇率 β =」)を昼列(I/K…)・I1(率の数値 例1.0%)を夜列(J/L…)へ転記
-'              単価 = JR単価 ×(1＋上昇率) ※上昇率は昼夜とも夜列1行目(J$1/L$1…)を共通参照
-'                     有効桁が3桁以下はそのまま、4桁以上は上位4桁ROUND(,-1)で丸めて桁戻し
+'              照合キー = 整理番号(溶接単価シートB列 = マスタ溶接手元割合シートA列)
+'              単価 = JR単価 ×(100/100.7) × 手元割合(マスタ昼E/夜F) × 軌道外注比率(基本情報29行)
+'                     軌道外注比率: 1社目F29 / 2社目I29 …(3列ずつ右)
+'                     丸め: 整数部4桁以上は上位3桁＋以降0埋め(切り捨て3桁)、3桁以下はROUNDDOWN
 '              4行目ヘッダー=(回数)(年度)溶接手元単価
 ' ・手元比率 : マスタデータ\レール溶接_軌道会社外注費率一覧*.xlsx の
 '              「溶接手元割合」シートから整理番号で参照し、数式へ数値リテラルで埋め込む
@@ -49,6 +49,7 @@ Private Const WUP_JR_DAY_COL As Long = 5          ' E列 JR単価(昼)
 Private Const WUP_JR_NIGHT_COL As Long = 6        ' F列 JR単価(夜)
 Private Const WUP_WELDING_DAY_COL As Long = 7     ' G列 溶接会社(昼)
 Private Const WUP_FIRST_RAIL_DAY_COL As Long = 9  ' I列 軌道会社1社目(昼)
+Private Const WUP_RAIL_JR_FACTOR As String = "(100/100.7)"  ' 軌道会社: JR単価に掛ける係数(AG5)
 Private Const WUP_PACK_SEIRI_MIN As Long = 5000   ' パック工種の整理番号下限
 Private Const WUP_NUMBER_FORMAT As String = "#,##0"
 Private Const WUP_RATIO_NUMBER_FORMAT As String = "0.0%"
@@ -330,19 +331,8 @@ Private Sub ApplyWeldingVendorRow(ByVal wsWelding As Worksheet, _
         Exit Sub
     End If
 
-    ' --- 軌道会社列 ---
-    ' 単価 = JR単価 ×(1＋上昇率)。上昇率は当ブロック夜列1行目(J$1/L$1…)の率セルを
-    ' 昼・夜とも共通参照する(マスタI1=1.0%を転記したセル)。手元比率マスタには依存しない。
-    ' JR単価が空欄の行は数式内の IF(...="","") で空欄表示。
-    If Not isWeldingVendor Then
-        Dim rateCol As Long
-        rateCol = nightCol                       ' 率セルは夜列の1行目に転記している
-        ApplyRailMarkupCell wsWelding, rowIndex, dayCol, WUP_JR_DAY_COL, rateCol
-        ApplyRailMarkupCell wsWelding, rowIndex, nightCol, WUP_JR_NIGHT_COL, rateCol
-        Exit Sub
-    End If
-
-    ' 手元比率を整理番号で参照
+    ' 手元割合を整理番号で参照
+    ' (溶接単価シートB列の整理番号 = マスタ溶接手元割合シートA列の整理番号 で照合)
     Dim seiriKey As String
     seiriKey = CStr(seiriNumber)
     If Not temotoMap.Exists(seiriKey) Then
@@ -353,12 +343,20 @@ Private Sub ApplyWeldingVendorRow(ByVal wsWelding As Worksheet, _
     End If
 
     Dim temotoPair As Variant
-    temotoPair = temotoMap(seiriKey)   ' Array(昼, 夜) ※未設定はEmpty
+    temotoPair = temotoMap(seiriKey)   ' Array(昼E, 夜F) ※未設定はEmpty
 
-    ApplyWeldingVendorCell wsWelding.Cells(rowIndex, dayCol), wsWelding, rowIndex, _
-                           WUP_JR_DAY_COL, temotoPair(0), block.ratioAddress, isWeldingVendor
-    ApplyWeldingVendorCell wsWelding.Cells(rowIndex, nightCol), wsWelding, rowIndex, _
-                           WUP_JR_NIGHT_COL, temotoPair(1), block.ratioAddress, isWeldingVendor
+    If isWeldingVendor Then
+        ApplyWeldingVendorCell wsWelding.Cells(rowIndex, dayCol), wsWelding, rowIndex, _
+                               WUP_JR_DAY_COL, temotoPair(0), block.ratioAddress, isWeldingVendor
+        ApplyWeldingVendorCell wsWelding.Cells(rowIndex, nightCol), wsWelding, rowIndex, _
+                               WUP_JR_NIGHT_COL, temotoPair(1), block.ratioAddress, isWeldingVendor
+    Else
+        ' 軌道会社: (JR×100/100.7)×手元割合(昼E/夜F)×軌道外注比率(基本情報29行)
+        ApplyRailMarkupCell wsWelding.Cells(rowIndex, dayCol), wsWelding, rowIndex, _
+                            WUP_JR_DAY_COL, temotoPair(0), block.ratioAddress
+        ApplyRailMarkupCell wsWelding.Cells(rowIndex, nightCol), wsWelding, rowIndex, _
+                            WUP_JR_NIGHT_COL, temotoPair(1), block.ratioAddress
+    End If
 End Sub
 
 Private Sub ApplyWeldingVendorCell(ByVal targetCell As Range, _
@@ -428,51 +426,66 @@ End Function
 ' 軌道会社列(markup方式)の数式・セル書き込み
 ' =====================================================================
 
-' 軌道会社セルへ上昇率 markup 数式を書き込む。
-'   targetCol  : 数式を書き込む列(昼=I/K…, 夜=J/L…)
-'   jrSourceCol: markupの元になるJR単価列(昼=E/夜=F)
-'   rateCol    : 上昇率セルがある列(=当ブロック夜列)。1行目を行固定で参照(例 J$1)
-Private Sub ApplyRailMarkupCell(ByVal wsWelding As Worksheet, _
+' 軌道会社セルへ新単価数式を書き込む(溶接会社セルと同様にグレー塗り判定を行う)。
+'   sourceCol  : JR単価列(昼=E/夜=F)
+'   temotoRatio: マスタ溶接手元割合の値(昼E/夜F) ※リテラル
+'   ratioAddress: 軌道外注比率(基本情報29行 1社目F/2社目I/…)のセル参照
+Private Sub ApplyRailMarkupCell(ByVal targetCell As Range, _
+                                ByVal wsWelding As Worksheet, _
                                 ByVal rowIndex As Long, _
-                                ByVal targetCol As Long, _
-                                ByVal jrSourceCol As Long, _
-                                ByVal rateCol As Long)
-    Dim targetCell As Range
-    Set targetCell = wsWelding.Cells(rowIndex, targetCol)
-    targetCell.Interior.ColorIndex = xlColorIndexNone
-    targetCell.ShrinkToFit = False
+                                ByVal sourceCol As Long, _
+                                ByVal temotoRatio As Variant, _
+                                ByVal ratioAddress As String)
+    With targetCell
+        .ShrinkToFit = False
+        .Interior.ColorIndex = xlColorIndexNone
+    End With
 
-    Dim baseRef As String
-    baseRef = wsWelding.Cells(rowIndex, jrSourceCol).Address(False, False)
+    ' JR単価が空欄 or 手元割合未設定 -> グレー塗り
+    If Len(Trim$(CStr(wsWelding.Cells(rowIndex, sourceCol).Value))) = 0 Then
+        ApplyGreyFill targetCell
+        Exit Sub
+    End If
+    If Not IsNumeric(temotoRatio) Then
+        ApplyGreyFill targetCell
+        Exit Sub
+    End If
 
-    Dim rateRef As String
-    rateRef = wsWelding.Cells(WUP_RATIO_ROW, rateCol).Address(True, False)  ' 行固定・列相対 → J$1 等
-
-    targetCell.Formula = BuildRailMarkupFormula(baseRef, rateRef)
+    targetCell.Formula = BuildRailMarkupFormula(wsWelding, rowIndex, sourceCol, _
+                                                CDbl(temotoRatio), ratioAddress)
     targetCell.NumberFormat = WUP_NUMBER_FORMAT
 End Sub
 
-' 軌道会社単価の数式(ユーザー指定式の S$5 を当列1行目の率参照に置換):
-'   =IF(base="","",
-'       IF(LEN(TEXT(base*(1+rate),"#"))<=3, base*(1+rate),
-'          ROUND(VALUE(LEFT(TEXT(base*(1+rate),"#"),4)),-1)
-'            *10^VALUE(LEN(TEXT(base*(1+rate),"#"))-4)))
-' ※有効桁3桁以下はそのまま、4桁以上は上位4桁をROUND(,-1)で丸めて元の桁数へ戻す。
-Private Function BuildRailMarkupFormula(ByVal baseRef As String, _
-                                        ByVal rateRef As String) As String
-    Dim q As String
-    q = Chr$(34)
+' 軌道会社単価の数式(ユーザー指定式):
+'   AG = JR単価 ×(100/100.7)                                    … 元値
+'   AK = 手元割合(マスタ溶接手元割合 昼E/夜F の値)               … リテラル
+'   R  = 軌道外注比率(基本情報29行 1社目F29/2社目I29/3列ずつ右)   … セル参照
+'   v  = (AG*AK)*R
+'   =IF(VALUE(LEN(TEXT(v,0)))>3,
+'       VALUE(MID(TEXT(v,0),1,3)&REPT(0,LEN(TEXT(v,0))-3)),
+'       (ROUNDDOWN(v,0)))
+'   ※整数部が4桁以上なら上位3桁＋残り0埋め(切り捨て3桁)、3桁以下はROUNDDOWNで整数化。
+Private Function BuildRailMarkupFormula(ByVal wsWelding As Worksheet, _
+                                        ByVal rowIndex As Long, _
+                                        ByVal sourceCol As Long, _
+                                        ByVal temotoRatio As Double, _
+                                        ByVal ratioAddress As String) As String
+    Dim jrRef As String
+    jrRef = wsWelding.Cells(rowIndex, sourceCol).Address(False, False)
 
-    Dim expr As String
-    expr = baseRef & "*(1+" & rateRef & ")"
+    Dim agExpr As String                          ' AG5: JR×(100/100.7)
+    agExpr = jrRef & "*" & WUP_RAIL_JR_FACTOR
 
-    Dim tx As String                              ' TEXT(expr,"#")
-    tx = "TEXT(" & expr & "," & q & "#" & q & ")"
+    Dim core As String                            ' (AG5*AK5)*R
+    core = "(" & agExpr & "*" & RatioLiteralText(temotoRatio) & ")*" & ratioAddress
+
+    Dim tx As String                              ' TEXT((core),0)
+    tx = "TEXT((" & core & "),0)"
 
     BuildRailMarkupFormula = _
-        "=IF(" & baseRef & "=" & q & q & "," & q & q & "," & _
-        "IF(LEN(" & tx & ")<=3," & expr & "," & _
-        "ROUND(VALUE(LEFT(" & tx & ",4)),-1)*10^VALUE(LEN(" & tx & ")-4)))"
+        "=IF(VALUE(LEN(" & tx & "))>3," & _
+        "VALUE(MID(" & tx & ",1,3)&REPT(0,LEN(" & tx & ")-3))," & _
+        "(ROUNDDOWN(" & core & ",0)))"
 End Function
 
 ' =====================================================================
