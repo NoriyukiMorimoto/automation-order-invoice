@@ -1836,23 +1836,28 @@ End Sub
 Private Sub ApplyImportedUnitPriceSheetFormat(ByVal targetSheet As Worksheet)
     If targetSheet Is Nothing Then Exit Sub
 
+    ' 書式設定は装飾処理。失敗しても単価表の取り込み(データ)自体は止めないよう、
+    ' 全処理をエラートラップし、エラーは呼び出し元へ伝播させない。
+    Dim wasProtected As Boolean
+    On Error Resume Next
+    wasProtected = targetSheet.ProtectContents
+    ' UserInterfaceOnly保護下では結合がVBAから拒否(1004)されるため、必要なら一時解除
+    If wasProtected Then targetSheet.Unprotect
+    On Error GoTo 0
+
+    On Error Resume Next
+
     With targetSheet.Cells.Font
         .Name = ImportedUnitPriceSheetFontNameText()
-        On Error Resume Next
         .NameFarEast = ImportedUnitPriceSheetFontNameText()
-        On Error GoTo 0
     End With
 
     targetSheet.Columns(IMPORTED_UNIT_PRICE_CENTER_COL).HorizontalAlignment = xlCenter
 
-    ' --- 1行目・2行目のA~F列を結合し、中央揃えで表示 ---
-    With targetSheet.Range( _
-            targetSheet.Cells(IMPORTED_UNIT_PRICE_MERGE_FIRST_ROW, IMPORTED_UNIT_PRICE_MERGE_FIRST_COL), _
-            targetSheet.Cells(IMPORTED_UNIT_PRICE_MERGE_LAST_ROW, IMPORTED_UNIT_PRICE_MERGE_LAST_COL))
-        On Error Resume Next
-        .UnMerge
-        On Error GoTo 0
-    End With
+    ' 1行目・2行目のA~F列を結合し、中央揃え(既存結合は解除してから)
+    targetSheet.Range( _
+        targetSheet.Cells(IMPORTED_UNIT_PRICE_MERGE_FIRST_ROW, IMPORTED_UNIT_PRICE_MERGE_FIRST_COL), _
+        targetSheet.Cells(IMPORTED_UNIT_PRICE_MERGE_LAST_ROW, IMPORTED_UNIT_PRICE_MERGE_LAST_COL)).UnMerge
 
     Dim mergeRowIndex As Long
     For mergeRowIndex = IMPORTED_UNIT_PRICE_MERGE_FIRST_ROW To IMPORTED_UNIT_PRICE_MERGE_LAST_ROW
@@ -1865,14 +1870,29 @@ Private Sub ApplyImportedUnitPriceSheetFormat(ByVal targetSheet As Worksheet)
         End With
     Next mergeRowIndex
 
-    ' --- A列のセル幅 ---
+    ' A列のセル幅
     targetSheet.Columns(IMPORTED_UNIT_PRICE_MERGE_FIRST_COL).ColumnWidth = IMPORTED_UNIT_PRICE_COL_A_WIDTH
 
-    ' --- B3・B4は左詰め(B列全体は中央揃えのため、この2行のみ上書き) ---
+    ' B3・B4は左詰め(B列全体は中央揃えのため、この2行のみ上書き)
     targetSheet.Range( _
         targetSheet.Cells(IMPORTED_UNIT_PRICE_LEFT_ALIGN_ROW_FIRST, IMPORTED_UNIT_PRICE_CENTER_COL), _
-        targetSheet.Cells(IMPORTED_UNIT_PRICE_LEFT_ALIGN_ROW_LAST, IMPORTED_UNIT_PRICE_CENTER_COL) _
-    ).HorizontalAlignment = xlLeft
+        targetSheet.Cells(IMPORTED_UNIT_PRICE_LEFT_ALIGN_ROW_LAST, IMPORTED_UNIT_PRICE_CENTER_COL)).HorizontalAlignment = xlLeft
+
+    Dim fmtErr As Long
+    fmtErr = Err.Number
+    On Error GoTo 0
+
+    If fmtErr <> 0 Then
+        LogUP "ApplyImportedUnitPriceSheetFormat: 一部書式の適用に失敗 err=" & CStr(fmtErr) & _
+              " sheet=[" & targetSheet.Name & "]"
+    End If
+
+    ' 解除した保護を元に戻す(パスワードは不明のため無しで再保護)
+    If wasProtected Then
+        On Error Resume Next
+        targetSheet.Protect
+        On Error GoTo 0
+    End If
 End Sub
 
 Private Function ImportedUnitPriceSheetFontNameText() As String
