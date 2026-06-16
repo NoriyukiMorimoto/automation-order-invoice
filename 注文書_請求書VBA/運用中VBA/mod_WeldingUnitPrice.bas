@@ -10,7 +10,7 @@ Option Explicit
 '              照合キー = 整理番号(溶接単価シートB列 = マスタ溶接手元割合シートA列)
 '              単価 = JR単価 ×(100/100.7) × 手元割合(マスタ昼E/夜F) × 軌道外注比率(基本情報31行)
 '                     軌道外注比率: 1社目F31 / 2社目I31 …(3列ずつ右)
-'                     基本情報C23=溶接工事ありの時、軌道工事ブロックの31行目へ60.1%を自動入力
+'                     基本情報C23=溶接工事ありの時、軌道工事ブロックの31行目が空欄なら60.1%を既定入力(手入力は尊重)
 '                     1行目: 昼列=「外注比率＝」/ 夜列=基本情報の当社列31行目(F31等)参照
 '                     丸め: 整数部4桁以上は上位3桁＋以降0埋め(切り捨て3桁)、3桁以下はROUNDDOWN
 '              4行目ヘッダー=(回数)(年度)溶接手元単価
@@ -905,9 +905,9 @@ Cleanup:
 End Function
 
 ' 基本情報C23が「溶接工事あり」の場合のみ、F列以降3列ごとの業者ブロックのうち
-' 10行目が「軌道工事」のブロックの31行目へ固定比率(60.1%)を入力する。
+' 10行目が「軌道工事」のブロックの31行目へ既定比率(60.1%)を入力する。
+' ※31行目が空欄のときだけ入力する(既に値があれば手入力を尊重して上書きしない)。
 ' ※ScanVendorBlocks後に呼ぶこと(走査時の溶接ブロック判定へ影響させないため)。
-'   既存の31行目値があれば上書きする点に注意(通常、軌道工事ブロックの31行目は空)。
 ' 戻り値: 1件でも入力したらTrue。
 Private Function WriteRailOutsourceRatioToBasicInfo(ByVal wsInfo As Worksheet) As Boolean
     Dim flagText As String
@@ -925,13 +925,19 @@ Private Function WriteRailOutsourceRatioToBasicInfo(ByVal wsInfo As Worksheet) A
         valueColumn = BASIC_INFO_VENDOR_BLOCK_VALUE_COL + ((i - 1) * BASIC_INFO_VENDOR_BLOCK_STEP_COLS)
         workTypeText = NormalizeMatchTextWUP(CStr(wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, valueColumn).Value))
         If StrComp(workTypeText, NormalizeMatchTextWUP(RailWorkTypeText()), vbTextCompare) = 0 Then
-            With wsInfo.Cells(BASIC_INFO_WELDING_RATIO_ROW, valueColumn)
-                .Value = WUP_RAIL_FIXED_RATIO
-                .NumberFormat = WUP_RATIO_NUMBER_FORMAT
-            End With
-            WriteRailOutsourceRatioToBasicInfo = True
-            LogWUP "軌道工事ブロック col=" & CStr(valueColumn) & " 31行目へ" & _
-                   Format$(WUP_RAIL_FIXED_RATIO, "0.0%") & "を入力"
+            Dim ratioCell As Range
+            Set ratioCell = wsInfo.Cells(BASIC_INFO_WELDING_RATIO_ROW, valueColumn)
+            ' 空欄のときだけ既定値を入れる。手入力済み(空欄でない)なら上書きしない。
+            If Len(Trim$(CStr(ratioCell.Value))) = 0 Then
+                ratioCell.Value = WUP_RAIL_FIXED_RATIO
+                ratioCell.NumberFormat = WUP_RATIO_NUMBER_FORMAT
+                WriteRailOutsourceRatioToBasicInfo = True
+                LogWUP "軌道工事ブロック col=" & CStr(valueColumn) & " 31行目へ既定値" & _
+                       Format$(WUP_RAIL_FIXED_RATIO, "0.0%") & "を入力(空欄のため)"
+            Else
+                LogWUP "軌道工事ブロック col=" & CStr(valueColumn) & " 31行目は既存値[" & _
+                       CStr(ratioCell.Value) & "]のため上書きせず"
+            End If
         End If
     Next i
 End Function
