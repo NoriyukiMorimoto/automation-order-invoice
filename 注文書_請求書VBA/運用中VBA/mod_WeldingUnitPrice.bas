@@ -7,8 +7,11 @@ Option Explicit
 ' ・溶接会社 : G列(昼)/H列(夜)
 '              単価 = JR単価 ×(1－手元比率)× 溶接工事外注比率(基本情報 31行目)
 ' ・軌道会社 : I列(昼)/J列(夜)から1社2列ずつ右へ追加
-'              単価 = JR単価 × 手元比率 × 軌道工事外注比率(基本情報 29行目)
-'              1行目の外注比率表示なし / 4行目ヘッダー=(回数)(年度)溶接手元単価
+'              1行目 = 上昇率マスタ(レール溶接_軌道会社外注費率一覧*.xlsx 溶接手元割合シート)の
+'                      H1(ラベル文字列「上昇率 β =」)を昼列(I/K…)・I1(率の数値 例1.0%)を夜列(J/L…)へ転記
+'              単価 = JR単価 ×(1＋上昇率) ※上昇率は昼夜とも夜列1行目(J$1/L$1…)を共通参照
+'                     有効桁が3桁以下はそのまま、4桁以上は上位4桁ROUND(,-1)で丸めて桁戻し
+'              4行目ヘッダー=(回数)(年度)溶接手元単価
 ' ・手元比率 : マスタデータ\レール溶接_軌道会社外注費率一覧*.xlsx の
 '              「溶接手元割合」シートから整理番号で参照し、数式へ数値リテラルで埋め込む
 ' ・外注比率 : 基本情報シートのセル参照として数式に残す(既存ロジックと同様)
@@ -99,6 +102,19 @@ Public Sub ApplyWeldingVendorUnitPricesForBasicInfo(Optional ByVal wsInfo As Wor
     End If
     LogWUP "手元比率マスタ読込完了 件数=" & CStr(temotoMap.Count)
 
+    ' --- 軌道会社の上昇率マスタ(同一ファイル:H1=ラベル文字列 / I1=率の数値)の読み込み ---
+    ' 昼・夜とも I1 の率(例:1.0%)を共通で参照する。
+    Dim railMarkupLabel As String
+    Dim railMarkupRate As Variant
+    Dim railRateError As String
+    If Not LoadRailMarkupRate(railMarkupLabel, railMarkupRate, railRateError) Then
+        LogWUP "軌道上昇率マスタ読込失敗: " & railRateError
+        warningTexts.Add "軌道会社の上昇率(マスタI1)を読み込めませんでした。" & vbCrLf & _
+                         railRateError & vbCrLf & "軌道会社列の率セルは空欄になります(率0扱い)。"
+    Else
+        LogWUP "軌道上昇率マスタ読込完了 ラベル=[" & railMarkupLabel & "] 率=" & CStr(railMarkupRate)
+    End If
+
     ' --- 基本情報の業者ブロック分類とG/H列(溶接施工会社)の決定 ---
     Dim weldingBlock As WeldingVendorBlock
     Dim weldingNameSources As Collection
@@ -129,7 +145,8 @@ Public Sub ApplyWeldingVendorUnitPricesForBasicInfo(Optional ByVal wsInfo As Wor
     Dim wsWelding As Variant
     For Each wsWelding In weldingSheets
         ApplyWeldingVendorUnitPricesToSheet wsWelding, wsInfo, weldingBlock, weldingNameSources, _
-                                            railBlocks, railBlockCount, temotoMap, missingSeiriMap
+                                            railBlocks, railBlockCount, temotoMap, missingSeiriMap, _
+                                            railMarkupLabel, railMarkupRate
     Next wsWelding
 
     If missingSeiriMap.Count > 0 Then
@@ -167,7 +184,9 @@ Private Sub ApplyWeldingVendorUnitPricesToSheet(ByVal wsWelding As Worksheet, _
                                                 ByRef railBlocks() As WeldingVendorBlock, _
                                                 ByVal railBlockCount As Long, _
                                                 ByVal temotoMap As Object, _
-                                                ByVal missingSeiriMap As Object)
+                                                ByVal missingSeiriMap As Object, _
+                                                ByVal railMarkupLabel As String, _
+                                                ByVal railMarkupRate As Variant)
     Dim lastRow As Long
     lastRow = wsWelding.Cells(wsWelding.Rows.Count, WUP_SEIRI_COL).End(xlUp).Row
     If lastRow < WUP_DATA_START_ROW Then
@@ -200,7 +219,8 @@ Private Sub ApplyWeldingVendorUnitPricesToSheet(ByVal wsWelding As Worksheet, _
         railDayCol = WUP_FIRST_RAIL_DAY_COL + ((railIndex - 1) * 2)
         If railBlocks(railIndex).hasRatio Then
             ApplyWeldingVendorBlock wsWelding, lastRow, railDayCol, railBlocks(railIndex), False, _
-                                    railHeaderText, vendorUnitPriceNameMap, temotoMap, missingSeiriMap
+                                    railHeaderText, vendorUnitPriceNameMap, temotoMap, missingSeiriMap, _
+                                    "", railMarkupLabel, railMarkupRate
         Else
             ClearWeldingVendorBlock wsWelding, lastRow, railDayCol
         End If
@@ -223,7 +243,9 @@ Private Sub ApplyWeldingVendorBlock(ByVal wsWelding As Worksheet, _
                                     ByVal vendorUnitPriceNameMap As Object, _
                                     ByVal temotoMap As Object, _
                                     ByVal missingSeiriMap As Object, _
-                                    Optional ByVal displayNameOverride As String = "")
+                                    Optional ByVal displayNameOverride As String = "", _
+                                    Optional ByVal railMarkupLabel As String = "", _
+                                    Optional ByVal railMarkupRate As Variant)
     Dim nightCol As Long
     nightCol = dayCol + 1
 
@@ -234,9 +256,11 @@ Private Sub ApplyWeldingVendorBlock(ByVal wsWelding As Worksheet, _
     wsWelding.Columns(dayCol).ColumnWidth = wsWelding.Columns(WUP_JR_DAY_COL).ColumnWidth
     wsWelding.Columns(nightCol).ColumnWidth = wsWelding.Columns(WUP_JR_NIGHT_COL).ColumnWidth
 
-    ' 1行目: 溶接施工会社のみ外注比率表示(軌道会社は表示しない)
+    ' 1行目: 溶接施工会社=外注比率表示 / 軌道会社=上昇率マスタ(H1ラベル＋I1率)を転記
     If isWeldingVendor Then
         ApplyOutsourceRatioRow wsWelding, dayCol, nightCol, block.ratioPercent
+    Else
+        ApplyRailMarkupRatioRow wsWelding, dayCol, nightCol, railMarkupLabel, railMarkupRate
     End If
 
     ' 4行目: 結合ヘッダー / 5行目: 結合会社名 / 6行目: 昼間・夜間
@@ -303,6 +327,18 @@ Private Sub ApplyWeldingVendorRow(ByVal wsWelding As Worksheet, _
     If InStr(1, workTypeName, WasteDisposalKeywordText(), vbTextCompare) > 0 Then
         ApplyGreyFill wsWelding.Cells(rowIndex, dayCol)
         ApplyGreyFill wsWelding.Cells(rowIndex, nightCol)
+        Exit Sub
+    End If
+
+    ' --- 軌道会社列 ---
+    ' 単価 = JR単価 ×(1＋上昇率)。上昇率は当ブロック夜列1行目(J$1/L$1…)の率セルを
+    ' 昼・夜とも共通参照する(マスタI1=1.0%を転記したセル)。手元比率マスタには依存しない。
+    ' JR単価が空欄の行は数式内の IF(...="","") で空欄表示。
+    If Not isWeldingVendor Then
+        Dim rateCol As Long
+        rateCol = nightCol                       ' 率セルは夜列の1行目に転記している
+        ApplyRailMarkupCell wsWelding, rowIndex, dayCol, WUP_JR_DAY_COL, rateCol
+        ApplyRailMarkupCell wsWelding, rowIndex, nightCol, WUP_JR_NIGHT_COL, rateCol
         Exit Sub
     End If
 
@@ -389,6 +425,57 @@ Private Function RatioLiteralText(ByVal value As Double) As String
 End Function
 
 ' =====================================================================
+' 軌道会社列(markup方式)の数式・セル書き込み
+' =====================================================================
+
+' 軌道会社セルへ上昇率 markup 数式を書き込む。
+'   targetCol  : 数式を書き込む列(昼=I/K…, 夜=J/L…)
+'   jrSourceCol: markupの元になるJR単価列(昼=E/夜=F)
+'   rateCol    : 上昇率セルがある列(=当ブロック夜列)。1行目を行固定で参照(例 J$1)
+Private Sub ApplyRailMarkupCell(ByVal wsWelding As Worksheet, _
+                                ByVal rowIndex As Long, _
+                                ByVal targetCol As Long, _
+                                ByVal jrSourceCol As Long, _
+                                ByVal rateCol As Long)
+    Dim targetCell As Range
+    Set targetCell = wsWelding.Cells(rowIndex, targetCol)
+    targetCell.Interior.ColorIndex = xlColorIndexNone
+    targetCell.ShrinkToFit = False
+
+    Dim baseRef As String
+    baseRef = wsWelding.Cells(rowIndex, jrSourceCol).Address(False, False)
+
+    Dim rateRef As String
+    rateRef = wsWelding.Cells(WUP_RATIO_ROW, rateCol).Address(True, False)  ' 行固定・列相対 → J$1 等
+
+    targetCell.Formula = BuildRailMarkupFormula(baseRef, rateRef)
+    targetCell.NumberFormat = WUP_NUMBER_FORMAT
+End Sub
+
+' 軌道会社単価の数式(ユーザー指定式の S$5 を当列1行目の率参照に置換):
+'   =IF(base="","",
+'       IF(LEN(TEXT(base*(1+rate),"#"))<=3, base*(1+rate),
+'          ROUND(VALUE(LEFT(TEXT(base*(1+rate),"#"),4)),-1)
+'            *10^VALUE(LEN(TEXT(base*(1+rate),"#"))-4)))
+' ※有効桁3桁以下はそのまま、4桁以上は上位4桁をROUND(,-1)で丸めて元の桁数へ戻す。
+Private Function BuildRailMarkupFormula(ByVal baseRef As String, _
+                                        ByVal rateRef As String) As String
+    Dim q As String
+    q = Chr$(34)
+
+    Dim expr As String
+    expr = baseRef & "*(1+" & rateRef & ")"
+
+    Dim tx As String                              ' TEXT(expr,"#")
+    tx = "TEXT(" & expr & "," & q & "#" & q & ")"
+
+    BuildRailMarkupFormula = _
+        "=IF(" & baseRef & "=" & q & q & "," & q & q & "," & _
+        "IF(LEN(" & tx & ")<=3," & expr & "," & _
+        "ROUND(VALUE(LEFT(" & tx & ",4)),-1)*10^VALUE(LEN(" & tx & ")-4)))"
+End Function
+
+' =====================================================================
 ' 書式・罫線・クリア(mod_VendorMaster の単価シート作成ロジックと同一仕様)
 ' =====================================================================
 
@@ -407,6 +494,46 @@ Private Sub ApplyOutsourceRatioRow(ByVal wsWelding As Worksheet, _
         .Formula = ""
         If IsNumeric(ratioPercent) Then .Value = CDbl(ratioPercent)
         .NumberFormat = WUP_RATIO_NUMBER_FORMAT
+        .HorizontalAlignment = xlCenter
+        .VerticalAlignment = xlCenter
+    End With
+
+    With wsWelding.Range(wsWelding.Cells(WUP_RATIO_ROW, dayCol), _
+                         wsWelding.Cells(WUP_RATIO_ROW, nightCol)).Font
+        .Name = WeldingUnitPriceFontNameText()
+        .Size = WUP_RATIO_FONT_SIZE
+        On Error Resume Next
+        .NameFarEast = WeldingUnitPriceFontNameText()
+        On Error GoTo 0
+    End With
+End Sub
+
+' 軌道会社ブロックの1行目: 昼列(I/K…)=マスタH1のラベル文字列「上昇率 β =」/
+'                          夜列(J/L…)=マスタI1の率の数値(0.0%表示)。
+' データ行の数式は昼夜とも夜列(率数値セル)を参照する。
+Private Sub ApplyRailMarkupRatioRow(ByVal wsWelding As Worksheet, _
+                                    ByVal dayCol As Long, _
+                                    ByVal nightCol As Long, _
+                                    ByVal markupLabel As String, _
+                                    ByVal markupRate As Variant)
+    ' 昼列1行目: ラベル文字列(マスタH1)。率数値の左隣に右寄せで表示。
+    With wsWelding.Cells(WUP_RATIO_ROW, dayCol)
+        .NumberFormat = "General"
+        .Value = markupLabel
+        .HorizontalAlignment = xlRight
+        .VerticalAlignment = xlCenter
+    End With
+
+    ' 夜列1行目: 率の数値(マスタI1)。数式が参照する率セル。
+    With wsWelding.Cells(WUP_RATIO_ROW, nightCol)
+        .Formula = ""
+        If IsNumeric(markupRate) Then
+            .Value = CDbl(markupRate)
+            .NumberFormat = WUP_RATIO_NUMBER_FORMAT
+        Else
+            .ClearContents
+            .NumberFormat = "General"
+        End If
         .HorizontalAlignment = xlCenter
         .VerticalAlignment = xlCenter
     End With
@@ -759,6 +886,61 @@ Private Function LoadTemotoRatioMap(ByRef loadErrorText As String) As Object
     CommonCloseAdoRecordset rs
 
     Set LoadTemotoRatioMap = BuildTemotoMapFromData(data, loadErrorText)
+
+Cleanup:
+    CommonCloseAdoConnection cn
+End Function
+
+' 軌道会社の上昇率を同一マスタファイルから読み込む。
+'   H1 = ラベル文字列(例「上昇率 β =」) → markupLabel
+'   I1 = 率の数値(例 1.0%)            → markupRate (NormalizeRatioValueで0～1へ正規化)
+' 読取シートは手元割合と同じ「溶接手元割合」。H1:I1をADO(HDR=NO)で1行データとして取得する。
+' 戻り値: I1から率(数値)を取得できればTrue。
+Private Function LoadRailMarkupRate(ByRef markupLabel As String, _
+                                    ByRef markupRate As Variant, _
+                                    ByRef loadErrorText As String) As Boolean
+    loadErrorText = ""
+    markupLabel = ""
+    markupRate = Empty
+
+    Dim sourceFilePath As String
+    sourceFilePath = ResolveTemotoMasterFilePath()
+    If sourceFilePath = "" Then
+        loadErrorText = "ファイルが見つかりません: マスタデータ\" & TemotoMasterFilePatternText()
+        Exit Function
+    End If
+    LogWUP "軌道上昇率マスタ path=[" & sourceFilePath & "]"
+
+    Dim cn As Object
+    Set cn = CommonOpenExcelAdoConnection(sourceFilePath)
+    If cn Is Nothing Then
+        loadErrorText = "ADO接続に失敗しました: " & sourceFilePath
+        Exit Function
+    End If
+
+    On Error GoTo Cleanup
+
+    Dim adoSheetName As String
+    adoSheetName = FindAdoSheetNameWUP(cn, TemotoMasterSheetNameText())
+    If adoSheetName = "" Then
+        loadErrorText = "シート「" & TemotoMasterSheetNameText() & "」が見つかりません: " & sourceFilePath
+        GoTo Cleanup
+    End If
+
+    Dim rs As Object
+    Set rs = CreateObject("ADODB.Recordset")
+    ' HDR=NO のため、範囲H1:I1の1行がそのままデータ行(Fields(0)=H1, Fields(1)=I1)になる
+    rs.Open "SELECT * FROM [" & adoSheetName & "$H1:I1]", cn, 0, 1   ' adOpenForwardOnly, adLockReadOnly
+    If Not rs.EOF Then
+        If rs.Fields.Count >= 1 Then markupLabel = Trim$(CommonNzText(rs.Fields(0).Value))  ' H1ラベル
+        If rs.Fields.Count >= 2 Then markupRate = NormalizeRatioValue(rs.Fields(1).Value)    ' I1率
+    End If
+    CommonCloseAdoRecordset rs
+
+    LoadRailMarkupRate = IsNumeric(markupRate)
+    If Not LoadRailMarkupRate And Len(loadErrorText) = 0 Then
+        loadErrorText = "I1から率(数値)を取得できませんでした(対象シート: " & adoSheetName & ")。"
+    End If
 
 Cleanup:
     CommonCloseAdoConnection cn
