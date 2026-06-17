@@ -25,7 +25,7 @@ ExitHandler:
 End Sub
 
 Private Sub Worksheet_Change(ByVal target As Range)
-    mod_DebugLog.Log "[Sheet1] Worksheet_Change ”­‰Î: " & target.Address & " Value=[" & GetTargetValueText(target) & "] EnableEvents=" & Application.EnableEvents
+    mod_DebugLog.Log "[Sheet1] Worksheet_Change fired: " & target.Address & " Value=[" & GetTargetValueText(target) & "] EnableEvents=" & Application.EnableEvents
     Dim vendorNameRange As Range
     Set vendorNameRange = mod_VendorMaster.GetVendorNameRange(Me)
 
@@ -35,7 +35,7 @@ Private Sub Worksheet_Change(ByVal target As Range)
     If Intersect(target, Me.Range("B4,B6,C6,C10,C15:C16,F9,C20,C22,C23,C24,F2")) Is Nothing And _
        Intersect(target, vendorNameRange) Is Nothing And _
        Intersect(target, vendorUnitPriceMonitorRange) Is Nothing Then
-        mod_DebugLog.Log "[Sheet1] ŠÄŽ‹‘ÎÛŠO -> Exit"
+        mod_DebugLog.Log "[Sheet1] out-of-scope -> Exit"
         Exit Sub
     End If
 
@@ -52,9 +52,9 @@ Private Sub Worksheet_Change(ByVal target As Range)
     needComboPrompt = False
 
     If Not Intersect(target, Me.Range("B4,B6")) Is Nothing Then
-        mod_DebugLog.Log "[Sheet1] B4/B6•ÏX -> RefreshBranchOfficeValidation(False) ŒÄ‚Ño‚µ"
+        mod_DebugLog.Log "[Sheet1] B4/B6changed -> RefreshBranchOfficeValidation(False) call"
         needComboPrompt = mod_FillManagerName.RefreshBranchOfficeValidation(False)
-        mod_DebugLog.Log "[Sheet1] RefreshBranchOfficeValidation –ß‚è’l needComboPrompt=" & needComboPrompt
+        mod_DebugLog.Log "[Sheet1] RefreshBranchOfficeValidation result needComboPrompt=" & needComboPrompt
     End If
 
     If Not Intersect(target, Me.Range("B6")) Is Nothing Then
@@ -68,11 +68,11 @@ Private Sub Worksheet_Change(ByVal target As Range)
     End If
 
     If Not Intersect(target, Me.Range("B6,C6")) Is Nothing Then
-        mod_DebugLog.Log "[Sheet1] B6/C6•ÏX IsSuppressing=" & mod_FillManagerName.IsSuppressingC6Change()
+        mod_DebugLog.Log "[Sheet1] B6/C6changed IsSuppressing=" & mod_FillManagerName.IsSuppressingC6Change()
         If Not mod_FillManagerName.IsSuppressingC6Change() Then
-            mod_DebugLog.Log "[Sheet1] SilentClearBasicInfo ŒÄ‚Ño‚µ"
+            mod_DebugLog.Log "[Sheet1] SilentClearBasicInfo call"
             mod_BasicInfoUpdate.SilentClearBasicInfo Me
-            mod_DebugLog.Log "[Sheet1] SilentClearBasicInfo Š®—¹"
+            mod_DebugLog.Log "[Sheet1] SilentClearBasicInfo done"
         End If
     End If
 
@@ -132,13 +132,13 @@ Private Sub Worksheet_Change(ByVal target As Range)
 
     mod_DebugLog.Log "[Sheet1] needComboPrompt=" & needComboPrompt
     If needComboPrompt Then
-        mod_DebugLog.Log "[Sheet1] PromptOfficeComboBox ŒÄ‚Ño‚µ‘O EnableEvents=" & Application.EnableEvents
+        mod_DebugLog.Log "[Sheet1] PromptOfficeComboBox before-call EnableEvents=" & Application.EnableEvents
         mod_FillManagerName.PromptOfficeComboBox
-        mod_DebugLog.Log "[Sheet1] PromptOfficeComboBox ŒÄ‚Ño‚µŒã EnableEvents=" & Application.EnableEvents
+        mod_DebugLog.Log "[Sheet1] PromptOfficeComboBox after-call EnableEvents=" & Application.EnableEvents
     End If
 
 ExitHandler:
-    mod_DebugLog.Log "[Sheet1] Worksheet_Change I—¹ EnableEvents=" & Application.EnableEvents
+    mod_DebugLog.Log "[Sheet1] Worksheet_Change done EnableEvents=" & Application.EnableEvents
     Application.Calculation = prevCalc
     Application.ScreenUpdating = prevScreen
     Application.EnableEvents = True
@@ -189,11 +189,11 @@ Private Sub Worksheet_SelectionChange(ByVal target As Range)
 
     If Not mod_FillManagerName.IsPromptingOfficeComboBox() Then
         If Intersect(target, Me.Range("C6")) Is Nothing Then
-            mod_DebugLog.Log "[Sheet1] SelectionChange: C6ˆÈŠO -> HideOfficeComboBox"
+            mod_DebugLog.Log "[Sheet1] SelectionChange: C6-other -> HideOfficeComboBox"
             mod_FillManagerName.HideOfficeComboBox Me
         End If
     Else
-        mod_DebugLog.Log "[Sheet1] SelectionChange: IsPrompting=True -> HideƒXƒLƒbƒv"
+        mod_DebugLog.Log "[Sheet1] SelectionChange: IsPrompting=True -> Hide-skip"
     End If
 
     If Not Intersect(target, Me.Range("C21")) Is Nothing Then
@@ -225,7 +225,7 @@ End Sub
 Private Sub ComboBox1_LostFocus()
     mod_DebugLog.Log "[Sheet1] ComboBox1_LostFocus IsPrompting=" & mod_FillManagerName.IsPromptingOfficeComboBox()
     If mod_FillManagerName.IsPromptingOfficeComboBox() Then
-        mod_DebugLog.Log "[Sheet1] ComboBox1_LostFocus: IsPrompting=True -> ƒXƒLƒbƒv"
+        mod_DebugLog.Log "[Sheet1] ComboBox1_LostFocus: IsPrompting=True -> skip"
         Exit Sub
     End If
     mod_FillManagerName.CommitOfficeComboBoxSelection False
