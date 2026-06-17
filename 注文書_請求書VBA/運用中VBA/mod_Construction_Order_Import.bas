@@ -98,6 +98,8 @@ Private Const PRICE_LINE_OFFICE_COL As Long = 3
 Private Const PRICE_LINE_NAME_COL As Long = 5
 Private Const PRICE_LINE_START_ROW As Long = 2
 Private Const PURCHASE_PRICE_SHEET_SUFFIX As String = "_çwì¸è[ìñíPâø"
+
+Private mVendorAliasMapCache As Object
 Private Const WELDING_PRICE_SHEET_SUFFIX As String = "_ÉåÅ[Éãónê⁄íPâø"
 Private Const PURCHASE_ORDER_SHEET_NAME As String = "çwì¸è[ìñéwé¶"
 Private Const PURCHASE_NOTICE_SHEET_NAME As String = "çwì¸è[ìñí ím"
@@ -1341,7 +1343,7 @@ Private Sub ApplySubcontractorPriceForRow( _
         "=IF(OR(RC[-1]="""",RC" & qtyColumn & "=""""),"""",RC[-1]*RC" & qtyColumn & ")"
 End Sub
 
-Public Sub RefreshBasicInfoConstructionTotals()
+Public Sub RefreshBasicInfoConstructionTotals(Optional ByVal changedVendorIndex As Long = 0)
     On Error GoTo ErrorHandler
 
     Dim wsInfo As Worksheet
@@ -1351,52 +1353,96 @@ Public Sub RefreshBasicInfoConstructionTotals()
     Dim vendorCount As Long
     vendorCount = GetBasicInfoVendorBlockCount(wsInfo)
 
+    Dim fullRefresh As Boolean
+    fullRefresh = (changedVendorIndex <= 0)
+
+    If Not fullRefresh Then
+        If changedVendorIndex < 1 Or changedVendorIndex > vendorCount Then Exit Sub
+    End If
+
     Dim vendorNames() As String
     Dim vendorTotals() As Double
     ReDim vendorNames(1 To BASIC_INFO_VENDOR_MAX_BLOCKS)
     ReDim vendorTotals(1 To BASIC_INFO_VENDOR_MAX_BLOCKS)
 
+    Dim vendorStart As Long
+    Dim vendorEnd As Long
+    If fullRefresh Then
+        vendorStart = 1
+        vendorEnd = vendorCount
+    Else
+        vendorStart = changedVendorIndex
+        vendorEnd = changedVendorIndex
+    End If
+
     Dim i As Long
-    For i = 1 To vendorCount
+    For i = vendorStart To vendorEnd
         vendorNames(i) = GetBasicInfoCellText(wsInfo, _
             wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, BasicInfoVendorColumn(i)).Address)
     Next i
 
-    Dim vendorNameLog As String
-    For i = 1 To vendorCount
-        vendorNameLog = vendorNameLog & " [" & i & ":" & vendorNames(i) & "]"
-    Next i
-    LogCI "äÓñ{èÓïÒã∆é“ F9åèêî=" & vendorCount & vendorNameLog
+    If fullRefresh Then
+        Dim vendorNameLog As String
+        For i = 1 To vendorCount
+            vendorNameLog = vendorNameLog & " [" & i & ":" & vendorNames(i) & "]"
+        Next i
+        LogCI "äÓñ{èÓïÒã∆é“ F9åèêî=" & vendorCount & vendorNameLog
+    End If
 
     Dim BranchName As String
     BranchName = GetBasicInfoCellText(wsInfo, BASIC_INFO_BRANCH_CELL)
     Dim vendorAliasMap As Object
-    Set vendorAliasMap = BuildVendorAliasMap(BranchName)
+    Set vendorAliasMap = GetVendorAliasMap(BranchName)
 
     Dim worksTotal As Double
     Dim purchaseTotal As Double
 
     Dim ws As Worksheet
+    Dim columnMap As Object
+    Dim vendorKey As String
     For Each ws In ThisWorkbook.Worksheets
-        If IsPurchaseOutputSheet(ws) Then
+        If fullRefresh And IsPurchaseOutputSheet(ws) Then
             purchaseTotal = purchaseTotal + SumOutputJrAmount(ws)
         ElseIf IsConstructionOutputSheet(ws) Then
-            worksTotal = worksTotal + SumOutputJrAmount(ws)
-            For i = 1 To vendorCount
+            If fullRefresh Then
+                worksTotal = worksTotal + SumOutputJrAmount(ws)
+            End If
+            Set columnMap = BuildSheetVendorAmountColumnMap(ws, vendorAliasMap)
+            For i = vendorStart To vendorEnd
                 If vendorNames(i) <> "" Then
-                    vendorTotals(i) = vendorTotals(i) + SumVendorAmountOnSheet(ws, vendorNames(i), vendorAliasMap)
+                    vendorKey = ResolveVendorCanonicalKey(vendorNames(i), vendorAliasMap)
+                    If vendorKey <> "" Then
+                        If Not columnMap Is Nothing Then
+                            If columnMap.Exists(vendorKey) Then
+                                vendorTotals(i) = vendorTotals(i) + _
+                                    SumVendorAmountByColumn(ws, CLng(columnMap(vendorKey)))
+                            End If
+                        End If
+                    End If
                 End If
             Next i
         End If
     Next ws
 
-    WriteBasicInfoAmount wsInfo, BASIC_INFO_WORKS_TOTAL_CELL, worksTotal
-    WriteBasicInfoAmount wsInfo, BASIC_INFO_PURCHASE_TOTAL_CELL, purchaseTotal
-    UpdateBasicInfoTaxTotals wsInfo
+    If fullRefresh Then
+        WriteBasicInfoAmount wsInfo, BASIC_INFO_WORKS_TOTAL_CELL, worksTotal
+        WriteBasicInfoAmount wsInfo, BASIC_INFO_PURCHASE_TOTAL_CELL, purchaseTotal
+        UpdateBasicInfoTaxTotals wsInfo
+    End If
 
     Dim totalCellAddress As String
     Dim totalCell As Range
-    For i = 1 To BASIC_INFO_VENDOR_MAX_BLOCKS
+    Dim writeStart As Long
+    Dim writeEnd As Long
+    If fullRefresh Then
+        writeStart = 1
+        writeEnd = BASIC_INFO_VENDOR_MAX_BLOCKS
+    Else
+        writeStart = changedVendorIndex
+        writeEnd = changedVendorIndex
+    End If
+
+    For i = writeStart To writeEnd
         totalCellAddress = wsInfo.Cells(BASIC_INFO_VENDOR_TOTAL_ROW, _
                                         BasicInfoVendorColumn(i)).Address
         If i <= vendorCount And vendorNames(i) <> "" Then
@@ -1405,7 +1451,6 @@ Public Sub RefreshBasicInfoConstructionTotals()
             WriteBasicInfoAmount wsInfo, totalCellAddress, 0, False
         End If
 
-        ' ã∆é“ï çáåvÉZÉãÇ…Ç‡Åu\Å{åÖãÊêÿÇËÅvÇÃï\é¶å`éÆÇìKóp
         Set totalCell = wsInfo.Range(totalCellAddress)
         If totalCell.MergeCells Then Set totalCell = totalCell.MergeArea.Cells(1, 1)
         totalCell.NumberFormatLocal = BasicInfoYenNumberFormat()
@@ -1415,6 +1460,86 @@ Public Sub RefreshBasicInfoConstructionTotals()
 ErrorHandler:
     LogCI "äÓñ{èÓïÒçáåvã‡äzçXêVÉGÉâÅ[ Err " & Err.Number & ": " & Err.Description
 End Sub
+
+Public Sub ClearVendorAliasMapCache()
+    Set mVendorAliasMapCache = Nothing
+End Sub
+
+Private Function GetVendorAliasMap(ByVal branchName As String) As Object
+    Dim cacheKey As String
+    cacheKey = CommonNormalizeText(branchName)
+
+    If mVendorAliasMapCache Is Nothing Then
+        Set mVendorAliasMapCache = CreateObject("Scripting.Dictionary")
+        mVendorAliasMapCache.CompareMode = vbTextCompare
+    End If
+    If cacheKey <> "" Then
+        If mVendorAliasMapCache.Exists(cacheKey) Then
+            Set GetVendorAliasMap = mVendorAliasMapCache(cacheKey)
+            Exit Function
+        End If
+    End If
+
+    Dim aliasMap As Object
+    Set aliasMap = BuildVendorAliasMap(branchName)
+    If cacheKey <> "" Then
+        If mVendorAliasMapCache.Exists(cacheKey) Then
+            Set mVendorAliasMapCache(cacheKey) = aliasMap
+        Else
+            mVendorAliasMapCache.Add cacheKey, aliasMap
+        End If
+    End If
+    Set GetVendorAliasMap = aliasMap
+End Function
+
+Private Function BuildSheetVendorAmountColumnMap(ByVal ws As Worksheet, _
+                                                 ByVal aliasMap As Object) As Object
+    Dim result As Object
+    Set result = CreateObject("Scripting.Dictionary")
+    result.CompareMode = vbTextCompare
+
+    Dim kindColumn As Long
+    kindColumn = FindHeaderColumn(ws, "çHéÌï™óﬁ")
+    If kindColumn <= OutputSheetSubconPriceFirstCol(ws) Then
+        Set BuildSheetVendorAmountColumnMap = result
+        Exit Function
+    End If
+
+    Dim subconFirstCol As Long
+    subconFirstCol = OutputSheetSubconPriceFirstCol(ws)
+
+    Dim c As Long
+    For c = subconFirstCol To kindColumn - 1
+        Dim headerText As String
+        headerText = CommonNzText(ws.Cells(1, c).value)
+        If Len(headerText) > Len("ã‡äz") Then
+            If Right$(headerText, Len("ã‡äz")) = "ã‡äz" Then
+                Dim vendorKey As String
+                vendorKey = ResolveVendorCanonicalKey(Left$(headerText, Len(headerText) - Len("ã‡äz")), aliasMap)
+                If vendorKey <> "" Then
+                    If Not result.Exists(vendorKey) Then
+                        result.Add vendorKey, c
+                    End If
+                End If
+            End If
+        End If
+    Next c
+
+    Set BuildSheetVendorAmountColumnMap = result
+End Function
+
+Private Function SumVendorAmountByColumn(ByVal ws As Worksheet, _
+                                         ByVal amountColumn As Long) As Double
+    Dim seiriColumn As Long
+    seiriColumn = FindHeaderColumn(ws, "êÆóùî‘çÜ")
+    If seiriColumn = 0 Or amountColumn = 0 Then Exit Function
+
+    Dim lastRow As Long
+    lastRow = GetLastDataRow(ws, seiriColumn)
+    If lastRow < 2 Then Exit Function
+
+    SumVendorAmountByColumn = RoundDownAmount(SumNumericColumn(ws, amountColumn, lastRow))
+End Function
 
 Private Function BasicInfoVendorColumn(ByVal vendorIndex As Long) As Long
     BasicInfoVendorColumn = BASIC_INFO_VENDOR_FIRST_COL + _
@@ -1470,59 +1595,11 @@ Private Function SumVendorAmountOnSheet(ByVal ws As Worksheet, _
     vendorKey = ResolveVendorCanonicalKey(vendorName, aliasMap)
     If vendorKey = "" Then Exit Function
 
-    Dim seiriColumn As Long
-    Dim kindColumn As Long
-    seiriColumn = FindHeaderColumn(ws, "êÆóùî‘çÜ")
-    kindColumn = FindHeaderColumn(ws, "çHéÌï™óﬁ")
-    If seiriColumn = 0 Or kindColumn <= OutputSheetSubconPriceFirstCol(ws) Then Exit Function
-
-    Dim subconFirstCol As Long
-    subconFirstCol = OutputSheetSubconPriceFirstCol(ws)
-
-    Dim amountColumn As Long
-    Dim c As Long
-    Dim scannedHeaders As String
-    For c = subconFirstCol To kindColumn - 1
-        Dim headerText As String
-        headerText = CommonNzText(ws.Cells(1, c).value)
-        If headerText <> "" Then
-            scannedHeaders = scannedHeaders & " [" & c & ":" & headerText & "]"
-        End If
-        If Len(headerText) > Len("ã‡äz") Then
-            If Right$(headerText, Len("ã‡äz")) = "ã‡äz" Then
-                If ResolveVendorCanonicalKey(Left$(headerText, Len(headerText) - Len("ã‡äz")), aliasMap) = vendorKey Then
-                    amountColumn = c
-                    Exit For
-                End If
-            End If
-        End If
-    Next c
-    If amountColumn = 0 Then
-        LogCI "çáåvìÀçáNG sheet=[" & ws.Name & "] ã∆é“=[" & vendorName & _
-              "] key=[" & vendorKey & "] kindCol=" & kindColumn & _
-              " ëñç∏óÒ=" & subconFirstCol & "Å`" & (kindColumn - 1) & scannedHeaders
-        Exit Function
+    Dim columnMap As Object
+    Set columnMap = BuildSheetVendorAmountColumnMap(ws, aliasMap)
+    If columnMap.Exists(vendorKey) Then
+        SumVendorAmountOnSheet = SumVendorAmountByColumn(ws, CLng(columnMap(vendorKey)))
     End If
-
-    Dim lastRow As Long
-    lastRow = GetLastDataRow(ws, seiriColumn)
-    If lastRow < 2 Then Exit Function
-
-    Dim totalAmount As Double
-    Dim r As Long
-    Dim amountValue As Variant
-    For r = 2 To lastRow
-        amountValue = ws.Cells(r, amountColumn).value
-        If Not IsError(amountValue) Then
-            If IsNumeric(amountValue) Then
-                totalAmount = totalAmount + CDbl(amountValue)
-            End If
-        End If
-    Next r
-
-    SumVendorAmountOnSheet = RoundDownAmount(totalAmount)
-    LogCI "çáåvìÀçáOK sheet=[" & ws.Name & "] ã∆é“=[" & vendorName & _
-          "] ã‡äzóÒ=" & amountColumn & " çáåv=" & SumVendorAmountOnSheet
 End Function
 
 Private Function SumNumericColumn(ByVal ws As Worksheet, _
@@ -1688,7 +1765,7 @@ Private Function CollectSelectedSubcontractors(ByVal ws As Worksheet, _
     Dim aliasMap As Object
     Set aliasMap = Nothing
     If Not wsInfo Is Nothing Then
-        Set aliasMap = BuildVendorAliasMap(GetBasicInfoCellText(wsInfo, BASIC_INFO_BRANCH_CELL))
+        Set aliasMap = GetVendorAliasMap(GetBasicInfoCellText(wsInfo, BASIC_INFO_BRANCH_CELL))
     End If
 
     Dim sheetByCanonical As Object
