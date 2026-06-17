@@ -53,6 +53,7 @@ Private Const VENDOR_COMBO_NAME As String = "ComboBoxVendor"
 Private mVendorPromptTime As Date
 Private mVendorTargetAddress As String
 Private mLastVendorBlockCount As Long
+Private mVendorRowsCache As Object
 Private mSyncVendorBlocksInProgress As Boolean
 
 Public Function IsSyncVendorBlocksInProgress() As Boolean
@@ -1323,11 +1324,9 @@ Private Sub ApplyVendorUnitPriceBorders(ByVal wsUnitPrice As Worksheet, _
 End Sub
 
 Private Sub EnsureApplicationCalculationAutomatic()
-    On Error Resume Next
-    If Application.Calculation <> xlCalculationAutomatic Then
-        Application.Calculation = xlCalculationAutomatic
-    End If
-    On Error GoTo 0
+    ' 計算モードはイベント/呼び出し側で一括管理する。
+    ' 一括書込み中に自動計算へ強制すると、セル書込みごとに再計算が走り低速化するため、
+    ' ここでは計算モードを変更しない(各処理終端の .Calculate と呼び出し側の復元で再計算)。
 End Sub
 
 Private Function IsVendorUnitPriceSourceBlank(ByVal wsUnitPrice As Worksheet, _
@@ -1625,6 +1624,20 @@ Private Function VendorInfoHeaderPrefixText() As String
 End Function
 
 Private Function LoadVendorRows(ByVal BranchName As String) As Collection
+    Dim cacheKey As String
+    cacheKey = CommonNormalizeText(BranchName)
+
+    If mVendorRowsCache Is Nothing Then
+        Set mVendorRowsCache = CreateObject("Scripting.Dictionary")
+        mVendorRowsCache.CompareMode = vbTextCompare
+    End If
+    If cacheKey <> "" Then
+        If mVendorRowsCache.Exists(cacheKey) Then
+            Set LoadVendorRows = mVendorRowsCache(cacheKey)
+            Exit Function
+        End If
+    End If
+
     Dim sourceFilePath As String
     sourceFilePath = GetVendorMasterFilePath()
     If sourceFilePath = "" Then Exit Function
@@ -1643,7 +1656,20 @@ Private Function LoadVendorRows(ByVal BranchName As String) As Collection
 
 Cleanup:
     CommonCloseAdoConnection connection
+    If cacheKey <> "" And Not LoadVendorRows Is Nothing Then
+        If mVendorRowsCache.Exists(cacheKey) Then
+            Set mVendorRowsCache(cacheKey) = LoadVendorRows
+        Else
+            mVendorRowsCache.Add cacheKey, LoadVendorRows
+        End If
+    End If
 End Function
+
+' 業者マスタ(外部ファイル)の読込結果を支店名キーで保持し、1操作内の重複ADO接続を防ぐ。
+' 基本情報シートのActivate時にクリアして最新化する。
+Public Sub ClearVendorRowsCache()
+    Set mVendorRowsCache = Nothing
+End Sub
 
 Private Function LoadAllVendorRows() As Collection
     Dim sourceFilePath As String

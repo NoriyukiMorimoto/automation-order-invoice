@@ -1,9 +1,16 @@
 Option Explicit
 
 Private Sub Worksheet_Activate()
+    Dim prevCalc As XlCalculation, prevScreen As Boolean
+    prevScreen = Application.ScreenUpdating
+    prevCalc = Application.Calculation
+
     On Error GoTo ExitHandler
     Application.EnableEvents = False
+    Application.ScreenUpdating = False
+    Application.Calculation = xlCalculationManual
 
+    mod_VendorMaster.ClearVendorRowsCache
     mod_FillManagerName.HideOfficeComboBox Me
     mod_FillManagerName.RefreshBranchOfficeValidation True
     mod_VendorMaster.InitVendorBlockCountFromSheet Me
@@ -12,6 +19,8 @@ Private Sub Worksheet_Activate()
     mod_Construction_Order_Import.RefreshBasicInfoConstructionTotals
 
 ExitHandler:
+    Application.Calculation = prevCalc
+    Application.ScreenUpdating = prevScreen
     Application.EnableEvents = True
 End Sub
 
@@ -26,20 +35,24 @@ Private Sub Worksheet_Change(ByVal target As Range)
     If Intersect(target, Me.Range("B4,B6,C6,C10,C15:C16,F9,C20,C22,C23,C24,F2")) Is Nothing And _
        Intersect(target, vendorNameRange) Is Nothing And _
        Intersect(target, vendorUnitPriceMonitorRange) Is Nothing Then
-        mod_DebugLog.Log "[Sheet1] 監視対象外 -> Exit"
+        mod_DebugLog.Log "[Sheet1] 監視対旱外 -> Exit"
         Exit Sub
     End If
 
-    If mod_VendorMaster.IsSyncVendorBlocksInProgress() Then Exit Sub
+    Dim prevCalc As XlCalculation, prevScreen As Boolean
+    prevScreen = Application.ScreenUpdating
+    prevCalc = Application.Calculation
 
     On Error GoTo ExitHandler
     Application.EnableEvents = False
+    Application.ScreenUpdating = False
+    Application.Calculation = xlCalculationManual
 
     Dim needComboPrompt As Boolean
     needComboPrompt = False
 
     If Not Intersect(target, Me.Range("B4,B6")) Is Nothing Then
-        mod_DebugLog.Log "[Sheet1] B4/B6変更 -> RefreshBranchOfficeValidation(False) 呼び出し"
+        mod_DebugLog.Log "[Sheet1] B4/B6変拗 -> RefreshBranchOfficeValidation(False) 呼び捐し"
         needComboPrompt = mod_FillManagerName.RefreshBranchOfficeValidation(False)
         mod_DebugLog.Log "[Sheet1] RefreshBranchOfficeValidation 戻り値 needComboPrompt=" & needComboPrompt
     End If
@@ -55,9 +68,9 @@ Private Sub Worksheet_Change(ByVal target As Range)
     End If
 
     If Not Intersect(target, Me.Range("B6,C6")) Is Nothing Then
-        mod_DebugLog.Log "[Sheet1] B6/C6変更 IsSuppressing=" & mod_FillManagerName.IsSuppressingC6Change()
+        mod_DebugLog.Log "[Sheet1] B6/C6変拗 IsSuppressing=" & mod_FillManagerName.IsSuppressingC6Change()
         If Not mod_FillManagerName.IsSuppressingC6Change() Then
-            mod_DebugLog.Log "[Sheet1] SilentClearBasicInfo 呼び出し"
+            mod_DebugLog.Log "[Sheet1] SilentClearBasicInfo 呼び捐し"
             mod_BasicInfoUpdate.SilentClearBasicInfo Me
             mod_DebugLog.Log "[Sheet1] SilentClearBasicInfo 完了"
         End If
@@ -105,19 +118,29 @@ Private Sub Worksheet_Change(ByVal target As Range)
         mod_Construction_Order_Import.RefreshBasicInfoConstructionTotals
     End If
 
-    If Not Intersect(target, vendorUnitPriceMonitorRange) Is Nothing Then
-        mod_VendorMaster.HandleVendorUnitPriceMonitorChange Me, target
+    Dim monitorHit As Range
+    Set monitorHit = Intersect(target, vendorUnitPriceMonitorRange)
+    If Not monitorHit Is Nothing Then
+        Dim nameHit As Range
+        Set nameHit = Intersect(monitorHit, vendorNameRange)
+        If nameHit Is Nothing Then
+            mod_VendorMaster.HandleVendorUnitPriceMonitorChange Me, target
+        ElseIf monitorHit.Cells.CountLarge > nameHit.Cells.CountLarge Then
+            mod_VendorMaster.HandleVendorUnitPriceMonitorChange Me, target
+        End If
     End If
 
     mod_DebugLog.Log "[Sheet1] needComboPrompt=" & needComboPrompt
     If needComboPrompt Then
-        mod_DebugLog.Log "[Sheet1] PromptOfficeComboBox 呼び出し前 EnableEvents=" & Application.EnableEvents
+        mod_DebugLog.Log "[Sheet1] PromptOfficeComboBox 呼び捐し前 EnableEvents=" & Application.EnableEvents
         mod_FillManagerName.PromptOfficeComboBox
-        mod_DebugLog.Log "[Sheet1] PromptOfficeComboBox 呼び出し後 EnableEvents=" & Application.EnableEvents
+        mod_DebugLog.Log "[Sheet1] PromptOfficeComboBox 呼び捐し後 EnableEvents=" & Application.EnableEvents
     End If
 
 ExitHandler:
-    mod_DebugLog.Log "[Sheet1] Worksheet_Change 終了 EnableEvents=" & Application.EnableEvents
+    mod_DebugLog.Log "[Sheet1] Worksheet_Change 扞了 EnableEvents=" & Application.EnableEvents
+    Application.Calculation = prevCalc
+    Application.ScreenUpdating = prevScreen
     Application.EnableEvents = True
 End Sub
 
