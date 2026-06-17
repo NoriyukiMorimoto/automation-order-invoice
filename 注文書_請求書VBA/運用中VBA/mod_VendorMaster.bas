@@ -100,6 +100,9 @@ Public Sub FillVendorInfoToBasicInfo(Optional ByVal wsInfo As Worksheet, Optiona
     Dim BranchName As String
     BranchName = CommonNormalizeText(CStr(wsInfo.Range("B6").value))
 
+    Dim previousWorkType As String
+    previousWorkType = CommonNormalizeText(CStr(wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, targetCell.Column).value))
+
     Dim selectedVendorName As String
     selectedVendorName = CommonNormalizeText(CStr(targetCell.value))
     If selectedVendorName = "" Then
@@ -112,7 +115,14 @@ Public Sub FillVendorInfoToBasicInfo(Optional ByVal wsInfo As Worksheet, Optiona
     ApplyVendorSelection BranchName, selectedVendorName, wsInfo, targetCell
 
 RefreshWelding:
-    mod_WeldingUnitPrice.ApplyWeldingVendorUnitPricesForBasicInfo wsInfo, False, targetCell.Column
+    Dim currentWorkType As String
+    currentWorkType = CommonNormalizeText(CStr(wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, targetCell.Column).value))
+
+    If StrComp(previousWorkType, currentWorkType, vbTextCompare) = 0 Then
+        mod_WeldingUnitPrice.UpdateWeldingVendorDisplayNamesForBasicInfo wsInfo, targetCell.Column
+    Else
+        mod_WeldingUnitPrice.ApplyWeldingVendorUnitPricesForBasicInfo wsInfo, False, targetCell.Column
+    End If
     Exit Sub
 
 ErrorHandler:
