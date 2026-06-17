@@ -27,6 +27,15 @@ Private Const PRICE_GUIDANCE_COLUMN_WIDTH As Double = 59#
 Private Const COL_FLAG_SIDE      As Long = COL_PRICE_GUIDANCE + 9
 Private Const COL_FLAG_WELD      As Long = COL_FLAG_SIDE + 1
 Private Const OUTPUT_COL_COUNT   As Long = COL_KIND
+Private Const WELDING_OUTPUT_COL_OFFSET As Long = 1
+Private Const WELDING_OUTPUT_COL_COUNT As Long = OUTPUT_COL_COUNT + WELDING_OUTPUT_COL_OFFSET
+Private Const WELD_COL_WELDING_VENDOR As Long = 1
+Private Const WELD_COL_TRACK_VENDOR As Long = 2
+Private Const WELDING_VENDOR_HEADER As String = "ónê⁄âÔé–"
+Private Const TRACK_VENDOR_HEADER As String = "ãOìπéËå≥âÔé–"
+Private Const WELDING_WORK_TYPE_KEYWORD As String = "ónê⁄çHéñ"
+Private Const TRACK_WORK_TYPE_KEYWORD As String = "ãOìπçHéñ"
+Private Const BASIC_INFO_VENDOR_WORK_TYPE_ROW As Long = 10
 
 Private Const MGR_MASTER_SHEET As String = "JRä«óùé∫ëŒâûèoí£èä"
 Private Const MGR_MASTER_BRANCH_COL As Long = 2
@@ -114,12 +123,14 @@ Private Const PURCHASE_NOTICE_PRICE_COMPARE_COL As Long = COL_PRICE_COMPARE - 1
 Private Const PURCHASE_NOTICE_PRICE_GUIDANCE_COL As Long = COL_PRICE_GUIDANCE - 1
 
 Private Const SUBCON_PRICE_FIRST_COL As Long = 11
+Private Const WELDING_SUBCON_PRICE_FIRST_COL As Long = SUBCON_PRICE_FIRST_COL + WELDING_OUTPUT_COL_OFFSET
 Private Const UNIT_PRICE_VENDOR_NAME_ROW As Long = 5
 Private Const UNIT_PRICE_VENDOR_FIRST_DAY_COL As Long = 7
 
 Private Const SOURCE_SHEET_NAME_CELL As String = "A3"
 
 Private mSuppressOverwritePrompt As Boolean
+Private mLastCreatedImportSheet As Worksheet
 
 Public Sub ImportConstructionDocument()
     Dim scrn As Boolean, calc As XlCalculation, evt As Boolean, alerts As Boolean
@@ -130,6 +141,7 @@ Public Sub ImportConstructionDocument()
     alerts = Application.DisplayAlerts
 
     mSuppressOverwritePrompt = False
+    Set mLastCreatedImportSheet = Nothing
 
     On Error GoTo Cleanup
 
@@ -182,6 +194,7 @@ Public Sub ImportConstructionDocument()
 
 Cleanup:
     mSuppressOverwritePrompt = False
+    Set mLastCreatedImportSheet = Nothing
     Application.screenUpdating = scrn
     Application.Calculation = calc
     Application.EnableEvents = evt
@@ -293,7 +306,6 @@ Private Sub ImportOneConstructionDocument(ByVal srcPath As String, _
     Set worksRows = New Collection
     Set purchRows = New Collection
     Set weldRows = New Collection
-    Dim hasWeldingKind As Boolean
 
     Dim seenMgr As Object
     Set seenMgr = CreateObject("Scripting.Dictionary")
@@ -318,34 +330,61 @@ Private Sub ImportOneConstructionDocument(ByVal srcPath As String, _
             End If
 
             If keepRow Then
-                Dim rowArr(0 To OUTPUT_COL_COUNT - 1) As Variant
-                rowArr(COL_VENDOR - 1) = ""
-                rowArr(COL_SEIRI - 1) = vSeiri(i)
-                rowArr(COL_TYPE - 1) = vType(i)
-                rowArr(COL_DAYNIGHT - 1) = vDN(i)
-                rowArr(COL_UNIT - 1) = vUnit(i)
-                rowArr(COL_QTY - 1) = vQty(i)
-                rowArr(COL_LINE - 1) = vLine(i)
-                rowArr(COL_MGR - 1) = mgrOut
-                rowArr(COL_JR_PRICE - 1) = vPrice(i)
-                rowArr(COL_JR_AMOUNT - 1) = vAmount(i)
-                rowArr(COL_OUT_PRICE - 1) = ""
-                rowArr(COL_OUT_AMOUNT - 1) = ""
-                rowArr(COL_KIND - 1) = vKind(i)
-
                 kindText = CommonRemoveAllSpaces(CommonNzText(vKind(i)))
-                If InStr(1, kindText, WELDING_KEYWORD) > 0 Then hasWeldingKind = True
                 If InStr(1, kindText, PURCHASE_KEYWORD) > 0 Then
-                    purchRows.Add rowArr
-                ElseIf docType = DOC_ORDER And InStr(1, kindText, WELDING_KEYWORD) > 0 Then
-                    weldRows.Add rowArr
+                    Dim purchArr(0 To OUTPUT_COL_COUNT - 1) As Variant
+                    purchArr(COL_VENDOR - 1) = ""
+                    purchArr(COL_SEIRI - 1) = vSeiri(i)
+                    purchArr(COL_TYPE - 1) = vType(i)
+                    purchArr(COL_DAYNIGHT - 1) = vDN(i)
+                    purchArr(COL_UNIT - 1) = vUnit(i)
+                    purchArr(COL_QTY - 1) = vQty(i)
+                    purchArr(COL_LINE - 1) = vLine(i)
+                    purchArr(COL_MGR - 1) = mgrOut
+                    purchArr(COL_JR_PRICE - 1) = vPrice(i)
+                    purchArr(COL_JR_AMOUNT - 1) = vAmount(i)
+                    purchArr(COL_OUT_PRICE - 1) = ""
+                    purchArr(COL_OUT_AMOUNT - 1) = ""
+                    purchArr(COL_KIND - 1) = vKind(i)
+                    purchRows.Add purchArr
+                ElseIf InStr(1, kindText, WELDING_KEYWORD) > 0 Then
+                    Dim weldArr(0 To WELDING_OUTPUT_COL_COUNT - 1) As Variant
+                    weldArr(WeldingRowArrayIndex(COL_VENDOR)) = ""
+                    weldArr(WELD_COL_TRACK_VENDOR - 1) = ""
+                    weldArr(WeldingRowArrayIndex(COL_SEIRI)) = vSeiri(i)
+                    weldArr(WeldingRowArrayIndex(COL_TYPE)) = vType(i)
+                    weldArr(WeldingRowArrayIndex(COL_DAYNIGHT)) = vDN(i)
+                    weldArr(WeldingRowArrayIndex(COL_UNIT)) = vUnit(i)
+                    weldArr(WeldingRowArrayIndex(COL_QTY)) = vQty(i)
+                    weldArr(WeldingRowArrayIndex(COL_LINE)) = vLine(i)
+                    weldArr(WeldingRowArrayIndex(COL_MGR)) = mgrOut
+                    weldArr(WeldingRowArrayIndex(COL_JR_PRICE)) = vPrice(i)
+                    weldArr(WeldingRowArrayIndex(COL_JR_AMOUNT)) = vAmount(i)
+                    weldArr(WeldingRowArrayIndex(COL_OUT_PRICE)) = ""
+                    weldArr(WeldingRowArrayIndex(COL_OUT_AMOUNT)) = ""
+                    weldArr(WeldingRowArrayIndex(COL_KIND)) = vKind(i)
+                    weldRows.Add weldArr
                 Else
+                    Dim rowArr(0 To OUTPUT_COL_COUNT - 1) As Variant
+                    rowArr(COL_VENDOR - 1) = ""
+                    rowArr(COL_SEIRI - 1) = vSeiri(i)
+                    rowArr(COL_TYPE - 1) = vType(i)
+                    rowArr(COL_DAYNIGHT - 1) = vDN(i)
+                    rowArr(COL_UNIT - 1) = vUnit(i)
+                    rowArr(COL_QTY - 1) = vQty(i)
+                    rowArr(COL_LINE - 1) = vLine(i)
+                    rowArr(COL_MGR - 1) = mgrOut
+                    rowArr(COL_JR_PRICE - 1) = vPrice(i)
+                    rowArr(COL_JR_AMOUNT - 1) = vAmount(i)
+                    rowArr(COL_OUT_PRICE - 1) = ""
+                    rowArr(COL_OUT_AMOUNT - 1) = ""
+                    rowArr(COL_KIND - 1) = vKind(i)
                     worksRows.Add rowArr
                 End If
             End If
         End If
     Next i
-    LogCI "çHéñë§=" & worksRows.Count & " / çwì¸è[ìñë§=" & purchRows.Count
+    LogCI "çHéñë§=" & worksRows.Count & " / ónê⁄ë§=" & weldRows.Count & " / çwì¸è[ìñë§=" & purchRows.Count
 
     Dim filteredOutAll As Boolean
     filteredOutAll = (docType = DOC_ORDER) And (worksRows.Count = 0) And _
@@ -365,42 +404,34 @@ Private Sub ImportOneConstructionDocument(ByVal srcPath As String, _
 
     WriteReferenceValueToBasicInfo refValueH9
 
+    Dim wsWorks As Worksheet
+    Dim wsWeld As Worksheet
+    Dim wsPurch As Worksheet
     Dim wsActivate As Worksheet
+    Dim docBlockAnchor As Worksheet
+    Set docBlockAnchor = ResolveImportSheetInsertAfter()
 
-    If docType = DOC_NOTICE Then
-        If worksRows.Count > 0 Then
-            Dim wsNotice As Worksheet
-            Set wsNotice = BuildConstructionOutputSheet( _
-                BuildConstructionSheetName(sourceA3Text, hasWeldingKind), _
-                worksRows, docType, guidanceDocumentName, hasWeldingKind)
-            If wsActivate Is Nothing Then Set wsActivate = wsNotice
-        End If
-    Else
-        Dim wsWorks As Worksheet
-        If worksRows.Count > 0 Then
-            Set wsWorks = BuildConstructionOutputSheet( _
-                BuildConstructionSheetName(sourceA3Text, False), _
-                worksRows, docType, guidanceDocumentName, False)
-            If wsActivate Is Nothing Then Set wsActivate = wsWorks
-        End If
+    If worksRows.Count > 0 Then
+        Set wsWorks = BuildConstructionOutputSheet( _
+            BuildConstructionSheetName(sourceA3Text, False), _
+            worksRows, docType, guidanceDocumentName, False)
+        If wsActivate Is Nothing Then Set wsActivate = wsWorks
+    End If
 
-        Dim wsWeld As Worksheet
-        If weldRows.Count > 0 Then
-            Set wsWeld = BuildConstructionOutputSheet( _
-                BuildConstructionSheetName(sourceA3Text, True), _
-                weldRows, docType, guidanceDocumentName, True)
-            If wsActivate Is Nothing Then Set wsActivate = wsWeld
-        End If
+    If weldRows.Count > 0 Then
+        Set wsWeld = BuildConstructionOutputSheet( _
+            BuildConstructionSheetName(sourceA3Text, True), _
+            weldRows, docType, guidanceDocumentName, True)
+        If wsActivate Is Nothing Then Set wsActivate = wsWeld
     End If
 
     If purchRows.Count > 0 Then
         Dim purchName As String
         If docType = DOC_ORDER Then
-            purchName = "çwì¸è[ìñéwé¶"
+            purchName = PURCHASE_ORDER_SHEET_NAME
         Else
-            purchName = "çwì¸è[ìñí ím"
+            purchName = PURCHASE_NOTICE_SHEET_NAME
         End If
-        Dim wsPurch As Worksheet
         Set wsPurch = CreateOrReplaceSheet(purchName)
         If Not wsPurch Is Nothing Then
             wsPurch.Tab.Color = RGB(131, 226, 142)   ' #83E28E
@@ -412,8 +443,11 @@ Private Sub ImportOneConstructionDocument(ByVal srcPath As String, _
             FormatPurchaseNoticeSheet wsPurch
             ApplyPurchaseNoticeColumnExclusions wsPurch
             WritePurchaseNoticeJrTotalRow wsPurch
+            If wsActivate Is Nothing Then Set wsActivate = wsPurch
         End If
     End If
+
+    ArrangeDocumentImportSheetOrder wsWorks, wsWeld, wsPurch, docBlockAnchor
 
     tWorks = tWorks + worksRows.Count
     tWeld = tWeld + weldRows.Count
@@ -447,21 +481,43 @@ Private Function BuildConstructionOutputSheet(ByVal sheetName As String, _
     If ws Is Nothing Then Exit Function
 
     ws.Tab.Color = RGB(255, 255, 0)
-    WriteRecordsToSheet ws, rows
+    If isWelding Then
+        WriteWeldingRecordsToSheet ws, rows
+    Else
+        WriteRecordsToSheet ws, rows
+    End If
     SortWorksSheet ws
-    WriteAdditionalHeaders ws
+    If isWelding Then
+        WriteAdditionalHeadersAtColumns _
+            ws, OutputSheetCol(ws, COL_AUTO_PRICE), OutputSheetCol(ws, COL_AUTO_AMOUNT), _
+            OutputSheetCol(ws, COL_PRICE_COMPARE), True
+    Else
+        WriteAdditionalHeaders ws
+    End If
     FillReferenceUnitPrices ws, guidanceDocumentName, isWelding
-    FormatSheet ws
-    ApplyPriceGuidanceColumnLayout ws
-    mod_subcontractorselector.ApplySubcontractorDropdowns ws
+    If isWelding Then
+        FormatSheet ws, OutputSheetCol(ws, COL_SEIRI)
+        ApplyPriceGuidanceColumnLayoutAtColumns _
+            ws, OutputSheetCol(ws, COL_PRICE_COMPARE), OutputSheetCol(ws, COL_PRICE_GUIDANCE)
+        mod_subcontractorselector.ApplySubcontractorDropdowns ws
+    Else
+        FormatSheet ws
+        ApplyPriceGuidanceColumnLayout ws
+        mod_subcontractorselector.ApplySubcontractorDropdowns ws
+    End If
     ApplySanpaiRowRestrictions ws
 
-    ws.Columns(COL_VENDOR).HorizontalAlignment = xlCenter
+    If isWelding Then
+        ws.Columns(WELD_COL_WELDING_VENDOR).HorizontalAlignment = xlCenter
+        ws.Columns(WELD_COL_TRACK_VENDOR).HorizontalAlignment = xlCenter
+    Else
+        ws.Columns(COL_VENDOR).HorizontalAlignment = xlCenter
+    End If
 
-    If docType = DOC_NOTICE Then ws.Columns(COL_MGR).Hidden = True
+    If docType = DOC_NOTICE Then ws.Columns(OutputSheetCol(ws, COL_MGR)).Hidden = True
 
-    ws.Range(ws.Cells(1, COL_OUT_PRICE), _
-             ws.Cells(1, COL_OUT_AMOUNT)).EntireColumn.Delete Shift:=xlToLeft
+    ws.Range(ws.Cells(1, OutputSheetCol(ws, COL_OUT_PRICE)), _
+             ws.Cells(1, OutputSheetCol(ws, COL_OUT_AMOUNT))).EntireColumn.Delete Shift:=xlToLeft
 
     WriteJrTotalRow ws
 
@@ -885,8 +941,70 @@ Private Function ColLetterToNum(ByVal col As String) As Long
     ColLetterToNum = result
 End Function
 
+Private Function GetImportSheetAnchorSheet() As Worksheet
+    On Error Resume Next
+    Set GetImportSheetAnchorSheet = Sheet1
+    On Error GoTo 0
+
+    If GetImportSheetAnchorSheet Is Nothing Then
+        Set GetImportSheetAnchorSheet = CommonGetBasicInfoWorksheet(ThisWorkbook)
+    End If
+End Function
+
+Private Function FindRightmostManagedImportSheetAfterAnchor( _
+        ByVal anchorSheet As Worksheet) As Worksheet
+    If anchorSheet Is Nothing Then Exit Function
+
+    Dim ws As Worksheet
+    Dim candidate As Worksheet
+    For Each ws In ThisWorkbook.Worksheets
+        If ws.Index > anchorSheet.Index Then
+            If IsManagedImportOutputSheet(ws) Then
+                If Not IsPurchaseOutputSheet(ws) Then
+                    If candidate Is Nothing Or ws.Index > candidate.Index Then
+                        Set candidate = ws
+                    End If
+                End If
+            End If
+        End If
+    Next ws
+
+    Set FindRightmostManagedImportSheetAfterAnchor = candidate
+End Function
+
+Private Function ResolveImportSheetInsertAfter( _
+        Optional ByVal replaceSheet As Worksheet = Nothing) As Worksheet
+    If Not mLastCreatedImportSheet Is Nothing Then
+        Set ResolveImportSheetInsertAfter = mLastCreatedImportSheet
+        Exit Function
+    End If
+
+    If Not replaceSheet Is Nothing Then
+        If replaceSheet.Index > 1 Then
+            Set ResolveImportSheetInsertAfter = _
+                ThisWorkbook.Worksheets(replaceSheet.Index - 1)
+            Exit Function
+        End If
+    End If
+
+    Dim anchorSheet As Worksheet
+    Set anchorSheet = GetImportSheetAnchorSheet()
+
+    Dim rightmostSheet As Worksheet
+    Set rightmostSheet = FindRightmostManagedImportSheetAfterAnchor(anchorSheet)
+    If Not rightmostSheet Is Nothing Then
+        Set ResolveImportSheetInsertAfter = rightmostSheet
+    ElseIf Not anchorSheet Is Nothing Then
+        Set ResolveImportSheetInsertAfter = anchorSheet
+    Else
+        Set ResolveImportSheetInsertAfter = _
+            ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count)
+    End If
+End Function
+
 Private Function CreateOrReplaceSheet(ByVal sheetName As String) As Worksheet
     Dim existing As Worksheet
+    Dim replaceSheet As Worksheet
     On Error Resume Next
     Set existing = ThisWorkbook.worksheets(sheetName)
     On Error GoTo 0
@@ -901,14 +1019,54 @@ Private Function CreateOrReplaceSheet(ByVal sheetName As String) As Worksheet
                 Exit Function
             End If
         End If
+        Set replaceSheet = existing
         existing.Delete
     End If
 
+    Dim insertAfter As Worksheet
+    Set insertAfter = ResolveImportSheetInsertAfter(replaceSheet)
+
     Dim ws As Worksheet
-    Set ws = ThisWorkbook.worksheets.Add(After:=ThisWorkbook.worksheets(ThisWorkbook.worksheets.Count))
+    Set ws = ThisWorkbook.worksheets.Add(After:=insertAfter)
     ws.Name = sheetName
+    Set mLastCreatedImportSheet = ws
     Set CreateOrReplaceSheet = ws
 End Function
+
+Private Sub ArrangeDocumentImportSheetOrder(ByVal worksSheet As Worksheet, _
+                                            ByVal weldSheet As Worksheet, _
+                                            ByVal purchSheet As Worksheet, _
+                                            ByVal blockAnchor As Worksheet)
+    Dim prev As Worksheet
+    Set prev = blockAnchor
+
+    On Error Resume Next
+    If Not worksSheet Is Nothing Then
+        If Not prev Is Nothing Then
+            worksSheet.Move After:=prev
+        Else
+            worksSheet.Move Before:=ThisWorkbook.Worksheets(1)
+        End If
+        Set prev = worksSheet
+    End If
+
+    If Not weldSheet Is Nothing Then
+        If Not prev Is Nothing Then
+            weldSheet.Move After:=prev
+        End If
+        Set prev = weldSheet
+    End If
+
+    If Not purchSheet Is Nothing Then
+        If Not prev Is Nothing Then
+            purchSheet.Move After:=prev
+        End If
+        Set prev = purchSheet
+    End If
+    On Error GoTo 0
+
+    If Not prev Is Nothing Then Set mLastCreatedImportSheet = prev
+End Sub
 
 Private Sub WriteRecordsToSheet(ByVal ws As Worksheet, ByVal rows As Collection)
     Dim headers As Variant
@@ -931,6 +1089,29 @@ Private Sub WriteRecordsToSheet(ByVal ws As Worksheet, ByVal rows As Collection)
     Next item
 
     ws.Range("A2").Resize(rows.Count, OUTPUT_COL_COUNT).value = arr
+End Sub
+
+Private Sub WriteWeldingRecordsToSheet(ByVal ws As Worksheet, ByVal rows As Collection)
+    Dim headers As Variant
+    headers = Array(WELDING_VENDOR_HEADER, TRACK_VENDOR_HEADER, "êÆóùî‘çÜ", "çHéñéÌóﬁ", "íãñÈï ", "íPà ", "êîó ", _
+                    "å_ñÒê¸ãÊñº", "ä«óùé∫", "JRíPâø", "JRã‡äz", "äOíçíPâø", "äOíçã‡äz", "çHéÌï™óﬁ")
+    ws.Range("A1").Resize(1, WELDING_OUTPUT_COL_COUNT).value = headers
+
+    If rows.Count = 0 Then Exit Sub
+
+    Dim arr() As Variant
+    ReDim arr(1 To rows.Count, 1 To WELDING_OUTPUT_COL_COUNT)
+
+    Dim i As Long, cc As Long, item As Variant
+    i = 0
+    For Each item In rows
+        i = i + 1
+        For cc = 1 To WELDING_OUTPUT_COL_COUNT
+            arr(i, cc) = item(cc - 1)
+        Next cc
+    Next item
+
+    ws.Range("A2").Resize(rows.Count, WELDING_OUTPUT_COL_COUNT).value = arr
 End Sub
 
 Private Sub ApplyPurchaseNoticeLayout(ByVal ws As Worksheet)
@@ -990,8 +1171,8 @@ End Function
 
 Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet)
     If ws Is Nothing Then Exit Sub
-    If CommonNzText(ws.Cells(1, COL_VENDOR).value) <> "é{çHã∆é“" Then Exit Sub
-    If CommonNzText(ws.Cells(1, COL_SEIRI).value) <> "êÆóùî‘çÜ" Then Exit Sub
+    If Not IsConstructionVendorOutputSheet(ws) Then Exit Sub
+    If FindHeaderColumn(ws, "êÆóùî‘çÜ") = 0 Then Exit Sub
 
     Dim lastRow As Long
     lastRow = GetLastDataRow(ws)
@@ -1003,8 +1184,11 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet)
     kindColumn = FindHeaderColumn(ws, "çHéÌï™óﬁ")
     If kindColumn = 0 Then Exit Sub
 
-    If kindColumn > SUBCON_PRICE_FIRST_COL Then
-        ws.Range(ws.Columns(SUBCON_PRICE_FIRST_COL), _
+    Dim subconFirstCol As Long
+    subconFirstCol = OutputSheetSubconPriceFirstCol(ws)
+
+    If kindColumn > subconFirstCol Then
+        ws.Range(ws.Columns(subconFirstCol), _
                  ws.Columns(kindColumn - 1)).Delete Shift:=xlToLeft
     End If
     If vendorNames.Count = 0 Or lastRow < 2 Then
@@ -1014,8 +1198,8 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet)
 
     Dim insertedColumnCount As Long
     insertedColumnCount = vendorNames.Count * 2
-    ws.Range(ws.Columns(SUBCON_PRICE_FIRST_COL), _
-             ws.Columns(SUBCON_PRICE_FIRST_COL + insertedColumnCount - 1)).Insert Shift:=xlToRight
+    ws.Range(ws.Columns(subconFirstCol), _
+             ws.Columns(subconFirstCol + insertedColumnCount - 1)).Insert Shift:=xlToRight
 
     Dim vendorColumnMap As Object
     Set vendorColumnMap = CreateObject("Scripting.Dictionary")
@@ -1026,7 +1210,7 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet)
         Dim vendorName As String
         Dim priceColumn As Long
         vendorName = CStr(vendorNames(vendorIndex))
-        priceColumn = SUBCON_PRICE_FIRST_COL + ((vendorIndex - 1) * 2)
+        priceColumn = subconFirstCol + ((vendorIndex - 1) * 2)
 
         vendorColumnMap.Add NormalizeVendorPriceName(vendorName), priceColumn
         ws.Cells(1, priceColumn).value = vendorName & "íPâø"
@@ -1040,56 +1224,100 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet)
     Set vendorPriceCaches = CreateObject("Scripting.Dictionary")
     vendorPriceCaches.CompareMode = vbTextCompare
 
+    Dim seiriColumn As Long
+    Dim dayNightColumn As Long
+    Dim lineColumn As Long
+    Dim qtyColumn As Long
+    seiriColumn = OutputSheetSeiriColumn(ws)
+    dayNightColumn = OutputSheetCol(ws, COL_DAYNIGHT)
+    lineColumn = OutputSheetCol(ws, COL_LINE)
+    qtyColumn = OutputSheetCol(ws, COL_QTY)
+
+    Dim isWeldingSheet As Boolean
+    isWeldingSheet = IsWeldingOutputSheet(ws)
+
+    Dim vendorColumns As Collection
+    Set vendorColumns = OutputSheetVendorColumns(ws)
+
     Dim matchedCount As Long
     Dim r As Long
     For r = 2 To lastRow
-        Dim rowVendorKey As String
-        rowVendorKey = NormalizeVendorPriceName(CommonNzText(ws.Cells(r, COL_VENDOR).value))
-        If rowVendorKey <> "" And vendorColumnMap.Exists(rowVendorKey) Then
-            priceColumn = CLng(vendorColumnMap(rowVendorKey))
-
-            Dim unitPriceSheetName As String
-            unitPriceSheetName = ResolveUnitPriceSheetName( _
-                lineSheetMap, CommonNzText(ws.Cells(r, COL_LINE).value))
-
-            Dim vendorPriceRows As Object
-            Set vendorPriceRows = GetVendorUnitPriceRows( _
-                unitPriceSheetName, CommonNzText(ws.Cells(r, COL_VENDOR).value), vendorPriceCaches)
-
-            Dim recordKey As String
-            recordKey = NormalizeRecordKey(ws.Cells(r, COL_SEIRI).value)
-            If Not vendorPriceRows Is Nothing And recordKey <> "" Then
-                If vendorPriceRows.Exists(recordKey) Then
-                    Dim dayNightPrices As Variant
-                    Dim vendorPrice As Variant
-                    dayNightPrices = vendorPriceRows(recordKey)
-                    vendorPrice = SelectDayNightPrice( _
-                        CommonNzText(ws.Cells(r, COL_DAYNIGHT).value), dayNightPrices)
-                    If Not IsEmpty(vendorPrice) And Not IsError(vendorPrice) Then
-                        ws.Cells(r, priceColumn).value = vendorPrice
-                        matchedCount = matchedCount + 1
-                    End If
-                End If
-            End If
-
-            ws.Cells(r, priceColumn + 1).FormulaR1C1 = _
-                "=IF(OR(RC[-1]="""",RC" & COL_QTY & "=""""),"""",RC[-1]*RC" & COL_QTY & ")"
-        End If
+        Dim vendorCol As Variant
+        For Each vendorCol In vendorColumns
+            ApplySubcontractorPriceForRow ws, r, CLng(vendorCol), vendorColumnMap, _
+                lineSheetMap, vendorPriceCaches, seiriColumn, dayNightColumn, _
+                lineColumn, qtyColumn, isWeldingSheet, matchedCount
+        Next vendorCol
     Next r
 
-    FormatSubcontractorPriceColumns ws, lastRow, insertedColumnCount
+    FormatSubcontractorPriceColumns ws, lastRow, insertedColumnCount, subconFirstCol
 
     For vendorIndex = 1 To vendorNames.Count
-        priceColumn = SUBCON_PRICE_FIRST_COL + ((vendorIndex - 1) * 2)
+        priceColumn = subconFirstCol + ((vendorIndex - 1) * 2)
         WriteTotalCells ws, lastRow + 1, _
                         priceColumn, CStr(vendorNames(vendorIndex)) & "çáåv", _
                         priceColumn + 1, lastRow
     Next vendorIndex
 
-    RedrawTotalBorders ws, lastRow + 1, COL_JR_PRICE, COL_JR_AMOUNT
+    RedrawTotalBorders ws, lastRow + 1, OutputSheetCol(ws, COL_JR_PRICE), OutputSheetCol(ws, COL_JR_AMOUNT)
     RefreshBasicInfoConstructionTotals
     LogCI "é{çHâÔé–ï íPâøóÒ: âÔé–êî=" & vendorNames.Count & _
           " / íPâøàÍív=" & matchedCount
+End Sub
+
+Private Sub ApplySubcontractorPriceForRow( _
+    ByVal ws As Worksheet, _
+    ByVal rowIndex As Long, _
+    ByVal vendorColumn As Long, _
+    ByVal vendorColumnMap As Object, _
+    ByVal lineSheetMap As Object, _
+    ByVal vendorPriceCaches As Object, _
+    ByVal seiriColumn As Long, _
+    ByVal dayNightColumn As Long, _
+    ByVal lineColumn As Long, _
+    ByVal qtyColumn As Long, _
+    ByVal isWeldingSheet As Boolean, _
+    ByRef matchedCount As Long)
+
+    Dim rowVendorKey As String
+    rowVendorKey = NormalizeVendorPriceName(CommonNzText(ws.Cells(rowIndex, vendorColumn).value))
+    If rowVendorKey = "" Then Exit Sub
+    If Not vendorColumnMap.Exists(rowVendorKey) Then Exit Sub
+
+    Dim priceColumn As Long
+    priceColumn = CLng(vendorColumnMap(rowVendorKey))
+
+    Dim unitPriceSheetName As String
+    unitPriceSheetName = ResolveUnitPriceSheetName( _
+        lineSheetMap, CommonNzText(ws.Cells(rowIndex, lineColumn).value))
+
+    Dim vendorPriceRows As Object
+    Set vendorPriceRows = GetVendorUnitPriceRows( _
+        unitPriceSheetName, CommonNzText(ws.Cells(rowIndex, vendorColumn).value), vendorPriceCaches)
+
+    Dim recordKey As String
+    If isWeldingSheet Then
+        recordKey = BuildWeldingLookupKey(ws.Cells(rowIndex, seiriColumn).value)
+    Else
+        recordKey = NormalizeRecordKey(ws.Cells(rowIndex, seiriColumn).value)
+    End If
+
+    If Not vendorPriceRows Is Nothing And recordKey <> "" Then
+        If vendorPriceRows.Exists(recordKey) Then
+            Dim dayNightPrices As Variant
+            Dim vendorPrice As Variant
+            dayNightPrices = vendorPriceRows(recordKey)
+            vendorPrice = SelectDayNightPrice( _
+                CommonNzText(ws.Cells(rowIndex, dayNightColumn).value), dayNightPrices)
+            If Not IsEmpty(vendorPrice) And Not IsError(vendorPrice) Then
+                ws.Cells(rowIndex, priceColumn).value = vendorPrice
+                matchedCount = matchedCount + 1
+            End If
+        End If
+    End If
+
+    ws.Cells(rowIndex, priceColumn + 1).FormulaR1C1 = _
+        "=IF(OR(RC[-1]="""",RC" & qtyColumn & "=""""),"""",RC[-1]*RC" & qtyColumn & ")"
 End Sub
 
 Public Sub RefreshBasicInfoConstructionTotals()
@@ -1194,7 +1422,7 @@ Private Function IsConstructionOutputSheet(ByVal ws As Worksheet) As Boolean
     If IsPurchaseOutputSheet(ws) Then Exit Function
 
     IsConstructionOutputSheet = _
-        (FindHeaderColumn(ws, "é{çHã∆é“") > 0) And _
+        ((FindHeaderColumn(ws, "é{çHã∆é“") > 0) Or IsWeldingOutputSheet(ws)) And _
         (FindHeaderColumn(ws, "êÆóùî‘çÜ") > 0) And _
         (FindHeaderColumn(ws, "JRã‡äz") > 0) And _
         (FindHeaderColumn(ws, "çHéÌï™óﬁ") > 0)
@@ -1225,12 +1453,15 @@ Private Function SumVendorAmountOnSheet(ByVal ws As Worksheet, _
     Dim kindColumn As Long
     seiriColumn = FindHeaderColumn(ws, "êÆóùî‘çÜ")
     kindColumn = FindHeaderColumn(ws, "çHéÌï™óﬁ")
-    If seiriColumn = 0 Or kindColumn <= SUBCON_PRICE_FIRST_COL Then Exit Function
+    If seiriColumn = 0 Or kindColumn <= OutputSheetSubconPriceFirstCol(ws) Then Exit Function
+
+    Dim subconFirstCol As Long
+    subconFirstCol = OutputSheetSubconPriceFirstCol(ws)
 
     Dim amountColumn As Long
     Dim c As Long
     Dim scannedHeaders As String
-    For c = SUBCON_PRICE_FIRST_COL To kindColumn - 1
+    For c = subconFirstCol To kindColumn - 1
         Dim headerText As String
         headerText = CommonNzText(ws.Cells(1, c).value)
         If headerText <> "" Then
@@ -1248,7 +1479,7 @@ Private Function SumVendorAmountOnSheet(ByVal ws As Worksheet, _
     If amountColumn = 0 Then
         LogCI "çáåvìÀçáNG sheet=[" & ws.Name & "] ã∆é“=[" & vendorName & _
               "] key=[" & vendorKey & "] kindCol=" & kindColumn & _
-              " ëñç∏óÒ=" & SUBCON_PRICE_FIRST_COL & "Å`" & (kindColumn - 1) & scannedHeaders
+              " ëñç∏óÒ=" & subconFirstCol & "Å`" & (kindColumn - 1) & scannedHeaders
         Exit Function
     End If
 
@@ -1445,21 +1676,27 @@ Private Function CollectSelectedSubcontractors(ByVal ws As Worksheet, _
 
     Dim sheetOrderKeys As New Collection
 
+    Dim vendorColumns As Collection
+    Set vendorColumns = OutputSheetVendorColumns(ws)
+
     Dim r As Long
+    Dim vendorCol As Variant
     For r = 2 To lastRow
-        Dim vendorName As String
-        Dim canonicalKey As String
-        vendorName = Trim$(CommonNzText(ws.Cells(r, COL_VENDOR).value))
-        If vendorName = "" Then GoTo NextSheetRow
+        For Each vendorCol In vendorColumns
+            Dim vendorName As String
+            Dim canonicalKey As String
+            vendorName = Trim$(CommonNzText(ws.Cells(r, CLng(vendorCol)).value))
+            If vendorName = "" Then GoTo NextVendorCol
 
-        canonicalKey = ResolveVendorCanonicalKey(vendorName, aliasMap)
-        If canonicalKey = "" Then GoTo NextSheetRow
+            canonicalKey = ResolveVendorCanonicalKey(vendorName, aliasMap)
+            If canonicalKey = "" Then GoTo NextVendorCol
 
-        If Not sheetByCanonical.Exists(canonicalKey) Then
-            sheetByCanonical.Add canonicalKey, vendorName
-            sheetOrderKeys.Add canonicalKey
-        End If
-NextSheetRow:
+            If Not sheetByCanonical.Exists(canonicalKey) Then
+                sheetByCanonical.Add canonicalKey, vendorName
+                sheetOrderKeys.Add canonicalKey
+            End If
+NextVendorCol:
+        Next vendorCol
     Next r
 
     If sheetByCanonical.Count = 0 Then
@@ -1472,26 +1709,31 @@ NextSheetRow:
     usedCanonical.CompareMode = vbTextCompare
 
     If Not wsInfo Is Nothing Then
-        Dim vendorCount As Long
-        Dim i As Long
-        vendorCount = GetBasicInfoVendorBlockCount(wsInfo)
+        If IsWeldingOutputSheet(ws) Then
+            AppendOrderedBasicInfoVendorsByWorkType wsInfo, aliasMap, sheetByCanonical, usedCanonical, result, WELDING_WORK_TYPE_KEYWORD
+            AppendOrderedBasicInfoVendorsByWorkType wsInfo, aliasMap, sheetByCanonical, usedCanonical, result, TRACK_WORK_TYPE_KEYWORD
+        Else
+            Dim vendorCount As Long
+            Dim i As Long
+            vendorCount = GetBasicInfoVendorBlockCount(wsInfo)
 
-        For i = 1 To vendorCount
-            Dim basicInfoName As String
-            Dim basicInfoKey As String
-            basicInfoName = GetBasicInfoCellText(wsInfo, _
-                wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, BasicInfoVendorColumn(i)).Address)
-            If basicInfoName = "" Then GoTo NextBasicInfoVendor
+            For i = 1 To vendorCount
+                Dim basicInfoName As String
+                Dim basicInfoKey As String
+                basicInfoName = GetBasicInfoCellText(wsInfo, _
+                    wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, BasicInfoVendorColumn(i)).Address)
+                If basicInfoName = "" Then GoTo NextBasicInfoVendor
 
-            basicInfoKey = ResolveVendorCanonicalKey(basicInfoName, aliasMap)
-            If basicInfoKey <> "" And sheetByCanonical.Exists(basicInfoKey) Then
-                If Not usedCanonical.Exists(basicInfoKey) Then
-                    usedCanonical.Add basicInfoKey, True
-                    result.Add CStr(sheetByCanonical(basicInfoKey))
+                basicInfoKey = ResolveVendorCanonicalKey(basicInfoName, aliasMap)
+                If basicInfoKey <> "" And sheetByCanonical.Exists(basicInfoKey) Then
+                    If Not usedCanonical.Exists(basicInfoKey) Then
+                        usedCanonical.Add basicInfoKey, True
+                        result.Add CStr(sheetByCanonical(basicInfoKey))
+                    End If
                 End If
-            End If
 NextBasicInfoVendor:
-        Next i
+            Next i
+        End If
     End If
 
     Dim fallbackKey As Variant
@@ -1502,6 +1744,54 @@ NextBasicInfoVendor:
     Next fallbackKey
 
     Set CollectSelectedSubcontractors = result
+End Function
+
+Private Sub AppendOrderedBasicInfoVendorsByWorkType( _
+    ByVal wsInfo As Worksheet, _
+    ByVal aliasMap As Object, _
+    ByVal sheetByCanonical As Object, _
+    ByVal usedCanonical As Object, _
+    ByVal result As Collection, _
+    ByVal workTypeKeyword As String)
+
+    Dim vendorNameMap As Object
+    Set vendorNameMap = mod_VendorMaster.BuildVendorUnitPriceNameMap(wsInfo)
+    If vendorNameMap Is Nothing Then Exit Sub
+
+    Dim blockIndex As Long
+    For blockIndex = 1 To BASIC_INFO_VENDOR_MAX_BLOCKS
+        Dim valueCol As Long
+        valueCol = BasicInfoVendorColumn(blockIndex)
+        If Not BasicInfoBlockMatchesWorkType(wsInfo, valueCol, workTypeKeyword) Then GoTo NextWorkTypeBlock
+
+        Dim basicInfoName As String
+        Dim basicInfoKey As String
+        Dim mappedName As String
+        basicInfoName = GetBasicInfoCellText(wsInfo, wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, valueCol).Address)
+        If basicInfoName = "" Then GoTo NextWorkTypeBlock
+
+        basicInfoKey = ResolveVendorCanonicalKey(basicInfoName, aliasMap)
+        If basicInfoKey = "" Then GoTo NextWorkTypeBlock
+        If Not sheetByCanonical.Exists(basicInfoKey) Then GoTo NextWorkTypeBlock
+        If usedCanonical.Exists(basicInfoKey) Then GoTo NextWorkTypeBlock
+
+        mappedName = Trim$(CommonNzText(sheetByCanonical(basicInfoKey)))
+        If mappedName = "" Then GoTo NextWorkTypeBlock
+
+        usedCanonical.Add basicInfoKey, True
+        result.Add mappedName
+NextWorkTypeBlock:
+    Next blockIndex
+End Sub
+
+Private Function BasicInfoBlockMatchesWorkType(ByVal wsInfo As Worksheet, _
+                                               ByVal valueCol As Long, _
+                                               ByVal workTypeKeyword As String) As Boolean
+    Dim workTypeText As String
+    workTypeText = CommonRemoveAllSpaces(CommonNormalizeText( _
+        CommonNzText(wsInfo.Cells(BASIC_INFO_VENDOR_WORK_TYPE_ROW, valueCol).value)))
+    BasicInfoBlockMatchesWorkType = (workTypeText <> "") And _
+        (InStr(1, workTypeText, workTypeKeyword, vbTextCompare) > 0)
 End Function
 
 Private Function FindHeaderColumn(ByVal ws As Worksheet, ByVal headerText As String) As Long
@@ -1733,10 +2023,10 @@ End Function
 
 Private Sub FormatSubcontractorPriceColumns(ByVal ws As Worksheet, _
                                             ByVal lastRow As Long, _
-                                            ByVal columnCount As Long)
-    Dim firstColumn As Long
+                                            ByVal columnCount As Long, _
+                                            Optional ByVal firstColumn As Long = 0)
     Dim lastColumn As Long
-    firstColumn = SUBCON_PRICE_FIRST_COL
+    If firstColumn = 0 Then firstColumn = OutputSheetSubconPriceFirstCol(ws)
     lastColumn = firstColumn + columnCount - 1
 
     With ws.Range(ws.Cells(1, firstColumn), ws.Cells(1, lastColumn))
@@ -1782,7 +2072,7 @@ Private Sub FormatSubcontractorPriceColumns(ByVal ws As Worksheet, _
 End Sub
 
 Private Function IsSanpaiRow(ByVal ws As Worksheet, ByVal rowIndex As Long) As Boolean
-    IsSanpaiRow = (InStr(1, CommonRemoveAllSpaces(CommonNzText(ws.Cells(rowIndex, COL_TYPE).value)), _
+    IsSanpaiRow = (InStr(1, CommonRemoveAllSpaces(CommonNzText(ws.Cells(rowIndex, OutputSheetCol(ws, COL_TYPE)).value)), _
                          SANPAI_KEYWORD, vbTextCompare) > 0)
 End Function
 
@@ -1820,23 +2110,28 @@ Public Sub ApplySanpaiRowRestrictions(ByVal ws As Worksheet)
 
     Dim restrictedCount As Long
     Dim r As Long
+    Dim vendorCol As Variant
+    Dim vendorColumns As Collection
+    Set vendorColumns = OutputSheetVendorColumns(ws)
     For r = 2 To lastRow
         If IsSanpaiRow(ws, r) Then
-            With ws.Cells(r, COL_VENDOR)
-                .ClearContents
-                .Interior.Color = fillColor
-                With .Validation
-                    .Delete
-                    .Add Type:=xlValidateCustom, AlertStyle:=xlValidAlertStop, _
-                         Formula1:="=FALSE"
-                    .IgnoreBlank = True
-                    .InCellDropdown = False
-                    .ShowInput = False
-                    .ErrorTitle = "ì¸óÕïsâ¬"
-                    .ErrorMessage = "éYîpèàóùÇÃçsÇÕé{çHã∆é“Çì¸óÕÇ≈Ç´Ç‹ÇπÇÒÅB"
-                    .ShowError = True
+            For Each vendorCol In vendorColumns
+                With ws.Cells(r, CLng(vendorCol))
+                    .ClearContents
+                    .Interior.Color = fillColor
+                    With .Validation
+                        .Delete
+                        .Add Type:=xlValidateCustom, AlertStyle:=xlValidAlertStop, _
+                             Formula1:="=FALSE"
+                        .IgnoreBlank = True
+                        .InCellDropdown = False
+                        .ShowInput = False
+                        .ErrorTitle = "ì¸óÕïsâ¬"
+                        .ErrorMessage = "éYîpèàóùÇÃçsÇÕé{çHâÔé–Çì¸óÕÇ≈Ç´Ç‹ÇπÇÒÅB"
+                        .ShowError = True
+                    End With
                 End With
-            End With
+            Next vendorCol
             restrictedCount = restrictedCount + 1
         End If
     Next r
@@ -1885,8 +2180,8 @@ Private Sub WriteJrTotalRow(ByVal ws As Worksheet)
     If lastRow < 2 Then Exit Sub
 
     WriteTotalCells ws, lastRow + 1, _
-                    COL_JR_PRICE, "JRçáåv", _
-                    COL_JR_AMOUNT, lastRow
+                    OutputSheetCol(ws, COL_JR_PRICE), "JRçáåv", _
+                    OutputSheetCol(ws, COL_JR_AMOUNT), lastRow
 End Sub
 
 Private Sub WritePurchaseNoticeJrTotalRow(ByVal ws As Worksheet)
@@ -1924,16 +2219,29 @@ Private Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
     End If
 
     Dim matchedCount As Long, unresolvedLineCount As Long, missingRecordCount As Long
+    Dim seiriColumn As Long
+    Dim dayNightColumn As Long
+    Dim qtyColumn As Long
+    Dim autoPriceColumn As Long
+    Dim autoAmountColumn As Long
+    Dim compareColumn As Long
+    seiriColumn = OutputSheetSeiriColumn(ws)
+    dayNightColumn = OutputSheetCol(ws, COL_DAYNIGHT)
+    qtyColumn = OutputSheetCol(ws, COL_QTY)
+    autoPriceColumn = OutputSheetCol(ws, COL_AUTO_PRICE)
+    autoAmountColumn = OutputSheetCol(ws, COL_AUTO_AMOUNT)
+    compareColumn = OutputSheetCol(ws, COL_PRICE_COMPARE)
+
     Dim r As Long
     For r = 2 To lastRow
         Dim unitPriceSheetName As String
         Dim recordKey As String
         If isWelding Then
             unitPriceSheetName = weldingPriceSheetName
-            recordKey = BuildWeldingLookupKey(ws.Cells(r, COL_SEIRI).value)
+            recordKey = BuildWeldingLookupKey(ws.Cells(r, seiriColumn).value)
         Else
-            unitPriceSheetName = ResolveUnitPriceSheetName(lineSheetMap, CommonNzText(ws.Cells(r, COL_LINE).value))
-            recordKey = NormalizeRecordKey(ws.Cells(r, COL_SEIRI).value)
+            unitPriceSheetName = ResolveUnitPriceSheetName(lineSheetMap, CommonNzText(ws.Cells(r, OutputSheetCol(ws, COL_LINE)).value))
+            recordKey = NormalizeRecordKey(ws.Cells(r, seiriColumn).value)
         End If
 
         Dim referencePrice As Variant
@@ -1950,24 +2258,24 @@ Private Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
             ElseIf priceRows.Exists(recordKey) Then
                 Dim dayNightPrices As Variant
                 dayNightPrices = priceRows(recordKey)
-                referencePrice = SelectDayNightPrice(CommonNzText(ws.Cells(r, COL_DAYNIGHT).value), dayNightPrices)
+                referencePrice = SelectDayNightPrice(CommonNzText(ws.Cells(r, dayNightColumn).value), dayNightPrices)
                 If Not IsEmpty(referencePrice) Then matchedCount = matchedCount + 1
             Else
                 missingRecordCount = missingRecordCount + 1
             End If
         End If
 
-        If Not IsEmpty(referencePrice) Then ws.Cells(r, COL_AUTO_PRICE).value = referencePrice
+        If Not IsEmpty(referencePrice) Then ws.Cells(r, autoPriceColumn).value = referencePrice
         WritePriceComparison ws, r, unitPriceSheetName, True, guidanceDocumentName
     Next r
 
-    ws.Range(ws.Cells(2, COL_AUTO_AMOUNT), ws.Cells(lastRow, COL_AUTO_AMOUNT)).FormulaR1C1 = _
-        "=IF(OR(RC[" & (COL_AUTO_PRICE - COL_AUTO_AMOUNT) & "]="""",RC[" & (COL_QTY - COL_AUTO_AMOUNT) & "]=""""),"""",RC[" & (COL_AUTO_PRICE - COL_AUTO_AMOUNT) & "]*RC[" & (COL_QTY - COL_AUTO_AMOUNT) & "])"
+    ws.Range(ws.Cells(2, autoAmountColumn), ws.Cells(lastRow, autoAmountColumn)).FormulaR1C1 = _
+        "=IF(OR(RC[" & (autoPriceColumn - autoAmountColumn) & "]="""",RC[" & (qtyColumn - autoAmountColumn) & "]=""""),"""",RC[" & (autoPriceColumn - autoAmountColumn) & "]*RC[" & (qtyColumn - autoAmountColumn) & "])"
 
-    With ws.Range(ws.Cells(2, COL_AUTO_PRICE), ws.Cells(lastRow, COL_AUTO_AMOUNT))
+    With ws.Range(ws.Cells(2, autoPriceColumn), ws.Cells(lastRow, autoAmountColumn))
         .NumberFormatLocal = "#,##0;[ê‘]-#,##0"
     End With
-    ws.Range(ws.Cells(1, COL_PRICE_COMPARE), ws.Cells(lastRow, COL_PRICE_COMPARE)).HorizontalAlignment = xlCenter
+    ws.Range(ws.Cells(1, compareColumn), ws.Cells(lastRow, compareColumn)).HorizontalAlignment = xlCenter
 
     LogCI "éQè∆íPâøàÍív=" & matchedCount & _
           " / ê¸ãÊñ¢âåà=" & unresolvedLineCount & _
@@ -2020,8 +2328,8 @@ End Sub
 
 Private Function IsConstructionDocumentOutputSheet(ByVal ws As Worksheet) As Boolean
     If ws Is Nothing Then Exit Function
-    If Trim$(CommonNzText(ws.Cells(1, 1).value)) <> "é{çHã∆é“" Then Exit Function
-    If Trim$(CommonNzText(ws.Cells(1, 2).value)) <> "êÆóùî‘çÜ" Then Exit Function
+    If Not IsConstructionVendorOutputSheet(ws) Then Exit Function
+    If FindHeaderColumn(ws, "êÆóùî‘çÜ") = 0 Then Exit Function
     IsConstructionDocumentOutputSheet = (FindHeaderColumn(ws, "íPâøî‰är") > 0)
 End Function
 
@@ -2071,7 +2379,7 @@ Private Sub RefreshConstructionReferencePricesOnSheet( _
         recordKey = NormalizeRecordKey(ws.Cells(r, seiriColumn).value)
         If recordKey <> "" And changedPriceRows.Exists(recordKey) Then
             resolvedSheetName = ResolveUnitPriceSheetName( _
-                lineSheetMap, CommonNzText(ws.Cells(r, COL_LINE).value))
+                lineSheetMap, CommonNzText(ws.Cells(r, FindHeaderColumn(ws, "å_ñÒê¸ãÊñº")).value))
 
             If NormalizeLineLookupText(resolvedSheetName, False) = normalizedSourceSheet Then
                 referencePrice = SelectDayNightPrice( _
@@ -2433,8 +2741,9 @@ Private Sub WritePriceComparison(ByVal ws As Worksheet, ByVal rowIndex As Long, 
                                  Optional ByVal includeGuidance As Boolean = True, _
                                  Optional ByVal guidanceDocumentName As String = "")
     WritePriceComparisonAtColumns _
-        ws, rowIndex, unitPriceSheetName, COL_AUTO_PRICE, COL_JR_PRICE, _
-        COL_PRICE_COMPARE, COL_PRICE_GUIDANCE, includeGuidance
+        ws, rowIndex, unitPriceSheetName, OutputSheetCol(ws, COL_AUTO_PRICE), _
+        OutputSheetCol(ws, COL_JR_PRICE), OutputSheetCol(ws, COL_PRICE_COMPARE), _
+        OutputSheetCol(ws, COL_PRICE_GUIDANCE), includeGuidance
 End Sub
 
 Private Sub WritePriceComparisonAtColumns( _
@@ -2525,30 +2834,43 @@ Private Sub SortWorksSheet(ByVal ws As Worksheet)
     lastRow = GetLastDataRow(ws)
     If lastRow < 2 Then Exit Sub
 
+    Dim colSide As Long
+    Dim colWeld As Long
+    Dim colLine As Long
+    Dim colKind As Long
+    Dim colDayNight As Long
+    Dim colSeiri As Long
+    colSide = OutputSheetCol(ws, COL_FLAG_SIDE)
+    colWeld = OutputSheetCol(ws, COL_FLAG_WELD)
+    colLine = OutputSheetCol(ws, COL_LINE)
+    colKind = OutputSheetCol(ws, COL_KIND)
+    colDayNight = OutputSheetCol(ws, COL_DAYNIGHT)
+    colSeiri = OutputSheetSeiriColumn(ws)
+
     Dim r As Long, lineName As String, kindName As String
     For r = 2 To lastRow
-        lineName = CommonRemoveAllSpaces(CommonNzText(ws.Cells(r, COL_LINE).value))
-        kindName = CommonRemoveAllSpaces(CommonNzText(ws.Cells(r, COL_KIND).value))
-        ws.Cells(r, COL_FLAG_SIDE).value = IIf(InStr(1, lineName, SIDELINE_KEYWORD) > 0, 1, 0)
-        ws.Cells(r, COL_FLAG_WELD).value = IIf(InStr(1, kindName, WELDING_KEYWORD) > 0, 1, 0)
+        lineName = CommonRemoveAllSpaces(CommonNzText(ws.Cells(r, colLine).value))
+        kindName = CommonRemoveAllSpaces(CommonNzText(ws.Cells(r, colKind).value))
+        ws.Cells(r, colSide).value = IIf(InStr(1, lineName, SIDELINE_KEYWORD) > 0, 1, 0)
+        ws.Cells(r, colWeld).value = IIf(InStr(1, kindName, WELDING_KEYWORD) > 0, 1, 0)
     Next r
 
     With ws.Sort
         .SortFields.Clear
-        .SortFields.Add key:=ws.Range(ws.Cells(2, COL_FLAG_SIDE), ws.Cells(lastRow, COL_FLAG_SIDE)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
-        .SortFields.Add key:=ws.Range(ws.Cells(2, COL_LINE), ws.Cells(lastRow, COL_LINE)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
-        .SortFields.Add key:=ws.Range(ws.Cells(2, COL_FLAG_WELD), ws.Cells(lastRow, COL_FLAG_WELD)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
-        .SortFields.Add key:=ws.Range(ws.Cells(2, COL_KIND), ws.Cells(lastRow, COL_KIND)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
-        .SortFields.Add key:=ws.Range(ws.Cells(2, COL_DAYNIGHT), ws.Cells(lastRow, COL_DAYNIGHT)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
-        .SortFields.Add key:=ws.Range(ws.Cells(2, COL_SEIRI), ws.Cells(lastRow, COL_SEIRI)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
-        .SetRange ws.Range(ws.Cells(1, 1), ws.Cells(lastRow, COL_FLAG_WELD))
+        .SortFields.Add key:=ws.Range(ws.Cells(2, colSide), ws.Cells(lastRow, colSide)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+        .SortFields.Add key:=ws.Range(ws.Cells(2, colLine), ws.Cells(lastRow, colLine)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+        .SortFields.Add key:=ws.Range(ws.Cells(2, colWeld), ws.Cells(lastRow, colWeld)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+        .SortFields.Add key:=ws.Range(ws.Cells(2, colKind), ws.Cells(lastRow, colKind)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+        .SortFields.Add key:=ws.Range(ws.Cells(2, colDayNight), ws.Cells(lastRow, colDayNight)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+        .SortFields.Add key:=ws.Range(ws.Cells(2, colSeiri), ws.Cells(lastRow, colSeiri)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+        .SetRange ws.Range(ws.Cells(1, 1), ws.Cells(lastRow, colWeld))
         .Header = xlYes
         .MatchCase = False
         .Orientation = xlTopToBottom
         .Apply
     End With
 
-    ws.Range(ws.Cells(1, COL_FLAG_SIDE), ws.Cells(lastRow, COL_FLAG_WELD)).ClearContents
+    ws.Range(ws.Cells(1, colSide), ws.Cells(lastRow, colWeld)).ClearContents
 End Sub
 
 Private Sub SortPurchaseSheet(ByVal ws As Worksheet, _
@@ -2701,8 +3023,64 @@ Private Sub ApplyPurchaseNoticeColumnExclusions(ByVal ws As Worksheet)
 End Sub
 
 Private Function GetLastDataRow(ByVal ws As Worksheet, _
-                                Optional ByVal dataKeyColumn As Long = COL_SEIRI) As Long
+                                Optional ByVal dataKeyColumn As Long = 0) As Long
+    If dataKeyColumn = 0 Then dataKeyColumn = OutputSheetSeiriColumn(ws)
     GetLastDataRow = ws.Cells(ws.rows.Count, dataKeyColumn).End(xlUp).Row
+End Function
+
+Public Function IsWeldingOutputSheet(ByVal ws As Worksheet) As Boolean
+    If ws Is Nothing Then Exit Function
+    IsWeldingOutputSheet = (FindHeaderColumn(ws, WELDING_VENDOR_HEADER) > 0)
+End Function
+
+Public Function OutputSheetCol(ByVal ws As Worksheet, ByVal baseCol As Long) As Long
+    If ws Is Nothing Then
+        OutputSheetCol = baseCol + WELDING_OUTPUT_COL_OFFSET
+    ElseIf IsWeldingOutputSheet(ws) Then
+        OutputSheetCol = baseCol + WELDING_OUTPUT_COL_OFFSET
+    Else
+        OutputSheetCol = baseCol
+    End If
+End Function
+
+Public Function OutputSheetSeiriColumn(ByVal ws As Worksheet) As Long
+    OutputSheetSeiriColumn = OutputSheetCol(ws, COL_SEIRI)
+End Function
+
+Public Function OutputSheetSubconPriceFirstCol(ByVal ws As Worksheet) As Long
+    If IsWeldingOutputSheet(ws) Then
+        OutputSheetSubconPriceFirstCol = WELDING_SUBCON_PRICE_FIRST_COL
+    Else
+        OutputSheetSubconPriceFirstCol = SUBCON_PRICE_FIRST_COL
+    End If
+End Function
+
+Public Function OutputSheetVendorColumns(ByVal ws As Worksheet) As Collection
+    Dim result As New Collection
+    If IsWeldingOutputSheet(ws) Then
+        result.Add WELD_COL_WELDING_VENDOR
+        result.Add WELD_COL_TRACK_VENDOR
+    Else
+        result.Add COL_VENDOR
+    End If
+    Set OutputSheetVendorColumns = result
+End Function
+
+Private Function WeldingRowArrayIndex(ByVal baseCol As Long) As Long
+    If baseCol = COL_VENDOR Then
+        WeldingRowArrayIndex = WELD_COL_WELDING_VENDOR - 1
+    Else
+        WeldingRowArrayIndex = baseCol + WELDING_OUTPUT_COL_OFFSET - 1
+    End If
+End Function
+
+Private Function IsConstructionVendorOutputSheet(ByVal ws As Worksheet) As Boolean
+    If ws Is Nothing Then Exit Function
+    If FindHeaderColumn(ws, "é{çHã∆é“") > 0 Then
+        IsConstructionVendorOutputSheet = True
+        Exit Function
+    End If
+    IsConstructionVendorOutputSheet = IsWeldingOutputSheet(ws)
 End Function
 
 Private Function JoinKeys(ByVal d As Object) As String
@@ -2942,16 +3320,18 @@ Private Function BuildWeldingLookupKey(ByVal seiriValue As Variant) As String
     If IsNumeric(keyText) Then
         Dim seiriNumber As Long
         seiriNumber = CLng(CDbl(keyText))
-        ' ÉåÅ[Éãónê⁄ÇÃêÆóùî‘çÜÇÕ5åÖ(êÊì™Ç…20000Ç™ïtâ¡)Ç∆4åÖ(ÇªÇÃÇ‹Ç‹)ÇÃ2ånìùÇ™Ç†ÇÈÅB
-        ' 5åÖÇÃèÍçáÇÕ20000Çç∑Çµà¯Ç¢Çƒónê⁄íPâøÉVÅ[ÉgÇÃêÆóùî‘çÜÇ…çáÇÌÇπÅA
-        ' 4åÖÇÃèÍçáÇÕónê⁄íPâøÉVÅ[ÉgÇ∆ìØÇ∂êÆóùî‘çÜÇÃÇΩÇﬂÇªÇÃÇ‹Ç‹è∆çáÇ∑ÇÈÅB
+        ' 5åÖÇÃêÆóùî‘çÜÇÕâ∫4åÖÇónê⁄íPâøÉVÅ[ÉgÇÃêÆóùî‘çÜÇ∆ÇµÇƒè∆çáÇ∑ÇÈÅB
         If seiriNumber >= 10000 And seiriNumber <= 99999 Then
-            BuildWeldingLookupKey = CStr(seiriNumber - WELDING_SEIRI_OFFSET)
+            BuildWeldingLookupKey = Right$(Format$(seiriNumber, "00000"), 4)
         Else
             BuildWeldingLookupKey = CStr(seiriNumber)
         End If
     Else
-        BuildWeldingLookupKey = keyText
+        If Len(keyText) = 5 And IsNumeric(keyText) Then
+            BuildWeldingLookupKey = Right$(keyText, 4)
+        Else
+            BuildWeldingLookupKey = keyText
+        End If
     End If
 End Function
 
