@@ -148,6 +148,8 @@ Public Sub ApplyVendorSelection(ByVal BranchName As String, ByVal vendorName As 
             Exit Sub
         End If
     Next rowData
+
+    RefreshVendorUnitPriceForValueColumn wsInfo, targetCell.Column
 End Sub
 
 Private Sub ApplyVendorRowSelection(ByVal wsInfo As Worksheet, ByVal BranchName As String, ByVal rowData As Variant, ByVal targetCell As Range)
