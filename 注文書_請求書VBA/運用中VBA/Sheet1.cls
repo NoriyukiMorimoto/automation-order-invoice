@@ -118,16 +118,8 @@ Private Sub Worksheet_Change(ByVal target As Range)
         mod_Construction_Order_Import.RefreshBasicInfoConstructionTotals
     End If
 
-    Dim monitorHit As Range
-    Set monitorHit = Intersect(target, vendorUnitPriceMonitorRange)
-    If Not monitorHit Is Nothing Then
-        Dim nameHit As Range
-        Set nameHit = Intersect(monitorHit, vendorNameRange)
-        If nameHit Is Nothing Then
-            mod_VendorMaster.HandleVendorUnitPriceMonitorChange Me, target
-        ElseIf monitorHit.Cells.CountLarge > nameHit.Cells.CountLarge Then
-            mod_VendorMaster.HandleVendorUnitPriceMonitorChange Me, target
-        End If
+    If Not Intersect(target, vendorUnitPriceMonitorRange) Is Nothing Then
+        mod_VendorMaster.HandleVendorUnitPriceMonitorChange Me, target
     End If
 
     mod_DebugLog.Log "[Sheet1] needComboPrompt=" & needComboPrompt
