@@ -129,18 +129,19 @@ Public Sub ImportConstructionDocument()
     evt = Application.EnableEvents
     alerts = Application.DisplayAlerts
 
+    mSuppressOverwritePrompt = False
+
     On Error GoTo Cleanup
+
+    ' 既存シートの確認・削除は UI 抑制前に行う(「はい」で削除後にファイル選択ダイアログを開く)
+    Dim cancelImport As Boolean
+    PrepareExistingOutputSheets cancelImport
+    If cancelImport Then GoTo Cleanup
 
     Application.screenUpdating = False
     Application.Calculation = xlCalculationManual
     Application.EnableEvents = False
     Application.DisplayAlerts = False
-
-    ' 既存の取込シート(施工指示書/施工通知書/購入充当の(工事)・(溶接))があれば、
-    ' 取込み前に一括消去するか残すかを確認する。
-    Dim cancelImport As Boolean
-    PrepareExistingOutputSheets cancelImport
-    If cancelImport Then GoTo Cleanup
 
     Dim srcPaths As Collection
     Set srcPaths = PickSourceFiles()
@@ -491,9 +492,19 @@ Private Sub PrepareExistingOutputSheets(ByRef cancelImport As Boolean)
 
     Select Case ans
         Case vbYes
+            Dim prevDisplayAlerts As Boolean
+            Dim prevScreenUpdating As Boolean
+            prevDisplayAlerts = Application.DisplayAlerts
+            prevScreenUpdating = Application.ScreenUpdating
+            Application.DisplayAlerts = False
+            Application.ScreenUpdating = True
             For Each sheetName In existingSheets
                 DeleteSheetByName CStr(sheetName)
             Next sheetName
+            Application.ScreenUpdating = prevScreenUpdating
+            Application.DisplayAlerts = prevDisplayAlerts
+            DoEvents
+            mSuppressOverwritePrompt = True
         Case vbNo
             ' 既存シートはそのまま残す(同名で作成するシートのみ上書きされる)
         Case Else
