@@ -54,6 +54,7 @@ Private mVendorPromptTime As Date
 Private mVendorTargetAddress As String
 Private mLastVendorBlockCount As Long
 Private mVendorRowsCache As Object
+Private mVendorNameIndexCache As Object
 Private mSyncVendorBlocksInProgress As Boolean
 
 Public Function IsSyncVendorBlocksInProgress() As Boolean
@@ -104,11 +105,14 @@ Public Sub FillVendorInfoToBasicInfo(Optional ByVal wsInfo As Worksheet, Optiona
     If selectedVendorName = "" Then
         ClearVendorInfoBlock targetCell
         RefreshVendorUnitPriceForValueColumn wsInfo, targetCell.Column
-        Exit Sub
+        GoTo RefreshWelding
     End If
     If BranchName = "" Then Exit Sub
 
     ApplyVendorSelection BranchName, selectedVendorName, wsInfo, targetCell
+
+RefreshWelding:
+    mod_WeldingUnitPrice.ApplyWeldingVendorUnitPricesForBasicInfo wsInfo, False, targetCell.Column
     Exit Sub
 
 ErrorHandler:
@@ -141,16 +145,19 @@ Public Sub ApplyVendorSelection(ByVal BranchName As String, ByVal vendorName As 
     Set vendorRows = LoadVendorRows(BranchName)
     If Not HasVendorRows(vendorRows) Then Exit Sub
 
-    Dim rowData As Variant
-    For Each rowData In vendorRows
-        If StrComp(CommonNormalizeText(CStr(rowData(0))), vendorName, vbTextCompare) = 0 Then
-            ApplyVendorRowSelection wsInfo, BranchName, rowData, targetCell
-            Exit Sub
-        End If
-    Next rowData
+    Dim nameIndex As Object
+    Set nameIndex = GetVendorNameIndex(BranchName, vendorRows)
+    If nameIndex.Exists(vendorName) Then
+        ApplyVendorRowSelection wsInfo, BranchName, nameIndex(vendorName), targetCell
+        Exit Sub
+    End If
 
     RefreshVendorUnitPriceForValueColumn wsInfo, targetCell.Column
 End Sub
+
+Public Function GetVendorIndexFromValueColumnPublic(ByVal valueColumn As Long) As Long
+    GetVendorIndexFromValueColumnPublic = GetVendorIndexFromValueColumn(valueColumn)
+End Function
 
 Private Sub ApplyVendorRowSelection(ByVal wsInfo As Worksheet, ByVal BranchName As String, ByVal rowData As Variant, ByVal targetCell As Range)
     Dim previousEnableEvents As Boolean
@@ -1053,13 +1060,81 @@ Private Sub ApplyVendorUnitPriceDataRows(ByVal wsUnitPrice As Worksheet, _
     Dim ratioAddress As String
     ratioAddress = GetVendorOutsourceRatioAddress(wsInfo, valueColumn)
 
+    Dim dayFormulaR1C1 As String
+    Dim nightFormulaR1C1 As String
+    dayFormulaR1C1 = BuildVendorUnitPriceFormulaR1C1(True, dayCol, ratioAddress)
+    nightFormulaR1C1 = BuildVendorUnitPriceFormulaR1C1(False, nightCol, ratioAddress)
+
+    Dim wasteKeyword As String
+    wasteKeyword = VendorWasteDisposalKeywordText()
+
+    ApplyVendorUnitPriceDataColumn wsUnitPrice, dayCol, VENDOR_UNIT_PRICE_REF_UNIT_COL, _
+        dayFormulaR1C1, wasteKeyword, lastRow
+    ApplyVendorUnitPriceDataColumn wsUnitPrice, nightCol, VENDOR_UNIT_PRICE_REF_WIDTH_COL, _
+        nightFormulaR1C1, wasteKeyword, lastRow
+End Sub
+
+Private Sub ApplyVendorUnitPriceDataColumn(ByVal wsUnitPrice As Worksheet, _
+                                           ByVal targetCol As Long, _
+                                           ByVal sourceCol As Long, _
+                                           ByVal formulaR1C1 As String, _
+                                           ByVal wasteKeyword As String, _
+                                           ByVal lastRow As Long)
     Dim rowIndex As Long
-    For rowIndex = VENDOR_UNIT_PRICE_DATA_START_ROW To lastRow
-        ApplyVendorUnitPriceCell wsUnitPrice.Cells(rowIndex, dayCol), True, _
-                                 wsUnitPrice, rowIndex, ratioAddress
-        ApplyVendorUnitPriceCell wsUnitPrice.Cells(rowIndex, nightCol), False, _
-                                 wsUnitPrice, rowIndex, ratioAddress
+    Dim formulaSegStart As Long
+    formulaSegStart = 0
+
+    For rowIndex = VENDOR_UNIT_PRICE_DATA_START_ROW To lastRow + 1
+        Dim needsFormula As Boolean
+        needsFormula = False
+        If rowIndex <= lastRow Then
+            needsFormula = VendorUnitPriceRowNeedsFormulaForSource( _
+                wsUnitPrice, rowIndex, sourceCol, wasteKeyword)
+        End If
+
+        If needsFormula Then
+            If formulaSegStart = 0 Then formulaSegStart = rowIndex
+        Else
+            If formulaSegStart > 0 Then
+                ApplyVendorUnitPriceFormulaSegment wsUnitPrice, formulaSegStart, rowIndex - 1, _
+                    targetCol, formulaR1C1
+                formulaSegStart = 0
+            End If
+            If rowIndex <= lastRow Then
+                ApplyVendorUnitPriceGreyFill wsUnitPrice.Cells(rowIndex, targetCol)
+            End If
+        End If
     Next rowIndex
+End Sub
+
+Private Function VendorUnitPriceRowNeedsFormulaForSource(ByVal wsUnitPrice As Worksheet, _
+                                                         ByVal rowIndex As Long, _
+                                                         ByVal sourceCol As Long, _
+                                                         ByVal wasteKeyword As String) As Boolean
+    If IsVendorUnitPriceSourceBlank(wsUnitPrice, rowIndex, sourceCol) Then Exit Function
+
+    Dim workTypeName As String
+    workTypeName = CommonNormalizeText(CStr(wsUnitPrice.Cells(rowIndex, VENDOR_UNIT_PRICE_WORK_TYPE_COL).value))
+    If workTypeName <> "" Then
+        If InStr(1, workTypeName, wasteKeyword, vbTextCompare) > 0 Then Exit Function
+    End If
+
+    VendorUnitPriceRowNeedsFormulaForSource = True
+End Function
+
+Private Sub ApplyVendorUnitPriceFormulaSegment(ByVal wsUnitPrice As Worksheet, _
+                                               ByVal segStart As Long, _
+                                               ByVal segEnd As Long, _
+                                               ByVal targetCol As Long, _
+                                               ByVal formulaR1C1 As String)
+    If segStart > segEnd Then Exit Sub
+
+    With wsUnitPrice.Range(wsUnitPrice.Cells(segStart, targetCol), wsUnitPrice.Cells(segEnd, targetCol))
+        .FormulaR1C1 = formulaR1C1
+        .NumberFormat = VENDOR_UNIT_PRICE_NUMBER_FORMAT
+        .Interior.ColorIndex = xlColorIndexNone
+        .ShrinkToFit = False
+    End With
 End Sub
 
 Private Sub ApplyVendorUnitPriceBaseRowBorders(ByVal wsUnitPrice As Worksheet, _
@@ -1347,6 +1422,23 @@ Private Function BuildVendorUnitPriceFormula(ByVal wsUnitPrice As Worksheet, _
 
     BuildVendorUnitPriceFormula = "=ROUND(" & unitCellRef & "*(" & ratioAddress & ")," & _
                                   "-INT(LOG10(" & unitCellRef & "*(" & ratioAddress & ")))+2)"
+End Function
+
+Private Function BuildVendorUnitPriceFormulaR1C1(ByVal isDayColumn As Boolean, _
+                                                 ByVal targetCol As Long, _
+                                                 ByVal ratioAddress As String) As String
+    Dim sourceCol As Long
+    If isDayColumn Then
+        sourceCol = VENDOR_UNIT_PRICE_REF_UNIT_COL
+    Else
+        sourceCol = VENDOR_UNIT_PRICE_REF_WIDTH_COL
+    End If
+
+    Dim sourceOffset As Long
+    sourceOffset = sourceCol - targetCol
+
+    BuildVendorUnitPriceFormulaR1C1 = "=ROUND(RC[" & sourceOffset & "]*(" & ratioAddress & ")," & _
+        "-INT(LOG10(RC[" & sourceOffset & "]*(" & ratioAddress & ")))+2)"
 End Function
 
 Private Function BuildVendorUnitPriceHeaderText(ByVal wsInfo As Worksheet) As String
@@ -1670,7 +1762,45 @@ End Function
 ' 基本情報シートのActivate時にクリアして最新化する。
 Public Sub ClearVendorRowsCache()
     Set mVendorRowsCache = Nothing
+    Set mVendorNameIndexCache = Nothing
+    mod_Construction_Order_Import.ClearVendorAliasMapCache
 End Sub
+
+Private Function GetVendorNameIndex(ByVal BranchName As String, ByVal vendorRows As Collection) As Object
+    Dim cacheKey As String
+    cacheKey = CommonNormalizeText(BranchName)
+
+    If mVendorNameIndexCache Is Nothing Then
+        Set mVendorNameIndexCache = CreateObject("Scripting.Dictionary")
+        mVendorNameIndexCache.CompareMode = vbTextCompare
+    End If
+    If cacheKey <> "" Then
+        If mVendorNameIndexCache.Exists(cacheKey) Then
+            Set GetVendorNameIndex = mVendorNameIndexCache(cacheKey)
+            Exit Function
+        End If
+    End If
+
+    Dim nameIndex As Object
+    Set nameIndex = CreateObject("Scripting.Dictionary")
+    nameIndex.CompareMode = vbTextCompare
+
+    Dim rowData As Variant
+    Dim normalizedName As String
+    For Each rowData In vendorRows
+        normalizedName = CommonNormalizeText(CStr(rowData(0)))
+        If normalizedName <> "" Then
+            If Not nameIndex.Exists(normalizedName) Then
+                nameIndex.Add normalizedName, rowData
+            End If
+        End If
+    Next rowData
+
+    If cacheKey <> "" Then
+        mVendorNameIndexCache.Add cacheKey, nameIndex
+    End If
+    Set GetVendorNameIndex = nameIndex
+End Function
 
 Private Function LoadAllVendorRows() As Collection
     Dim sourceFilePath As String
