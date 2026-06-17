@@ -77,7 +77,8 @@ Private Const BASIC_INFO_YEN_TOTAL_RANGE As String = "C31:C35"
 Private Const PRICE_GUIDANCE_AMOUNT_TYPE_MESSAGE As String = _
     "基本情報シートのC22セル：単価適用区分(年初単価or設計変更単価)を確認して下さい。"
 
-Private Const REF_VALUE_SOURCE_CELL As String = "H9"
+Private Const REF_VALUE_SOURCE_CELL_NOTICE As String = "H9"
+Private Const REF_VALUE_SOURCE_CELL_ORDER As String = "F9"
 Private Const BASIC_INFO_REF_VALUE_CELL As String = "C12"
 Private Const BASIC_INFO_REF_FONT_NAME As String = "BIZ UDゴシック"
 
@@ -236,9 +237,15 @@ Private Sub ImportOneConstructionDocument(ByVal srcPath As String, _
     Dim srcWs As Worksheet
     Set srcWs = srcWb.ActiveSheet
 
-    Dim refValueH9 As Variant
-    refValueH9 = srcWs.Range(REF_VALUE_SOURCE_CELL).value
-    LogCI "参照シート " & REF_VALUE_SOURCE_CELL & "=[" & CommonNzText(refValueH9) & "]"
+    Dim refValueSourceCell As String
+    Dim refValue As Variant
+    If docType = DOC_NOTICE Then
+        refValueSourceCell = REF_VALUE_SOURCE_CELL_NOTICE
+    Else
+        refValueSourceCell = REF_VALUE_SOURCE_CELL_ORDER
+    End If
+    refValue = srcWs.Range(refValueSourceCell).value
+    LogCI "参照シート " & refValueSourceCell & "=[" & CommonNzText(refValue) & "]"
 
     Dim sourceA3Text As String
     sourceA3Text = CommonNzText(srcWs.Range(SOURCE_SHEET_NAME_CELL).value)
@@ -404,7 +411,7 @@ Private Sub ImportOneConstructionDocument(ByVal srcPath As String, _
     If srcOpenedHere And Not srcWb Is Nothing Then srcWb.Close SaveChanges:=False
     Set srcWb = Nothing: srcOpenedHere = False
 
-    WriteReferenceValueToBasicInfo refValueH9
+    WriteReferenceValueToBasicInfo refValue, refValueSourceCell
 
     Dim wsWorks As Worksheet
     Dim wsWeld As Worksheet
@@ -3421,7 +3428,7 @@ Private Function BuildAdoSheetTableName(ByVal sheetName As String) As String
     BuildAdoSheetTableName = "[" & Replace$(sheetName, "]", "]]") & "$]"
 End Function
 
-Private Sub WriteReferenceValueToBasicInfo(ByVal refValue As Variant)
+Private Sub WriteReferenceValueToBasicInfo(ByVal refValue As Variant, ByVal sourceCell As String)
     Dim wsInfo As Worksheet
     Set wsInfo = CommonGetBasicInfoWorksheet(ThisWorkbook)
     If wsInfo Is Nothing Then
@@ -3434,5 +3441,5 @@ Private Sub WriteReferenceValueToBasicInfo(ByVal refValue As Variant)
         .HorizontalAlignment = xlCenter
         .Font.Name = BASIC_INFO_REF_FONT_NAME
     End With
-    LogCI BASIC_INFO_REF_VALUE_CELL & " に参照シート " & REF_VALUE_SOURCE_CELL & " を転記"
+    LogCI BASIC_INFO_REF_VALUE_CELL & " に参照シート " & sourceCell & " を転記"
 End Sub
