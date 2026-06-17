@@ -680,8 +680,6 @@ Private Function CollectMonitorChangedValueColumns(ByVal wsInfo As Worksheet, _
     End If
 
     If Not Intersect(changedRange, wsInfo.Range(BASIC_INFO_YEAR_CELL & "," & BASIC_INFO_BILLING_COUNT_CELL)) Is Nothing Then
-        Dim vendorCount As Long
-        Dim i As Long
         vendorCount = GetVendorBlockCount(wsInfo)
         For i = 1 To vendorCount
             AddUniqueLongToCollection result, VendorValueColumnByIndex(i)
