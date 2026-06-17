@@ -119,9 +119,11 @@ Private Const UNIT_PRICE_VENDOR_FIRST_DAY_COL As Long = 7
 
 Private Const SOURCE_SHEET_NAME_CELL As String = "A3"
 
+Private Const DOC_ORDER_TITLE As String = "施工指示書"
+Private Const DOC_NOTICE_TITLE As String = "施工通知書"
+Private mSuppressOverwritePrompt As Boolean
+
 Public Sub ImportConstructionDocument()
-    Dim srcWb As Workbook
-    Dim srcOpenedHere As Boolean
     Dim scrn As Boolean, calc As XlCalculation, evt As Boolean, alerts As Boolean
 
     scrn = Application.screenUpdating
@@ -136,9 +138,72 @@ Public Sub ImportConstructionDocument()
     Application.EnableEvents = False
     Application.DisplayAlerts = False
 
-    Dim srcPath As String
-    srcPath = PickSourceFile()
-    If srcPath = "" Then GoTo Cleanup
+    ' 既存の取込シート(施工指示書/施工通知書/購入充当の(工事)・(溶接))があれば、
+    ' 取込み前に一括消去するか残すかを確認する。
+    Dim cancelImport As Boolean
+    PrepareExistingOutputSheets cancelImport
+    If cancelImport Then GoTo Cleanup
+
+    Dim srcPaths As Collection
+    Set srcPaths = PickSourceFiles()
+    If srcPaths Is Nothing Then GoTo Cleanup
+    If srcPaths.Count = 0 Then GoTo Cleanup
+
+    Dim tWorks As Long, tWeld As Long, tPurch As Long
+    Dim lastSheet As Worksheet
+    Dim fileIndex As Long
+
+    mSuppressOverwritePrompt = True
+    Dim srcPathVar As Variant
+    For Each srcPathVar In srcPaths
+        fileIndex = fileIndex + 1
+        LogCI "===== 取込ファイル " & fileIndex & "/" & srcPaths.Count & " [" & CStr(srcPathVar) & "] ====="
+        ImportOneConstructionDocument CStr(srcPathVar), tWorks, tWeld, tPurch, lastSheet
+    Next srcPathVar
+    mSuppressOverwritePrompt = False
+
+    RefreshBasicInfoConstructionTotals
+
+    If Not lastSheet Is Nothing Then
+        lastSheet.Activate
+        lastSheet.Range("A1").Select
+    End If
+
+    Application.screenUpdating = scrn
+    Application.Calculation = calc
+    Application.EnableEvents = evt
+    Application.DisplayAlerts = alerts
+
+    MsgBox "取込みが完了しました。" & vbCrLf & _
+           "ファイル数: " & srcPaths.Count & vbCrLf & _
+           "工事側: " & tWorks & " 件" & vbCrLf & _
+           "レール溶接側: " & tWeld & " 件" & vbCrLf & _
+           "購入充当側: " & tPurch & " 件", vbInformation
+    Exit Sub
+
+Cleanup:
+    mSuppressOverwritePrompt = False
+    Application.screenUpdating = scrn
+    Application.Calculation = calc
+    Application.EnableEvents = evt
+    Application.DisplayAlerts = alerts
+
+    If Err.Number <> 0 Then
+        MsgBox "取込み処理でエラーが発生しました。" & vbCrLf & _
+               "Err " & Err.Number & ": " & Err.Description, vbExclamation
+    End If
+End Sub
+
+Private Sub ImportOneConstructionDocument(ByVal srcPath As String, _
+                                          ByRef tWorks As Long, _
+                                          ByRef tWeld As Long, _
+                                          ByRef tPurch As Long, _
+                                          ByRef lastSheet As Worksheet)
+    Dim srcWb As Workbook
+    Dim srcOpenedHere As Boolean
+
+    On Error GoTo Cleanup
+
     LogCI "srcPath=[" & srcPath & "]"
 
     Dim docType As Long
@@ -351,28 +416,10 @@ Public Sub ImportConstructionDocument()
         End If
     End If
 
-    RefreshBasicInfoConstructionTotals
-
-    If Not wsActivate Is Nothing Then
-        wsActivate.Activate
-        wsActivate.Range("A1").Select
-    End If
-
-    Application.screenUpdating = scrn
-    Application.Calculation = calc
-    Application.EnableEvents = evt
-    Application.DisplayAlerts = alerts
-
-    If Not filteredOutAll Then
-        Dim completionMsg As String
-        completionMsg = "取込みが完了しました。" & vbCrLf & _
-                        "工事側: " & worksRows.Count & " 件"
-        If weldRows.Count > 0 Then
-            completionMsg = completionMsg & vbCrLf & "レール溶接側: " & weldRows.Count & " 件"
-        End If
-        completionMsg = completionMsg & vbCrLf & "購入充当側: " & purchRows.Count & " 件"
-        MsgBox completionMsg, vbInformation
-    End If
+    tWorks = tWorks + worksRows.Count
+    tWeld = tWeld + weldRows.Count
+    tPurch = tPurch + purchRows.Count
+    If Not wsActivate Is Nothing Then Set lastSheet = wsActivate
     Exit Sub
 
 Cleanup:
@@ -383,13 +430,10 @@ Cleanup:
     If srcOpenedHere And Not srcWb Is Nothing Then srcWb.Close SaveChanges:=False
     On Error GoTo 0
 
-    Application.screenUpdating = scrn
-    Application.Calculation = calc
-    Application.EnableEvents = evt
-    Application.DisplayAlerts = alerts
-
     If errNo <> 0 Then
-        MsgBox "取込み処理でエラーが発生しました。" & vbCrLf & _
+        LogCI "取込みエラー [" & srcPath & "] Err " & errNo & ": " & errDesc
+        MsgBox "ファイルの取込みでエラーが発生しました。" & vbCrLf & _
+               "ファイル: " & srcPath & vbCrLf & _
                "Err " & errNo & ": " & errDesc, vbExclamation
     End If
 End Sub
@@ -423,6 +467,85 @@ Private Function BuildConstructionOutputSheet(ByVal sheetName As String, _
     WriteJrTotalRow ws
 
     Set BuildConstructionOutputSheet = ws
+End Function
+
+Private Sub PrepareExistingOutputSheets(ByRef cancelImport As Boolean)
+    cancelImport = False
+
+    Dim names As Variant
+    names = ManagedOutputSheetNames()
+
+    Dim existingList As String
+    Dim nm As Variant
+    For Each nm In names
+        If SheetExistsByName(CStr(nm)) Then existingList = existingList & "  ・" & CStr(nm) & vbCrLf
+    Next nm
+
+    If existingList = "" Then Exit Sub
+
+    Dim ans As VbMsgBoxResult
+    ans = MsgBox("既に作成済みの取込シートがあります。" & vbCrLf & vbCrLf & _
+                 existingList & vbCrLf & _
+                 "これらのシートを消去してから取り込みますか？" & vbCrLf & _
+                 "「はい」  : 上記の既存シートを消去してから取り込みます。" & vbCrLf & _
+                 "「いいえ」: 既存シートを残したまま取り込みます。" & vbCrLf & _
+                 "「キャンセル」: 取込みを中止します。", _
+                 vbYesNoCancel + vbQuestion, "既存シートの確認")
+
+    Select Case ans
+        Case vbYes
+            For Each nm In names
+                DeleteSheetByName CStr(nm)
+            Next nm
+        Case vbNo
+            ' 既存シートはそのまま残す(同名で作成するシートのみ上書きされる)
+        Case Else
+            cancelImport = True
+    End Select
+End Sub
+
+Private Sub DeleteSheetByName(ByVal sheetName As String)
+    On Error Resume Next
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.worksheets(sheetName)
+    If Not ws Is Nothing Then
+        Application.DisplayAlerts = False
+        ws.Delete
+    End If
+    On Error GoTo 0
+End Sub
+
+Private Function ManagedOutputSheetNames() As Variant
+    ManagedOutputSheetNames = Array( _
+        DOC_ORDER_TITLE & CONSTRUCTION_SHEET_SUFFIX_WORKS, _
+        DOC_ORDER_TITLE & CONSTRUCTION_SHEET_SUFFIX_WELDING, _
+        PURCHASE_ORDER_SHEET_NAME, _
+        DOC_NOTICE_TITLE & CONSTRUCTION_SHEET_SUFFIX_WORKS, _
+        DOC_NOTICE_TITLE & CONSTRUCTION_SHEET_SUFFIX_WELDING, _
+        PURCHASE_NOTICE_SHEET_NAME)
+End Function
+
+Private Function PickSourceFiles() As Collection
+    Dim fd As FileDialog
+    Set fd = Application.FileDialog(msoFileDialogFilePicker)
+    With fd
+        .Title = "施工指示書・施工通知書ブックを選択してください(複数選択可)"
+        .AllowMultiSelect = True
+        .Filters.Clear
+        .Filters.Add "Excel ブック", "*.xlsx; *.xlsm; *.xls"
+        Dim root As String
+        root = GetImportRootFolder()
+        If root <> "" Then .InitialFileName = root & "\"
+        If .Show = -1 Then
+            Dim result As Collection
+            Set result = New Collection
+            Dim k As Long
+            For k = 1 To .SelectedItems.Count
+                result.Add .SelectedItems(k)
+            Next k
+            Set PickSourceFiles = result
+        End If
+    End With
 End Function
 
 Private Function PickSourceFile() As String
@@ -713,12 +836,14 @@ Private Function CreateOrReplaceSheet(ByVal sheetName As String) As Worksheet
     On Error GoTo 0
 
     If Not existing Is Nothing Then
-        Dim ans As VbMsgBoxResult
-        ans = MsgBox("シート「" & sheetName & "」は既に存在します。" & vbCrLf & _
-                     "削除して作り直しますか？", vbYesNo + vbQuestion, "シートの上書き確認")
-        If ans <> vbYes Then
-            Set CreateOrReplaceSheet = Nothing
-            Exit Function
+        If Not mSuppressOverwritePrompt Then
+            Dim ans As VbMsgBoxResult
+            ans = MsgBox("シート「" & sheetName & "」は既に存在します。" & vbCrLf & _
+                         "削除して作り直しますか？", vbYesNo + vbQuestion, "シートの上書き確認")
+            If ans <> vbYes Then
+                Set CreateOrReplaceSheet = Nothing
+                Exit Function
+            End If
         End If
         existing.Delete
     End If
