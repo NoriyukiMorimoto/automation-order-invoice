@@ -91,6 +91,7 @@ End Sub
 
 Private Sub Workbook_SheetChange(ByVal Sh As Object, ByVal Target As Range)
     If TypeName(Sh) <> "Worksheet" Then Exit Sub
+    If mod_VendorMaster.IsSyncVendorBlocksInProgress() Then Exit Sub
 
     If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(Sh) Then
         If Application.Intersect(Target, Sh.Range("B:B,E:F")) Is Nothing Then Exit Sub
