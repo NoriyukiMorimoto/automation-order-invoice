@@ -37,6 +37,9 @@ Private Const MGR_MASTER_START_ROW As Long = 2
 Private Const PURCHASE_KEYWORD As String = "購入充当"
 Private Const SIDELINE_KEYWORD As String = "側線"
 Private Const WELDING_KEYWORD As String = "レール溶接"
+Private Const CONSTRUCTION_SHEET_SUFFIX_WELDING As String = "(溶接)"
+Private Const CONSTRUCTION_SHEET_SUFFIX_WORKS As String = "(工事)"
+Private Const WELDING_SEIRI_OFFSET As Long = 20000
 
 Private Const SANPAI_KEYWORD As String = "産廃処理"
 Private Const SANPAI_FALLBACK_FILL_COLOR As Long = 14277081   ' RGB(217,217,217)
@@ -85,6 +88,7 @@ Private Const PRICE_LINE_OFFICE_COL As Long = 3
 Private Const PRICE_LINE_NAME_COL As Long = 5
 Private Const PRICE_LINE_START_ROW As Long = 2
 Private Const PURCHASE_PRICE_SHEET_SUFFIX As String = "_購入充当単価"
+Private Const WELDING_PRICE_SHEET_SUFFIX As String = "_レール溶接単価"
 Private Const PURCHASE_ORDER_SHEET_NAME As String = "購入充当指示"
 Private Const PURCHASE_NOTICE_SHEET_NAME As String = "購入充当通知"
 Private Const PURCHASE_PRICE_KEY_COL As Long = 1
@@ -221,9 +225,11 @@ Public Sub ImportConstructionDocument()
     vKind = ReadColumnValues(srcWs, colKind, DATA_START_ROW, lastRow)
     If docType = DOC_ORDER Then vMgr = ReadColumnValues(srcWs, colMgr, DATA_START_ROW, lastRow)
 
-    Dim worksRows As Collection, purchRows As Collection
+    Dim worksRows As Collection, purchRows As Collection, weldRows As Collection
     Set worksRows = New Collection
     Set purchRows = New Collection
+    Set weldRows = New Collection
+    Dim hasWeldingKind As Boolean
 
     Dim seenMgr As Object
     Set seenMgr = CreateObject("Scripting.Dictionary")
@@ -264,8 +270,11 @@ Public Sub ImportConstructionDocument()
                 rowArr(COL_KIND - 1) = vKind(i)
 
                 kindText = CommonRemoveAllSpaces(CommonNzText(vKind(i)))
+                If InStr(1, kindText, WELDING_KEYWORD) > 0 Then hasWeldingKind = True
                 If InStr(1, kindText, PURCHASE_KEYWORD) > 0 Then
                     purchRows.Add rowArr
+                ElseIf docType = DOC_ORDER And InStr(1, kindText, WELDING_KEYWORD) > 0 Then
+                    weldRows.Add rowArr
                 Else
                     worksRows.Add rowArr
                 End If
@@ -275,7 +284,8 @@ Public Sub ImportConstructionDocument()
     LogCI "工事側=" & worksRows.Count & " / 購入充当側=" & purchRows.Count
 
     Dim filteredOutAll As Boolean
-    filteredOutAll = (docType = DOC_ORDER) And (worksRows.Count = 0) And (purchRows.Count = 0)
+    filteredOutAll = (docType = DOC_ORDER) And (worksRows.Count = 0) And _
+                     (weldRows.Count = 0) And (purchRows.Count = 0)
     If filteredOutAll Then
         MsgBox "管理室フィルタで全ての行が除外されました(取込0件)。" & vbCrLf & vbCrLf & _
                "■基本情報(支店/出張所)に対応する管理室:" & vbCrLf & JoinKeys(mgrSet) & vbCrLf & vbCrLf & _
@@ -291,27 +301,33 @@ Public Sub ImportConstructionDocument()
 
     WriteReferenceValueToBasicInfo refValueH9
 
-    Dim wsWorks As Worksheet
-    Set wsWorks = CreateOrReplaceSheet(baseSheetName)
-    If wsWorks Is Nothing Then GoTo Cleanup
-    wsWorks.Tab.Color = RGB(255, 255, 0)
-    WriteRecordsToSheet wsWorks, worksRows
-    SortWorksSheet wsWorks
-    WriteAdditionalHeaders wsWorks
-    FillReferenceUnitPrices wsWorks, guidanceDocumentName
-    FormatSheet wsWorks
-    ApplyPriceGuidanceColumnLayout wsWorks
-    mod_subcontractorselector.ApplySubcontractorDropdowns wsWorks
-    ApplySanpaiRowRestrictions wsWorks
+    Dim wsActivate As Worksheet
 
-    wsWorks.Columns(COL_VENDOR).HorizontalAlignment = xlCenter
+    If docType = DOC_NOTICE Then
+        If worksRows.Count > 0 Then
+            Dim wsNotice As Worksheet
+            Set wsNotice = BuildConstructionOutputSheet( _
+                BuildConstructionSheetName(sourceA3Text, hasWeldingKind), _
+                worksRows, docType, guidanceDocumentName, hasWeldingKind)
+            If wsActivate Is Nothing Then Set wsActivate = wsNotice
+        End If
+    Else
+        Dim wsWorks As Worksheet
+        If worksRows.Count > 0 Then
+            Set wsWorks = BuildConstructionOutputSheet( _
+                BuildConstructionSheetName(sourceA3Text, False), _
+                worksRows, docType, guidanceDocumentName, False)
+            If wsActivate Is Nothing Then Set wsActivate = wsWorks
+        End If
 
-    If docType = DOC_NOTICE Then wsWorks.Columns(COL_MGR).Hidden = True
-
-    wsWorks.Range(wsWorks.Cells(1, COL_OUT_PRICE), _
-                  wsWorks.Cells(1, COL_OUT_AMOUNT)).EntireColumn.Delete Shift:=xlToLeft
-
-    WriteJrTotalRow wsWorks
+        Dim wsWeld As Worksheet
+        If weldRows.Count > 0 Then
+            Set wsWeld = BuildConstructionOutputSheet( _
+                BuildConstructionSheetName(sourceA3Text, True), _
+                weldRows, docType, guidanceDocumentName, True)
+            If wsActivate Is Nothing Then Set wsActivate = wsWeld
+        End If
+    End If
 
     If purchRows.Count > 0 Then
         Dim purchName As String
@@ -343,8 +359,10 @@ Public Sub ImportConstructionDocument()
 
     RefreshBasicInfoConstructionTotals
 
-    wsWorks.Activate
-    wsWorks.Range("A1").Select
+    If Not wsActivate Is Nothing Then
+        wsActivate.Activate
+        wsActivate.Range("A1").Select
+    End If
 
     Application.screenUpdating = scrn
     Application.Calculation = calc
@@ -352,9 +370,14 @@ Public Sub ImportConstructionDocument()
     Application.DisplayAlerts = alerts
 
     If Not filteredOutAll Then
-        MsgBox "取込みが完了しました。" & vbCrLf & _
-               "工事側: " & worksRows.Count & " 件 (" & baseSheetName & ")" & vbCrLf & _
-               "購入充当側: " & purchRows.Count & " 件", vbInformation
+        Dim completionMsg As String
+        completionMsg = "取込みが完了しました。" & vbCrLf & _
+                        "工事側: " & worksRows.Count & " 件"
+        If weldRows.Count > 0 Then
+            completionMsg = completionMsg & vbCrLf & "レール溶接側: " & weldRows.Count & " 件"
+        End If
+        completionMsg = completionMsg & vbCrLf & "購入充当側: " & purchRows.Count & " 件"
+        MsgBox completionMsg, vbInformation
     End If
     Exit Sub
 
@@ -376,6 +399,37 @@ Cleanup:
                "Err " & errNo & ": " & errDesc, vbExclamation
     End If
 End Sub
+
+Private Function BuildConstructionOutputSheet(ByVal sheetName As String, _
+                                              ByVal rows As Collection, _
+                                              ByVal docType As Long, _
+                                              ByVal guidanceDocumentName As String, _
+                                              ByVal isWelding As Boolean) As Worksheet
+    Dim ws As Worksheet
+    Set ws = CreateOrReplaceSheet(sheetName)
+    If ws Is Nothing Then Exit Function
+
+    ws.Tab.Color = RGB(255, 255, 0)
+    WriteRecordsToSheet ws, rows
+    SortWorksSheet ws
+    WriteAdditionalHeaders ws
+    FillReferenceUnitPrices ws, guidanceDocumentName, isWelding
+    FormatSheet ws
+    ApplyPriceGuidanceColumnLayout ws
+    mod_subcontractorselector.ApplySubcontractorDropdowns ws
+    ApplySanpaiRowRestrictions ws
+
+    ws.Columns(COL_VENDOR).HorizontalAlignment = xlCenter
+
+    If docType = DOC_NOTICE Then ws.Columns(COL_MGR).Hidden = True
+
+    ws.Range(ws.Cells(1, COL_OUT_PRICE), _
+             ws.Cells(1, COL_OUT_AMOUNT)).EntireColumn.Delete Shift:=xlToLeft
+
+    WriteJrTotalRow ws
+
+    Set BuildConstructionOutputSheet = ws
+End Function
 
 Private Function PickSourceFile() As String
     Dim fd As FileDialog
@@ -1671,7 +1725,8 @@ Private Sub WritePurchaseNoticeJrTotalRow(ByVal ws As Worksheet)
 End Sub
 
 Private Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
-                                    ByVal guidanceDocumentName As String)
+                                    ByVal guidanceDocumentName As String, _
+                                    Optional ByVal isWelding As Boolean = False)
     Dim lastRow As Long
     lastRow = GetLastDataRow(ws)
     If lastRow < 2 Then Exit Sub
@@ -1683,11 +1738,28 @@ Private Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
     Set sheetPriceCaches = CreateObject("Scripting.Dictionary")
     sheetPriceCaches.CompareMode = vbTextCompare
 
+    Dim weldingPriceSheetName As String
+    If isWelding Then
+        weldingPriceSheetName = ResolveWeldingPriceSheetName()
+        If weldingPriceSheetName = "" Then
+            LogCI "レール溶接単価: シート名の解決に失敗(基本情報B6/C6 または 単価適用線区マスタ未一致)"
+        ElseIf Not SheetExistsByName(weldingPriceSheetName) Then
+            LogCI "レール溶接単価: シート「" & weldingPriceSheetName & "」が見つかりません"
+        End If
+    End If
+
     Dim matchedCount As Long, unresolvedLineCount As Long, missingRecordCount As Long
     Dim r As Long
     For r = 2 To lastRow
         Dim unitPriceSheetName As String
-        unitPriceSheetName = ResolveUnitPriceSheetName(lineSheetMap, CommonNzText(ws.Cells(r, COL_LINE).value))
+        Dim recordKey As String
+        If isWelding Then
+            unitPriceSheetName = weldingPriceSheetName
+            recordKey = BuildWeldingLookupKey(ws.Cells(r, COL_SEIRI).value)
+        Else
+            unitPriceSheetName = ResolveUnitPriceSheetName(lineSheetMap, CommonNzText(ws.Cells(r, COL_LINE).value))
+            recordKey = NormalizeRecordKey(ws.Cells(r, COL_SEIRI).value)
+        End If
 
         Dim referencePrice As Variant
         referencePrice = Empty
@@ -1697,9 +1769,6 @@ Private Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
         Else
             Dim priceRows As Object
             Set priceRows = GetUnitPriceRows(unitPriceSheetName, sheetPriceCaches)
-
-            Dim recordKey As String
-            recordKey = NormalizeRecordKey(ws.Cells(r, COL_SEIRI).value)
 
             If priceRows Is Nothing Or recordKey = "" Then
                 missingRecordCount = missingRecordCount + 1
@@ -1786,6 +1855,10 @@ Private Sub RefreshConstructionReferencePricesOnSheet( _
     ByVal unitPriceSheetName As String, _
     ByVal changedPriceRows As Object, _
     ByVal lineSheetMap As Object)
+
+    ' (溶接)シートは取込時に溶接単価シートからM列を確定するため、
+    ' 工事用単価シートの変更による参照単価の再計算対象から除外する。
+    If Right$(ws.Name, Len(CONSTRUCTION_SHEET_SUFFIX_WELDING)) = CONSTRUCTION_SHEET_SUFFIX_WELDING Then Exit Sub
 
     Dim seiriColumn As Long
     Dim dayNightColumn As Long
@@ -2469,6 +2542,27 @@ Private Function JoinKeys(ByVal d As Object) As String
     JoinKeys = s
 End Function
 
+Private Function BuildConstructionSheetName(ByVal sourceA3Text As String, _
+                                            ByVal isWelding As Boolean) As String
+    Dim suffix As String
+    If isWelding Then
+        suffix = CONSTRUCTION_SHEET_SUFFIX_WELDING
+    Else
+        suffix = CONSTRUCTION_SHEET_SUFFIX_WORKS
+    End If
+
+    Dim baseName As String
+    baseName = SanitizeSheetName(sourceA3Text)
+    If baseName = "" Then Exit Function
+
+    Dim maxBaseLen As Long
+    maxBaseLen = 31 - Len(suffix)
+    If maxBaseLen < 1 Then maxBaseLen = 1
+    If Len(baseName) > maxBaseLen Then baseName = Left$(baseName, maxBaseLen)
+
+    BuildConstructionSheetName = baseName & suffix
+End Function
+
 Private Function SanitizeSheetName(ByVal s As String) As String
     Dim t As String
     t = CommonNormalizeText(s)
@@ -2611,6 +2705,88 @@ Cleanup:
     CommonCloseAdoRecordset recordset
     CommonCloseAdoConnection connection
     ResolvePurchasePriceSheetName = resultName
+End Function
+
+Private Function ResolveWeldingPriceSheetName() As String
+    Dim wsInfo As Worksheet
+    Set wsInfo = CommonGetBasicInfoWorksheet(ThisWorkbook)
+    If wsInfo Is Nothing Then Exit Function
+
+    Dim BranchName As String, officeName As String
+    BranchName = CommonRemoveAllSpaces(CommonNzText(wsInfo.Range(BASIC_INFO_BRANCH_CELL).value))
+    officeName = CommonRemoveAllSpaces(CommonNzText(wsInfo.Range(BASIC_INFO_OFFICE_CELL).value))
+    If BranchName = "" Or officeName = "" Then Exit Function
+
+    Dim masterPath As String
+    Dim connection As Object
+    Set connection = OpenUnitPriceMasterAdoConnection(masterPath)
+    If connection Is Nothing Then Exit Function
+
+    On Error GoTo Cleanup
+
+    Dim actualSheetName As String
+    actualSheetName = FindAdoWorksheetName(connection, PRICE_LINE_SHEET)
+
+    Dim resultName As String
+    If actualSheetName = "" Then
+        LogCI "レール溶接単価: マスタに「" & PRICE_LINE_SHEET & "」シートがありません"
+    Else
+        Dim recordset As Object
+        Set recordset = CreateObject("ADODB.Recordset")
+        recordset.Open "SELECT [F2], [F3], [F5] FROM " & _
+                       BuildAdoSheetTableName(actualSheetName), connection, 0, 1, 1
+
+        Dim b As String, c As String, nameText As String
+        Do Until recordset.EOF
+            b = CommonRemoveAllSpaces(CommonNzText(recordset.Fields(0).value))
+            c = CommonRemoveAllSpaces(CommonNzText(recordset.Fields(1).value))
+            If b = BranchName And c = officeName Then
+                nameText = CommonRemoveAllSpaces(CommonNzText(recordset.Fields(2).value))
+                If nameText <> "" Then
+                    resultName = nameText & WELDING_PRICE_SHEET_SUFFIX
+                    Exit Do
+                End If
+            End If
+            recordset.MoveNext
+        Loop
+    End If
+
+Cleanup:
+    If Err.Number <> 0 Then
+        LogCI "レール溶接単価マスタADO読込エラー Err " & Err.Number & ": " & Err.Description
+    End If
+    CommonCloseAdoRecordset recordset
+    CommonCloseAdoConnection connection
+    ResolveWeldingPriceSheetName = resultName
+End Function
+
+Private Function BuildWeldingLookupKey(ByVal seiriValue As Variant) As String
+    Dim keyText As String
+    keyText = CommonRemoveAllSpaces(CommonNzText(seiriValue))
+    If keyText = "" Then Exit Function
+    If IsNumeric(keyText) Then
+        Dim seiriNumber As Long
+        seiriNumber = CLng(CDbl(keyText))
+        ' レール溶接の整理番号は5桁(先頭に20000が付加)と4桁(そのまま)の2系統がある。
+        ' 5桁の場合は20000を差し引いて溶接単価シートの整理番号に合わせ、
+        ' 4桁の場合は溶接単価シートと同じ整理番号のためそのまま照合する。
+        If seiriNumber >= 10000 And seiriNumber <= 99999 Then
+            BuildWeldingLookupKey = CStr(seiriNumber - WELDING_SEIRI_OFFSET)
+        Else
+            BuildWeldingLookupKey = CStr(seiriNumber)
+        End If
+    Else
+        BuildWeldingLookupKey = keyText
+    End If
+End Function
+
+Private Function SheetExistsByName(ByVal sheetName As String) As Boolean
+    If sheetName = "" Then Exit Function
+    Dim ws As Worksheet
+    On Error Resume Next
+    Set ws = ThisWorkbook.worksheets(sheetName)
+    On Error GoTo 0
+    SheetExistsByName = Not ws Is Nothing
 End Function
 
 Private Function OpenUnitPriceMasterAdoConnection(ByRef resolvedPath As String) As Object
