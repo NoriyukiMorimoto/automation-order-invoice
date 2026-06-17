@@ -115,11 +115,18 @@ Public Sub FillVendorInfoToBasicInfo(Optional ByVal wsInfo As Worksheet, Optiona
     ApplyVendorSelection BranchName, selectedVendorName, wsInfo, targetCell
 
 RefreshWelding:
+    RefreshVendorUnitPriceForValueColumn wsInfo, targetCell.Column
+
     Dim currentWorkType As String
     currentWorkType = CommonNormalizeText(CStr(wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, targetCell.Column).value))
 
     If StrComp(previousWorkType, currentWorkType, vbTextCompare) = 0 Then
         mod_WeldingUnitPrice.UpdateWeldingVendorDisplayNamesForBasicInfo wsInfo, targetCell.Column
+    ElseIf Len(previousWorkType) = 0 And Len(currentWorkType) > 0 Then
+        Dim firstFillCols As Collection
+        Set firstFillCols = New Collection
+        firstFillCols.Add targetCell.Column
+        mod_WeldingUnitPrice.ApplyWeldingVendorUnitPricesForBasicInfoColumns wsInfo, firstFillCols, targetCell.Column
     Else
         mod_WeldingUnitPrice.ApplyWeldingVendorUnitPricesForBasicInfo wsInfo, False, targetCell.Column
     End If
@@ -632,12 +639,102 @@ Public Sub HandleVendorUnitPriceMonitorChange(ByVal wsInfo As Worksheet, ByVal c
     On Error GoTo ExitHandler
     Application.EnableEvents = False
 
-    RefreshAllVendorUnitPricesForBasicInfo wsInfo
-    mod_WeldingUnitPrice.ApplyWeldingVendorUnitPricesForBasicInfo wsInfo, False, _
-        GetPreferredWeldingRatioColumnFromChange(wsInfo, changedRange)
+    Dim unitPriceCols As Collection
+    Dim weldingCols As Collection
+    Set unitPriceCols = CollectMonitorChangedValueColumns(wsInfo, changedRange, True, False)
+    Set weldingCols = CollectMonitorChangedValueColumns(wsInfo, changedRange, False, True)
+
+    Dim preferredRatioColumn As Long
+    preferredRatioColumn = GetPreferredWeldingRatioColumnFromChange(wsInfo, changedRange)
+
+    Dim col As Variant
+    For Each col In unitPriceCols
+        RefreshVendorUnitPriceForValueColumn wsInfo, CLng(col)
+    Next col
+
+    If weldingCols.Count > 0 Then
+        mod_WeldingUnitPrice.ApplyWeldingVendorUnitPricesForBasicInfoColumns _
+            wsInfo, weldingCols, preferredRatioColumn
+    End If
 
 ExitHandler:
     Application.EnableEvents = prevEvents
+End Sub
+
+Private Function CollectMonitorChangedValueColumns(ByVal wsInfo As Worksheet, _
+                                                   ByVal changedRange As Range, _
+                                                   ByVal includeOutsourceRatioRow As Boolean, _
+                                                   ByVal includeWeldingRatioRow As Boolean) As Collection
+    Dim result As Collection
+    Dim vendorCount As Long
+    Dim i As Long
+    Set result = New Collection
+
+    If wsInfo Is Nothing Then
+        Set CollectMonitorChangedValueColumns = result
+        Exit Function
+    End If
+    If changedRange Is Nothing Then
+        Set CollectMonitorChangedValueColumns = result
+        Exit Function
+    End If
+
+    If Not Intersect(changedRange, wsInfo.Range(BASIC_INFO_YEAR_CELL & "," & BASIC_INFO_BILLING_COUNT_CELL)) Is Nothing Then
+        Dim vendorCount As Long
+        Dim i As Long
+        vendorCount = GetVendorBlockCount(wsInfo)
+        For i = 1 To vendorCount
+            AddUniqueLongToCollection result, VendorValueColumnByIndex(i)
+        Next i
+        Set CollectMonitorChangedValueColumns = result
+        Exit Function
+    End If
+
+    vendorCount = GetVendorBlockCount(wsInfo)
+    For i = 1 To vendorCount
+        Dim valueCol As Long
+        Dim monitorCell As Range
+        valueCol = VendorValueColumnByIndex(i)
+
+        Set monitorCell = wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, valueCol)
+        If Not Intersect(changedRange, monitorCell) Is Nothing Then
+            AddUniqueLongToCollection result, valueCol
+            GoTo ContinueNextVendorColumn
+        End If
+
+        Set monitorCell = wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, valueCol)
+        If Not Intersect(changedRange, monitorCell) Is Nothing Then
+            AddUniqueLongToCollection result, valueCol
+            GoTo ContinueNextVendorColumn
+        End If
+
+        If includeOutsourceRatioRow Then
+            Set monitorCell = wsInfo.Cells(BASIC_INFO_VENDOR_OUTSOURCE_RATIO_ROW, valueCol)
+            If Not Intersect(changedRange, monitorCell) Is Nothing Then
+                AddUniqueLongToCollection result, valueCol
+                GoTo ContinueNextVendorColumn
+            End If
+        End If
+
+        If includeWeldingRatioRow Then
+            Set monitorCell = wsInfo.Cells(BASIC_INFO_VENDOR_WELDING_RATIO_ROW, valueCol)
+            If Not Intersect(changedRange, monitorCell) Is Nothing Then
+                AddUniqueLongToCollection result, valueCol
+            End If
+        End If
+
+ContinueNextVendorColumn:
+    Next i
+
+    Set CollectMonitorChangedValueColumns = result
+End Function
+
+Private Sub AddUniqueLongToCollection(ByVal target As Collection, ByVal value As Long)
+    Dim existing As Variant
+    For Each existing In target
+        If CLng(existing) = value Then Exit Sub
+    Next existing
+    target.Add value
 End Sub
 
 Private Function GetPreferredWeldingRatioColumnFromChange(ByVal wsInfo As Worksheet, _
@@ -746,6 +843,9 @@ Private Sub RefreshVendorUnitPriceForValueColumn(ByVal wsInfo As Worksheet, ByVa
         If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) Then
             If ShouldApplyVendorUnitPriceBlock(wsInfo, valueColumn) Then
                 ApplyVendorUnitPriceBlockToSheet wsUnitPrice, wsInfo, valueColumn, vendorUnitPriceNameMap
+            ElseIf IsRailConstructionVendorBlock(wsInfo, valueColumn) And _
+                   HasVendorName(wsInfo, valueColumn) Then
+                ' 11s–Ú‚Ì‚Ý“ü—ÍÏ‚ÝB29s–Ú“ü—Í‘Ò‚¿‚ÌŠÔ‚ÍŠù‘¶—ñ‚ðÁ‚³‚È‚¢
             Else
                 ClearVendorUnitPriceBlockOnSheet wsUnitPrice, dayCol, nightCol
             End If
@@ -784,7 +884,12 @@ End Sub
 Private Function ShouldApplyVendorUnitPriceBlock(ByVal wsInfo As Worksheet, ByVal valueColumn As Long) As Boolean
     ShouldApplyVendorUnitPriceBlock = _
         IsRailConstructionVendorBlock(wsInfo, valueColumn) And _
+        HasVendorName(wsInfo, valueColumn) And _
         HasVendorOutsourceRatio(wsInfo, valueColumn)
+End Function
+
+Private Function HasVendorName(ByVal wsInfo As Worksheet, ByVal valueColumn As Long) As Boolean
+    HasVendorName = (Len(Trim$(CStr(wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, valueColumn).value))) > 0)
 End Function
 
 Private Sub ApplyVendorUnitPriceBlockToSheet(ByVal wsUnitPrice As Worksheet, _
