@@ -8,6 +8,8 @@ Private Const BASIC_INFO_VENDOR_BLOCK_LABEL_COL As Long = 5
 Private Const BASIC_INFO_VENDOR_BLOCK_VALUE_COL As Long = 6
 Private Const BASIC_INFO_VENDOR_BLOCK_TOP_ROW As Long = 10
 Private Const BASIC_INFO_VENDOR_BLOCK_BOTTOM_ROW As Long = 31
+Private Const BASIC_INFO_VENDOR_PURCHASE_TOTAL_ROW As Long = 32
+Private Const BASIC_INFO_VENDOR_TOTAL_ROW As Long = 33
 Private Const BASIC_INFO_VENDOR_BLOCK_STEP_COLS As Long = 3
 Private Const BASIC_INFO_VENDOR_LABEL_COL_WIDTH As Double = 26.38
 Private Const BASIC_INFO_VENDOR_VALUE_COL_WIDTH As Double = 42.5
@@ -502,6 +504,7 @@ Public Sub SyncVendorBlocksFromCount(ByVal wsInfo As Worksheet)
         destBlock.Cells(1, 1).value = VendorInfoHeaderText(i)
         ClearVendorInfoBlock VendorNameCellByIndex(wsInfo, i)
         CopyVendorBlockFormatsFromTemplate wsInfo, i
+        CopyVendorBlockTotalRowsFromTemplate wsInfo, i
     Next i
 
     For i = 2 To vendorCount
@@ -1510,6 +1513,23 @@ Private Sub CopyVendorBlockFormatsFromTemplate(ByVal wsInfo As Worksheet, ByVal 
     Application.CutCopyMode = False
 End Sub
 
+Private Sub CopyVendorBlockTotalRowsFromTemplate(ByVal wsInfo As Worksheet, ByVal destVendorIndex As Long)
+    If wsInfo Is Nothing Then Exit Sub
+    If destVendorIndex < 2 Then Exit Sub
+
+    Dim sourceRange As Range
+    Set sourceRange = wsInfo.Range(wsInfo.Cells(BASIC_INFO_VENDOR_PURCHASE_TOTAL_ROW, BASIC_INFO_VENDOR_BLOCK_LABEL_COL), _
+                                   wsInfo.Cells(BASIC_INFO_VENDOR_TOTAL_ROW, BASIC_INFO_VENDOR_BLOCK_VALUE_COL))
+
+    Dim destRange As Range
+    Set destRange = wsInfo.Range(wsInfo.Cells(BASIC_INFO_VENDOR_PURCHASE_TOTAL_ROW, VendorLabelColumnByIndex(destVendorIndex)), _
+                                  wsInfo.Cells(BASIC_INFO_VENDOR_TOTAL_ROW, VendorValueColumnByIndex(destVendorIndex)))
+
+    SafeUnmergeRange destRange
+    sourceRange.Copy Destination:=destRange
+    Application.CutCopyMode = False
+End Sub
+
 Private Sub ApplyVendorBlockColumnWidths(ByVal wsInfo As Worksheet, ByVal vendorCount As Long)
     Dim i As Long
     For i = 1 To vendorCount
@@ -1525,7 +1545,7 @@ Private Sub ClearVendorInfoBlock(ByVal targetCell As Range)
         .Range(.Cells(11, targetCell.Column), .Cells(16, targetCell.Column)).ClearContents
         .Range(.Cells(18, targetCell.Column), .Cells(23, targetCell.Column)).ClearContents
         .Range(.Cells(BASIC_INFO_VENDOR_PERCENT_ROW, targetCell.Column), _
-               .Cells(BASIC_INFO_VENDOR_BLOCK_BOTTOM_ROW, targetCell.Column)).ClearContents
+               .Cells(BASIC_INFO_VENDOR_TOTAL_ROW, targetCell.Column)).ClearContents
     End With
 End Sub
 
@@ -1542,16 +1562,25 @@ End Sub
 Private Sub ClearUnusedVendorBlocks(ByVal wsInfo As Worksheet, ByVal firstUnusedIndex As Long)
     Dim i As Long
     For i = firstUnusedIndex To MAX_VENDOR_BLOCK_COUNT
-        Dim headerCell As Range
-        Set headerCell = wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, VendorLabelColumnByIndex(i))
-        If InStr(1, CStr(headerCell.value), VendorInfoHeaderPrefixText(), vbTextCompare) > 0 Then
-            Dim clearRange As Range
-            Set clearRange = wsInfo.Range(headerCell, headerCell.Offset(BASIC_INFO_VENDOR_BLOCK_BOTTOM_ROW - BASIC_INFO_VENDOR_BLOCK_TOP_ROW, 1))
-            clearRange.ClearContents
-            clearRange.Interior.Color = RGB(6, 17, 29)
-            clearRange.Borders.LineStyle = xlNone
-        End If
+        ClearVendorBlockColumns wsInfo, i
     Next i
+End Sub
+
+Private Sub ClearVendorBlockColumns(ByVal wsInfo As Worksheet, ByVal vendorIndex As Long)
+    If wsInfo Is Nothing Then Exit Sub
+    If vendorIndex < 1 Or vendorIndex > MAX_VENDOR_BLOCK_COUNT Then Exit Sub
+
+    Dim labelCol As Long
+    labelCol = VendorLabelColumnByIndex(vendorIndex)
+
+    Dim clearRange As Range
+    Set clearRange = wsInfo.Range(wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, labelCol), _
+                                  wsInfo.Cells(BASIC_INFO_VENDOR_TOTAL_ROW, VendorSpacerColumnByIndex(vendorIndex)))
+
+    SafeUnmergeRange clearRange
+    clearRange.ClearContents
+    clearRange.Interior.Color = RGB(6, 17, 29)
+    clearRange.Borders.LineStyle = xlNone
 End Sub
 
 Private Function VendorInfoHeaderText(ByVal vendorIndex As Long) As String
