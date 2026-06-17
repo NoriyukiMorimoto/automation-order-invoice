@@ -119,8 +119,6 @@ Private Const UNIT_PRICE_VENDOR_FIRST_DAY_COL As Long = 7
 
 Private Const SOURCE_SHEET_NAME_CELL As String = "A3"
 
-Private Const DOC_ORDER_TITLE As String = "é{çHéwé¶èë"
-Private Const DOC_NOTICE_TITLE As String = "é{çHí ímèë"
 Private mSuppressOverwritePrompt As Boolean
 
 Public Sub ImportConstructionDocument()
