@@ -255,6 +255,134 @@ Private Sub UpdateWeldingVendorDisplayNameOnly(ByVal wsWelding As Worksheet, _
     ApplyMergedCell wsWelding, WUP_NAME_ROW, dayCol, dayCol + 1, displayName, True
 End Sub
 
+' 指定した基本情報列( F/I/L… )に対応する溶接単価列だけを展開する。
+' 2社目の初回入力など、全シート全列の再展開を避けるために使用する。
+Public Sub ApplyWeldingVendorUnitPricesForBasicInfoColumns(ByVal wsInfo As Worksheet, _
+                                                           ByVal targetValueColumns As Collection, _
+                                                           Optional ByVal preferredRatioColumn As Long = 0)
+    If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet()
+    If wsInfo Is Nothing Then Exit Sub
+    If targetValueColumns Is Nothing Then Exit Sub
+    If targetValueColumns.Count = 0 Then Exit Sub
+
+    Dim targetBook As Workbook
+    Set targetBook = wsInfo.Parent
+
+    Dim weldingSheets As Collection
+    Set weldingSheets = CollectWeldingUnitPriceSheets(targetBook)
+    If weldingSheets.Count = 0 Then Exit Sub
+
+    Dim temotoMap As Object
+    Dim loadErrorText As String
+    Set temotoMap = LoadTemotoRatioMap(loadErrorText)
+    If temotoMap Is Nothing Then
+        LogWUP "手元比率マスタ読込失敗: " & loadErrorText
+        Exit Sub
+    End If
+
+    Dim weldingBlock As WeldingVendorBlock
+    Dim weldingNameSources As Collection
+    Dim railBlocks() As WeldingVendorBlock
+    Dim railBlockCount As Long
+    Set weldingNameSources = New Collection
+    ScanVendorBlocks wsInfo, weldingBlock, weldingNameSources, railBlocks, railBlockCount, preferredRatioColumn
+
+    WriteRailOutsourceRatioToBasicInfo wsInfo
+
+    Dim rbIndex As Long
+    For rbIndex = 1 To railBlockCount
+        railBlocks(rbIndex) = BuildVendorBlock(wsInfo, railBlocks(rbIndex).valueColumn, _
+                                               BASIC_INFO_WELDING_RATIO_ROW)
+    Next rbIndex
+
+    Dim missingSeiriMap As Object
+    Set missingSeiriMap = CreateObject("Scripting.Dictionary")
+
+    Dim previousScreenUpdating As Boolean
+    Dim previousCalculation As XlCalculation
+    previousScreenUpdating = Application.ScreenUpdating
+    previousCalculation = Application.Calculation
+    Application.ScreenUpdating = False
+    Application.Calculation = xlCalculationManual
+
+    On Error GoTo Cleanup
+
+    Dim wsWelding As Variant
+    For Each wsWelding In weldingSheets
+        ApplyWeldingVendorUnitPricesToSheetColumns wsWelding, wsInfo, weldingBlock, weldingNameSources, _
+            railBlocks, railBlockCount, temotoMap, missingSeiriMap, targetValueColumns
+    Next wsWelding
+
+Cleanup:
+    Application.Calculation = previousCalculation
+    Application.ScreenUpdating = previousScreenUpdating
+    On Error Resume Next
+    targetBook.Calculate
+    On Error GoTo 0
+End Sub
+
+Private Sub ApplyWeldingVendorUnitPricesToSheetColumns(ByVal wsWelding As Worksheet, _
+                                                       ByVal wsInfo As Worksheet, _
+                                                       ByRef weldingBlock As WeldingVendorBlock, _
+                                                       ByVal weldingNameSources As Collection, _
+                                                       ByRef railBlocks() As WeldingVendorBlock, _
+                                                       ByVal railBlockCount As Long, _
+                                                       ByVal temotoMap As Object, _
+                                                       ByVal missingSeiriMap As Object, _
+                                                       ByVal targetValueColumns As Collection)
+    Dim lastRow As Long
+    lastRow = wsWelding.Cells(wsWelding.Rows.Count, WUP_SEIRI_COL).End(xlUp).Row
+    If lastRow < WUP_DATA_START_ROW Then Exit Sub
+
+    SetupOutsourcePatternSelector wsWelding
+    Set mSeiriRowMap = BuildSeiriRowMapWUP(wsWelding, lastRow)
+
+    Dim outsourceHeaderText As String
+    Dim railHeaderText As String
+    outsourceHeaderText = BuildWeldingUnitPriceHeaderText(wsInfo, True)
+    railHeaderText = BuildWeldingUnitPriceHeaderText(wsInfo, False)
+
+    Dim vendorUnitPriceNameMap As Object
+    Set vendorUnitPriceNameMap = mod_VendorMaster.BuildVendorUnitPriceNameMap(wsInfo)
+
+    If weldingBlock.valueColumn > 0 And weldingBlock.hasRatio Then
+        If CollectionContainsLongWUP(targetValueColumns, weldingBlock.valueColumn) Then
+            ApplyWeldingVendorBlock wsWelding, lastRow, WUP_WELDING_DAY_COL, weldingBlock, True, _
+                                    outsourceHeaderText, vendorUnitPriceNameMap, temotoMap, missingSeiriMap, _
+                                    BuildWeldingDisplayName(weldingNameSources, vendorUnitPriceNameMap)
+        Else
+            UpdateWeldingVendorDisplayNameOnly wsWelding, WUP_WELDING_DAY_COL, _
+                BuildWeldingDisplayName(weldingNameSources, vendorUnitPriceNameMap)
+        End If
+    End If
+
+    Dim railIndex As Long
+    For railIndex = 1 To railBlockCount
+        Dim railDayCol As Long
+        railDayCol = WUP_FIRST_RAIL_DAY_COL + ((railIndex - 1) * 2)
+        If CollectionContainsLongWUP(targetValueColumns, railBlocks(railIndex).valueColumn) Then
+            If railBlocks(railIndex).hasRatio Then
+                ApplyWeldingVendorBlock wsWelding, lastRow, railDayCol, railBlocks(railIndex), False, _
+                                        railHeaderText, vendorUnitPriceNameMap, temotoMap, missingSeiriMap
+            Else
+                ClearWeldingVendorBlock wsWelding, lastRow, railDayCol
+            End If
+        End If
+    Next railIndex
+
+    LogWUP "部分展開完了 sheet=[" & wsWelding.Name & "] 対象列数=" & CStr(targetValueColumns.Count)
+End Sub
+
+Private Function CollectionContainsLongWUP(ByVal values As Collection, ByVal targetValue As Long) As Boolean
+    Dim item As Variant
+    For Each item In values
+        If CLng(item) = targetValue Then
+            CollectionContainsLongWUP = True
+            Exit Function
+        End If
+    Next item
+End Function
+
 ' シート名が「_レール溶接単価」を含むかどうか
 Public Function IsWeldingUnitPriceSheet(ByVal targetSheet As Worksheet) As Boolean
     If targetSheet Is Nothing Then Exit Function
