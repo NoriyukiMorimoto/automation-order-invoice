@@ -472,16 +472,15 @@ End Function
 Private Sub PrepareExistingOutputSheets(ByRef cancelImport As Boolean)
     cancelImport = False
 
-    Dim names As Variant
-    names = ManagedOutputSheetNames()
+    Dim existingSheets As Collection
+    Set existingSheets = CollectExistingManagedOutputSheetNames()
+    If existingSheets.Count = 0 Then Exit Sub
 
     Dim existingList As String
-    Dim nm As Variant
-    For Each nm In names
-        If SheetExistsByName(CStr(nm)) Then existingList = existingList & "  ・" & CStr(nm) & vbCrLf
-    Next nm
-
-    If existingList = "" Then Exit Sub
+    Dim sheetName As Variant
+    For Each sheetName In existingSheets
+        existingList = existingList & "  ・" & CStr(sheetName) & vbCrLf
+    Next sheetName
 
     Dim ans As VbMsgBoxResult
     ans = MsgBox("既に作成済みの取込シートがあります。" & vbCrLf & vbCrLf & _
@@ -494,9 +493,9 @@ Private Sub PrepareExistingOutputSheets(ByRef cancelImport As Boolean)
 
     Select Case ans
         Case vbYes
-            For Each nm In names
-                DeleteSheetByName CStr(nm)
-            Next nm
+            For Each sheetName In existingSheets
+                DeleteSheetByName CStr(sheetName)
+            Next sheetName
         Case vbNo
             ' 既存シートはそのまま残す(同名で作成するシートのみ上書きされる)
         Case Else
@@ -515,14 +514,62 @@ Private Sub DeleteSheetByName(ByVal sheetName As String)
     On Error GoTo 0
 End Sub
 
-Private Function ManagedOutputSheetNames() As Variant
-    ManagedOutputSheetNames = Array( _
-        DOC_ORDER_TITLE & CONSTRUCTION_SHEET_SUFFIX_WORKS, _
-        DOC_ORDER_TITLE & CONSTRUCTION_SHEET_SUFFIX_WELDING, _
-        PURCHASE_ORDER_SHEET_NAME, _
-        DOC_NOTICE_TITLE & CONSTRUCTION_SHEET_SUFFIX_WORKS, _
-        DOC_NOTICE_TITLE & CONSTRUCTION_SHEET_SUFFIX_WELDING, _
-        PURCHASE_NOTICE_SHEET_NAME)
+Private Function CollectExistingManagedOutputSheetNames() As Collection
+    Dim result As Collection
+    Set result = New Collection
+
+    Dim ws As Worksheet
+    For Each ws In ThisWorkbook.Worksheets
+        If IsManagedImportOutputSheet(ws) Then result.Add ws.Name
+    Next ws
+
+    Set CollectExistingManagedOutputSheetNames = result
+End Function
+
+Private Function IsManagedImportOutputSheet(ByVal ws As Worksheet) As Boolean
+    If ws Is Nothing Then Exit Function
+
+    If IsPurchaseOutputSheet(ws) Then
+        IsManagedImportOutputSheet = True
+        Exit Function
+    End If
+
+    If Not SheetNameHasConstructionOutputSuffix(ws.Name) Then Exit Function
+
+    If IsConstructionOutputSheet(ws) Then
+        IsManagedImportOutputSheet = True
+        Exit Function
+    End If
+
+    IsManagedImportOutputSheet = _
+        (FindHeaderColumn(ws, "整理番号") > 0) And _
+        (FindHeaderColumn(ws, "JR金額") > 0) And _
+        (FindHeaderColumn(ws, "工種分類") > 0)
+End Function
+
+Private Function SheetNameHasConstructionOutputSuffix(ByVal sheetName As String) As Boolean
+    SheetNameHasConstructionOutputSuffix = _
+        SheetNameEndsWithSuffixText(sheetName, CONSTRUCTION_SHEET_SUFFIX_WORKS) Or _
+        SheetNameEndsWithSuffixText(sheetName, CONSTRUCTION_SHEET_SUFFIX_WELDING)
+End Function
+
+Private Function SheetNameEndsWithSuffixText(ByVal sheetName As String, ByVal suffixText As String) As Boolean
+    Dim normalizedName As String
+    Dim normalizedSuffix As String
+    normalizedName = NormalizeSheetNameParentheses(sheetName)
+    normalizedSuffix = NormalizeSheetNameParentheses(suffixText)
+
+    If Len(normalizedName) < Len(normalizedSuffix) Then Exit Function
+    SheetNameEndsWithSuffixText = _
+        (StrComp(Right$(normalizedName, Len(normalizedSuffix)), normalizedSuffix, vbTextCompare) = 0)
+End Function
+
+Private Function NormalizeSheetNameParentheses(ByVal text As String) As String
+    Dim t As String
+    t = text
+    t = Replace$(t, ChrW$(&HFF08), "(")
+    t = Replace$(t, ChrW$(&HFF09), ")")
+    NormalizeSheetNameParentheses = t
 End Function
 
 Private Function PickSourceFiles() As Collection
