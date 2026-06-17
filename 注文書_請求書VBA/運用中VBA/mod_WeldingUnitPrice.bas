@@ -188,6 +188,73 @@ Cleanup:
     End If
 End Sub
 
+' 工事種別(10行目)が変わらない会社名変更時は、5行目の会社名表示だけを更新する。
+' 全行展開(ApplyWeldingVendorUnitPricesForBasicInfo)は数十秒かかるため、名称変更では呼ばない。
+Public Sub UpdateWeldingVendorDisplayNamesForBasicInfo(Optional ByVal wsInfo As Worksheet, _
+                                                       Optional ByVal preferredRatioColumn As Long = 0)
+    If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet()
+    If wsInfo Is Nothing Then Exit Sub
+
+    Dim targetBook As Workbook
+    Set targetBook = wsInfo.Parent
+
+    Dim weldingSheets As Collection
+    Set weldingSheets = CollectWeldingUnitPriceSheets(targetBook)
+    If weldingSheets.Count = 0 Then Exit Sub
+
+    Dim weldingBlock As WeldingVendorBlock
+    Dim weldingNameSources As Collection
+    Dim railBlocks() As WeldingVendorBlock
+    Dim railBlockCount As Long
+    Set weldingNameSources = New Collection
+    ScanVendorBlocks wsInfo, weldingBlock, weldingNameSources, railBlocks, railBlockCount, preferredRatioColumn
+
+    Dim vendorUnitPriceNameMap As Object
+    Set vendorUnitPriceNameMap = mod_VendorMaster.BuildVendorUnitPriceNameMap(wsInfo)
+
+    Dim previousScreenUpdating As Boolean
+    previousScreenUpdating = Application.ScreenUpdating
+    Application.ScreenUpdating = False
+    On Error GoTo Cleanup
+
+    Dim wsWelding As Variant
+    For Each wsWelding In weldingSheets
+        UpdateWeldingVendorDisplayNamesOnSheet wsWelding, weldingBlock, weldingNameSources, _
+            railBlocks, railBlockCount, vendorUnitPriceNameMap
+    Next wsWelding
+
+Cleanup:
+    Application.ScreenUpdating = previousScreenUpdating
+End Sub
+
+Private Sub UpdateWeldingVendorDisplayNamesOnSheet(ByVal wsWelding As Worksheet, _
+                                                  ByRef weldingBlock As WeldingVendorBlock, _
+                                                  ByVal weldingNameSources As Collection, _
+                                                  ByRef railBlocks() As WeldingVendorBlock, _
+                                                  ByVal railBlockCount As Long, _
+                                                  ByVal vendorUnitPriceNameMap As Object)
+    If weldingBlock.valueColumn > 0 And weldingBlock.hasRatio Then
+        UpdateWeldingVendorDisplayNameOnly wsWelding, WUP_WELDING_DAY_COL, _
+            BuildWeldingDisplayName(weldingNameSources, vendorUnitPriceNameMap)
+    End If
+
+    Dim railIndex As Long
+    For railIndex = 1 To railBlockCount
+        Dim railDayCol As Long
+        railDayCol = WUP_FIRST_RAIL_DAY_COL + ((railIndex - 1) * 2)
+        If railBlocks(railIndex).hasRatio Then
+            UpdateWeldingVendorDisplayNameOnly wsWelding, railDayCol, _
+                ResolveVendorUnitPriceNameWUP(vendorUnitPriceNameMap, railBlocks(railIndex).vendorName)
+        End If
+    Next railIndex
+End Sub
+
+Private Sub UpdateWeldingVendorDisplayNameOnly(ByVal wsWelding As Worksheet, _
+                                               ByVal dayCol As Long, _
+                                               ByVal displayName As String)
+    ApplyMergedCell wsWelding, WUP_NAME_ROW, dayCol, dayCol + 1, displayName, True
+End Sub
+
 ' シート名が「_レール溶接単価」を含むかどうか
 Public Function IsWeldingUnitPriceSheet(ByVal targetSheet As Worksheet) As Boolean
     If targetSheet Is Nothing Then Exit Function
