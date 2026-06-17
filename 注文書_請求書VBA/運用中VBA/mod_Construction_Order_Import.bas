@@ -341,19 +341,13 @@ Public Sub ImportConstructionDocument()
         If Not wsPurch Is Nothing Then
             wsPurch.Tab.Color = RGB(131, 226, 142)   ' #83E28E
             WriteRecordsToSheet wsPurch, purchRows
-            If docType = DOC_NOTICE Then
-                ApplyPurchaseNoticeLayout wsPurch
-                SortPurchaseSheet wsPurch, PURCHASE_NOTICE_SEIRI_COL, PURCHASE_NOTICE_KIND_COL
-                WritePurchaseNoticeAdditionalHeaders wsPurch
-                FillPurchaseUnitPrices wsPurch
-                FormatPurchaseNoticeSheet wsPurch
-                ApplyPurchaseNoticeColumnExclusions wsPurch
-                WritePurchaseNoticeJrTotalRow wsPurch
-            Else
-                SortPurchaseSheet wsPurch
-                FormatSheet wsPurch
-                WriteJrTotalRow wsPurch
-            End If
+            ApplyPurchaseNoticeLayout wsPurch
+            SortPurchaseSheet wsPurch, PURCHASE_NOTICE_SEIRI_COL, PURCHASE_NOTICE_KIND_COL
+            WritePurchaseNoticeAdditionalHeaders wsPurch
+            FillPurchaseUnitPrices wsPurch
+            FormatPurchaseNoticeSheet wsPurch
+            ApplyPurchaseNoticeColumnExclusions wsPurch
+            WritePurchaseNoticeJrTotalRow wsPurch
         End If
     End If
 
