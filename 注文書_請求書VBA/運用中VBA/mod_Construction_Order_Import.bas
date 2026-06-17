@@ -175,6 +175,8 @@ Public Sub ImportConstructionDocument()
 
     RefreshBasicInfoConstructionTotals
 
+    NormalizeManagedImportSheetOrder
+
     If Not lastSheet Is Nothing Then
         lastSheet.Activate
         lastSheet.Range("A1").Select
@@ -408,8 +410,7 @@ Private Sub ImportOneConstructionDocument(ByVal srcPath As String, _
     Dim wsWeld As Worksheet
     Dim wsPurch As Worksheet
     Dim wsActivate As Worksheet
-    Dim docBlockAnchor As Worksheet
-    Set docBlockAnchor = ResolveImportSheetInsertAfter()
+    Set mLastCreatedImportSheet = GetImportSheetAnchorSheet()
 
     If worksRows.Count > 0 Then
         Set wsWorks = BuildConstructionOutputSheet( _
@@ -434,7 +435,7 @@ Private Sub ImportOneConstructionDocument(ByVal srcPath As String, _
         End If
         Set wsPurch = CreateOrReplaceSheet(purchName)
         If Not wsPurch Is Nothing Then
-            wsPurch.Tab.Color = RGB(131, 226, 142)   ' #83E28E
+            wsPurch.Tab.Color = RGB(233, 241, 123)   ' #E9F17B
             WriteRecordsToSheet wsPurch, purchRows
             ApplyPurchaseNoticeLayout wsPurch
             SortPurchaseSheet wsPurch, PURCHASE_NOTICE_SEIRI_COL, PURCHASE_NOTICE_KIND_COL
@@ -447,7 +448,7 @@ Private Sub ImportOneConstructionDocument(ByVal srcPath As String, _
         End If
     End If
 
-    ArrangeDocumentImportSheetOrder wsWorks, wsWeld, wsPurch, docBlockAnchor
+    NormalizeManagedImportSheetOrder
 
     tWorks = tWorks + worksRows.Count
     tWeld = tWeld + weldRows.Count
@@ -1033,39 +1034,52 @@ Private Function CreateOrReplaceSheet(ByVal sheetName As String) As Worksheet
     Set CreateOrReplaceSheet = ws
 End Function
 
-Private Sub ArrangeDocumentImportSheetOrder(ByVal worksSheet As Worksheet, _
-                                            ByVal weldSheet As Worksheet, _
-                                            ByVal purchSheet As Worksheet, _
-                                            ByVal blockAnchor As Worksheet)
+Private Sub NormalizeManagedImportSheetOrder()
+    Dim anchorSheet As Worksheet
+    Set anchorSheet = GetImportSheetAnchorSheet()
+    If anchorSheet Is Nothing Then Exit Sub
+
+    Dim orderedSheets As Collection
+    Set orderedSheets = New Collection
+
+    AppendOutputSheetsBySuffix orderedSheets, CONSTRUCTION_SHEET_SUFFIX_WORKS
+    AppendOutputSheetsBySuffix orderedSheets, CONSTRUCTION_SHEET_SUFFIX_WELDING
+    AppendPurchaseOutputSheets orderedSheets
+
+    If orderedSheets.Count = 0 Then Exit Sub
+
     Dim prev As Worksheet
-    Set prev = blockAnchor
+    Set prev = anchorSheet
 
     On Error Resume Next
-    If Not worksSheet Is Nothing Then
-        If Not prev Is Nothing Then
-            worksSheet.Move After:=prev
-        Else
-            worksSheet.Move Before:=ThisWorkbook.Worksheets(1)
-        End If
-        Set prev = worksSheet
-    End If
-
-    If Not weldSheet Is Nothing Then
-        If Not prev Is Nothing Then
-            weldSheet.Move After:=prev
-        End If
-        Set prev = weldSheet
-    End If
-
-    If Not purchSheet Is Nothing Then
-        If Not prev Is Nothing Then
-            purchSheet.Move After:=prev
-        End If
-        Set prev = purchSheet
-    End If
+    Dim ws As Worksheet
+    For Each ws In orderedSheets
+        ws.Move After:=prev
+        Set prev = ws
+    Next ws
     On Error GoTo 0
 
     If Not prev Is Nothing Then Set mLastCreatedImportSheet = prev
+End Sub
+
+Private Sub AppendOutputSheetsBySuffix(ByVal target As Collection, ByVal suffixText As String)
+    Dim ws As Worksheet
+    For Each ws In ThisWorkbook.Worksheets
+        If IsManagedImportOutputSheet(ws) Then
+            If SheetNameEndsWithSuffixText(ws.Name, suffixText) Then
+                target.Add ws
+            End If
+        End If
+    Next ws
+End Sub
+
+Private Sub AppendPurchaseOutputSheets(ByVal target As Collection)
+    Dim ws As Worksheet
+    For Each ws In ThisWorkbook.Worksheets
+        If IsPurchaseOutputSheet(ws) Then
+            target.Add ws
+        End If
+    Next ws
 End Sub
 
 Private Sub WriteRecordsToSheet(ByVal ws As Worksheet, ByVal rows As Collection)
