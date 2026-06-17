@@ -117,11 +117,9 @@ Public Sub ApplySubcontractorDropdowns(ByVal ws As Worksheet)
     Else
         Dim names As Variant
         names = GetSubcontractorList()
-        If Not IsArray(names) Then
-            MsgBox "基本情報の施工会社に対応する業者マスタA列の候補が見つかりません。", vbExclamation
-            GoTo Cleanup
+        If IsArray(names) Then
+            ApplyVendorColumnDropdownWithNames ws, COL_VENDOR, names, lastRow
         End If
-        ApplyVendorColumnDropdownWithNames ws, COL_VENDOR, names, lastRow
     End If
 
 Cleanup:
