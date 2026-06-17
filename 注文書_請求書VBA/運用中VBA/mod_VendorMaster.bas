@@ -53,6 +53,11 @@ Private Const VENDOR_COMBO_NAME As String = "ComboBoxVendor"
 Private mVendorPromptTime As Date
 Private mVendorTargetAddress As String
 Private mLastVendorBlockCount As Long
+Private mSyncVendorBlocksInProgress As Boolean
+
+Public Function IsSyncVendorBlocksInProgress() As Boolean
+    IsSyncVendorBlocksInProgress = mSyncVendorBlocksInProgress
+End Function
 
 Public Sub RefreshVendorListForBasicInfo(Optional ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet()
@@ -469,8 +474,22 @@ End Sub
 
 Public Sub SyncVendorBlocksFromCount(ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Exit Sub
+    If mSyncVendorBlocksInProgress Then Exit Sub
+
+    mSyncVendorBlocksInProgress = True
+
+    Dim prevEvents As Boolean
+    Dim prevScreenUpdating As Boolean
+    Dim prevCalculation As XlCalculation
+    prevEvents = Application.EnableEvents
+    prevScreenUpdating = Application.ScreenUpdating
+    prevCalculation = Application.Calculation
 
     On Error GoTo ExitHandler
+
+    Application.EnableEvents = False
+    Application.ScreenUpdating = False
+    Application.Calculation = xlCalculationManual
 
     Dim vendorCount As Long
     vendorCount = GetVendorBlockCount(wsInfo)
@@ -523,10 +542,13 @@ Public Sub SyncVendorBlocksFromCount(ByVal wsInfo As Worksheet)
     RefreshAllVendorUnitPricesForBasicInfo wsInfo
     mod_WeldingUnitPrice.ApplyWeldingVendorUnitPricesForBasicInfo wsInfo
     mLastVendorBlockCount = vendorCount
-    Exit Sub
 
 ExitHandler:
+    Application.Calculation = prevCalculation
+    Application.ScreenUpdating = prevScreenUpdating
+    Application.EnableEvents = prevEvents
     Application.CutCopyMode = False
+    mSyncVendorBlocksInProgress = False
 End Sub
 
 Public Function GetVendorUnitPriceMonitorRange(ByVal wsInfo As Worksheet) As Range
@@ -582,11 +604,20 @@ End Sub
 Public Sub HandleVendorUnitPriceMonitorChange(ByVal wsInfo As Worksheet, ByVal changedRange As Range)
     If wsInfo Is Nothing Then Exit Sub
     If changedRange Is Nothing Then Exit Sub
+    If mSyncVendorBlocksInProgress Then Exit Sub
     If Intersect(changedRange, GetVendorUnitPriceMonitorRange(wsInfo)) Is Nothing Then Exit Sub
+
+    Dim prevEvents As Boolean
+    prevEvents = Application.EnableEvents
+    On Error GoTo ExitHandler
+    Application.EnableEvents = False
 
     RefreshAllVendorUnitPricesForBasicInfo wsInfo
     mod_WeldingUnitPrice.ApplyWeldingVendorUnitPricesForBasicInfo wsInfo, False, _
         GetPreferredWeldingRatioColumnFromChange(wsInfo, changedRange)
+
+ExitHandler:
+    Application.EnableEvents = prevEvents
 End Sub
 
 Private Function GetPreferredWeldingRatioColumnFromChange(ByVal wsInfo As Worksheet, _
@@ -1526,7 +1557,9 @@ Private Sub CopyVendorBlockTotalRowsFromTemplate(ByVal wsInfo As Worksheet, ByVa
                                   wsInfo.Cells(BASIC_INFO_VENDOR_TOTAL_ROW, VendorValueColumnByIndex(destVendorIndex)))
 
     SafeUnmergeRange destRange
-    sourceRange.Copy Destination:=destRange
+    destRange.ClearContents
+    sourceRange.Copy
+    destRange.PasteSpecial Paste:=xlPasteFormats
     Application.CutCopyMode = False
 End Sub
 
