@@ -1559,8 +1559,7 @@ Private Sub CopyVendorBlockTotalRowsFromTemplate(ByVal wsInfo As Worksheet, ByVa
 
     SafeUnmergeRange destRange
     destRange.ClearContents
-    sourceRange.Copy
-    destRange.PasteSpecial Paste:=xlPasteFormats
+    sourceRange.Copy Destination:=destRange
     Application.CutCopyMode = False
 End Sub
 
