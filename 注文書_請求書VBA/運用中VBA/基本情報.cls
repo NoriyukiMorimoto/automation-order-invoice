@@ -1,9 +1,16 @@
 Option Explicit
 
 Private Sub Worksheet_Activate()
+    Dim prevCalc As XlCalculation, prevScreen As Boolean
+    prevScreen = Application.ScreenUpdating
+    prevCalc = Application.Calculation
+
     On Error GoTo ExitHandler
     Application.EnableEvents = False
+    Application.ScreenUpdating = False
+    Application.Calculation = xlCalculationManual
 
+    mod_VendorMaster.ClearVendorRowsCache
     mod_FillManagerName.HideOfficeComboBox Me
     mod_FillManagerName.RefreshBranchOfficeValidation True
     mod_VendorMaster.InitVendorBlockCountFromSheet Me
@@ -12,6 +19,8 @@ Private Sub Worksheet_Activate()
     mod_Construction_Order_Import.RefreshBasicInfoConstructionTotals
 
 ExitHandler:
+    Application.Calculation = prevCalc
+    Application.ScreenUpdating = prevScreen
     Application.EnableEvents = True
 End Sub
 
@@ -32,8 +41,14 @@ Private Sub Worksheet_Change(ByVal target As Range)
 
     If mod_VendorMaster.IsSyncVendorBlocksInProgress() Then Exit Sub
 
+    Dim prevCalc As XlCalculation, prevScreen As Boolean
+    prevScreen = Application.ScreenUpdating
+    prevCalc = Application.Calculation
+
     On Error GoTo ExitHandler
     Application.EnableEvents = False
+    Application.ScreenUpdating = False
+    Application.Calculation = xlCalculationManual
 
     Dim needComboPrompt As Boolean
     needComboPrompt = False
@@ -99,14 +114,25 @@ Private Sub Worksheet_Change(ByVal target As Range)
     End If
 
     If Not Intersect(target, vendorNameRange) Is Nothing Then
-        mod_VendorMaster.FillVendorInfoToBasicInfo Me, Intersect(target, vendorNameRange).Cells(1, 1)
+        Dim changedVendorCell As Range
+        Set changedVendorCell = Intersect(target, vendorNameRange).Cells(1, 1)
+        mod_VendorMaster.FillVendorInfoToBasicInfo Me, changedVendorCell
         mod_VendorMaster.CancelScheduledVendorListDropdown
         mod_VendorMaster.HideVendorComboBox Me
-        mod_Construction_Order_Import.RefreshBasicInfoConstructionTotals
+        mod_Construction_Order_Import.RefreshBasicInfoConstructionTotals _
+            mod_VendorMaster.GetVendorIndexFromValueColumnPublic(changedVendorCell.Column)
     End If
 
-    If Not Intersect(target, vendorUnitPriceMonitorRange) Is Nothing Then
-        mod_VendorMaster.HandleVendorUnitPriceMonitorChange Me, target
+    Dim monitorHit As Range
+    Set monitorHit = Intersect(target, vendorUnitPriceMonitorRange)
+    If Not monitorHit Is Nothing Then
+        Dim nameHit As Range
+        Set nameHit = Intersect(monitorHit, vendorNameRange)
+        If nameHit Is Nothing Then
+            mod_VendorMaster.HandleVendorUnitPriceMonitorChange Me, target
+        ElseIf monitorHit.Cells.CountLarge > nameHit.Cells.CountLarge Then
+            mod_VendorMaster.HandleVendorUnitPriceMonitorChange Me, target
+        End If
     End If
 
     mod_DebugLog.Log "[Sheet1] needComboPrompt=" & needComboPrompt
@@ -117,7 +143,9 @@ Private Sub Worksheet_Change(ByVal target As Range)
     End If
 
 ExitHandler:
-    mod_DebugLog.Log "[Sheet1] Worksheet_Change ùIóπ EnableEvents=" & Application.EnableEvents
+    mod_DebugLog.Log "[Sheet1] Worksheet_Change done EnableEvents=" & Application.EnableEvents
+    Application.Calculation = prevCalc
+    Application.ScreenUpdating = prevScreen
     Application.EnableEvents = True
 End Sub
 
