@@ -30,6 +30,8 @@ Private Sub Worksheet_Change(ByVal target As Range)
         Exit Sub
     End If
 
+    If mod_VendorMaster.IsSyncVendorBlocksInProgress() Then Exit Sub
+
     On Error GoTo ExitHandler
     Application.EnableEvents = False
 
