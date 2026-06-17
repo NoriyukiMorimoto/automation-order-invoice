@@ -339,7 +339,7 @@ Public Sub ImportConstructionDocument()
         Dim wsPurch As Worksheet
         Set wsPurch = CreateOrReplaceSheet(purchName)
         If Not wsPurch Is Nothing Then
-            If docType = DOC_NOTICE Then wsPurch.Tab.Color = RGB(255, 255, 0)
+            wsPurch.Tab.Color = RGB(131, 226, 142)   ' #83E28E
             WriteRecordsToSheet wsPurch, purchRows
             If docType = DOC_NOTICE Then
                 ApplyPurchaseNoticeLayout wsPurch
