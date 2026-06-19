@@ -134,6 +134,9 @@ Private Const WELDING_PRICE_FIRST_RAIL_DAY_COL As Long = 9
 Private Const WELDING_PRICE_VENDOR_NAME_ROW As Long = 5
 Private Const UNIT_PRICE_VENDOR_NAME_ROW As Long = 5
 Private Const UNIT_PRICE_VENDOR_FIRST_DAY_COL As Long = 7
+Private Const UNIT_PRICE_WORK_TYPE_COL As Long = 3
+Private Const UNIT_PRICE_REF_DAY_COL As Long = 5
+Private Const UNIT_PRICE_REF_NIGHT_COL As Long = 6
 
 Private Const SOURCE_SHEET_NAME_CELL As String = "A3"
 
@@ -1445,6 +1448,7 @@ Private Function LookupSubcontractorVendorPrice( _
     ByVal isWeldingSheet As Boolean) As Variant
 
     LookupSubcontractorVendorPrice = Empty
+    If IsSanpaiRow(ws, rowIndex) Then Exit Function
 
     Dim recordKey As String
     If isWeldingSheet Then
@@ -1479,7 +1483,7 @@ Private Function LookupSubcontractorVendorPrice( _
 
         Dim dayNightPrices As Variant
         dayNightPrices = vendorPriceRows(recordKey)
-        LookupSubcontractorVendorPrice = SelectDayNightPrice(dayNightText, dayNightPrices)
+        LookupSubcontractorVendorPrice = SelectUsableDayNightPrice(dayNightText, dayNightPrices)
     End If
 End Function
 
@@ -1567,9 +1571,13 @@ Private Sub ApplySubcontractorPricesBatch( _
     Dim seiriData As Variant
     Dim dayNightData As Variant
     Dim lineData As Variant
+    Dim typeData As Variant
+    Dim typeColumn As Long
+    typeColumn = OutputSheetCol(ws, COL_TYPE)
     seiriData = ws.Range(ws.Cells(2, seiriColumn), ws.Cells(lastRow, seiriColumn)).Value2
     dayNightData = ws.Range(ws.Cells(2, dayNightColumn), ws.Cells(lastRow, dayNightColumn)).Value2
     lineData = ws.Range(ws.Cells(2, lineColumn), ws.Cells(lastRow, lineColumn)).Value2
+    typeData = ws.Range(ws.Cells(2, typeColumn), ws.Cells(lastRow, typeColumn)).Value2
 
     Dim vendorColData() As Variant
     ReDim vendorColData(1 To vendorColumns.Count)
@@ -1596,6 +1604,8 @@ Private Sub ApplySubcontractorPricesBatch( _
 
         Dim r As Long
         For r = 1 To rowCount
+            If IsSanpaiTypeText(CommonNzText(GetArrayCellValue(typeData, r, 1))) Then GoTo NextBatchRow
+
             vendorColIndex = 0
             For Each vendorCol In vendorColumns
                 vendorColIndex = vendorColIndex + 1
@@ -1603,7 +1613,7 @@ Private Sub ApplySubcontractorPricesBatch( _
                     CommonNzText(GetArrayCellValue(vendorColData(vendorColIndex), r, 1)))
                 If rowVendorKey = CStr(vendorKey) Then
                     vendorPrice = LookupSubcontractorVendorPriceFromArrays( _
-                        seiriData, dayNightData, lineData, vendorColData(vendorColIndex), _
+                        seiriData, dayNightData, lineData, typeData, vendorColData(vendorColIndex), _
                         r, CLng(vendorCol), lineSheetMap, vendorPriceCaches, isWeldingSheet)
                     If Not IsEmpty(vendorPrice) And Not IsError(vendorPrice) Then
                         priceValues(r, 1) = vendorPrice
@@ -1612,6 +1622,7 @@ Private Sub ApplySubcontractorPricesBatch( _
                     Exit For
                 End If
             Next vendorCol
+NextBatchRow:
         Next r
 
         ws.Range(ws.Cells(2, priceColumn), ws.Cells(lastRow, priceColumn)).Value2 = priceValues
@@ -1679,6 +1690,7 @@ Private Function LookupSubcontractorVendorPriceFromArrays( _
     ByVal seiriData As Variant, _
     ByVal dayNightData As Variant, _
     ByVal lineData As Variant, _
+    ByVal typeData As Variant, _
     ByVal vendorData As Variant, _
     ByVal rowIndex As Long, _
     ByVal vendorColumn As Long, _
@@ -1687,6 +1699,7 @@ Private Function LookupSubcontractorVendorPriceFromArrays( _
     ByVal isWeldingSheet As Boolean) As Variant
 
     LookupSubcontractorVendorPriceFromArrays = Empty
+    If IsSanpaiTypeText(CommonNzText(GetArrayCellValue(typeData, rowIndex, 1))) Then Exit Function
 
     Dim recordKey As String
     If isWeldingSheet Then
@@ -1723,7 +1736,7 @@ Private Function LookupSubcontractorVendorPriceFromArrays( _
 
         Dim dayNightPrices As Variant
         dayNightPrices = vendorPriceRows(recordKey)
-        LookupSubcontractorVendorPriceFromArrays = SelectDayNightPrice(dayNightText, dayNightPrices)
+        LookupSubcontractorVendorPriceFromArrays = SelectUsableDayNightPrice(dayNightText, dayNightPrices)
     End If
 End Function
 
@@ -2308,14 +2321,30 @@ Private Function GetVendorUnitPriceRows(ByVal unitPriceSheetName As String, _
     Set priceSheet = ThisWorkbook.worksheets(unitPriceSheetName)
     On Error GoTo 0
     If priceSheet Is Nothing Then
+        LogCI "é{çHâÔé–íPâø: ÉVÅ[Égñ¢åüèo [" & unitPriceSheetName & "]"
+        vendorPriceCaches.Add cacheKey, result
+        Set GetVendorUnitPriceRows = result
+        Exit Function
+    End If
+    If Not mod_MaterialPriceImport.IsConstructionUnitPriceSheet(priceSheet) Then
+        LogCI "é{çHâÔé–íPâø: çHéñíPâøÉVÅ[ÉgÇ≈ÇÕÇ»Ç¢ [" & unitPriceSheetName & "]"
         vendorPriceCaches.Add cacheKey, result
         Set GetVendorUnitPriceRows = result
         Exit Function
     End If
 
+    Dim aliasMap As Object
+    Set aliasMap = Nothing
+    Dim wsInfo As Worksheet
+    Set wsInfo = CommonGetBasicInfoWorksheet(ThisWorkbook)
+    If Not wsInfo Is Nothing Then
+        Set aliasMap = GetVendorAliasMap(GetBasicInfoCellText(wsInfo, BASIC_INFO_BRANCH_CELL))
+    End If
+
     Dim vendorDayColumn As Long
-    vendorDayColumn = FindUnitPriceVendorDayColumn(priceSheet, vendorName)
+    vendorDayColumn = FindUnitPriceVendorDayColumn(priceSheet, vendorName, aliasMap)
     If vendorDayColumn = 0 Then
+        LogCI "é{çHâÔé–íPâø: ã∆é“óÒñ¢åüèo sheet=[" & unitPriceSheetName & "] vendor=[" & vendorName & "]"
         vendorPriceCaches.Add cacheKey, result
         Set GetVendorUnitPriceRows = result
         Exit Function
@@ -2328,10 +2357,14 @@ Private Function GetVendorUnitPriceRows(ByVal unitPriceSheetName As String, _
     For r = UNIT_PRICE_DATA_START_ROW To priceLastRow
         Dim recordKey As String
         recordKey = NormalizeRecordKey(priceSheet.Cells(r, COL_SEIRI).value)
-        If recordKey <> "" And Not result.Exists(recordKey) Then
-            result.Add recordKey, Array(priceSheet.Cells(r, vendorDayColumn).value, _
-                                        priceSheet.Cells(r, vendorDayColumn + 1).value)
+        If recordKey = "" Then GoTo NextVendorPriceRow
+        If Not IsUnitPriceVendorRowPriceEligible(priceSheet, r, vendorDayColumn) Then GoTo NextVendorPriceRow
+
+        If Not result.Exists(recordKey) Then
+            result.Add recordKey, Array(priceSheet.Cells(r, vendorDayColumn).Value2, _
+                                        priceSheet.Cells(r, vendorDayColumn + 1).Value2)
         End If
+NextVendorPriceRow:
     Next r
 
     vendorPriceCaches.Add cacheKey, result
@@ -2339,9 +2372,10 @@ Private Function GetVendorUnitPriceRows(ByVal unitPriceSheetName As String, _
 End Function
 
 Private Function FindUnitPriceVendorDayColumn(ByVal priceSheet As Worksheet, _
-                                              ByVal vendorName As String) As Long
+                                              ByVal vendorName As String, _
+                                              Optional ByVal aliasMap As Object = Nothing) As Long
     Dim vendorKey As String
-    vendorKey = NormalizeVendorPriceName(vendorName)
+    vendorKey = ResolveVendorCanonicalKey(vendorName, aliasMap)
     If vendorKey = "" Then Exit Function
 
     Dim lastColumn As Long
@@ -2349,14 +2383,62 @@ Private Function FindUnitPriceVendorDayColumn(ByVal priceSheet As Worksheet, _
                                   priceSheet.Columns.Count).End(xlToLeft).Column
 
     Dim c As Long
-    For c = UNIT_PRICE_VENDOR_FIRST_DAY_COL To lastColumn
-        If StrComp(NormalizeVendorPriceName( _
-                       CommonNzText(priceSheet.Cells(UNIT_PRICE_VENDOR_NAME_ROW, c).value)), _
-                   vendorKey, vbTextCompare) = 0 Then
-            FindUnitPriceVendorDayColumn = c
-            Exit Function
+    For c = UNIT_PRICE_VENDOR_FIRST_DAY_COL To lastColumn Step 2
+        Dim headerKey As String
+        headerKey = ResolveVendorCanonicalKey( _
+            CommonNzText(priceSheet.Cells(UNIT_PRICE_VENDOR_NAME_ROW, c).value), aliasMap)
+        If headerKey <> "" Then
+            If StrComp(headerKey, vendorKey, vbTextCompare) = 0 Then
+                FindUnitPriceVendorDayColumn = c
+                Exit Function
+            End If
         End If
     Next c
+End Function
+
+Private Function IsSanpaiTypeText(ByVal typeText As String) As Boolean
+    IsSanpaiTypeText = (InStr(1, CommonRemoveAllSpaces(CommonNormalizeText(typeText)), _
+                                SANPAI_KEYWORD, vbTextCompare) > 0)
+End Function
+
+Private Function UnitPriceValueIsUsable(ByVal value As Variant) As Boolean
+    If IsEmpty(value) Or IsError(value) Then Exit Function
+    If Len(Trim$(CommonNzText(value))) = 0 Then Exit Function
+    UnitPriceValueIsUsable = IsNumeric(value)
+End Function
+
+Private Function IsUnitPriceSheetSanpaiRow(ByVal priceSheet As Worksheet, _
+                                           ByVal rowIndex As Long) As Boolean
+    IsUnitPriceSheetSanpaiRow = IsSanpaiTypeText( _
+        CommonNzText(priceSheet.Cells(rowIndex, UNIT_PRICE_WORK_TYPE_COL).value))
+End Function
+
+Private Function IsUnitPriceVendorRowPriceEligible(ByVal priceSheet As Worksheet, _
+                                                   ByVal rowIndex As Long, _
+                                                   ByVal vendorDayColumn As Long) As Boolean
+    If IsUnitPriceSheetSanpaiRow(priceSheet, rowIndex) Then Exit Function
+
+    Dim hasRefDay As Boolean
+    Dim hasRefNight As Boolean
+    hasRefDay = (Len(Trim$(CommonNzText(priceSheet.Cells(rowIndex, UNIT_PRICE_REF_DAY_COL).value))) > 0)
+    hasRefNight = (Len(Trim$(CommonNzText(priceSheet.Cells(rowIndex, UNIT_PRICE_REF_NIGHT_COL).value))) > 0)
+    If Not hasRefDay And Not hasRefNight Then Exit Function
+
+    Dim dayPrice As Variant
+    Dim nightPrice As Variant
+    dayPrice = priceSheet.Cells(rowIndex, vendorDayColumn).Value2
+    nightPrice = priceSheet.Cells(rowIndex, vendorDayColumn + 1).Value2
+    IsUnitPriceVendorRowPriceEligible = UnitPriceValueIsUsable(dayPrice) Or _
+                                        UnitPriceValueIsUsable(nightPrice)
+End Function
+
+Private Function SelectUsableDayNightPrice(ByVal dayNightText As String, _
+                                             ByVal dayNightPrices As Variant) As Variant
+    Dim selectedPrice As Variant
+    selectedPrice = SelectDayNightPrice(dayNightText, dayNightPrices)
+    If UnitPriceValueIsUsable(selectedPrice) Then
+        SelectUsableDayNightPrice = selectedPrice
+    End If
 End Function
 
 Private Function NormalizeVendorPriceName(ByVal vendorName As String) As String
@@ -2538,8 +2620,8 @@ Private Sub FormatSubcontractorPriceColumns(ByVal ws As Worksheet, _
 End Sub
 
 Private Function IsSanpaiRow(ByVal ws As Worksheet, ByVal rowIndex As Long) As Boolean
-    IsSanpaiRow = (InStr(1, CommonRemoveAllSpaces(CommonNzText(ws.Cells(rowIndex, OutputSheetCol(ws, COL_TYPE)).value)), _
-                         SANPAI_KEYWORD, vbTextCompare) > 0)
+    IsSanpaiRow = IsSanpaiTypeText( _
+        CommonNzText(ws.Cells(rowIndex, OutputSheetCol(ws, COL_TYPE)).value))
 End Function
 
 Private Function GetSanpaiFillColor() As Long
@@ -3094,7 +3176,7 @@ End Sub
 
 Private Function ResolveUnitPriceSheetName(ByVal lineSheetMap As Object, _
                                            ByVal importedLineName As String) As String
-    If lineSheetMap Is Nothing Then Exit Function
+    If lineSheetMap Is Nothing Then GoTo DirectLookup
 
     Dim key As String
     key = "E|" & NormalizeLineLookupText(importedLineName, False)
@@ -3106,7 +3188,11 @@ Private Function ResolveUnitPriceSheetName(ByVal lineSheetMap As Object, _
     key = "S|" & NormalizeLineLookupText(importedLineName, True)
     If Len(key) > 2 And lineSheetMap.Exists(key) Then
         ResolveUnitPriceSheetName = CStr(lineSheetMap(key))
+        Exit Function
     End If
+
+DirectLookup:
+    ResolveUnitPriceSheetName = FindImportedUnitPriceSheetName(importedLineName)
 End Function
 
 Private Function NormalizeLineLookupText(ByVal sourceText As String, _
