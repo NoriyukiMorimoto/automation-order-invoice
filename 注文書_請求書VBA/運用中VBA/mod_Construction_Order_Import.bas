@@ -465,6 +465,7 @@ Private Sub ImportOneConstructionDocument(ByVal srcPath As String, _
                 PURCHASE_NOTICE_SEIRI_COL, PURCHASE_NOTICE_KIND_COL, _
                 PURCHASE_NOTICE_AUTO_AMOUNT_COL, PURCHASE_NOTICE_PRICE_COMPARE_COL, _
                 PURCHASE_NOTICE_PRICE_GUIDANCE_COL
+            ApplyOutputSheetHeaderFreezePanes wsPurch
             If wsActivate Is Nothing Then Set wsActivate = wsPurch
         End If
     End If
@@ -552,6 +553,8 @@ Private Function BuildConstructionOutputSheet(ByVal sheetName As String, _
     Else
         ApplyOutputSheetHeaderAutoFilter ws
     End If
+
+    ApplyOutputSheetHeaderFreezePanes ws
 
     Set BuildConstructionOutputSheet = ws
 End Function
@@ -3428,6 +3431,26 @@ Private Sub ApplyOutputSheetHeaderAutoFilter( _
     On Error GoTo 0
 
     ws.Range(ws.Cells(1, 1), ws.Cells(lastRow, lastCol)).AutoFilter
+End Sub
+
+Private Sub ApplyOutputSheetHeaderFreezePanes(ByVal ws As Worksheet)
+    If ws Is Nothing Then Exit Sub
+
+    Dim prevSheet As Worksheet
+    On Error Resume Next
+    Set prevSheet = ActiveSheet
+    On Error GoTo 0
+
+    ws.Activate
+    With ws.Application.ActiveWindow
+        If .FreezePanes Then .FreezePanes = False
+        ws.Range("A2").Select
+        .FreezePanes = True
+    End With
+
+    On Error Resume Next
+    If Not prevSheet Is Nothing Then prevSheet.Activate
+    On Error GoTo 0
 End Sub
 
 Private Sub ApplyPriceGuidanceColumnLayout(ByVal ws As Worksheet)
