@@ -194,11 +194,8 @@ Public Sub ImportConstructionDocument()
     Application.EnableEvents = evt
     Application.DisplayAlerts = alerts
 
-    MsgBox "取込みが完了しました。" & vbCrLf & _
-           "ファイル数: " & srcPaths.Count & vbCrLf & _
-           "工事側: " & tWorks & " 件" & vbCrLf & _
-           "レール溶接側: " & tWeld & " 件" & vbCrLf & _
-           "購入充当側: " & tPurch & " 件", vbInformation
+    LogCI "取込み完了 ファイル数=" & srcPaths.Count & _
+          " 工事=" & tWorks & " 溶接=" & tWeld & " 購入=" & tPurch
     Exit Sub
 
 Cleanup:
