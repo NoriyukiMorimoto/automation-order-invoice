@@ -1275,6 +1275,8 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet)
 
     FormatSubcontractorPriceColumns ws, lastRow, insertedColumnCount, subconFirstCol
 
+    ClearStaleOutputTotalFormatting ws, lastRow, lastRow + 1, subconFirstCol, insertedColumnCount
+
     For vendorIndex = 1 To vendorNames.Count
         priceColumn = subconFirstCol + ((vendorIndex - 1) * 2)
         WriteTotalCells ws, lastRow + 1, _
@@ -2256,6 +2258,88 @@ Private Sub WriteTotalCells(ByVal ws As Worksheet, ByVal totalRow As Long, _
     DrawDoubleBorder ws.Cells(totalRow, sumColumn), RGB(255, 0, 0)
 End Sub
 
+Private Function IsOutputTotalLabelText(ByVal text As String) As Boolean
+    Dim normalized As String
+    normalized = Trim$(CommonNormalizeText(CommonNzText(text)))
+    IsOutputTotalLabelText = (normalized = "JR合計") Or _
+        (Len(normalized) >= 2 And Right$(normalized, 2) = "合計")
+End Function
+
+Private Sub ClearDoubleBorder(ByVal target As Range)
+    Dim edgeId As Variant
+    For Each edgeId In Array(xlEdgeLeft, xlEdgeTop, xlEdgeRight, xlEdgeBottom)
+        With target.Borders(edgeId)
+            .LineStyle = xlLineStyleNone
+        End With
+    Next edgeId
+End Sub
+
+Private Sub ApplyThinGridBorder(ByVal target As Range)
+    With target.Borders
+        .LineStyle = xlContinuous
+        .Weight = xlThin
+        .Color = RGB(150, 150, 150)
+    End With
+End Sub
+
+Private Sub ClearOutputTotalPairFormatting(ByVal ws As Worksheet, _
+                                           ByVal rowIndex As Long, _
+                                           ByVal labelColumn As Long, _
+                                           ByVal sumColumn As Long, _
+                                           ByVal currentTotalRow As Long, _
+                                           ByVal lastDataRow As Long, _
+                                           ByVal seiriColumn As Long)
+    If rowIndex = currentTotalRow Then Exit Sub
+
+    ClearDoubleBorder ws.Cells(rowIndex, labelColumn)
+    ClearDoubleBorder ws.Cells(rowIndex, sumColumn)
+
+    If IsOutputTotalLabelText(CommonNzText(ws.Cells(rowIndex, labelColumn).value)) Then
+        ws.Cells(rowIndex, labelColumn).ClearContents
+        ws.Cells(rowIndex, sumColumn).ClearContents
+    ElseIf rowIndex <= lastDataRow And _
+           Trim$(CommonNzText(ws.Cells(rowIndex, seiriColumn).value)) <> "" Then
+        ApplyThinGridBorder ws.Cells(rowIndex, labelColumn)
+        ApplyThinGridBorder ws.Cells(rowIndex, sumColumn)
+    End If
+End Sub
+
+Private Sub ClearStaleOutputTotalFormatting(ByVal ws As Worksheet, _
+                                            ByVal lastDataRow As Long, _
+                                            ByVal totalRow As Long, _
+                                            ByVal subconFirstCol As Long, _
+                                            ByVal subconColumnCount As Long)
+    Dim scanLastRow As Long
+    scanLastRow = lastDataRow + 5
+    If Not ws.UsedRange Is Nothing Then
+        Dim usedLastRow As Long
+        usedLastRow = ws.UsedRange.Row + ws.UsedRange.Rows.Count - 1
+        If usedLastRow > scanLastRow Then scanLastRow = usedLastRow
+    End If
+
+    Dim seiriColumn As Long
+    seiriColumn = OutputSheetSeiriColumn(ws)
+
+    Dim jrLabelColumn As Long
+    Dim jrSumColumn As Long
+    jrLabelColumn = OutputSheetCol(ws, COL_JR_PRICE)
+    jrSumColumn = OutputSheetCol(ws, COL_JR_AMOUNT)
+
+    Dim rowIndex As Long
+    For rowIndex = 2 To scanLastRow
+        ClearOutputTotalPairFormatting ws, rowIndex, jrLabelColumn, jrSumColumn, _
+            totalRow, lastDataRow, seiriColumn
+
+        If subconColumnCount > 0 Then
+            Dim colIndex As Long
+            For colIndex = subconFirstCol To subconFirstCol + subconColumnCount - 1 Step 2
+                ClearOutputTotalPairFormatting ws, rowIndex, colIndex, colIndex + 1, _
+                    totalRow, lastDataRow, seiriColumn
+            Next colIndex
+        End If
+    Next rowIndex
+End Sub
+
 Private Sub DrawDoubleBorder(ByVal target As Range, ByVal lineColor As Long)
     Dim edgeId As Variant
     For Each edgeId In Array(xlEdgeLeft, xlEdgeTop, xlEdgeRight, xlEdgeBottom)
@@ -2277,6 +2361,8 @@ Private Sub WriteJrTotalRow(ByVal ws As Worksheet)
     lastRow = GetLastDataRow(ws)
     If lastRow < 2 Then Exit Sub
 
+    ClearStaleOutputTotalFormatting ws, lastRow, lastRow + 1, 0, 0
+
     WriteTotalCells ws, lastRow + 1, _
                     OutputSheetCol(ws, COL_JR_PRICE), "JR合計", _
                     OutputSheetCol(ws, COL_JR_AMOUNT), lastRow
@@ -2286,6 +2372,8 @@ Private Sub WritePurchaseNoticeJrTotalRow(ByVal ws As Worksheet)
     Dim lastRow As Long
     lastRow = GetLastDataRow(ws, PURCHASE_NOTICE_SEIRI_COL)
     If lastRow < 2 Then Exit Sub
+
+    ClearStaleOutputTotalFormatting ws, lastRow, lastRow + 1, 0, 0
 
     WriteTotalCells ws, lastRow + 1, _
                     PURCHASE_NOTICE_JR_PRICE_COL, "JR合計", _
@@ -3123,7 +3211,23 @@ End Sub
 Private Function GetLastDataRow(ByVal ws As Worksheet, _
                                 Optional ByVal dataKeyColumn As Long = 0) As Long
     If dataKeyColumn = 0 Then dataKeyColumn = OutputSheetSeiriColumn(ws)
-    GetLastDataRow = ws.Cells(ws.rows.Count, dataKeyColumn).End(xlUp).Row
+
+    Dim rowIndex As Long
+    rowIndex = ws.Cells(ws.rows.Count, dataKeyColumn).End(xlUp).Row
+
+    Dim jrLabelColumn As Long
+    jrLabelColumn = OutputSheetCol(ws, COL_JR_PRICE)
+
+    Do While rowIndex >= 2
+        If Trim$(CommonNzText(ws.Cells(rowIndex, dataKeyColumn).value)) <> "" Then Exit Do
+        If IsOutputTotalLabelText(CommonNzText(ws.Cells(rowIndex, jrLabelColumn).value)) Then
+            rowIndex = rowIndex - 1
+        Else
+            Exit Do
+        End If
+    Loop
+
+    GetLastDataRow = rowIndex
 End Function
 
 Public Function IsWeldingOutputSheet(ByVal ws As Worksheet) As Boolean
