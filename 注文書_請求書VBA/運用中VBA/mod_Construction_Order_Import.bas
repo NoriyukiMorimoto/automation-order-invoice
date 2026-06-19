@@ -139,6 +139,8 @@ Private Const SOURCE_SHEET_NAME_CELL As String = "A3"
 
 Private mSuppressOverwritePrompt As Boolean
 Private mLastCreatedImportSheet As Worksheet
+Private mSanpaiFillColorCached As Boolean
+Private mSanpaiFillColorCache As Long
 
 Public Sub ImportConstructionDocument()
     Dim scrn As Boolean, evt As Boolean, alerts As Boolean
@@ -1217,10 +1219,23 @@ Private Function GetOutputLastColumn( _
     End If
 End Function
 
-Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet)
+Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet, _
+                                            Optional ByVal changedRows As Collection = Nothing)
     If ws Is Nothing Then Exit Sub
     If Not IsConstructionVendorOutputSheet(ws) Then Exit Sub
     If FindHeaderColumn(ws, "êÆóùî‘çÜ") = 0 Then Exit Sub
+
+    Dim scrn As Boolean
+    Dim calcMode As XlCalculation
+    Dim evt As Boolean
+    scrn = Application.screenUpdating
+    calcMode = Application.Calculation
+    evt = Application.EnableEvents
+    Application.screenUpdating = False
+    Application.Calculation = xlCalculationManual
+    Application.EnableEvents = False
+
+    On Error GoTo RefreshCleanup
 
     Dim lastRow As Long
     lastRow = GetLastDataRow(ws)
@@ -1230,15 +1245,23 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet)
 
     Dim kindColumn As Long
     kindColumn = FindHeaderColumn(ws, "çHéÌï™óﬁ")
-    If kindColumn = 0 Then Exit Sub
+    If kindColumn = 0 Then GoTo RefreshCleanup
 
     Dim subconFirstCol As Long
     subconFirstCol = OutputSheetSubconPriceFirstCol(ws)
 
-    If kindColumn > subconFirstCol Then
-        ws.Range(ws.Columns(subconFirstCol), _
-                 ws.Columns(kindColumn - 1)).Delete Shift:=xlToLeft
+    Dim layoutMatches As Boolean
+    layoutMatches = SubconColumnLayoutMatches(ws, vendorNames, subconFirstCol, kindColumn)
+
+    If Not layoutMatches Then
+        If kindColumn > subconFirstCol Then
+            ws.Range(ws.Columns(subconFirstCol), _
+                     ws.Columns(kindColumn - 1)).Delete Shift:=xlToLeft
+            kindColumn = FindHeaderColumn(ws, "çHéÌï™óﬁ")
+            If kindColumn = 0 Then GoTo RefreshCleanup
+        End If
     End If
+
     If vendorNames.Count = 0 Or lastRow < 2 Then
         lastRow = GetLastDataRow(ws)
         If lastRow >= 2 Then
@@ -1246,35 +1269,35 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet)
             WriteOutputTotalRows ws, emptyVendors, 0, 0
         End If
         RefreshBasicInfoConstructionTotals
-        Exit Sub
+        GoTo RefreshCleanup
     End If
 
     Dim insertedColumnCount As Long
     insertedColumnCount = vendorNames.Count * 2
-    ws.Range(ws.Columns(subconFirstCol), _
-             ws.Columns(subconFirstCol + insertedColumnCount - 1)).Insert Shift:=xlToRight
 
-    lastRow = GetLastDataRow(ws)
-    If lastRow < 2 Then
-        RefreshBasicInfoConstructionTotals
-        Exit Sub
+    If Not layoutMatches Then
+        ws.Range(ws.Columns(subconFirstCol), _
+                 ws.Columns(subconFirstCol + insertedColumnCount - 1)).Insert Shift:=xlToRight
+
+        lastRow = GetLastDataRow(ws)
+        If lastRow < 2 Then
+            RefreshBasicInfoConstructionTotals
+            GoTo RefreshCleanup
+        End If
+
+        Dim vendorIndex As Long
+        For vendorIndex = 1 To vendorNames.Count
+            Dim vendorName As String
+            Dim priceColumn As Long
+            vendorName = CStr(vendorNames(vendorIndex))
+            priceColumn = subconFirstCol + ((vendorIndex - 1) * 2)
+            ws.Cells(1, priceColumn).value = vendorName & "íPâø"
+            ws.Cells(1, priceColumn + 1).value = vendorName & "ã‡äz"
+        Next vendorIndex
     End If
 
     Dim vendorColumnMap As Object
-    Set vendorColumnMap = CreateObject("Scripting.Dictionary")
-    vendorColumnMap.CompareMode = vbTextCompare
-
-    Dim vendorIndex As Long
-    For vendorIndex = 1 To vendorNames.Count
-        Dim vendorName As String
-        Dim priceColumn As Long
-        vendorName = CStr(vendorNames(vendorIndex))
-        priceColumn = subconFirstCol + ((vendorIndex - 1) * 2)
-
-        vendorColumnMap.Add NormalizeVendorPriceName(vendorName), priceColumn
-        ws.Cells(1, priceColumn).value = vendorName & "íPâø"
-        ws.Cells(1, priceColumn + 1).value = vendorName & "ã‡äz"
-    Next vendorIndex
+    Set vendorColumnMap = BuildVendorPriceColumnMap(vendorNames, subconFirstCol)
 
     Dim lineSheetMap As Object
     Set lineSheetMap = BuildConstructionLineSheetMap()
@@ -1299,31 +1322,161 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet)
     Set vendorColumns = OutputSheetVendorColumns(ws)
 
     Dim matchedCount As Long
-    Dim r As Long
-    For r = 2 To lastRow
-        Dim vendorCol As Variant
-        For Each vendorCol In vendorColumns
-            ApplySubcontractorPriceForRow ws, r, CLng(vendorCol), vendorColumnMap, _
-                lineSheetMap, vendorPriceCaches, seiriColumn, dayNightColumn, _
-                lineColumn, qtyColumn, isWeldingSheet, matchedCount
-        Next vendorCol
-    Next r
+    Dim partialUpdate As Boolean
+    partialUpdate = Not changedRows Is Nothing And changedRows.Count > 0
 
-    FormatSubcontractorPriceColumns ws, lastRow, insertedColumnCount, subconFirstCol
+    If partialUpdate And layoutMatches Then
+        ApplySubcontractorPricesPartial ws, changedRows, vendorColumnMap, vendorColumns, _
+            lineSheetMap, vendorPriceCaches, seiriColumn, dayNightColumn, lineColumn, _
+            qtyColumn, isWeldingSheet, matchedCount
+    Else
+        ApplySubcontractorPricesBatch ws, lastRow, vendorColumnMap, vendorColumns, _
+            lineSheetMap, vendorPriceCaches, seiriColumn, dayNightColumn, lineColumn, _
+            qtyColumn, isWeldingSheet, matchedCount
+    End If
+
+    If Not layoutMatches Then
+        FormatSubcontractorPriceColumns ws, lastRow, insertedColumnCount, subconFirstCol
+        RedrawOutputSheetDataBorders ws
+    End If
 
     WriteOutputTotalRows ws, vendorNames, subconFirstCol, insertedColumnCount
 
-    RedrawOutputSheetDataBorders ws
     RefreshBasicInfoConstructionTotals
     LogCI "é{çHâÔé–ï íPâøóÒ: âÔé–êî=" & vendorNames.Count & _
-          " / íPâøàÍív=" & matchedCount
+          " / íPâøàÍív=" & matchedCount & _
+          IIf(partialUpdate And layoutMatches, " / ïîï™çXêV", "")
+
+RefreshCleanup:
+    Dim refreshErrNo As Long
+    Dim refreshErrDesc As String
+    refreshErrNo = Err.Number
+    refreshErrDesc = Err.Description
+    Err.Clear
+
+    Application.screenUpdating = scrn
+    Application.Calculation = calcMode
+    If calcMode = xlCalculationAutomatic Then
+        On Error Resume Next
+        ws.Calculate
+        On Error GoTo 0
+    End If
+    Application.EnableEvents = evt
+    If refreshErrNo <> 0 Then
+        MsgBox "é{çHâÔé–ï ÇÃíPâøÅEã‡äzóÒÇçXêVÇ≈Ç´Ç‹ÇπÇÒÇ≈ÇµÇΩÅB" & vbCrLf & _
+               refreshErrDesc, vbExclamation
+        LogCI "RefreshSubcontractorPriceColumns Err " & refreshErrNo & ": " & refreshErrDesc
+    End If
 End Sub
 
-Private Sub ApplySubcontractorPriceForRow( _
+Private Function BuildVendorPriceColumnMap(ByVal vendorNames As Collection, _
+                                           ByVal subconFirstCol As Long) As Object
+    Dim result As Object
+    Set result = CreateObject("Scripting.Dictionary")
+    result.CompareMode = vbTextCompare
+
+    Dim vendorIndex As Long
+    For vendorIndex = 1 To vendorNames.Count
+        result.Add NormalizeVendorPriceName(CStr(vendorNames(vendorIndex))), _
+               subconFirstCol + ((vendorIndex - 1) * 2)
+    Next vendorIndex
+
+    Set BuildVendorPriceColumnMap = result
+End Function
+
+Private Function CollectExistingSubconColumnVendors(ByVal ws As Worksheet, _
+                                                    ByVal subconFirstCol As Long, _
+                                                    ByVal kindColumn As Long) As Collection
+    Dim result As New Collection
+    If kindColumn <= subconFirstCol Then
+        Set CollectExistingSubconColumnVendors = result
+        Exit Function
+    End If
+
+    Dim colIndex As Long
+    For colIndex = subconFirstCol To kindColumn - 1 Step 2
+        Dim headerText As String
+        headerText = Trim$(CommonNzText(ws.Cells(1, colIndex).value))
+        If Len(headerText) >= 2 And Right$(headerText, 2) = "íPâø" Then
+            result.Add Left$(headerText, Len(headerText) - 2)
+        End If
+    Next colIndex
+
+    Set CollectExistingSubconColumnVendors = result
+End Function
+
+Private Function SubconColumnLayoutMatches(ByVal ws As Worksheet, _
+                                           ByVal vendorNames As Collection, _
+                                           ByVal subconFirstCol As Long, _
+                                           ByVal kindColumn As Long) As Boolean
+    Dim existingNames As Collection
+    Set existingNames = CollectExistingSubconColumnVendors(ws, subconFirstCol, kindColumn)
+    If existingNames.Count <> vendorNames.Count Then Exit Function
+
+    Dim i As Long
+    For i = 1 To vendorNames.Count
+        If NormalizeVendorPriceName(CStr(existingNames(i))) <> _
+           NormalizeVendorPriceName(CStr(vendorNames(i))) Then Exit Function
+    Next i
+
+    SubconColumnLayoutMatches = True
+End Function
+
+Private Function LookupSubcontractorVendorPrice( _
     ByVal ws As Worksheet, _
     ByVal rowIndex As Long, _
     ByVal vendorColumn As Long, _
+    ByVal lineSheetMap As Object, _
+    ByVal vendorPriceCaches As Object, _
+    ByVal seiriColumn As Long, _
+    ByVal dayNightColumn As Long, _
+    ByVal lineColumn As Long, _
+    ByVal isWeldingSheet As Boolean) As Variant
+
+    LookupSubcontractorVendorPrice = Empty
+
+    Dim recordKey As String
+    If isWeldingSheet Then
+        recordKey = BuildWeldingLookupKey(ws.Cells(rowIndex, seiriColumn).value)
+    Else
+        recordKey = NormalizeRecordKey(ws.Cells(rowIndex, seiriColumn).value)
+    End If
+    If recordKey = "" Then Exit Function
+
+    Dim dayNightText As String
+    dayNightText = CommonNzText(ws.Cells(rowIndex, dayNightColumn).value)
+
+    If isWeldingSheet Then
+        Dim weldingPriceSheetName As String
+        weldingPriceSheetName = ResolveWeldingPriceSheetName()
+        If weldingPriceSheetName = "" Then Exit Function
+        LookupSubcontractorVendorPrice = LookupWeldingOutputVendorPrice( _
+            weldingPriceSheetName, vendorPriceCaches, recordKey, _
+            CommonNzText(ws.Cells(rowIndex, vendorColumn).value), _
+            (vendorColumn = WELD_COL_WELDING_VENDOR), dayNightText)
+    Else
+        Dim unitPriceSheetName As String
+        unitPriceSheetName = ResolveUnitPriceSheetName( _
+            lineSheetMap, CommonNzText(ws.Cells(rowIndex, lineColumn).value))
+        If unitPriceSheetName = "" Then Exit Function
+
+        Dim vendorPriceRows As Object
+        Set vendorPriceRows = GetVendorUnitPriceRows( _
+            unitPriceSheetName, CommonNzText(ws.Cells(rowIndex, vendorColumn).value), vendorPriceCaches)
+        If vendorPriceRows Is Nothing Then Exit Function
+        If Not vendorPriceRows.Exists(recordKey) Then Exit Function
+
+        Dim dayNightPrices As Variant
+        dayNightPrices = vendorPriceRows(recordKey)
+        LookupSubcontractorVendorPrice = SelectDayNightPrice(dayNightText, dayNightPrices)
+    End If
+End Function
+
+Private Sub ApplySubcontractorPricesPartial( _
+    ByVal ws As Worksheet, _
+    ByVal changedRows As Collection, _
     ByVal vendorColumnMap As Object, _
+    ByVal vendorColumns As Collection, _
     ByVal lineSheetMap As Object, _
     ByVal vendorPriceCaches As Object, _
     ByVal seiriColumn As Long, _
@@ -1333,62 +1486,187 @@ Private Sub ApplySubcontractorPriceForRow( _
     ByVal isWeldingSheet As Boolean, _
     ByRef matchedCount As Long)
 
-    Dim rowVendorKey As String
-    rowVendorKey = NormalizeVendorPriceName(CommonNzText(ws.Cells(rowIndex, vendorColumn).value))
-    If rowVendorKey = "" Then Exit Sub
-    If Not vendorColumnMap.Exists(rowVendorKey) Then Exit Sub
+    Dim vendorKey As Variant
+    For Each vendorKey In vendorColumnMap.Keys
+        Dim priceColumn As Long
+        priceColumn = CLng(vendorColumnMap(vendorKey))
 
-    Dim priceColumn As Long
-    priceColumn = CLng(vendorColumnMap(rowVendorKey))
+        Dim rowRef As Variant
+        For Each rowRef In changedRows
+            Dim rowIndex As Long
+            rowIndex = CLng(rowRef)
+
+            Dim vendorCol As Variant
+            Dim rowVendorKey As String
+            Dim appliesToRow As Boolean
+            appliesToRow = False
+            For Each vendorCol In vendorColumns
+                rowVendorKey = NormalizeVendorPriceName( _
+                    CommonNzText(ws.Cells(rowIndex, CLng(vendorCol)).value))
+                If rowVendorKey = CStr(vendorKey) Then
+                    appliesToRow = True
+                    Dim vendorPrice As Variant
+                    vendorPrice = LookupSubcontractorVendorPrice( _
+                        ws, rowIndex, CLng(vendorCol), lineSheetMap, vendorPriceCaches, _
+                        seiriColumn, dayNightColumn, lineColumn, isWeldingSheet)
+                    If Not IsEmpty(vendorPrice) And Not IsError(vendorPrice) Then
+                        ws.Cells(rowIndex, priceColumn).value = vendorPrice
+                        matchedCount = matchedCount + 1
+                    Else
+                        ws.Cells(rowIndex, priceColumn).ClearContents
+                    End If
+                    Exit For
+                End If
+            Next vendorCol
+
+            If Not appliesToRow Then
+                ws.Cells(rowIndex, priceColumn).ClearContents
+            End If
+        Next rowRef
+    Next vendorKey
+End Sub
+
+Private Sub ApplySubcontractorPricesBatch( _
+    ByVal ws As Worksheet, _
+    ByVal lastRow As Long, _
+    ByVal vendorColumnMap As Object, _
+    ByVal vendorColumns As Collection, _
+    ByVal lineSheetMap As Object, _
+    ByVal vendorPriceCaches As Object, _
+    ByVal seiriColumn As Long, _
+    ByVal dayNightColumn As Long, _
+    ByVal lineColumn As Long, _
+    ByVal qtyColumn As Long, _
+    ByVal isWeldingSheet As Boolean, _
+    ByRef matchedCount As Long)
+
+    If lastRow < 2 Then Exit Sub
+
+    Dim rowCount As Long
+    rowCount = lastRow - 1
+
+    Dim seiriData As Variant
+    Dim dayNightData As Variant
+    Dim lineData As Variant
+    seiriData = ws.Range(ws.Cells(2, seiriColumn), ws.Cells(lastRow, seiriColumn)).Value2
+    dayNightData = ws.Range(ws.Cells(2, dayNightColumn), ws.Cells(lastRow, dayNightColumn)).Value2
+    lineData = ws.Range(ws.Cells(2, lineColumn), ws.Cells(lastRow, lineColumn)).Value2
+
+    Dim vendorColData() As Variant
+    ReDim vendorColData(1 To vendorColumns.Count)
+    Dim vendorColIndex As Long
+    vendorColIndex = 0
+    Dim vendorCol As Variant
+    For Each vendorCol In vendorColumns
+        vendorColIndex = vendorColIndex + 1
+        vendorColData(vendorColIndex) = ws.Range( _
+            ws.Cells(2, CLng(vendorCol)), ws.Cells(lastRow, CLng(vendorCol))).Value2
+    Next vendorCol
+
+    Dim amountFormula As String
+    Dim rowVendorKey As String
+    Dim vendorPrice As Variant
+    amountFormula = "=IF(OR(RC[-1]="""",RC" & qtyColumn & "=""""),"""",RC[-1]*RC" & qtyColumn & ")"
+
+    Dim vendorKey As Variant
+    For Each vendorKey In vendorColumnMap.Keys
+        Dim priceColumn As Long
+        Dim amountColumn As Long
+        priceColumn = CLng(vendorColumnMap(vendorKey))
+        amountColumn = priceColumn + 1
+
+        Dim priceValues() As Variant
+        ReDim priceValues(1 To rowCount, 1 To 1)
+
+        Dim r As Long
+        For r = 1 To rowCount
+            Dim rowIndex As Long
+            rowIndex = r + 1
+
+            Dim matchedRow As Boolean
+            matchedRow = False
+            vendorColIndex = 0
+            For Each vendorCol In vendorColumns
+                vendorColIndex = vendorColIndex + 1
+                rowVendorKey = NormalizeVendorPriceName( _
+                    CommonNzText(GetArrayCellValue(vendorColData(vendorColIndex), r, 1)))
+                If rowVendorKey = CStr(vendorKey) Then
+                    vendorPrice = LookupSubcontractorVendorPriceFromArrays( _
+                        seiriData, dayNightData, lineData, vendorColData(vendorColIndex), _
+                        r, CLng(vendorCol), lineSheetMap, vendorPriceCaches, isWeldingSheet)
+                    If Not IsEmpty(vendorPrice) And Not IsError(vendorPrice) Then
+                        priceValues(r, 1) = vendorPrice
+                        matchedCount = matchedCount + 1
+                    End If
+                    Exit For
+                End If
+            Next vendorCol
+        Next r
+
+        ws.Range(ws.Cells(2, priceColumn), ws.Cells(lastRow, priceColumn)).Value2 = priceValues
+        ws.Range(ws.Cells(2, amountColumn), ws.Cells(lastRow, amountColumn)).FormulaR1C1 = amountFormula
+    Next vendorKey
+End Sub
+
+Private Function GetArrayCellValue(ByVal arr As Variant, ByVal rowIndex As Long, ByVal colIndex As Long) As Variant
+    If IsArray(arr) Then
+        GetArrayCellValue = arr(rowIndex, colIndex)
+    Else
+        If rowIndex = 1 And colIndex = 1 Then GetArrayCellValue = arr
+    End If
+End Function
+
+Private Function LookupSubcontractorVendorPriceFromArrays( _
+    ByVal seiriData As Variant, _
+    ByVal dayNightData As Variant, _
+    ByVal lineData As Variant, _
+    ByVal vendorData As Variant, _
+    ByVal rowIndex As Long, _
+    ByVal vendorColumn As Long, _
+    ByVal lineSheetMap As Object, _
+    ByVal vendorPriceCaches As Object, _
+    ByVal isWeldingSheet As Boolean) As Variant
+
+    LookupSubcontractorVendorPriceFromArrays = Empty
 
     Dim recordKey As String
     If isWeldingSheet Then
-        recordKey = BuildWeldingLookupKey(ws.Cells(rowIndex, seiriColumn).value)
+        recordKey = BuildWeldingLookupKey(GetArrayCellValue(seiriData, rowIndex, 1))
     Else
-        recordKey = NormalizeRecordKey(ws.Cells(rowIndex, seiriColumn).value)
+        recordKey = NormalizeRecordKey(GetArrayCellValue(seiriData, rowIndex, 1))
     End If
+    If recordKey = "" Then Exit Function
 
     Dim dayNightText As String
-    dayNightText = CommonNzText(ws.Cells(rowIndex, dayNightColumn).value)
+    dayNightText = CommonNzText(GetArrayCellValue(dayNightData, rowIndex, 1))
 
-    Dim vendorPrice As Variant
-    vendorPrice = Empty
+    Dim vendorName As String
+    vendorName = CommonNzText(GetArrayCellValue(vendorData, rowIndex, 1))
 
     If isWeldingSheet Then
         Dim weldingPriceSheetName As String
         weldingPriceSheetName = ResolveWeldingPriceSheetName()
-        If weldingPriceSheetName <> "" And recordKey <> "" Then
-            vendorPrice = LookupWeldingOutputVendorPrice( _
-                weldingPriceSheetName, vendorPriceCaches, recordKey, _
-                CommonNzText(ws.Cells(rowIndex, vendorColumn).value), _
-                (vendorColumn = WELD_COL_WELDING_VENDOR), dayNightText)
-        End If
+        If weldingPriceSheetName = "" Then Exit Function
+        LookupSubcontractorVendorPriceFromArrays = LookupWeldingOutputVendorPrice( _
+            weldingPriceSheetName, vendorPriceCaches, recordKey, vendorName, _
+            (vendorColumn = WELD_COL_WELDING_VENDOR), dayNightText)
     Else
         Dim unitPriceSheetName As String
         unitPriceSheetName = ResolveUnitPriceSheetName( _
-            lineSheetMap, CommonNzText(ws.Cells(rowIndex, lineColumn).value))
+            lineSheetMap, CommonNzText(GetArrayCellValue(lineData, rowIndex, 1)))
+        If unitPriceSheetName = "" Then Exit Function
 
         Dim vendorPriceRows As Object
         Set vendorPriceRows = GetVendorUnitPriceRows( _
-            unitPriceSheetName, CommonNzText(ws.Cells(rowIndex, vendorColumn).value), vendorPriceCaches)
+            unitPriceSheetName, vendorName, vendorPriceCaches)
+        If vendorPriceRows Is Nothing Then Exit Function
+        If Not vendorPriceRows.Exists(recordKey) Then Exit Function
 
-        If Not vendorPriceRows Is Nothing And recordKey <> "" Then
-            If vendorPriceRows.Exists(recordKey) Then
-                Dim dayNightPrices As Variant
-                dayNightPrices = vendorPriceRows(recordKey)
-                vendorPrice = SelectDayNightPrice(dayNightText, dayNightPrices)
-            End If
-        End If
+        Dim dayNightPrices As Variant
+        dayNightPrices = vendorPriceRows(recordKey)
+        LookupSubcontractorVendorPriceFromArrays = SelectDayNightPrice(dayNightText, dayNightPrices)
     End If
-
-    If Not IsEmpty(vendorPrice) And Not IsError(vendorPrice) Then
-        ws.Cells(rowIndex, priceColumn).value = vendorPrice
-        matchedCount = matchedCount + 1
-    End If
-
-    ws.Cells(rowIndex, priceColumn + 1).FormulaR1C1 = _
-        "=IF(OR(RC[-1]="""",RC" & qtyColumn & "=""""),"""",RC[-1]*RC" & qtyColumn & ")"
-End Sub
+End Function
 
 Public Sub RefreshBasicInfoConstructionTotals(Optional ByVal changedVendorIndex As Long = 0)
     On Error GoTo ErrorHandler
@@ -2222,7 +2500,12 @@ Private Function IsSanpaiRow(ByVal ws As Worksheet, ByVal rowIndex As Long) As B
 End Function
 
 Private Function GetSanpaiFillColor() As Long
-    GetSanpaiFillColor = SANPAI_FALLBACK_FILL_COLOR
+    If mSanpaiFillColorCached Then
+        GetSanpaiFillColor = mSanpaiFillColorCache
+        Exit Function
+    End If
+
+    mSanpaiFillColorCache = SANPAI_FALLBACK_FILL_COLOR
 
     Dim ws As Worksheet
     For Each ws In ThisWorkbook.worksheets
@@ -2234,13 +2517,17 @@ Private Function GetSanpaiFillColor() As Long
             For r = UNIT_PRICE_DATA_START_ROW To priceLastRow
                 For c = 5 To 6
                     If ws.Cells(r, c).Interior.Pattern <> xlPatternNone Then
-                        GetSanpaiFillColor = ws.Cells(r, c).Interior.Color
-                        Exit Function
+                        mSanpaiFillColorCache = ws.Cells(r, c).Interior.Color
+                        GoTo SanpaiFillColorDone
                     End If
                 Next c
             Next r
         End If
     Next ws
+
+SanpaiFillColorDone:
+    mSanpaiFillColorCached = True
+    GetSanpaiFillColor = mSanpaiFillColorCache
 End Function
 
 Public Sub ApplySanpaiRowRestrictions(ByVal ws As Worksheet)
@@ -2335,18 +2622,12 @@ Private Sub ClearOutputTotalPairFormatting(ByVal ws As Worksheet, _
                                            ByVal lastDataRow As Long, _
                                            ByVal seiriColumn As Long)
     If rowIndex = currentTotalRow Then Exit Sub
+    If Not IsOutputTotalLabelText(CommonNzText(ws.Cells(rowIndex, labelColumn).value)) Then Exit Sub
 
     ClearDoubleBorder ws.Cells(rowIndex, labelColumn)
     ClearDoubleBorder ws.Cells(rowIndex, sumColumn)
-
-    If IsOutputTotalLabelText(CommonNzText(ws.Cells(rowIndex, labelColumn).value)) Then
-        ws.Cells(rowIndex, labelColumn).ClearContents
-        ws.Cells(rowIndex, sumColumn).ClearContents
-    ElseIf rowIndex <= lastDataRow And _
-           Trim$(CommonNzText(ws.Cells(rowIndex, seiriColumn).value)) <> "" Then
-        ApplyThinGridBorder ws.Cells(rowIndex, labelColumn)
-        ApplyThinGridBorder ws.Cells(rowIndex, sumColumn)
-    End If
+    ws.Cells(rowIndex, labelColumn).ClearContents
+    ws.Cells(rowIndex, sumColumn).ClearContents
 End Sub
 
 Private Sub ClearStaleOutputTotalFormatting(ByVal ws As Worksheet, _
