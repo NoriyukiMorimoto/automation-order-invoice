@@ -1235,7 +1235,9 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet, _
     Application.Calculation = xlCalculationManual
     Application.EnableEvents = False
 
-    On Error GoTo RefreshCleanup
+    Dim refreshErrNo As Long
+    Dim refreshErrDesc As String
+    On Error GoTo RefreshError
 
     Dim lastRow As Long
     lastRow = GetLastDataRow(ws)
@@ -1245,7 +1247,7 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet, _
 
     Dim kindColumn As Long
     kindColumn = FindHeaderColumn(ws, "工種分類")
-    If kindColumn = 0 Then GoTo RefreshCleanup
+    If kindColumn = 0 Then GoTo RefreshExit
 
     Dim subconFirstCol As Long
     subconFirstCol = OutputSheetSubconPriceFirstCol(ws)
@@ -1258,7 +1260,7 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet, _
             ws.Range(ws.Columns(subconFirstCol), _
                      ws.Columns(kindColumn - 1)).Delete Shift:=xlToLeft
             kindColumn = FindHeaderColumn(ws, "工種分類")
-            If kindColumn = 0 Then GoTo RefreshCleanup
+            If kindColumn = 0 Then GoTo RefreshExit
         End If
     End If
 
@@ -1269,7 +1271,7 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet, _
             WriteOutputTotalRows ws, emptyVendors, 0, 0
         End If
         RefreshBasicInfoConstructionTotals
-        GoTo RefreshCleanup
+        GoTo RefreshExit
     End If
 
     Dim insertedColumnCount As Long
@@ -1282,7 +1284,7 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet, _
         lastRow = GetLastDataRow(ws)
         If lastRow < 2 Then
             RefreshBasicInfoConstructionTotals
-            GoTo RefreshCleanup
+            GoTo RefreshExit
         End If
 
         Dim vendorIndex As Long
@@ -1294,6 +1296,12 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet, _
             ws.Cells(1, priceColumn).value = vendorName & "単価"
             ws.Cells(1, priceColumn + 1).value = vendorName & "金額"
         Next vendorIndex
+
+        kindColumn = FindHeaderColumn(ws, "工種分類")
+    End If
+
+    If kindColumn > subconFirstCol Then
+        insertedColumnCount = kindColumn - subconFirstCol
     End If
 
     Dim vendorColumnMap As Object
@@ -1350,14 +1358,13 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet, _
     LogCI "施工会社別単価列: 会社数=" & vendorNames.Count & _
           " / 単価一致=" & matchedCount & _
           IIf(partialUpdate And layoutMatches, " / 部分更新", "")
+    GoTo RefreshExit
 
-RefreshCleanup:
-    Dim refreshErrNo As Long
-    Dim refreshErrDesc As String
+RefreshError:
     refreshErrNo = Err.Number
     refreshErrDesc = Err.Description
-    Err.Clear
 
+RefreshExit:
     Application.screenUpdating = scrn
     Application.Calculation = calcMode
     If calcMode = xlCalculationAutomatic Then
@@ -1490,6 +1497,11 @@ Private Sub ApplySubcontractorPricesPartial( _
     ByVal isWeldingSheet As Boolean, _
     ByRef matchedCount As Long)
 
+    If vendorColumnMap Is Nothing Then Exit Sub
+    If vendorColumns Is Nothing Then Exit Sub
+    If changedRows Is Nothing Then Exit Sub
+    If vendorPriceCaches Is Nothing Then Exit Sub
+
     Dim vendorKey As Variant
     For Each vendorKey In vendorColumnMap.Keys
         Dim priceColumn As Long
@@ -1545,6 +1557,9 @@ Private Sub ApplySubcontractorPricesBatch( _
     ByRef matchedCount As Long)
 
     If lastRow < 2 Then Exit Sub
+    If vendorColumnMap Is Nothing Then Exit Sub
+    If vendorColumns Is Nothing Then Exit Sub
+    If vendorPriceCaches Is Nothing Then Exit Sub
 
     Dim rowCount As Long
     rowCount = lastRow - 1
@@ -1828,6 +1843,7 @@ Public Sub RefreshBasicInfoConstructionTotals(Optional ByVal changedVendorIndex 
 
 ErrorHandler:
     LogCI "基本情報合計金額更新エラー Err " & Err.Number & ": " & Err.Description
+    Err.Clear
 End Sub
 
 Public Sub ClearVendorAliasMapCache()
@@ -2274,6 +2290,7 @@ Private Function GetVendorUnitPriceRows(ByVal unitPriceSheetName As String, _
                                         ByVal vendorName As String, _
                                         ByVal vendorPriceCaches As Object) As Object
     If unitPriceSheetName = "" Then Exit Function
+    If vendorPriceCaches Is Nothing Then Exit Function
 
     Dim cacheKey As String
     cacheKey = unitPriceSheetName & "|" & NormalizeVendorPriceName(vendorName)
@@ -2429,6 +2446,7 @@ Private Function BuildVendorAliasMap(ByVal branchName As String) As Object
 Cleanup:
     If Err.Number <> 0 Then
         LogCI "業者マスタ読込エラー Err " & Err.Number & ": " & Err.Description
+        Err.Clear
     End If
     CommonCloseAdoRecordset recordset
     CommonCloseAdoConnection connection
@@ -3044,7 +3062,10 @@ Private Function BuildConstructionLineSheetMap() As Object
     Next sheetName
 
 Cleanup:
-    If Err.Number <> 0 Then LogCI "線区名マスタ読込エラー Err " & Err.Number & ": " & Err.Description
+    If Err.Number <> 0 Then
+        LogCI "線区名マスタ読込エラー Err " & Err.Number & ": " & Err.Description
+        Err.Clear
+    End If
     CommonCloseAdoRecordset recordset
     CommonCloseAdoConnection connection
 
@@ -3622,6 +3643,8 @@ End Sub
 
 Private Function GetWeldingPriceRowMap(ByVal weldingSheetName As String, _
                                        ByVal vendorPriceCaches As Object) As Object
+    If vendorPriceCaches Is Nothing Then Exit Function
+
     Dim cacheKey As String
     cacheKey = "WELDING_ROWS|" & weldingSheetName
     If vendorPriceCaches.Exists(cacheKey) Then
@@ -4069,13 +4092,13 @@ Private Function ResolveWeldingPriceSheetName() As String
     On Error GoTo Cleanup
 
     Dim actualSheetName As String
+    Dim recordset As Object
     actualSheetName = FindAdoWorksheetName(connection, PRICE_LINE_SHEET)
 
     Dim resultName As String
     If actualSheetName = "" Then
         LogCI "レール溶接単価: マスタに「" & PRICE_LINE_SHEET & "」シートがありません"
     Else
-        Dim recordset As Object
         Set recordset = CreateObject("ADODB.Recordset")
         recordset.Open "SELECT [F2], [F3], [F5] FROM " & _
                        BuildAdoSheetTableName(actualSheetName), connection, 0, 1, 1
@@ -4098,6 +4121,7 @@ Private Function ResolveWeldingPriceSheetName() As String
 Cleanup:
     If Err.Number <> 0 Then
         LogCI "レール溶接単価マスタADO読込エラー Err " & Err.Number & ": " & Err.Description
+        Err.Clear
     End If
     CommonCloseAdoRecordset recordset
     CommonCloseAdoConnection connection
