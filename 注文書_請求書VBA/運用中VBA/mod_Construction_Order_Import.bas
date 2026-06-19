@@ -453,6 +453,10 @@ Private Sub ImportOneConstructionDocument(ByVal srcPath As String, _
             FormatPurchaseNoticeSheet wsPurch
             ApplyPurchaseNoticeColumnExclusions wsPurch
             WritePurchaseNoticeJrTotalRow wsPurch
+            ApplyOutputSheetHeaderAutoFilter wsPurch, _
+                PURCHASE_NOTICE_SEIRI_COL, PURCHASE_NOTICE_KIND_COL, _
+                PURCHASE_NOTICE_AUTO_AMOUNT_COL, PURCHASE_NOTICE_PRICE_COMPARE_COL, _
+                PURCHASE_NOTICE_PRICE_GUIDANCE_COL
             If wsActivate Is Nothing Then Set wsActivate = wsPurch
         End If
     End If
@@ -530,6 +534,15 @@ Private Function BuildConstructionOutputSheet(ByVal sheetName As String, _
              ws.Cells(1, OutputSheetCol(ws, COL_OUT_AMOUNT))).EntireColumn.Delete Shift:=xlToLeft
 
     WriteJrTotalRow ws
+
+    If isWelding Then
+        ApplyOutputSheetHeaderAutoFilter ws, _
+            OutputSheetCol(ws, COL_SEIRI), OutputSheetCol(ws, COL_KIND), _
+            OutputSheetCol(ws, COL_AUTO_AMOUNT), OutputSheetCol(ws, COL_PRICE_COMPARE), _
+            OutputSheetCol(ws, COL_PRICE_GUIDANCE)
+    Else
+        ApplyOutputSheetHeaderAutoFilter ws
+    End If
 
     Set BuildConstructionOutputSheet = ws
 End Function
@@ -3169,6 +3182,32 @@ Private Sub FormatSheetAtColumns( _
     For Each cv In centerCols
         ws.Range(ws.Cells(1, CLng(cv)), ws.Cells(lastRow, CLng(cv))).HorizontalAlignment = xlCenter
     Next cv
+End Sub
+
+Private Sub ApplyOutputSheetHeaderAutoFilter( _
+    ByVal ws As Worksheet, _
+    Optional ByVal dataKeyColumn As Long = 0, _
+    Optional ByVal kindColumn As Long = COL_KIND, _
+    Optional ByVal autoAmountColumn As Long = COL_AUTO_AMOUNT, _
+    Optional ByVal comparisonColumn As Long = COL_PRICE_COMPARE, _
+    Optional ByVal guidanceColumn As Long = COL_PRICE_GUIDANCE)
+
+    If ws Is Nothing Then Exit Sub
+
+    If dataKeyColumn = 0 Then dataKeyColumn = OutputSheetSeiriColumn(ws)
+
+    Dim lastRow As Long
+    lastRow = GetLastDataRow(ws, dataKeyColumn)
+    If lastRow < 1 Then lastRow = 1
+
+    Dim lastCol As Long
+    lastCol = GetOutputLastColumn(ws, kindColumn, autoAmountColumn, comparisonColumn, guidanceColumn)
+
+    On Error Resume Next
+    If ws.AutoFilterMode Then ws.AutoFilterMode = False
+    On Error GoTo 0
+
+    ws.Range(ws.Cells(1, 1), ws.Cells(lastRow, lastCol)).AutoFilter
 End Sub
 
 Private Sub ApplyPriceGuidanceColumnLayout(ByVal ws As Worksheet)
