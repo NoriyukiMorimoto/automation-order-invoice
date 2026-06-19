@@ -145,6 +145,7 @@ Public Function CommonOpenExcelAdoConnection(ByVal sourceFilePath As String) As 
 
 ErrorHandler:
     Set CommonOpenExcelAdoConnection = Nothing
+    Err.Clear
 End Function
 
 Public Sub CommonCloseAdoConnection(ByVal cn As Object)
