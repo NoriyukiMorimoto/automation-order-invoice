@@ -127,6 +127,11 @@ Private Const PURCHASE_NOTICE_PRICE_GUIDANCE_COL As Long = COL_PRICE_GUIDANCE - 
 
 Private Const SUBCON_PRICE_FIRST_COL As Long = 11
 Private Const WELDING_SUBCON_PRICE_FIRST_COL As Long = SUBCON_PRICE_FIRST_COL + WELDING_OUTPUT_COL_OFFSET
+Private Const WELDING_PRICE_SEIRI_COL As Long = 2
+Private Const WELDING_PRICE_DATA_START_ROW As Long = 7
+Private Const WELDING_PRICE_WELDING_DAY_COL As Long = 7
+Private Const WELDING_PRICE_FIRST_RAIL_DAY_COL As Long = 9
+Private Const WELDING_PRICE_VENDOR_NAME_ROW As Long = 5
 Private Const UNIT_PRICE_VENDOR_NAME_ROW As Long = 5
 Private Const UNIT_PRICE_VENDOR_FIRST_DAY_COL As Long = 7
 
@@ -534,6 +539,7 @@ Private Function BuildConstructionOutputSheet(ByVal sheetName As String, _
              ws.Cells(1, OutputSheetCol(ws, COL_OUT_AMOUNT))).EntireColumn.Delete Shift:=xlToLeft
 
     WriteJrTotalRow ws
+    RedrawOutputSheetDataBorders ws
 
     If isWelding Then
         ApplyOutputSheetHeaderAutoFilter ws, _
@@ -1298,6 +1304,7 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet)
     Next vendorIndex
 
     RedrawTotalBorders ws, lastRow + 1, OutputSheetCol(ws, COL_JR_PRICE), OutputSheetCol(ws, COL_JR_AMOUNT)
+    RedrawOutputSheetDataBorders ws
     RefreshBasicInfoConstructionTotals
     LogCI "é{çHâÔé–ï íPâøóÒ: âÔé–êî=" & vendorNames.Count & _
           " / íPâøàÍív=" & matchedCount
@@ -1325,14 +1332,6 @@ Private Sub ApplySubcontractorPriceForRow( _
     Dim priceColumn As Long
     priceColumn = CLng(vendorColumnMap(rowVendorKey))
 
-    Dim unitPriceSheetName As String
-    unitPriceSheetName = ResolveUnitPriceSheetName( _
-        lineSheetMap, CommonNzText(ws.Cells(rowIndex, lineColumn).value))
-
-    Dim vendorPriceRows As Object
-    Set vendorPriceRows = GetVendorUnitPriceRows( _
-        unitPriceSheetName, CommonNzText(ws.Cells(rowIndex, vendorColumn).value), vendorPriceCaches)
-
     Dim recordKey As String
     If isWeldingSheet Then
         recordKey = BuildWeldingLookupKey(ws.Cells(rowIndex, seiriColumn).value)
@@ -1340,18 +1339,42 @@ Private Sub ApplySubcontractorPriceForRow( _
         recordKey = NormalizeRecordKey(ws.Cells(rowIndex, seiriColumn).value)
     End If
 
-    If Not vendorPriceRows Is Nothing And recordKey <> "" Then
-        If vendorPriceRows.Exists(recordKey) Then
-            Dim dayNightPrices As Variant
-            Dim vendorPrice As Variant
-            dayNightPrices = vendorPriceRows(recordKey)
-            vendorPrice = SelectDayNightPrice( _
-                CommonNzText(ws.Cells(rowIndex, dayNightColumn).value), dayNightPrices)
-            If Not IsEmpty(vendorPrice) And Not IsError(vendorPrice) Then
-                ws.Cells(rowIndex, priceColumn).value = vendorPrice
-                matchedCount = matchedCount + 1
+    Dim dayNightText As String
+    dayNightText = CommonNzText(ws.Cells(rowIndex, dayNightColumn).value)
+
+    Dim vendorPrice As Variant
+    vendorPrice = Empty
+
+    If isWeldingSheet Then
+        Dim weldingPriceSheetName As String
+        weldingPriceSheetName = ResolveWeldingPriceSheetName()
+        If weldingPriceSheetName <> "" And recordKey <> "" Then
+            vendorPrice = LookupWeldingOutputVendorPrice( _
+                weldingPriceSheetName, vendorPriceCaches, recordKey, _
+                CommonNzText(ws.Cells(rowIndex, vendorColumn).value), _
+                (vendorColumn = WELD_COL_WELDING_VENDOR), dayNightText)
+        End If
+    Else
+        Dim unitPriceSheetName As String
+        unitPriceSheetName = ResolveUnitPriceSheetName( _
+            lineSheetMap, CommonNzText(ws.Cells(rowIndex, lineColumn).value))
+
+        Dim vendorPriceRows As Object
+        Set vendorPriceRows = GetVendorUnitPriceRows( _
+            unitPriceSheetName, CommonNzText(ws.Cells(rowIndex, vendorColumn).value), vendorPriceCaches)
+
+        If Not vendorPriceRows Is Nothing And recordKey <> "" Then
+            If vendorPriceRows.Exists(recordKey) Then
+                Dim dayNightPrices As Variant
+                dayNightPrices = vendorPriceRows(recordKey)
+                vendorPrice = SelectDayNightPrice(dayNightText, dayNightPrices)
             End If
         End If
+    End If
+
+    If Not IsEmpty(vendorPrice) And Not IsError(vendorPrice) Then
+        ws.Cells(rowIndex, priceColumn).value = vendorPrice
+        matchedCount = matchedCount + 1
     End If
 
     ws.Cells(rowIndex, priceColumn + 1).FormulaR1C1 = _
@@ -2907,7 +2930,11 @@ Private Function GetUnitPriceRows(ByVal unitPriceSheetName As String, _
     Dim r As Long
     For r = UNIT_PRICE_DATA_START_ROW To lastRow
         Dim recordKey As String
-        recordKey = NormalizeRecordKey(priceSheet.Cells(r, COL_SEIRI).value)
+        If mod_WeldingUnitPrice.IsWeldingUnitPriceSheet(priceSheet) Then
+            recordKey = BuildWeldingLookupKey(priceSheet.Cells(r, COL_SEIRI).value)
+        Else
+            recordKey = NormalizeRecordKey(priceSheet.Cells(r, COL_SEIRI).value)
+        End If
         If recordKey <> "" And Not result.Exists(recordKey) Then
             result.Add recordKey, Array(priceSheet.Cells(r, 5).value, priceSheet.Cells(r, 6).value)
         End If
@@ -3183,6 +3210,165 @@ Private Sub FormatSheetAtColumns( _
         ws.Range(ws.Cells(1, CLng(cv)), ws.Cells(lastRow, CLng(cv))).HorizontalAlignment = xlCenter
     Next cv
 End Sub
+
+Private Sub RedrawOutputSheetDataBorders(ByVal ws As Worksheet)
+    If ws Is Nothing Then Exit Sub
+
+    Dim seiriColumn As Long
+    seiriColumn = FindHeaderColumn(ws, "êÆóùî‘çÜ")
+    If seiriColumn = 0 Then Exit Sub
+
+    Dim kindColumn As Long
+    kindColumn = FindHeaderColumn(ws, "çHéÌï™óﬁ")
+    If kindColumn = 0 Then Exit Sub
+
+    Dim comparisonColumn As Long
+    comparisonColumn = FindHeaderColumn(ws, "íPâøî‰är")
+
+    Dim autoPriceColumn As Long
+    Dim autoAmountColumn As Long
+    autoPriceColumn = 0
+    autoAmountColumn = 0
+    If comparisonColumn >= 3 Then
+        autoPriceColumn = comparisonColumn - 2
+        autoAmountColumn = comparisonColumn - 1
+    End If
+
+    Dim lastRow As Long
+    lastRow = GetLastDataRow(ws, seiriColumn)
+    If lastRow < 1 Then lastRow = 1
+
+    If autoPriceColumn > kindColumn + 1 Then
+        ws.Range(ws.Cells(1, kindColumn + 1), _
+                 ws.Cells(lastRow, autoPriceColumn - 1)).Borders.LineStyle = xlNone
+    End If
+
+    With ws.Range(ws.Cells(1, 1), ws.Cells(lastRow, kindColumn)).Borders
+        .LineStyle = xlContinuous
+        .Weight = xlThin
+        .Color = RGB(150, 150, 150)
+    End With
+
+    Dim subconFirstCol As Long
+    subconFirstCol = OutputSheetSubconPriceFirstCol(ws)
+    If kindColumn > subconFirstCol Then
+        With ws.Range(ws.Cells(1, subconFirstCol), ws.Cells(lastRow, kindColumn - 1)).Borders
+            .LineStyle = xlContinuous
+            .Weight = xlThin
+            .Color = RGB(150, 150, 150)
+        End With
+    End If
+
+    If autoPriceColumn > 0 And autoAmountColumn > 0 Then
+        Dim borderLastColumn As Long
+        borderLastColumn = autoAmountColumn
+        If comparisonColumn > 0 Then borderLastColumn = comparisonColumn
+
+        With ws.Range(ws.Cells(1, autoPriceColumn), ws.Cells(lastRow, borderLastColumn)).Borders
+            .LineStyle = xlContinuous
+            .Weight = xlThin
+            .Color = RGB(150, 150, 150)
+        End With
+
+        If comparisonColumn > 0 Then
+            ws.Range(ws.Cells(1, comparisonColumn + 1), _
+                     ws.Cells(lastRow, comparisonColumn + 1)).Borders.LineStyle = xlNone
+        End If
+    End If
+End Sub
+
+Private Function GetWeldingPriceRowMap(ByVal weldingSheetName As String, _
+                                       ByVal vendorPriceCaches As Object) As Object
+    Dim cacheKey As String
+    cacheKey = "WELDING_ROWS|" & weldingSheetName
+    If vendorPriceCaches.Exists(cacheKey) Then
+        Set GetWeldingPriceRowMap = vendorPriceCaches(cacheKey)
+        Exit Function
+    End If
+
+    Dim result As Object
+    Set result = CreateObject("Scripting.Dictionary")
+    result.CompareMode = vbTextCompare
+
+    Dim priceSheet As Worksheet
+    On Error Resume Next
+    Set priceSheet = ThisWorkbook.worksheets(weldingSheetName)
+    On Error GoTo 0
+    If Not priceSheet Is Nothing Then
+        Dim lastRow As Long
+        lastRow = priceSheet.Cells(priceSheet.rows.Count, WELDING_PRICE_SEIRI_COL).End(xlUp).Row
+
+        Dim r As Long
+        For r = WELDING_PRICE_DATA_START_ROW To lastRow
+            Dim lookupKey As String
+            lookupKey = BuildWeldingLookupKey(priceSheet.Cells(r, WELDING_PRICE_SEIRI_COL).value)
+            If lookupKey <> "" And Not result.Exists(lookupKey) Then
+                result.Add lookupKey, r
+            End If
+        Next r
+    End If
+
+    vendorPriceCaches.Add cacheKey, result
+    Set GetWeldingPriceRowMap = result
+End Function
+
+Private Function FindWeldingRailVendorDayColumn(ByVal priceSheet As Worksheet, _
+                                                  ByVal vendorName As String) As Long
+    Dim vendorKey As String
+    vendorKey = NormalizeVendorPriceName(vendorName)
+    If vendorKey = "" Then Exit Function
+
+    Dim lastColumn As Long
+    lastColumn = priceSheet.Cells(WELDING_PRICE_VENDOR_NAME_ROW, priceSheet.Columns.Count).End(xlToLeft).Column
+
+    Dim c As Long
+    For c = WELDING_PRICE_FIRST_RAIL_DAY_COL To lastColumn Step 2
+        Dim headerName As String
+        headerName = NormalizeVendorPriceName(CommonNzText(priceSheet.Cells(WELDING_PRICE_VENDOR_NAME_ROW, c).value))
+        If headerName <> "" Then
+            If StrComp(headerName, vendorKey, vbTextCompare) = 0 Then
+                FindWeldingRailVendorDayColumn = c
+                Exit Function
+            End If
+        End If
+    Next c
+End Function
+
+Private Function LookupWeldingOutputVendorPrice( _
+    ByVal weldingSheetName As String, _
+    ByVal vendorPriceCaches As Object, _
+    ByVal recordKey As String, _
+    ByVal vendorName As String, _
+    ByVal isWeldingVendorSlot As Boolean, _
+    ByVal dayNightText As String) As Variant
+
+    LookupWeldingOutputVendorPrice = Empty
+    If weldingSheetName = "" Or recordKey = "" Then Exit Function
+
+    Dim rowMap As Object
+    Set rowMap = GetWeldingPriceRowMap(weldingSheetName, vendorPriceCaches)
+    If rowMap Is Nothing Or Not rowMap.Exists(recordKey) Then Exit Function
+
+    Dim priceSheet As Worksheet
+    On Error Resume Next
+    Set priceSheet = ThisWorkbook.worksheets(weldingSheetName)
+    On Error GoTo 0
+    If priceSheet Is Nothing Then Exit Function
+
+    Dim priceRow As Long
+    priceRow = CLng(rowMap(recordKey))
+
+    Dim dayColumn As Long
+    If isWeldingVendorSlot Then
+        dayColumn = WELDING_PRICE_WELDING_DAY_COL
+    Else
+        dayColumn = FindWeldingRailVendorDayColumn(priceSheet, vendorName)
+        If dayColumn = 0 Then Exit Function
+    End If
+
+    LookupWeldingOutputVendorPrice = SelectDayNightPrice(dayNightText, _
+        Array(priceSheet.Cells(priceRow, dayColumn).Value2, priceSheet.Cells(priceRow, dayColumn + 1).Value2))
+End Function
 
 Private Sub ApplyOutputSheetHeaderAutoFilter( _
     ByVal ws As Worksheet, _
