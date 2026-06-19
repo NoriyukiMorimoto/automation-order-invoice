@@ -237,20 +237,17 @@ Public Sub SelectSubcontractorForSelection()
         Set hit = Application.Intersect(Selection.EntireRow, usedRange)
         On Error GoTo 0
 
-        Dim c As Range
         If Not hit Is Nothing Then
-            For Each c In hit.Cells
-                If Trim$(CommonNzText(ws.Cells(c.Row, seiriCol).value)) <> "" Then
-                    If Not IsSanpaiRow(ws, c.Row) Then targetRows.Add c.Row
-                End If
-            Next c
+            AddEligibleVendorRowsFromRange ws, hit, seiriCol, targetRows
         End If
     End If
 
     If targetRows.Count = 0 Then
         If ActiveCell.Row >= DATA_START_ROW And ActiveCell.Row <= lastRow Then
-            If Trim$(CommonNzText(ws.Cells(ActiveCell.Row, seiriCol).value)) <> "" Then
-                If Not IsSanpaiRow(ws, ActiveCell.Row) Then targetRows.Add ActiveCell.Row
+            If IsRowVisibleInRange(ws.Cells(ActiveCell.Row, seiriCol)) Then
+                If Trim$(CommonNzText(ws.Cells(ActiveCell.Row, seiriCol).value)) <> "" Then
+                    If Not IsSanpaiRow(ws, ActiveCell.Row) Then targetRows.Add ActiveCell.Row
+                End If
             End If
         End If
     End If
@@ -362,3 +359,40 @@ Private Function IsSanpaiRow(ByVal ws As Worksheet, ByVal rowIndex As Long) As B
     IsSanpaiRow = (InStr(1, CommonRemoveAllSpaces(CommonNzText(ws.Cells(rowIndex, TypeColumn(ws)).value)), _
                          SANPAI_KEYWORD, vbTextCompare) > 0)
 End Function
+
+Private Function GetVisibleCellsInRange(ByVal rng As Range) As Range
+    If rng Is Nothing Then Exit Function
+    On Error Resume Next
+    Set GetVisibleCellsInRange = rng.SpecialCells(xlCellTypeVisible)
+    On Error GoTo 0
+End Function
+
+Private Function IsRowVisibleInRange(ByVal rng As Range) As Boolean
+    IsRowVisibleInRange = Not GetVisibleCellsInRange(rng) Is Nothing
+End Function
+
+Private Sub AddEligibleVendorRowsFromRange(ByVal ws As Worksheet, _
+                                           ByVal rng As Range, _
+                                           ByVal seiriCol As Long, _
+                                           ByVal targetRows As Collection)
+    Dim visibleRng As Range
+    Set visibleRng = GetVisibleCellsInRange(rng)
+    If visibleRng Is Nothing Then Exit Sub
+
+    Dim seenRows As Object
+    Set seenRows = CreateObject("Scripting.Dictionary")
+
+    Dim c As Range
+    For Each c In visibleRng.Cells
+        Dim rowIndex As Long
+        rowIndex = c.Row
+        If Not seenRows.Exists(CStr(rowIndex)) Then
+            If Trim$(CommonNzText(ws.Cells(rowIndex, seiriCol).value)) <> "" Then
+                If Not IsSanpaiRow(ws, rowIndex) Then
+                    seenRows.Add CStr(rowIndex), True
+                    targetRows.Add rowIndex
+                End If
+            End If
+        End If
+    Next c
+End Sub
