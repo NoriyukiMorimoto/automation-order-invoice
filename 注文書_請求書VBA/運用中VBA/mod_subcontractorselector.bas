@@ -297,7 +297,7 @@ Public Sub SelectSubcontractorForSelection()
         ws.Cells(CLng(rIdx), targetColumn).value = chosen
     Next rIdx
 
-    mod_Construction_Order_Import.RefreshSubcontractorPriceColumns ws
+    mod_Construction_Order_Import.RefreshSubcontractorPriceColumns ws, targetRows
 
     ws.Columns(targetColumn).AutoFit
 
