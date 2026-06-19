@@ -423,7 +423,7 @@ Private Sub ImportUnitPriceData(ByVal wsInfo As Worksheet)
 
     Application.Calculation = xlCalculationAutomatic
     On Error Resume Next
-    wsInfo.Parent.Calculate
+    Application.Calculate
     On Error GoTo 0
 
     wsInfo.Activate

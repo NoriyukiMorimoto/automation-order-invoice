@@ -567,9 +567,14 @@ Public Sub SyncVendorBlocksFromCount(ByVal wsInfo As Worksheet)
 
     Application.CutCopyMode = False
     RefreshVendorListForBasicInfo wsInfo
-    RefreshAllVendorUnitPricesForBasicInfo wsInfo
-    mod_WeldingUnitPrice.ApplyWeldingVendorUnitPricesForBasicInfo wsInfo
+    RefreshAllVendorUnitPricesForBasicInfo wsInfo, True
+    mod_WeldingUnitPrice.ApplyWeldingVendorUnitPricesForBasicInfo wsInfo, False, 0, True
     mLastVendorBlockCount = vendorCount
+
+    ' 工事単価・溶接単価の再展開後、ブック全体の再計算は最後に1回だけ行う
+    On Error Resume Next
+    Application.Calculate
+    On Error GoTo 0
 
 ExitHandler:
     Application.Calculation = prevCalculation
@@ -796,7 +801,7 @@ Public Sub HandleConstructionUnitPriceSheetChange(ByVal wsUnitPrice As Worksheet
     On Error GoTo 0
 End Sub
 
-Public Sub RefreshAllVendorUnitPricesForBasicInfo(Optional ByVal wsInfo As Worksheet)
+Public Sub RefreshAllVendorUnitPricesForBasicInfo(Optional ByVal wsInfo As Worksheet, Optional ByVal deferCalculation As Boolean = False)
     If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet()
     If wsInfo Is Nothing Then Exit Sub
 
@@ -818,9 +823,11 @@ Public Sub RefreshAllVendorUnitPricesForBasicInfo(Optional ByVal wsInfo As Works
         End If
     Next wsUnitPrice
 
-    On Error Resume Next
-    targetBook.Calculate
-    On Error GoTo 0
+    If Not deferCalculation Then
+        On Error Resume Next
+        Application.Calculate
+        On Error GoTo 0
+    End If
 End Sub
 
 Private Sub RefreshVendorUnitPriceForValueColumn(ByVal wsInfo As Worksheet, ByVal valueColumn As Long)

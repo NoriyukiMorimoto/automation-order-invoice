@@ -218,7 +218,7 @@ End Sub
 Private Sub RestoreAutomaticCalculation()
     Application.Calculation = xlCalculationAutomatic
     On Error Resume Next
-    ThisWorkbook.Calculate
+    Application.Calculate
     On Error GoTo 0
 End Sub
 

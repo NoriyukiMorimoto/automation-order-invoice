@@ -97,7 +97,8 @@ Private mSeiriRowMap As Object
 '                         指定された場合、その列のブロックをG/H列の比率参照先として優先採用する。
 Public Sub ApplyWeldingVendorUnitPricesForBasicInfo(Optional ByVal wsInfo As Worksheet, _
                                                     Optional ByVal showWarnings As Boolean = False, _
-                                                    Optional ByVal preferredRatioColumn As Long = 0)
+                                                    Optional ByVal preferredRatioColumn As Long = 0, _
+                                                    Optional ByVal deferCalculation As Boolean = False)
     If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet()
     If wsInfo Is Nothing Then Exit Sub
 
@@ -179,9 +180,11 @@ Public Sub ApplyWeldingVendorUnitPricesForBasicInfo(Optional ByVal wsInfo As Wor
 Cleanup:
     Application.Calculation = previousCalculation
     Application.ScreenUpdating = previousScreenUpdating
-    On Error Resume Next
-    targetBook.Calculate
-    On Error GoTo 0
+    If Not deferCalculation Then
+        On Error Resume Next
+        Application.Calculate
+        On Error GoTo 0
+    End If
 
     If showWarnings And warningTexts.Count > 0 Then
         MsgBox JoinCollectionText(warningTexts, vbCrLf & vbCrLf), vbExclamation, "レール溶接単価"
@@ -323,7 +326,7 @@ Cleanup:
     Application.Calculation = previousCalculation
     Application.ScreenUpdating = previousScreenUpdating
     On Error Resume Next
-    targetBook.Calculate
+    Application.Calculate
     On Error GoTo 0
 End Sub
 
@@ -508,16 +511,174 @@ Private Sub ApplyWeldingVendorBlock(ByVal wsWelding As Worksheet, _
         .VerticalAlignment = xlCenter
     End With
 
-    ' データ行
-    Dim rowIndex As Long
-    For rowIndex = WUP_DATA_START_ROW To lastRow
-        ApplyWeldingVendorRow wsWelding, rowIndex, dayCol, nightCol, block, _
-                              isWeldingVendor, temotoMap, missingSeiriMap
-    Next rowIndex
+    ' データ行(配列一括書き込み)
+    ApplyWeldingVendorDataRowsBatch wsWelding, dayCol, nightCol, block, _
+                                    isWeldingVendor, temotoMap, missingSeiriMap, lastRow
 
     ' フォント(BIZ UDゴシック)と罫線(細格子+太外枠)
     ApplyWeldingVendorFont wsWelding, lastRow, dayCol, nightCol
     ApplyWeldingVendorBorders wsWelding, lastRow, dayCol, nightCol
+End Sub
+
+' データ行をまとめて算出し、列ごとに1回の数式一括代入で書き込む(セル単位往復を排除)。
+' 数式文字列は従来の Build*Formula と同一。空文字の行はグレー塗り対象としてまとめて処理する。
+Private Sub ApplyWeldingVendorDataRowsBatch(ByVal wsWelding As Worksheet, _
+                                            ByVal dayCol As Long, _
+                                            ByVal nightCol As Long, _
+                                            ByRef block As WeldingVendorBlock, _
+                                            ByVal isWeldingVendor As Boolean, _
+                                            ByVal temotoMap As Object, _
+                                            ByVal missingSeiriMap As Object, _
+                                            ByVal lastRow As Long)
+    Dim firstRow As Long
+    firstRow = WUP_DATA_START_ROW
+    If lastRow < firstRow Then Exit Sub
+
+    Dim rowCount As Long
+    rowCount = lastRow - firstRow + 1
+
+    ' B(整理番号)～F(JR夜) を一括読込し、セル単位の値読取を排除
+    Const COL_SEIRI As Long = 1      ' B
+    Const COL_WORK As Long = 2       ' C
+    Const COL_JR_DAY As Long = 4     ' E
+    Const COL_JR_NIGHT As Long = 5   ' F
+    Dim colSpan As Long
+    colSpan = WUP_JR_NIGHT_COL - WUP_SEIRI_COL + 1
+
+    Dim src As Variant
+    If rowCount = 1 Then
+        ReDim src(1 To 1, 1 To colSpan)
+        Dim cc As Long
+        For cc = 1 To colSpan
+            src(1, cc) = wsWelding.Cells(firstRow, WUP_SEIRI_COL + cc - 1).Value
+        Next cc
+    Else
+        src = wsWelding.Range(wsWelding.Cells(firstRow, WUP_SEIRI_COL), _
+                              wsWelding.Cells(lastRow, WUP_JR_NIGHT_COL)).Value
+    End If
+
+    Dim dayArr() As Variant
+    Dim nightArr() As Variant
+    ReDim dayArr(1 To rowCount, 1 To 1)
+    ReDim nightArr(1 To rowCount, 1 To 1)
+
+    Dim greyDay As Range
+    Dim greyNight As Range
+
+    Dim wasteKeyword As String
+    wasteKeyword = WasteDisposalKeywordText()
+
+    Dim r As Long
+    For r = 1 To rowCount
+        Dim rowIndex As Long
+        rowIndex = firstRow + r - 1
+
+        Dim dayF As String
+        Dim nightF As String
+        dayF = ""
+        nightF = ""
+
+        Dim seiriText As String
+        seiriText = Trim$(CStr(CommonNzText(src(r, COL_SEIRI))))
+
+        If Len(seiriText) > 0 Then
+            Dim seiriNumber As Long
+            seiriNumber = CLng(Val(StrConv(seiriText, vbNarrow)))
+
+            If seiriNumber >= WUP_PACK_SEIRI_MIN Then
+                Dim packKey As String
+                packKey = CStr(seiriNumber)
+                If Not (mPackMap Is Nothing) And Not (mSeiriRowMap Is Nothing) Then
+                    If mPackMap.Exists(packKey) Then
+                        Dim comps As Collection
+                        Set comps = mPackMap(packKey)
+                        dayF = BuildPackSumFormula(wsWelding, dayCol, comps, isWeldingVendor)
+                        nightF = BuildPackSumFormula(wsWelding, nightCol, comps, isWeldingVendor)
+                    End If
+                End If
+            Else
+                Dim workTypeName As String
+                workTypeName = NormalizeMatchTextWUP(CStr(CommonNzText(src(r, COL_WORK))))
+                If InStr(1, workTypeName, wasteKeyword, vbTextCompare) = 0 Then
+                    Dim seiriKey As String
+                    seiriKey = CStr(seiriNumber)
+                    If Not temotoMap.Exists(seiriKey) Then
+                        If Not missingSeiriMap.Exists(seiriKey) Then missingSeiriMap.Add seiriKey, True
+                    Else
+                        Dim temotoPair As Variant
+                        temotoPair = temotoMap(seiriKey)
+                        dayF = BuildWeldingDataCellFormula(wsWelding, rowIndex, WUP_JR_DAY_COL, _
+                                   src(r, COL_JR_DAY), temotoPair(0), block.ratioAddress, isWeldingVendor)
+                        nightF = BuildWeldingDataCellFormula(wsWelding, rowIndex, WUP_JR_NIGHT_COL, _
+                                   src(r, COL_JR_NIGHT), temotoPair(1), block.ratioAddress, isWeldingVendor)
+                    End If
+                End If
+            End If
+        End If
+
+        If Len(dayF) > 0 Then
+            dayArr(r, 1) = dayF
+        Else
+            dayArr(r, 1) = ""
+            AddCellToUnionWUP greyDay, wsWelding.Cells(rowIndex, dayCol)
+        End If
+
+        If Len(nightF) > 0 Then
+            nightArr(r, 1) = nightF
+        Else
+            nightArr(r, 1) = ""
+            AddCellToUnionWUP greyNight, wsWelding.Cells(rowIndex, nightCol)
+        End If
+    Next r
+
+    ' 数式は列ごとに1回で一括書き込み
+    wsWelding.Range(wsWelding.Cells(firstRow, dayCol), wsWelding.Cells(lastRow, dayCol)).Formula = dayArr
+    wsWelding.Range(wsWelding.Cells(firstRow, nightCol), wsWelding.Cells(lastRow, nightCol)).Formula = nightArr
+
+    ' 書式は範囲へ一括適用
+    Dim dataRange As Range
+    Set dataRange = wsWelding.Range(wsWelding.Cells(firstRow, dayCol), wsWelding.Cells(lastRow, nightCol))
+    dataRange.NumberFormat = WUP_NUMBER_FORMAT
+    dataRange.Interior.ColorIndex = xlColorIndexNone
+    dataRange.ShrinkToFit = False
+
+    ' グレー塗り(数式なし)をまとめて適用
+    If Not greyDay Is Nothing Then
+        greyDay.NumberFormat = "General"
+        greyDay.Interior.Color = RGB(WUP_FILL_COLOR_R, WUP_FILL_COLOR_G, WUP_FILL_COLOR_B)
+    End If
+    If Not greyNight Is Nothing Then
+        greyNight.NumberFormat = "General"
+        greyNight.Interior.Color = RGB(WUP_FILL_COLOR_R, WUP_FILL_COLOR_G, WUP_FILL_COLOR_B)
+    End If
+End Sub
+
+' 1セル分の数式文字列を返す(グレー対象は空文字)。判定・数式とも従来の ApplyWeldingVendorCell / ApplyRailMarkupCell と同一。
+Private Function BuildWeldingDataCellFormula(ByVal wsWelding As Worksheet, _
+                                             ByVal rowIndex As Long, _
+                                             ByVal sourceCol As Long, _
+                                             ByVal jrValue As Variant, _
+                                             ByVal temotoRatio As Variant, _
+                                             ByVal ratioAddress As String, _
+                                             ByVal isWeldingVendor As Boolean) As String
+    If Len(Trim$(CStr(CommonNzText(jrValue)))) = 0 Then Exit Function
+    If Not IsNumeric(temotoRatio) Then Exit Function
+
+    If isWeldingVendor Then
+        BuildWeldingDataCellFormula = BuildWeldingVendorFormula(wsWelding, rowIndex, sourceCol, _
+                                          CDbl(temotoRatio), ratioAddress, isWeldingVendor)
+    Else
+        BuildWeldingDataCellFormula = BuildRailMarkupFormula(wsWelding, rowIndex, sourceCol, _
+                                          CDbl(temotoRatio), ratioAddress)
+    End If
+End Function
+
+Private Sub AddCellToUnionWUP(ByRef target As Range, ByVal cellToAdd As Range)
+    If target Is Nothing Then
+        Set target = cellToAdd
+    Else
+        Set target = Union(target, cellToAdd)
+    End If
 End Sub
 
 Private Sub ApplyWeldingVendorRow(ByVal wsWelding As Worksheet, _
