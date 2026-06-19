@@ -1240,6 +1240,7 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet)
                  ws.Columns(kindColumn - 1)).Delete Shift:=xlToLeft
     End If
     If vendorNames.Count = 0 Or lastRow < 2 Then
+        If lastRow >= 2 Then WriteJrTotalRow ws
         RefreshBasicInfoConstructionTotals
         Exit Sub
     End If
@@ -1302,6 +1303,8 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet)
 
     ClearStaleOutputTotalFormatting ws, lastRow, lastRow + 1, subconFirstCol, insertedColumnCount
 
+    WriteJrTotalRow ws
+
     For vendorIndex = 1 To vendorNames.Count
         priceColumn = subconFirstCol + ((vendorIndex - 1) * 2)
         WriteTotalCells ws, lastRow + 1, _
@@ -1309,7 +1312,6 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet)
                         priceColumn + 1, lastRow
     Next vendorIndex
 
-    RedrawTotalBorders ws, lastRow + 1, OutputSheetCol(ws, COL_JR_PRICE), OutputSheetCol(ws, COL_JR_AMOUNT)
     RedrawOutputSheetDataBorders ws
     RefreshBasicInfoConstructionTotals
     LogCI "é{çHâÔé–ï íPâøóÒ: âÔé–êî=" & vendorNames.Count & _
