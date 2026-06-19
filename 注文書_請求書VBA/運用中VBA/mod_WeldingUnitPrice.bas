@@ -219,8 +219,14 @@ Public Sub UpdateWeldingVendorDisplayNamesForBasicInfo(Optional ByVal wsInfo As 
 
     Dim wsWelding As Variant
     For Each wsWelding In weldingSheets
+        On Error Resume Next
         UpdateWeldingVendorDisplayNamesOnSheet wsWelding, weldingBlock, weldingNameSources, _
             railBlocks, railBlockCount, vendorUnitPriceNameMap
+        If Err.Number <> 0 Then
+            LogWUP "表示名更新スキップ sheet=[" & wsWelding.Name & "] Err=" & CStr(Err.Number)
+            Err.Clear
+        End If
+        On Error GoTo Cleanup
     Next wsWelding
 
 Cleanup:

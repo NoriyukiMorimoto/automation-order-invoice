@@ -115,8 +115,6 @@ Public Sub FillVendorInfoToBasicInfo(Optional ByVal wsInfo As Worksheet, Optiona
     ApplyVendorSelection BranchName, selectedVendorName, wsInfo, targetCell
 
 RefreshWelding:
-    RefreshVendorUnitPriceForValueColumn wsInfo, targetCell.Column
-
     Dim currentWorkType As String
     currentWorkType = CommonNormalizeText(CStr(wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, targetCell.Column).value))
 
@@ -165,7 +163,9 @@ Public Sub ApplyVendorSelection(ByVal BranchName As String, ByVal vendorName As 
     Dim nameIndex As Object
     Set nameIndex = GetVendorNameIndex(BranchName, vendorRows)
     If nameIndex.Exists(vendorName) Then
-        ApplyVendorRowSelection wsInfo, BranchName, nameIndex(vendorName), targetCell
+        Dim rowData As Variant
+        rowData = vendorRows(CLng(nameIndex(vendorName)))
+        ApplyVendorRowSelection wsInfo, BranchName, rowData, targetCell
         Exit Sub
     End If
 
@@ -195,6 +195,7 @@ Private Sub ApplyVendorRowSelection(ByVal wsInfo As Worksheet, ByVal BranchName 
 
 ExitHandler:
     Application.EnableEvents = previousEnableEvents
+    Err.Clear
 End Sub
 
 Public Function GetAllVendorSelectionData() As Variant
@@ -1181,18 +1182,21 @@ Private Sub ApplyVendorUnitPriceDataRows(ByVal wsUnitPrice As Worksheet, _
     Dim wasteKeyword As String
     wasteKeyword = VendorWasteDisposalKeywordText()
 
-    ApplyVendorUnitPriceDataColumn wsUnitPrice, dayCol, VENDOR_UNIT_PRICE_REF_UNIT_COL, _
-        dayFormulaR1C1, wasteKeyword, lastRow
-    ApplyVendorUnitPriceDataColumn wsUnitPrice, nightCol, VENDOR_UNIT_PRICE_REF_WIDTH_COL, _
-        nightFormulaR1C1, wasteKeyword, lastRow
+    ApplyVendorUnitPriceDataColumn wsUnitPrice, wsInfo, valueColumn, dayCol, VENDOR_UNIT_PRICE_REF_UNIT_COL, _
+        dayFormulaR1C1, wasteKeyword, lastRow, True
+    ApplyVendorUnitPriceDataColumn wsUnitPrice, wsInfo, valueColumn, nightCol, VENDOR_UNIT_PRICE_REF_WIDTH_COL, _
+        nightFormulaR1C1, wasteKeyword, lastRow, False
 End Sub
 
 Private Sub ApplyVendorUnitPriceDataColumn(ByVal wsUnitPrice As Worksheet, _
+                                           ByVal wsInfo As Worksheet, _
+                                           ByVal valueColumn As Long, _
                                            ByVal targetCol As Long, _
                                            ByVal sourceCol As Long, _
                                            ByVal formulaR1C1 As String, _
                                            ByVal wasteKeyword As String, _
-                                           ByVal lastRow As Long)
+                                           ByVal lastRow As Long, _
+                                           ByVal isDayColumn As Boolean)
     Dim rowIndex As Long
     Dim formulaSegStart As Long
     formulaSegStart = 0
@@ -1209,8 +1213,8 @@ Private Sub ApplyVendorUnitPriceDataColumn(ByVal wsUnitPrice As Worksheet, _
             If formulaSegStart = 0 Then formulaSegStart = rowIndex
         Else
             If formulaSegStart > 0 Then
-                ApplyVendorUnitPriceFormulaSegment wsUnitPrice, formulaSegStart, rowIndex - 1, _
-                    targetCol, formulaR1C1
+                ApplyVendorUnitPriceFormulaSegment wsUnitPrice, wsInfo, valueColumn, formulaSegStart, rowIndex - 1, _
+                    targetCol, formulaR1C1, isDayColumn
                 formulaSegStart = 0
             End If
             If rowIndex <= lastRow Then
@@ -1236,18 +1240,33 @@ Private Function VendorUnitPriceRowNeedsFormulaForSource(ByVal wsUnitPrice As Wo
 End Function
 
 Private Sub ApplyVendorUnitPriceFormulaSegment(ByVal wsUnitPrice As Worksheet, _
+                                               ByVal wsInfo As Worksheet, _
+                                               ByVal valueColumn As Long, _
                                                ByVal segStart As Long, _
                                                ByVal segEnd As Long, _
                                                ByVal targetCol As Long, _
-                                               ByVal formulaR1C1 As String)
+                                               ByVal formulaR1C1 As String, _
+                                               ByVal isDayColumn As Boolean)
     If segStart > segEnd Then Exit Sub
 
+    On Error GoTo RowFallback
     With wsUnitPrice.Range(wsUnitPrice.Cells(segStart, targetCol), wsUnitPrice.Cells(segEnd, targetCol))
         .FormulaR1C1 = formulaR1C1
         .NumberFormat = VENDOR_UNIT_PRICE_NUMBER_FORMAT
         .Interior.ColorIndex = xlColorIndexNone
         .ShrinkToFit = False
     End With
+    Exit Sub
+
+RowFallback:
+    Err.Clear
+    Dim ratioAddress As String
+    Dim rowIndex As Long
+    ratioAddress = GetVendorOutsourceRatioAddress(wsInfo, valueColumn)
+    For rowIndex = segStart To segEnd
+        ApplyVendorUnitPriceCell wsUnitPrice.Cells(rowIndex, targetCol), isDayColumn, _
+                                 wsUnitPrice, rowIndex, ratioAddress
+    Next rowIndex
 End Sub
 
 Private Sub ApplyVendorUnitPriceBaseRowBorders(ByVal wsUnitPrice As Worksheet, _
@@ -1900,11 +1919,14 @@ Private Function GetVendorNameIndex(ByVal BranchName As String, ByVal vendorRows
 
     Dim rowData As Variant
     Dim normalizedName As String
+    Dim rowIndex As Long
+    rowIndex = 0
     For Each rowData In vendorRows
+        rowIndex = rowIndex + 1
         normalizedName = CommonNormalizeText(CStr(rowData(0)))
         If normalizedName <> "" Then
             If Not nameIndex.Exists(normalizedName) Then
-                nameIndex.Add normalizedName, rowData
+                nameIndex.Add normalizedName, rowIndex
             End If
         End If
     Next rowData
