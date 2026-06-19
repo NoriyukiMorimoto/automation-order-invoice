@@ -19,11 +19,31 @@ Private Function IsSubconSheet(ByVal Sh As Object) As Boolean
     IsSubconSheet = False
     If TypeName(Sh) <> "Worksheet" Then Exit Function
     On Error Resume Next
+    If mod_Construction_Order_Import.IsWeldingOutputSheet(Sh) Then
+        IsSubconSheet = True
+        Exit Function
+    End If
     If Trim$(CStr(Sh.Cells(1, 1).Value)) = SUBCON_HEADER_VENDOR And _
        Trim$(CStr(Sh.Cells(1, 2).Value)) = SUBCON_HEADER_SEIRI Then
         IsSubconSheet = True
     End If
     On Error GoTo 0
+End Function
+
+Private Function IsVendorSelectionTargetColumn(ByVal Sh As Object, ByVal columnIndex As Long) As Boolean
+    If mod_Construction_Order_Import.IsWeldingOutputSheet(Sh) Then
+        IsVendorSelectionTargetColumn = (columnIndex = 1 Or columnIndex = 2)
+    Else
+        IsVendorSelectionTargetColumn = (columnIndex = 1)
+    End If
+End Function
+
+Private Function GetVendorSelectionColumns(ByVal Sh As Object) As Range
+    If mod_Construction_Order_Import.IsWeldingOutputSheet(Sh) Then
+        Set GetVendorSelectionColumns = Sh.Columns("A:B")
+    Else
+        Set GetVendorSelectionColumns = Sh.Columns(1)
+    End If
 End Function
 
 Private Sub Workbook_SheetSelectionChange(ByVal Sh As Object, ByVal Target As Range)
@@ -47,7 +67,7 @@ End Sub
 
 Private Sub Workbook_SheetBeforeDoubleClick(ByVal Sh As Object, ByVal Target As Range, Cancel As Boolean)
     If Not IsSubconSheet(Sh) Then Exit Sub
-    If Target.Column <> 1 Then Exit Sub
+    If Not IsVendorSelectionTargetColumn(Sh, Target.Column) Then Exit Sub
     If Target.Row < SUBCON_DATA_START_ROW Then Exit Sub
 
     Cancel = True
@@ -66,7 +86,7 @@ End Sub
 
 Private Sub Workbook_SheetBeforeRightClick(ByVal Sh As Object, ByVal Target As Range, Cancel As Boolean)
     If Not IsSubconSheet(Sh) Then Exit Sub
-    If Target.Column <> 1 Then Exit Sub
+    If Not IsVendorSelectionTargetColumn(Sh, Target.Column) Then Exit Sub
     If Target.Row < SUBCON_DATA_START_ROW Then Exit Sub
 
     Dim cbMenu As Object
@@ -109,7 +129,7 @@ UnitPriceCleanup:
     End If
 
     If Not IsSubconSheet(Sh) Then Exit Sub
-    If Application.Intersect(Target, Sh.Columns(1)) Is Nothing Then Exit Sub
+    If Application.Intersect(Target, GetVendorSelectionColumns(Sh)) Is Nothing Then Exit Sub
 
     Dim prevEE As Boolean
     prevEE = Application.EnableEvents
@@ -117,7 +137,7 @@ UnitPriceCleanup:
     Application.EnableEvents = False
 
     mod_Construction_Order_Import.RefreshSubcontractorPriceColumns Sh
-    Sh.Columns(1).AutoFit
+    GetVendorSelectionColumns(Sh).AutoFit
 
 Cleanup:
     Application.EnableEvents = prevEE
