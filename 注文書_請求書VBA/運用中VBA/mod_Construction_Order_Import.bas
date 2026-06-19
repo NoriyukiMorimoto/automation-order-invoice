@@ -1240,7 +1240,11 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet)
                  ws.Columns(kindColumn - 1)).Delete Shift:=xlToLeft
     End If
     If vendorNames.Count = 0 Or lastRow < 2 Then
-        If lastRow >= 2 Then WriteJrTotalRow ws
+        lastRow = GetLastDataRow(ws)
+        If lastRow >= 2 Then
+            Dim emptyVendors As New Collection
+            WriteOutputTotalRows ws, emptyVendors, 0, 0
+        End If
         RefreshBasicInfoConstructionTotals
         Exit Sub
     End If
@@ -1249,6 +1253,12 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet)
     insertedColumnCount = vendorNames.Count * 2
     ws.Range(ws.Columns(subconFirstCol), _
              ws.Columns(subconFirstCol + insertedColumnCount - 1)).Insert Shift:=xlToRight
+
+    lastRow = GetLastDataRow(ws)
+    If lastRow < 2 Then
+        RefreshBasicInfoConstructionTotals
+        Exit Sub
+    End If
 
     Dim vendorColumnMap As Object
     Set vendorColumnMap = CreateObject("Scripting.Dictionary")
@@ -1301,16 +1311,7 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet)
 
     FormatSubcontractorPriceColumns ws, lastRow, insertedColumnCount, subconFirstCol
 
-    ClearStaleOutputTotalFormatting ws, lastRow, lastRow + 1, subconFirstCol, insertedColumnCount
-
-    WriteJrTotalRow ws
-
-    For vendorIndex = 1 To vendorNames.Count
-        priceColumn = subconFirstCol + ((vendorIndex - 1) * 2)
-        WriteTotalCells ws, lastRow + 1, _
-                        priceColumn, CStr(vendorNames(vendorIndex)) & "合計", _
-                        priceColumn + 1, lastRow
-    Next vendorIndex
+    WriteOutputTotalRows ws, vendorNames, subconFirstCol, insertedColumnCount
 
     RedrawOutputSheetDataBorders ws
     RefreshBasicInfoConstructionTotals
@@ -2352,7 +2353,10 @@ Private Sub ClearStaleOutputTotalFormatting(ByVal ws As Worksheet, _
                                             ByVal lastDataRow As Long, _
                                             ByVal totalRow As Long, _
                                             ByVal subconFirstCol As Long, _
-                                            ByVal subconColumnCount As Long)
+                                            ByVal subconColumnCount As Long, _
+                                            Optional ByVal seiriColumn As Long = 0, _
+                                            Optional ByVal jrLabelColumn As Long = 0, _
+                                            Optional ByVal jrSumColumn As Long = 0)
     Dim scanLastRow As Long
     scanLastRow = lastDataRow + 5
     If Not ws.UsedRange Is Nothing Then
@@ -2361,13 +2365,9 @@ Private Sub ClearStaleOutputTotalFormatting(ByVal ws As Worksheet, _
         If usedLastRow > scanLastRow Then scanLastRow = usedLastRow
     End If
 
-    Dim seiriColumn As Long
-    seiriColumn = OutputSheetSeiriColumn(ws)
-
-    Dim jrLabelColumn As Long
-    Dim jrSumColumn As Long
-    jrLabelColumn = OutputSheetCol(ws, COL_JR_PRICE)
-    jrSumColumn = OutputSheetCol(ws, COL_JR_AMOUNT)
+    If seiriColumn = 0 Then seiriColumn = OutputSheetSeiriColumn(ws)
+    If jrLabelColumn = 0 Then jrLabelColumn = OutputSheetCol(ws, COL_JR_PRICE)
+    If jrSumColumn = 0 Then jrSumColumn = OutputSheetCol(ws, COL_JR_AMOUNT)
 
     Dim rowIndex As Long
     For rowIndex = 2 To scanLastRow
@@ -2400,28 +2400,57 @@ Private Sub RedrawTotalBorders(ByVal ws As Worksheet, ByVal totalRow As Long, _
     DrawDoubleBorder ws.Cells(totalRow, sumColumn), RGB(255, 0, 0)
 End Sub
 
-Private Sub WriteJrTotalRow(ByVal ws As Worksheet)
+Private Sub WriteOutputTotalRows( _
+    ByVal ws As Worksheet, _
+    ByVal vendorNames As Collection, _
+    Optional ByVal subconFirstCol As Long = 0, _
+    Optional ByVal subconColumnCount As Long = -1, _
+    Optional ByVal dataKeyColumn As Long = 0, _
+    Optional ByVal jrLabelColumn As Long = 0, _
+    Optional ByVal jrSumColumn As Long = 0)
+
+    If dataKeyColumn = 0 Then dataKeyColumn = OutputSheetSeiriColumn(ws)
+    If jrLabelColumn = 0 Then jrLabelColumn = OutputSheetCol(ws, COL_JR_PRICE)
+    If jrSumColumn = 0 Then jrSumColumn = OutputSheetCol(ws, COL_JR_AMOUNT)
+    If subconFirstCol = 0 Then subconFirstCol = OutputSheetSubconPriceFirstCol(ws)
+    If subconColumnCount < 0 Then
+        If vendorNames Is Nothing Then
+            subconColumnCount = 0
+        Else
+            subconColumnCount = vendorNames.Count * 2
+        End If
+    End If
+
     Dim lastRow As Long
-    lastRow = GetLastDataRow(ws)
+    lastRow = GetLastDataRow(ws, dataKeyColumn)
     If lastRow < 2 Then Exit Sub
 
-    ClearStaleOutputTotalFormatting ws, lastRow, lastRow + 1, 0, 0
+    ClearStaleOutputTotalFormatting ws, lastRow, lastRow + 1, subconFirstCol, _
+        subconColumnCount, dataKeyColumn, jrLabelColumn, jrSumColumn
 
-    WriteTotalCells ws, lastRow + 1, _
-                    OutputSheetCol(ws, COL_JR_PRICE), "JR合計", _
-                    OutputSheetCol(ws, COL_JR_AMOUNT), lastRow
+    WriteTotalCells ws, lastRow + 1, jrLabelColumn, "JR合計", jrSumColumn, lastRow
+
+    If Not vendorNames Is Nothing Then
+        Dim vendorIndex As Long
+        Dim priceColumn As Long
+        For vendorIndex = 1 To vendorNames.Count
+            priceColumn = subconFirstCol + ((vendorIndex - 1) * 2)
+            WriteTotalCells ws, lastRow + 1, _
+                            priceColumn, CStr(vendorNames(vendorIndex)) & "合計", _
+                            priceColumn + 1, lastRow
+        Next vendorIndex
+    End If
+End Sub
+
+Private Sub WriteJrTotalRow(ByVal ws As Worksheet)
+    Dim emptyVendors As New Collection
+    WriteOutputTotalRows ws, emptyVendors, 0, 0
 End Sub
 
 Private Sub WritePurchaseNoticeJrTotalRow(ByVal ws As Worksheet)
-    Dim lastRow As Long
-    lastRow = GetLastDataRow(ws, PURCHASE_NOTICE_SEIRI_COL)
-    If lastRow < 2 Then Exit Sub
-
-    ClearStaleOutputTotalFormatting ws, lastRow, lastRow + 1, 0, 0
-
-    WriteTotalCells ws, lastRow + 1, _
-                    PURCHASE_NOTICE_JR_PRICE_COL, "JR合計", _
-                    PURCHASE_NOTICE_JR_AMOUNT_COL, lastRow
+    Dim emptyVendors As New Collection
+    WriteOutputTotalRows ws, emptyVendors, 0, 0, _
+        PURCHASE_NOTICE_SEIRI_COL, PURCHASE_NOTICE_JR_PRICE_COL, PURCHASE_NOTICE_JR_AMOUNT_COL
 End Sub
 
 Private Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
@@ -3445,22 +3474,23 @@ Private Function GetLastDataRow(ByVal ws As Worksheet, _
                                 Optional ByVal dataKeyColumn As Long = 0) As Long
     If dataKeyColumn = 0 Then dataKeyColumn = OutputSheetSeiriColumn(ws)
 
+    Dim scanStartRow As Long
+    scanStartRow = 2
+    If Not ws.UsedRange Is Nothing Then
+        Dim usedLastRow As Long
+        usedLastRow = ws.UsedRange.Row + ws.UsedRange.Rows.Count - 1
+        If usedLastRow > scanStartRow Then scanStartRow = usedLastRow
+    End If
+
     Dim rowIndex As Long
-    rowIndex = ws.Cells(ws.rows.Count, dataKeyColumn).End(xlUp).Row
-
-    Dim jrLabelColumn As Long
-    jrLabelColumn = OutputSheetCol(ws, COL_JR_PRICE)
-
-    Do While rowIndex >= 2
-        If Trim$(CommonNzText(ws.Cells(rowIndex, dataKeyColumn).value)) <> "" Then Exit Do
-        If IsOutputTotalLabelText(CommonNzText(ws.Cells(rowIndex, jrLabelColumn).value)) Then
-            rowIndex = rowIndex - 1
-        Else
-            Exit Do
+    For rowIndex = scanStartRow To 2 Step -1
+        If Trim$(CommonNzText(ws.Cells(rowIndex, dataKeyColumn).value)) <> "" Then
+            GetLastDataRow = rowIndex
+            Exit Function
         End If
-    Loop
+    Next rowIndex
 
-    GetLastDataRow = rowIndex
+    GetLastDataRow = 1
 End Function
 
 Public Function IsWeldingOutputSheet(ByVal ws As Worksheet) As Boolean
