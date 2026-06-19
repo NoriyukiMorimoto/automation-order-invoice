@@ -1335,6 +1335,10 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet, _
             qtyColumn, isWeldingSheet, matchedCount
     End If
 
+    lastRow = GetLastDataRow(ws)
+    ApplySubcontractorAmountFormulas ws, lastRow, vendorColumnMap, qtyColumn
+    RefreshSubcontractorColumnInteriors ws, lastRow, subconFirstCol, insertedColumnCount
+
     If Not layoutMatches Then
         FormatSubcontractorPriceColumns ws, lastRow, insertedColumnCount, subconFirstCol
         RedrawOutputSheetDataBorders ws
@@ -1566,25 +1570,17 @@ Private Sub ApplySubcontractorPricesBatch( _
     Dim amountFormula As String
     Dim rowVendorKey As String
     Dim vendorPrice As Variant
-    amountFormula = "=IF(OR(RC[-1]="""",RC" & qtyColumn & "=""""),"""",RC[-1]*RC" & qtyColumn & ")"
 
     Dim vendorKey As Variant
     For Each vendorKey In vendorColumnMap.Keys
         Dim priceColumn As Long
-        Dim amountColumn As Long
         priceColumn = CLng(vendorColumnMap(vendorKey))
-        amountColumn = priceColumn + 1
 
         Dim priceValues() As Variant
         ReDim priceValues(1 To rowCount, 1 To 1)
 
         Dim r As Long
         For r = 1 To rowCount
-            Dim rowIndex As Long
-            rowIndex = r + 1
-
-            Dim matchedRow As Boolean
-            matchedRow = False
             vendorColIndex = 0
             For Each vendorCol In vendorColumns
                 vendorColIndex = vendorColIndex + 1
@@ -1604,8 +1600,56 @@ Private Sub ApplySubcontractorPricesBatch( _
         Next r
 
         ws.Range(ws.Cells(2, priceColumn), ws.Cells(lastRow, priceColumn)).Value2 = priceValues
+    Next vendorKey
+End Sub
+
+Private Sub ApplySubcontractorAmountFormulas(ByVal ws As Worksheet, _
+                                               ByVal lastRow As Long, _
+                                               ByVal vendorColumnMap As Object, _
+                                               ByVal qtyColumn As Long)
+    If lastRow < 2 Then Exit Sub
+    If vendorColumnMap Is Nothing Then Exit Sub
+    If vendorColumnMap.Count = 0 Then Exit Sub
+
+    Dim amountFormula As String
+    amountFormula = "=IF(OR(RC[-1]="""",RC" & qtyColumn & "=""""),"""",RC[-1]*RC" & qtyColumn & ")"
+
+    Dim vendorKey As Variant
+    For Each vendorKey In vendorColumnMap.Keys
+        Dim amountColumn As Long
+        amountColumn = CLng(vendorColumnMap(vendorKey)) + 1
         ws.Range(ws.Cells(2, amountColumn), ws.Cells(lastRow, amountColumn)).FormulaR1C1 = amountFormula
     Next vendorKey
+End Sub
+
+Private Sub RefreshSubcontractorColumnInteriors(ByVal ws As Worksheet, _
+                                                  ByVal lastRow As Long, _
+                                                  ByVal firstColumn As Long, _
+                                                  ByVal columnCount As Long)
+    If lastRow < 2 Or columnCount <= 0 Then Exit Sub
+
+    Dim lastColumn As Long
+    Dim sanpaiFillColor As Long
+    Dim r As Long
+    Dim priceCol As Long
+    lastColumn = firstColumn + columnCount - 1
+    sanpaiFillColor = GetSanpaiFillColor()
+
+    For r = 2 To lastRow
+        If IsSanpaiRow(ws, r) Then
+            ws.Range(ws.Cells(r, firstColumn), ws.Cells(r, lastColumn)).Interior.Color = sanpaiFillColor
+        Else
+            For priceCol = firstColumn To lastColumn Step 2
+                If Len(CommonNzText(ws.Cells(r, priceCol).value)) > 0 Then
+                    ws.Cells(r, priceCol).Interior.Pattern = xlNone
+                    ws.Cells(r, priceCol + 1).Interior.Pattern = xlNone
+                Else
+                    ws.Cells(r, priceCol).Interior.Color = sanpaiFillColor
+                    ws.Cells(r, priceCol + 1).Interior.Color = sanpaiFillColor
+                End If
+            Next priceCol
+        End If
+    Next r
 End Sub
 
 Private Function GetArrayCellValue(ByVal arr As Variant, ByVal rowIndex As Long, ByVal colIndex As Long) As Variant
@@ -2470,25 +2514,6 @@ Private Sub FormatSubcontractorPriceColumns(ByVal ws As Worksheet, _
             .Weight = xlThin
             .Color = RGB(150, 150, 150)
         End With
-    End If
-
-    If lastRow >= 2 Then
-        Dim sanpaiFillColor As Long
-        Dim sanpaiRow As Long
-        Dim fillCol As Long
-        sanpaiFillColor = GetSanpaiFillColor()
-        For sanpaiRow = 2 To lastRow
-            If IsSanpaiRow(ws, sanpaiRow) Then
-                ws.Range(ws.Cells(sanpaiRow, firstColumn), _
-                         ws.Cells(sanpaiRow, lastColumn)).Interior.Color = sanpaiFillColor
-            Else
-                For fillCol = firstColumn To lastColumn
-                    If Len(CommonNzText(ws.Cells(sanpaiRow, fillCol).value)) = 0 Then
-                        ws.Cells(sanpaiRow, fillCol).Interior.Color = sanpaiFillColor
-                    End If
-                Next fillCol
-            End If
-        Next sanpaiRow
     End If
 
     ws.Range(ws.Columns(firstColumn), ws.Columns(lastColumn)).AutoFit
