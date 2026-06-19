@@ -141,10 +141,9 @@ Private mSuppressOverwritePrompt As Boolean
 Private mLastCreatedImportSheet As Worksheet
 
 Public Sub ImportConstructionDocument()
-    Dim scrn As Boolean, calc As XlCalculation, evt As Boolean, alerts As Boolean
+    Dim scrn As Boolean, evt As Boolean, alerts As Boolean
 
     scrn = Application.screenUpdating
-    calc = Application.Calculation
     evt = Application.EnableEvents
     alerts = Application.DisplayAlerts
 
@@ -191,7 +190,7 @@ Public Sub ImportConstructionDocument()
     End If
 
     Application.screenUpdating = scrn
-    Application.Calculation = calc
+    RestoreAutomaticCalculation
     Application.EnableEvents = evt
     Application.DisplayAlerts = alerts
 
@@ -206,7 +205,7 @@ Cleanup:
     mSuppressOverwritePrompt = False
     Set mLastCreatedImportSheet = Nothing
     Application.screenUpdating = scrn
-    Application.Calculation = calc
+    RestoreAutomaticCalculation
     Application.EnableEvents = evt
     Application.DisplayAlerts = alerts
 
@@ -214,6 +213,13 @@ Cleanup:
         MsgBox "éÊçûÇ›èàóùÇ≈ÉGÉâÅ[Ç™î≠ê∂ÇµÇ‹ÇµÇΩÅB" & vbCrLf & _
                "Err " & Err.Number & ": " & Err.Description, vbExclamation
     End If
+End Sub
+
+Private Sub RestoreAutomaticCalculation()
+    Application.Calculation = xlCalculationAutomatic
+    On Error Resume Next
+    ThisWorkbook.Calculate
+    On Error GoTo 0
 End Sub
 
 Private Sub ImportOneConstructionDocument(ByVal srcPath As String, _
