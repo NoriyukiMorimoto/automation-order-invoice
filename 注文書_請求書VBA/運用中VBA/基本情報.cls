@@ -105,12 +105,16 @@ Private Sub Worksheet_Change(ByVal target As Range)
         If Len(Trim$(CStr(Me.Range("C24").MergeArea.Cells(1, 1).value))) > 0 Then
             mod_MaterialPriceImport.FormatImportedLineNamesCell Me
         End If
+        If Not mod_MaterialPriceImport.IsImportingUnitPriceData() Then
+            mod_Construction_Order_Import.RefreshConstructionReferenceUnitPricesOnExistingSheets
+        End If
     End If
 
     If Not Intersect(target, Me.Range("C22,C23")) Is Nothing Then
         If Trim$(CStr(Me.Range("C24").value)) <> "" Then
             mod_MaterialPriceImport.SilentClearUnitPriceForBasicInfo Me
         End If
+        mod_Construction_Order_Import.RefreshConstructionReferenceUnitPricesOnExistingSheets
     End If
 
     If Not Intersect(target, vendorNameRange) Is Nothing Then
