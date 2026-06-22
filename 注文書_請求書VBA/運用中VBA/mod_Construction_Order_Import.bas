@@ -1243,33 +1243,65 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet, _
     Dim refreshStep As String
     Dim coreErrNo As Long
     Dim coreErrDesc As String
-    refreshStep = "Setup"
-    On Error GoTo RefreshError
+    Dim matchedCount As Long
+    matchedCount = 0
 
     Dim lastRow As Long
-    lastRow = GetLastDataRow(ws)
-
     Dim vendorNames As Collection
-    Set vendorNames = CollectSelectedSubcontractors(ws, lastRow)
-
     Dim kindColumn As Long
-    kindColumn = FindHeaderColumn(ws, "çHéÌï™óﬁ")
-    If kindColumn = 0 Then GoTo RefreshExit
-
     Dim subconFirstCol As Long
-    subconFirstCol = OutputSheetSubconPriceFirstCol(ws)
-
     Dim layoutMatches As Boolean
+    Dim insertedColumnCount As Long
+    Dim vendorColumnMap As Object
+    Dim lineSheetMap As Object
+    Dim vendorPriceCaches As Object
+    Dim seiriColumn As Long
+    Dim dayNightColumn As Long
+    Dim lineColumn As Long
+    Dim qtyColumn As Long
+    Dim isWeldingSheet As Boolean
+    Dim vendorColumns As Collection
+    Dim partialUpdate As Boolean
+
+    Set vendorNames = New Collection
+
+    refreshStep = "CollectVendors"
+    On Error Resume Next
+    lastRow = GetLastDataRow(ws)
+    If Err.Number <> 0 Then GoTo RefreshSetupError
+    Set vendorNames = CollectSelectedSubcontractors(ws, lastRow)
+    If Err.Number <> 0 Then GoTo RefreshSetupError
+    Err.Clear
+
+    refreshStep = "FindKindColumn"
+    kindColumn = FindHeaderColumn(ws, "çHéÌï™óﬁ")
+    If Err.Number <> 0 Then GoTo RefreshSetupError
+    If kindColumn = 0 Then GoTo RefreshExit
+    Err.Clear
+
+    refreshStep = "ResolveSubconFirstCol"
+    subconFirstCol = OutputSheetSubconPriceFirstCol(ws)
+    If Err.Number <> 0 Then GoTo RefreshSetupError
+    Err.Clear
+
+    refreshStep = "LayoutCheck"
     layoutMatches = SubconColumnLayoutMatches(ws, vendorNames, subconFirstCol, kindColumn)
+    If Err.Number <> 0 Then GoTo RefreshSetupError
+    Err.Clear
 
     If Not layoutMatches Then
+        refreshStep = "LayoutDelete"
         If kindColumn > subconFirstCol Then
             ws.Range(ws.Columns(subconFirstCol), _
                      ws.Columns(kindColumn - 1)).Delete Shift:=xlToLeft
+            If Err.Number <> 0 Then GoTo RefreshSetupError
             kindColumn = FindHeaderColumn(ws, "çHéÌï™óﬁ")
+            If Err.Number <> 0 Then GoTo RefreshSetupError
             If kindColumn = 0 Then GoTo RefreshExit
         End If
+        Err.Clear
     End If
+    On Error GoTo 0
 
     If vendorNames.Count = 0 Or lastRow < 2 Then
         lastRow = GetLastDataRow(ws)
@@ -1281,15 +1313,19 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet, _
         GoTo RefreshExit
     End If
 
-    Dim insertedColumnCount As Long
     insertedColumnCount = vendorNames.Count * 2
 
     If Not layoutMatches Then
+        refreshStep = "LayoutInsert"
+        On Error Resume Next
         ws.Range(ws.Columns(subconFirstCol), _
                  ws.Columns(subconFirstCol + insertedColumnCount - 1)).Insert Shift:=xlToRight
+        If Err.Number <> 0 Then GoTo RefreshSetupError
 
         lastRow = GetLastDataRow(ws)
+        If Err.Number <> 0 Then GoTo RefreshSetupError
         If lastRow < 2 Then
+            On Error GoTo 0
             RefreshBasicInfoConstructionTotals
             GoTo RefreshExit
         End If
@@ -1301,44 +1337,49 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet, _
             vendorName = CStr(vendorNames(vendorIndex))
             priceColumn = subconFirstCol + ((vendorIndex - 1) * 2)
             ws.Cells(1, priceColumn).value = vendorName & "íPâø"
+            If Err.Number <> 0 Then GoTo RefreshSetupError
             ws.Cells(1, priceColumn + 1).value = vendorName & "ã‡äz"
+            If Err.Number <> 0 Then GoTo RefreshSetupError
         Next vendorIndex
 
         kindColumn = FindHeaderColumn(ws, "çHéÌï™óﬁ")
+        If Err.Number <> 0 Then GoTo RefreshSetupError
+        Err.Clear
+        On Error GoTo 0
     End If
 
     If kindColumn > subconFirstCol Then
         insertedColumnCount = kindColumn - subconFirstCol
     End If
 
-    Dim vendorColumnMap As Object
+    refreshStep = "BuildVendorColumnMap"
+    On Error Resume Next
     Set vendorColumnMap = BuildVendorPriceColumnMap(vendorNames, subconFirstCol)
+    If Err.Number <> 0 Then GoTo RefreshSetupError
 
-    Dim lineSheetMap As Object
+    refreshStep = "BuildLineMap"
     Set lineSheetMap = BuildConstructionLineSheetMap()
+    Err.Clear
+    If lineSheetMap Is Nothing Then
+        Set lineSheetMap = CreateObject("Scripting.Dictionary")
+        lineSheetMap.CompareMode = vbTextCompare
+    End If
 
-    Dim vendorPriceCaches As Object
     Set vendorPriceCaches = CreateObject("Scripting.Dictionary")
     vendorPriceCaches.CompareMode = vbTextCompare
 
-    Dim seiriColumn As Long
-    Dim dayNightColumn As Long
-    Dim lineColumn As Long
-    Dim qtyColumn As Long
+    refreshStep = "PrepareApply"
     seiriColumn = OutputSheetSeiriColumn(ws)
     dayNightColumn = OutputSheetCol(ws, COL_DAYNIGHT)
     lineColumn = OutputSheetCol(ws, COL_LINE)
     qtyColumn = OutputSheetCol(ws, COL_QTY)
-
-    Dim isWeldingSheet As Boolean
     isWeldingSheet = IsWeldingOutputSheet(ws)
-
-    Dim vendorColumns As Collection
     Set vendorColumns = OutputSheetVendorColumns(ws)
-
-    Dim matchedCount As Long
-    Dim partialUpdate As Boolean
-    partialUpdate = Not changedRows Is Nothing And changedRows.Count > 0
+    partialUpdate = False
+    If Not changedRows Is Nothing Then partialUpdate = (changedRows.Count > 0)
+    If Err.Number <> 0 Then GoTo RefreshSetupError
+    Err.Clear
+    On Error GoTo 0
 
     '  à»ç~ÇÕíiäKñàÇ…ÉGÉâÅ[Çïﬂë®ÇµÅAÇ«ÇÃíiäKÇ≈é∏îsÇµÇΩÇ©Ç refreshStep Ç∆ÇµÇƒ
     '  LogCI Ç…ãLò^Ç∑ÇÈÅBíPâøìKópà»äOÇÃëïè¸ÅEçáåvçsï`âÊÇÕÅAé∏îsÇµÇƒÇ‡èàóùëSëÃÇ
@@ -1438,6 +1479,15 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet, _
           IIf(partialUpdate And layoutMatches, " / ïîï™çXêV", "")
     GoTo RefreshExit
 
+RefreshSetupError:
+    refreshErrNo = Err.Number
+    refreshErrDesc = Err.Description
+    Err.Clear
+    On Error GoTo 0
+    LogCI "RefreshSubcontractorPriceColumns Setup Err " & refreshErrNo & ": " & _
+          refreshErrDesc & " (step=" & refreshStep & ")"
+    GoTo RefreshExit
+
 RefreshError:
     refreshErrNo = Err.Number
     refreshErrDesc = Err.Description
@@ -1462,7 +1512,11 @@ RefreshExit:
                coreErrDesc, vbExclamation
         LogCI "RefreshSubcontractorPriceColumns core Err " & coreErrNo & ": " & coreErrDesc & " (step=ApplyPrices)"
     ElseIf matchedCount = 0 Then
-        LogCI "é{çHâÔé–ï íPâø: àÍív0åè (âÔé–êî=" & vendorNames.Count & ")"
+        If Not vendorNames Is Nothing Then
+            LogCI "é{çHâÔé–ï íPâø: àÍív0åè (âÔé–êî=" & vendorNames.Count & ")"
+        Else
+            LogCI "é{çHâÔé–ï íPâø: àÍív0åè"
+        End If
     End If
 End Sub
 
@@ -1472,10 +1526,20 @@ Private Function BuildVendorPriceColumnMap(ByVal vendorNames As Collection, _
     Set result = CreateObject("Scripting.Dictionary")
     result.CompareMode = vbTextCompare
 
+    If vendorNames Is Nothing Then
+        Set BuildVendorPriceColumnMap = result
+        Exit Function
+    End If
+
     Dim vendorIndex As Long
     For vendorIndex = 1 To vendorNames.Count
-        result.Add NormalizeVendorPriceName(CStr(vendorNames(vendorIndex))), _
-               subconFirstCol + ((vendorIndex - 1) * 2)
+        Dim vendorKey As String
+        vendorKey = NormalizeVendorPriceName(CStr(vendorNames(vendorIndex)))
+        If vendorKey <> "" Then
+            If Not result.Exists(vendorKey) Then
+                result.Add vendorKey, subconFirstCol + ((vendorIndex - 1) * 2)
+            End If
+        End If
     Next vendorIndex
 
     Set BuildVendorPriceColumnMap = result
@@ -1959,8 +2023,12 @@ Private Function GetVendorAliasMap(ByVal branchName As String) As Object
     End If
     If cacheKey <> "" Then
         If mVendorAliasMapCache.Exists(cacheKey) Then
-            Set GetVendorAliasMap = mVendorAliasMapCache(cacheKey)
-            Exit Function
+            Dim cachedAliasMap As Object
+            Set cachedAliasMap = mVendorAliasMapCache(cacheKey)
+            If Not cachedAliasMap Is Nothing Then
+                Set GetVendorAliasMap = cachedAliasMap
+                Exit Function
+            End If
         End If
     End If
 
@@ -2412,13 +2480,13 @@ Private Function GetVendorUnitPriceRows(ByVal unitPriceSheetName As String, _
     On Error GoTo 0
     If priceSheet Is Nothing Then
         LogCI "é{çHâÔé–íPâø: ÉVÅ[Égñ¢åüèo [" & unitPriceSheetName & "]"
-        vendorPriceCaches.Add cacheKey, result
+        StoreVendorUnitPriceCache vendorPriceCaches, cacheKey, result
         Set GetVendorUnitPriceRows = result
         Exit Function
     End If
     If Not mod_MaterialPriceImport.IsConstructionUnitPriceSheet(priceSheet) Then
         LogCI "é{çHâÔé–íPâø: çHéñíPâøÉVÅ[ÉgÇ≈ÇÕÇ»Ç¢ [" & unitPriceSheetName & "]"
-        vendorPriceCaches.Add cacheKey, result
+        StoreVendorUnitPriceCache vendorPriceCaches, cacheKey, result
         Set GetVendorUnitPriceRows = result
         Exit Function
     End If
@@ -2435,7 +2503,7 @@ Private Function GetVendorUnitPriceRows(ByVal unitPriceSheetName As String, _
     vendorDayColumn = FindUnitPriceVendorDayColumn(priceSheet, vendorName, aliasMap)
     If vendorDayColumn = 0 Then
         LogCI "é{çHâÔé–íPâø: ã∆é“óÒñ¢åüèo sheet=[" & unitPriceSheetName & "] vendor=[" & vendorName & "]"
-        vendorPriceCaches.Add cacheKey, result
+        StoreVendorUnitPriceCache vendorPriceCaches, cacheKey, result
         Set GetVendorUnitPriceRows = result
         Exit Function
     End If
@@ -2460,9 +2528,20 @@ NextVendorPriceRow:
     LogCI "é{çHâÔé–íPâø: sheet=[" & unitPriceSheetName & "] vendor=[" & vendorName & _
           "] col=" & vendorDayColumn & " keys=" & result.Count
 
-    vendorPriceCaches.Add cacheKey, result
+    StoreVendorUnitPriceCache vendorPriceCaches, cacheKey, result
     Set GetVendorUnitPriceRows = result
 End Function
+
+Private Sub StoreVendorUnitPriceCache(ByVal vendorPriceCaches As Object, _
+                                      ByVal cacheKey As String, _
+                                      ByVal priceRows As Object)
+    If vendorPriceCaches Is Nothing Then Exit Sub
+    If vendorPriceCaches.Exists(cacheKey) Then
+        Set vendorPriceCaches(cacheKey) = priceRows
+    Else
+        vendorPriceCaches.Add cacheKey, priceRows
+    End If
+End Sub
 
 Private Function FindUnitPriceVendorDayColumn(ByVal priceSheet As Worksheet, _
                                               ByVal vendorName As String, _
@@ -2480,7 +2559,13 @@ Private Function FindUnitPriceVendorDayColumn(ByVal priceSheet As Worksheet, _
         Dim headerCell As Range
         Dim headerKey As String
         Set headerCell = priceSheet.Cells(UNIT_PRICE_VENDOR_NAME_ROW, c)
-        If headerCell.MergeCells Then Set headerCell = headerCell.MergeArea.Cells(1, 1)
+        On Error Resume Next
+        If headerCell.MergeCells Then
+            Dim mergedHeader As Range
+            Set mergedHeader = headerCell.MergeArea.Cells(1, 1)
+            If Not mergedHeader Is Nothing Then Set headerCell = mergedHeader
+        End If
+        On Error GoTo 0
         headerKey = ResolveVendorCanonicalKey(CommonNzText(headerCell.value), aliasMap)
         If headerKey <> "" Then
             If StrComp(headerKey, vendorKey, vbTextCompare) = 0 Then
@@ -3263,6 +3348,7 @@ Cleanup:
     CommonCloseAdoConnection connection
 
     LogCI "ê¸ãÊñºÅ®íPâøÉVÅ[ÉgëŒâûêî=" & result.Count & " master=[" & masterPath & "]"
+    Err.Clear
     Set BuildConstructionLineSheetMap = result
 End Function
 
@@ -4061,6 +4147,13 @@ Public Function OutputSheetSeiriColumn(ByVal ws As Worksheet) As Long
 End Function
 
 Public Function OutputSheetSubconPriceFirstCol(ByVal ws As Worksheet) As Long
+    Dim jrAmountCol As Long
+    jrAmountCol = FindHeaderColumn(ws, "JRã‡äz")
+    If jrAmountCol > 0 Then
+        OutputSheetSubconPriceFirstCol = jrAmountCol + 1
+        Exit Function
+    End If
+
     If IsWeldingOutputSheet(ws) Then
         OutputSheetSubconPriceFirstCol = WELDING_SUBCON_PRICE_FIRST_COL
     Else
