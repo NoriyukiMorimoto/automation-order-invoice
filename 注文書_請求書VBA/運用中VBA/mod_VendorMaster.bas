@@ -498,6 +498,7 @@ Public Sub InitVendorBlockCountFromSheet(Optional ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet()
     If wsInfo Is Nothing Then Exit Sub
     mLastVendorBlockCount = GetVendorBlockCount(wsInfo)
+    mod_VendorInfoColors.ApplyVendorInfoRow10Colors wsInfo
 End Sub
 
 Public Sub SyncVendorBlocksFromCount(ByVal wsInfo As Worksheet)
@@ -1752,11 +1753,11 @@ End Function
 Private Sub ApplyVendorRow10ValueCellFormat(ByVal valueCell As Range)
     If valueCell Is Nothing Then Exit Sub
 
-    With valueCell
-        .HorizontalAlignment = xlCenter
-        .VerticalAlignment = xlCenter
-        .Font.Bold = True
-    End With
+    Dim vendorIndex As Long
+    vendorIndex = GetVendorIndexFromValueColumn(valueCell.Column)
+    If vendorIndex <= 0 Then Exit Sub
+
+    mod_VendorInfoColors.ApplyVendorInfoRow10Color valueCell.Worksheet, vendorIndex
 End Sub
 
 Private Sub CopyVendorBlockFormatsFromTemplate(ByVal wsInfo As Worksheet, ByVal destVendorIndex As Long)

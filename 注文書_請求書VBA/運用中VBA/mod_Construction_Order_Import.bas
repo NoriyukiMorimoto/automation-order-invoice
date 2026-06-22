@@ -534,11 +534,9 @@ Private Function BuildConstructionOutputSheet(ByVal sheetName As String, _
         mod_subcontractorselector.ApplySubcontractorDropdowns ws
     End If
     ApplySanpaiRowRestrictions ws
+    RefreshOutputSheetVendorColumnColors ws, GetLastDataRow(ws)
 
-    If isWelding Then
-        ws.Columns(WELD_COL_WELDING_VENDOR).HorizontalAlignment = xlCenter
-        ws.Columns(WELD_COL_TRACK_VENDOR).HorizontalAlignment = xlCenter
-    Else
+    If Not isWelding Then
         ws.Columns(COL_VENDOR).HorizontalAlignment = xlCenter
     End If
 
@@ -549,6 +547,10 @@ Private Function BuildConstructionOutputSheet(ByVal sheetName As String, _
 
     WriteJrTotalRow ws
     RedrawOutputSheetDataBorders ws
+
+    If isWelding Then
+        ApplyWeldingOutputSheetColumnAlignment ws
+    End If
 
     If isWelding Then
         ApplyOutputSheetHeaderAutoFilter ws, _
@@ -1308,6 +1310,7 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet, _
         If lastRow >= 2 Then
             Dim emptyVendors As New Collection
             WriteOutputTotalRows ws, emptyVendors, 0, 0
+            RefreshOutputSheetVendorColumnColors ws, lastRow
         End If
         RefreshBasicInfoConstructionTotals
         GoTo RefreshExit
@@ -1439,6 +1442,17 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet, _
     refreshStep = "ColumnInteriors"
     On Error Resume Next
     RefreshSubcontractorColumnInteriors ws, lastRow, subconFirstCol, insertedColumnCount
+    If Err.Number <> 0 Then
+        LogCI "RefreshSubcontractorPriceColumns step=" & refreshStep & " Err " & Err.Number & ": " & Err.Description
+        Err.Clear
+    End If
+    On Error GoTo 0
+
+    '  (3b) 施工会社列の業者情報色
+    refreshStep = "VendorColumnColors"
+    On Error Resume Next
+    lastRow = GetLastDataRow(ws)
+    RefreshOutputSheetVendorColumnColors ws, lastRow
     If Err.Number <> 0 Then
         LogCI "RefreshSubcontractorPriceColumns step=" & refreshStep & " Err " & Err.Number & ": " & Err.Description
         Err.Clear
@@ -1827,6 +1841,38 @@ Private Sub RefreshSubcontractorColumnInteriors(ByVal ws As Worksheet, _
         End If
     Next r
 End Sub
+
+Private Sub RefreshOutputSheetVendorColumnColors(ByVal ws As Worksheet, ByVal lastRow As Long)
+    If ws Is Nothing Then Exit Sub
+    If lastRow < 2 Then Exit Sub
+    If Not IsConstructionVendorOutputSheet(ws) Then Exit Sub
+
+    Dim vendorColumns As Collection
+    Set vendorColumns = OutputSheetVendorColumns(ws)
+
+    Dim r As Long
+    Dim vendorCol As Variant
+    For r = 2 To lastRow
+        If IsSanpaiRow(ws, r) Then GoTo NextColorRow
+
+        For Each vendorCol In vendorColumns
+            mod_VendorInfoColors.ApplyOutputSheetVendorCellColor _
+                ws, r, CLng(vendorCol), ResolveVendorColumnWorkTypeKeyword(ws, CLng(vendorCol))
+        Next vendorCol
+NextColorRow:
+    Next r
+End Sub
+
+Private Function ResolveVendorColumnWorkTypeKeyword(ByVal ws As Worksheet, _
+                                                    ByVal vendorColumn As Long) As String
+    If Not IsWeldingOutputSheet(ws) Then Exit Function
+
+    If vendorColumn = WELD_COL_WELDING_VENDOR Then
+        ResolveVendorColumnWorkTypeKeyword = WELDING_WORK_TYPE_KEYWORD
+    ElseIf vendorColumn = WELD_COL_TRACK_VENDOR Then
+        ResolveVendorColumnWorkTypeKeyword = TRACK_WORK_TYPE_KEYWORD
+    End If
+End Function
 
 Private Function GetArrayCellValue(ByVal arr As Variant, ByVal rowIndex As Long, ByVal colIndex As Long) As Variant
     If IsArray(arr) Then
@@ -2661,6 +2707,71 @@ Private Function ResolveVendorCanonicalKey(ByVal vendorName As String, _
     ResolveVendorCanonicalKey = normalizedKey
 End Function
 
+Public Function ResolveBasicInfoVendorInfoIndex(ByVal vendorDisplayName As String, _
+                                                Optional ByVal workTypeKeyword As String = "") As Long
+    ResolveBasicInfoVendorInfoIndex = 0
+
+    Dim normalizedDisplay As String
+    normalizedDisplay = NormalizeVendorPriceName(vendorDisplayName)
+    If normalizedDisplay = "" Then Exit Function
+
+    Dim wsInfo As Worksheet
+    Set wsInfo = CommonGetBasicInfoWorksheet(ThisWorkbook)
+    If wsInfo Is Nothing Then Exit Function
+
+    Dim aliasMap As Object
+    Set aliasMap = GetVendorAliasMap(GetBasicInfoCellText(wsInfo, BASIC_INFO_BRANCH_CELL))
+
+    Dim canonicalKey As String
+    canonicalKey = ResolveVendorCanonicalKey(vendorDisplayName, aliasMap)
+
+    Dim vendorNameMap As Object
+    Set vendorNameMap = mod_VendorMaster.BuildVendorUnitPriceNameMap(wsInfo)
+
+    Dim vendorCount As Long
+    vendorCount = GetBasicInfoVendorBlockCount(wsInfo)
+
+    Dim vendorIndex As Long
+    For vendorIndex = 1 To vendorCount
+        Dim valueCol As Long
+        valueCol = BasicInfoVendorColumn(vendorIndex)
+
+        If workTypeKeyword <> "" Then
+            If Not BasicInfoBlockMatchesWorkType(wsInfo, valueCol, workTypeKeyword) Then GoTo NextVendorIndex
+        End If
+
+        Dim basicInfoName As String
+        basicInfoName = GetBasicInfoCellText(wsInfo, wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, valueCol).Address)
+        If basicInfoName = "" Then GoTo NextVendorIndex
+
+        Dim basicInfoKey As String
+        basicInfoKey = ResolveVendorCanonicalKey(basicInfoName, aliasMap)
+        If canonicalKey <> "" And basicInfoKey = canonicalKey Then
+            ResolveBasicInfoVendorInfoIndex = vendorIndex
+            Exit Function
+        End If
+
+        If NormalizeVendorPriceName(basicInfoName) = normalizedDisplay Then
+            ResolveBasicInfoVendorInfoIndex = vendorIndex
+            Exit Function
+        End If
+
+        If Not vendorNameMap Is Nothing Then
+            Dim nameKey As String
+            nameKey = CommonNormalizeText(basicInfoName)
+            If vendorNameMap.Exists(nameKey) Then
+                Dim mappedDisplayName As String
+                mappedDisplayName = Trim$(CommonNzText(vendorNameMap(nameKey)))
+                If NormalizeVendorPriceName(mappedDisplayName) = normalizedDisplay Then
+                    ResolveBasicInfoVendorInfoIndex = vendorIndex
+                    Exit Function
+                End If
+            End If
+        End If
+NextVendorIndex:
+    Next vendorIndex
+End Function
+
 '  BuildVendorAliasMap
 '  業者マスタ(全社版).xlsx の「支店名(基本情報B6)」シートを開き、
 '  A列=業者名(略称) / B列=請求者氏名(正規名) を読み込んで、
@@ -2783,6 +2894,21 @@ Private Function ResolveVendorMasterPath() As String
         End If
     Next candidate
 End Function
+
+Private Sub ApplyWeldingOutputSheetColumnAlignment(ByVal ws As Worksheet)
+    If ws Is Nothing Then Exit Sub
+    If Not IsWeldingOutputSheet(ws) Then Exit Sub
+
+    Dim lastRow As Long
+    lastRow = GetLastDataRow(ws)
+    If lastRow < 1 Then lastRow = 1
+
+    ws.Columns(WELD_COL_WELDING_VENDOR).HorizontalAlignment = xlCenter
+    ws.Columns(WELD_COL_TRACK_VENDOR).HorizontalAlignment = xlCenter
+    ws.Columns("F").HorizontalAlignment = xlCenter
+    ws.Columns("I").HorizontalAlignment = xlCenter
+    ws.Columns("R").HorizontalAlignment = xlCenter
+End Sub
 
 Private Sub FormatSubcontractorPriceColumns(ByVal ws As Worksheet, _
                                             ByVal lastRow As Long, _

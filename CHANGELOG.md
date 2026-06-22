@@ -88,6 +88,23 @@
   i’‹—ñ‚Ì‚İEStep 2j‚Æ‹ÆÒƒ}ƒXƒ^•Ê–¼‚Å³‚µ‚¢—ñ‚ğ“Á’èAü‹æ–¼‚©‚ç’P‰¿ƒV[ƒg–¼‚ğ’¼ÚÆ‡
   ‚·‚éƒtƒH[ƒ‹ƒoƒbƒN‚ğ’Ç‰ÁB”’l‚Ì‚È‚¢ƒZƒ‹‚Íæo—Í‚Ö”½‰f‚µ‚È‚¢B
 
+### #19
+- “Æ©Hí‚Ìè“ü—Í’P‰¿‚ğ{H‰ïĞ—ñ‚Ö”½‰f‚Å‚«‚é‚æ‚¤AJR QÆ(E/F)‚ª‹ó‚Å‚à{H‰ïĞ—ñ‚É
+  ”’l‚ª‚ ‚ê‚ÎÌ—p‚·‚éB{H‰ïĞÄ‘I‘ğ‚ÍƒV[ƒg‘S‘Ì‚ğÄÆ‡‚µA•”•ªXV¸”s‚ÍˆêŠ‡XV
+  ‚ÖƒtƒH[ƒ‹ƒoƒbƒNB’P‰¿ƒV[ƒg––”ös‚Ì‘–¸EŒ‹‡ƒZƒ‹ã‚Ì‹ÆÒ–¼E’‹–é”z—ñ‚ÌˆÀ‘SQÆ‚ğ’Ç‰ÁB
+
+### #20
+- {H‰ïĞ•ÏX‚Ì Setup ’iŠK Err 91 ‚ğ‰ğÁBSetup ‚ğ’iŠK•Ê Resume Next ‚É•ª—£‚µA
+  {H‰ïĞ—ñŠJnˆÊ’u‚ğ JR ‹àŠz—ñ‚Ì‰E—×‚©‚ç“®“I‰ğŒˆBü‹æƒ}ƒbƒvE‹ÆÒ•Ê–¼ƒLƒƒƒbƒVƒ…‚Ì
+  Err.Clear / Nothing ƒK[ƒhA’P‰¿ƒLƒƒƒbƒVƒ…‚Ìd•¡“o˜^–h~‚ğ’Ç‰ÁB
+
+### #21
+- {Hw¦‘(H–)‚ÌA—ñE{Hw¦‘(—nÚ)‚ÌA/B—ñ‚Å{H‰ïĞ‘I‘ğAŠî–{î•ñ‚Ì‹ÆÒî•ñF‚ÅƒZƒ‹‚ğ“h‚éB
+  ‰ïĞ–¼‚Ì“Ë‡‚Í‹ÆÒƒ}ƒXƒ^•Ê–¼E’P‰¿•\•\¦–¼‚ÌŠù‘¶ƒ‹[ƒ‹‚É]‚¤B
+
+### #22
+- {Hw¦‘(—nÚ)ƒV[ƒgì¬‚É F—ñEI—ñER—ñ‚ğ’†‰›‘µ‚¦‚É‚·‚éB
+
 ---
 
 ## mod_MaterialPriceImport.bas?¼ˆå·¥äº‹å˜ä¾¡ã‚¤ãƒ³ãƒã?¼ãƒˆãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«?¼?
@@ -170,6 +187,22 @@
 ### #23
 - B6å¤‰æ›´æ™‚ã‚³ãƒ³ãƒœè¡¨ç¤ºãƒ•ãƒ­ãƒ¼è¿½è·¡ç”¨ãƒ­ã‚°ã‚’æŒ¿å…¥?¼?mod_DebugLog ä½¿ç”¨?¼‰ã€?
   ãƒ?ãƒãƒƒã‚°ç¢ºèªå¾Œã?¯ mod_DebugLog ã®å‘¼ã³å‡ºã—ã‚’å‰Šé™¤ã™ã‚‹ã“ã¨ã€?
+
+---
+
+## mod_VendorInfoColors.bas (vendor info colors)
+
+### #1
+- Fixed background/foreground palette for vendor blocks 1-10 (‹ÆÒî•ñF).
+- Apply to basic-info row 10 (3-column blocks) based on F9 subcontractor count.
+- Public `GetVendorInfoColorBackground` / `GetVendorInfoColorForeground` for future sheet tab colors.
+- Called from `mod_VendorMaster.InitVendorBlockCountFromSheet` and `SyncVendorBlocksFromCount`.
+
+### #2
+- Row 10 coloring applies to label/value columns only (E/F per block); spacer column (G etc.) restores default dark fill.
+
+### #3
+- `ApplyOutputSheetVendorCellColor` colors construction output sheet vendor cells (A or welding A/B) by vendor info index.
 
 ---
 
