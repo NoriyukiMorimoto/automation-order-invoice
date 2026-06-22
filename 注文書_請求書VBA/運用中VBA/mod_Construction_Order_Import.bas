@@ -3208,13 +3208,30 @@ Private Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
     autoAmountColumn = OutputSheetCol(ws, COL_AUTO_AMOUNT)
     compareColumn = OutputSheetCol(ws, COL_PRICE_COMPARE)
 
+    Dim isWeldingSheet As Boolean
+    Dim weldingPriceSheetName As String
+    isWeldingSheet = IsWeldingOutputSheet(ws)
+    If isWeldingSheet Then
+        weldingPriceSheetName = ResolveWeldingPriceSheetName()
+        If weldingPriceSheetName = "" Then
+            LogCI "レール溶接単価: シート名の解決に失敗(基本情報B6/C6 または 単価適用線区マスタ未一致)"
+        ElseIf Not SheetExistsByName(weldingPriceSheetName) Then
+            LogCI "レール溶接単価: シート「" & weldingPriceSheetName & "」が見つかりません"
+        End If
+    End If
+
     Dim r As Long
     For r = 2 To lastRow
         Dim unitPriceSheetName As String
         Dim recordKey As String
-        unitPriceSheetName = ResolveUnitPriceSheetName(lineSheetMap, _
-            CommonNzText(ws.Cells(r, OutputSheetCol(ws, COL_LINE)).value))
-        recordKey = NormalizeRecordKey(ws.Cells(r, seiriColumn).value)
+        If isWeldingSheet Then
+            unitPriceSheetName = weldingPriceSheetName
+            recordKey = BuildWeldingLookupKey(ws.Cells(r, seiriColumn).value)
+        Else
+            unitPriceSheetName = ResolveUnitPriceSheetName(lineSheetMap, _
+                CommonNzText(ws.Cells(r, OutputSheetCol(ws, COL_LINE)).value), False)
+            recordKey = NormalizeRecordKey(ws.Cells(r, seiriColumn).value)
+        End If
 
         Dim referencePrice As Variant
         referencePrice = Empty
@@ -3349,6 +3366,9 @@ Private Sub RefreshConstructionReferencePricesOnSheet( _
     ByVal changedPriceRows As Object, _
     ByVal lineSheetMap As Object)
 
+    ' 溶接シートの参照単価はレール溶接単価シート由来のため、工事単価シート変更では再計算しない。
+    If IsWeldingOutputSheet(ws) Then Exit Sub
+
     Dim seiriColumn As Long
     Dim dayNightColumn As Long
     Dim quantityColumn As Long
@@ -3374,8 +3394,11 @@ Private Sub RefreshConstructionReferencePricesOnSheet( _
     lastRow = ws.Cells(ws.rows.Count, seiriColumn).End(xlUp).Row
     If lastRow < 2 Then Exit Sub
 
+    Dim isWeldingSheet As Boolean
+    isWeldingSheet = IsWeldingOutputSheet(ws)
+
     Dim normalizedSourceSheet As String
-    normalizedSourceSheet = NormalizeLineLookupText(unitPriceSheetName)
+    normalizedSourceSheet = NormalizeLineLookupText(unitPriceSheetName, isWeldingSheet)
 
     Dim r As Long
     Dim recordKey As String
@@ -3385,9 +3408,10 @@ Private Sub RefreshConstructionReferencePricesOnSheet( _
         recordKey = NormalizeRecordKey(ws.Cells(r, seiriColumn).value)
         If recordKey <> "" And changedPriceRows.Exists(recordKey) Then
             resolvedSheetName = ResolveUnitPriceSheetName( _
-                lineSheetMap, CommonNzText(ws.Cells(r, FindHeaderColumn(ws, "契約線区名")).value))
+                lineSheetMap, CommonNzText(ws.Cells(r, FindHeaderColumn(ws, "契約線区名")).value), _
+                isWeldingSheet)
 
-            If NormalizeLineLookupText(resolvedSheetName) = normalizedSourceSheet Then
+            If NormalizeLineLookupText(resolvedSheetName, isWeldingSheet) = normalizedSourceSheet Then
                 referencePrice = SelectDayNightPrice( _
                     CommonNzText(ws.Cells(r, dayNightColumn).value), _
                     changedPriceRows(recordKey))
@@ -3500,7 +3524,8 @@ End Function
 Private Sub AddLineSheetAliases(ByVal lineSheetMap As Object, _
                                 ByVal sourceLineName As String, _
                                 ByVal unitPriceSheetName As String)
-    AddLineSheetAlias lineSheetMap, "E|" & NormalizeLineLookupText(sourceLineName), unitPriceSheetName
+    AddLineSheetAlias lineSheetMap, "W|" & NormalizeLineLookupText(sourceLineName, True), unitPriceSheetName
+    AddLineSheetAlias lineSheetMap, "C|" & NormalizeLineLookupText(sourceLineName, False), unitPriceSheetName
 End Sub
 
 Private Sub AddLineSheetAlias(ByVal lineSheetMap As Object, _
@@ -3516,26 +3541,57 @@ Private Sub AddLineSheetAlias(ByVal lineSheetMap As Object, _
 End Sub
 
 Private Function ResolveUnitPriceSheetName(ByVal lineSheetMap As Object, _
-                                           ByVal importedLineName As String) As String
+                                           ByVal importedLineName As String, _
+                                           Optional ByVal isWeldingSheet As Boolean = False) As String
     If lineSheetMap Is Nothing Then GoTo DirectLookup
 
+    Dim keyPrefix As String
+    If isWeldingSheet Then
+        keyPrefix = "W|"
+    Else
+        keyPrefix = "C|"
+    End If
+
     Dim key As String
-    key = "E|" & NormalizeLineLookupText(importedLineName)
+    key = keyPrefix & NormalizeLineLookupText(importedLineName, isWeldingSheet)
     If Len(key) > 2 And lineSheetMap.Exists(key) Then
         ResolveUnitPriceSheetName = CStr(lineSheetMap(key))
         Exit Function
     End If
 
 DirectLookup:
-    ResolveUnitPriceSheetName = FindImportedUnitPriceSheetName(importedLineName)
+    ResolveUnitPriceSheetName = FindImportedUnitPriceSheetName(importedLineName, isWeldingSheet)
 End Function
 
-Private Function NormalizeLineLookupText(ByVal sourceText As String) As String
+Private Function NormalizeLineLookupText(ByVal sourceText As String, _
+                                         Optional ByVal isWeldingSheet As Boolean = False) As String
     Dim result As String
     result = CommonNormalizeText(sourceText)
     result = Replace$(result, ChrW$(&HFF65), ChrW$(&H30FB))
-    result = RemoveTrackDesignationMarker(result)
+    If isWeldingSheet Then
+        result = RemoveWeldingInstructionMarker(result)
+    Else
+        result = RemoveTrackDesignationMarker(result)
+    End If
     NormalizeLineLookupText = CommonRemoveAllSpaces(result)
+End Function
+
+Private Function RemoveWeldingInstructionMarker(ByVal sourceText As String) As String
+    Static halfWidthMarker As String
+    Static fullWidthMarker As String
+
+    If Len(halfWidthMarker) = 0 Then
+        halfWidthMarker = ChrW$(&H28) & ChrW$(&H6EB6) & ChrW$(&H63A5) & ChrW$(&H6307) & _
+                          ChrW$(&H793A) & ChrW$(&H66F8) & ChrW$(&H7528) & ChrW$(&H29)
+        fullWidthMarker = ChrW$(&HFF08) & ChrW$(&H6EB6) & ChrW$(&H63A5) & ChrW$(&H6307) & _
+                          ChrW$(&H793A) & ChrW$(&H66F8) & ChrW$(&H7528) & ChrW$(&HFF09)
+    End If
+
+    Dim result As String
+    result = sourceText
+    result = Replace$(result, halfWidthMarker, "", , , vbTextCompare)
+    result = Replace$(result, fullWidthMarker, "", , , vbTextCompare)
+    RemoveWeldingInstructionMarker = result
 End Function
 
 Private Function RemoveTrackDesignationMarker(ByVal sourceText As String) As String
@@ -3669,15 +3725,16 @@ Private Sub AddUniqueText(ByVal values As Collection, ByVal newValue As String)
     values.Add newValue
 End Sub
 
-Private Function FindImportedUnitPriceSheetName(ByVal expectedSheetName As String) As String
+Private Function FindImportedUnitPriceSheetName(ByVal expectedSheetName As String, _
+                                                Optional ByVal isWeldingSheet As Boolean = False) As String
     Dim normalizedExpected As String
-    normalizedExpected = NormalizeLineLookupText(expectedSheetName)
+    normalizedExpected = NormalizeLineLookupText(expectedSheetName, isWeldingSheet)
     If normalizedExpected = "" Then Exit Function
 
     Dim ws As Worksheet
     For Each ws In ThisWorkbook.worksheets
         If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(ws) Then
-            If StrComp(NormalizeLineLookupText(ws.Name), normalizedExpected, vbTextCompare) = 0 Then
+            If StrComp(NormalizeLineLookupText(ws.Name, isWeldingSheet), normalizedExpected, vbTextCompare) = 0 Then
                 FindImportedUnitPriceSheetName = ws.Name
                 Exit Function
             End If
@@ -3793,7 +3850,7 @@ Private Sub WritePriceComparisonAtColumns( _
                         Dim guidanceSheetName As String
                         guidanceSheetName = unitPriceSheetName
                         If guidanceSheetName = "" Then
-                            guidanceSheetName = CommonNzText(ws.Cells(rowIndex, COL_LINE).value)
+                            guidanceSheetName = CommonNzText(ws.Cells(rowIndex, OutputSheetCol(ws, COL_LINE)).value)
                         End If
                         .value = "独自工種の内容を" & guidanceSheetName & "シートに入力してください。"
                         .Font.Color = RGB(255, 0, 0)
