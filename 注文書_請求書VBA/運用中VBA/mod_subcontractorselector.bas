@@ -201,6 +201,10 @@ Private Function BuildValidationListFormula(ByVal ws As Worksheet, ByVal names A
 End Function
 
 Public Sub SelectSubcontractorForSelection()
+    Dim prevEvents As Boolean
+    prevEvents = Application.EnableEvents
+    On Error GoTo ErrorHandler
+
     Dim ws As Worksheet
     Set ws = ActiveSheet
 
@@ -235,7 +239,7 @@ Public Sub SelectSubcontractorForSelection()
         Dim hit As Range
         On Error Resume Next
         Set hit = Application.Intersect(Selection.EntireRow, usedRange)
-        On Error GoTo 0
+        On Error GoTo ErrorHandler
 
         If Not hit Is Nothing Then
             AddEligibleVendorRowsFromRange ws, hit, seiriCol, targetRows
@@ -288,8 +292,6 @@ Public Sub SelectSubcontractorForSelection()
     Unload f
     If Not confirmed Or chosen = "" Then Exit Sub
 
-    Dim prevEvents As Boolean
-    prevEvents = Application.EnableEvents
     Application.EnableEvents = False
 
     Dim rIdx As Variant

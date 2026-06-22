@@ -1240,6 +1240,10 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet, _
 
     Dim refreshErrNo As Long
     Dim refreshErrDesc As String
+    Dim refreshStep As String
+    Dim coreErrNo As Long
+    Dim coreErrDesc As String
+    refreshStep = "Setup"
     On Error GoTo RefreshError
 
     Dim lastRow As Long
@@ -1336,6 +1340,14 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet, _
     Dim partialUpdate As Boolean
     partialUpdate = Not changedRows Is Nothing And changedRows.Count > 0
 
+    '  以降は段階毎にエラーを捕捉し、どの段階で失敗したかを refreshStep として
+    '  LogCI に記録する。単価適用以外の装飾・合計行描画は、失敗しても処理全体を
+    '  中断させず、エラーダイアログも出さない。単価適用が一件も成功しなかった
+    '  場合のみ利用者へ通知する。
+
+    '  (1) 単価適用(中核処理)
+    refreshStep = "ApplyPrices"
+    On Error Resume Next
     If partialUpdate And layoutMatches Then
         ApplySubcontractorPricesPartial ws, changedRows, vendorColumnMap, vendorColumns, _
             lineSheetMap, vendorPriceCaches, seiriColumn, dayNightColumn, lineColumn, _
@@ -1345,19 +1357,64 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet, _
             lineSheetMap, vendorPriceCaches, seiriColumn, dayNightColumn, lineColumn, _
             qtyColumn, isWeldingSheet, matchedCount
     End If
+    If Err.Number <> 0 Then
+        coreErrNo = Err.Number
+        coreErrDesc = Err.Description
+        LogCI "RefreshSubcontractorPriceColumns step=" & refreshStep & " Err " & Err.Number & ": " & Err.Description
+        Err.Clear
+    End If
+    On Error GoTo 0
 
+    '  (2) 金額数式
+    refreshStep = "AmountFormulas"
+    On Error Resume Next
     lastRow = GetLastDataRow(ws)
     ApplySubcontractorAmountFormulas ws, lastRow, vendorColumnMap, qtyColumn
-    RefreshSubcontractorColumnInteriors ws, lastRow, subconFirstCol, insertedColumnCount
+    If Err.Number <> 0 Then
+        LogCI "RefreshSubcontractorPriceColumns step=" & refreshStep & " Err " & Err.Number & ": " & Err.Description
+        Err.Clear
+    End If
+    On Error GoTo 0
 
+    '  (3) 列内塗りつぶし(単価有無の背景色)
+    refreshStep = "ColumnInteriors"
+    On Error Resume Next
+    RefreshSubcontractorColumnInteriors ws, lastRow, subconFirstCol, insertedColumnCount
+    If Err.Number <> 0 Then
+        LogCI "RefreshSubcontractorPriceColumns step=" & refreshStep & " Err " & Err.Number & ": " & Err.Description
+        Err.Clear
+    End If
+    On Error GoTo 0
+
+    '  (4) 列書式設定(レイアウト変更時のみ)
     If Not layoutMatches Then
+        refreshStep = "FormatColumns"
+        On Error Resume Next
         FormatSubcontractorPriceColumns ws, lastRow, insertedColumnCount, subconFirstCol
         RedrawOutputSheetDataBorders ws
+        If Err.Number <> 0 Then
+            LogCI "RefreshSubcontractorPriceColumns step=" & refreshStep & " Err " & Err.Number & ": " & Err.Description
+            Err.Clear
+        End If
+        On Error GoTo 0
     End If
 
+    '  (5) 合計行
+    refreshStep = "WriteTotals"
+    On Error Resume Next
     WriteOutputTotalRows ws, vendorNames, subconFirstCol, insertedColumnCount
+    If Err.Number <> 0 Then
+        LogCI "RefreshSubcontractorPriceColumns step=" & refreshStep & " Err " & Err.Number & ": " & Err.Description
+        Err.Clear
+    End If
+    On Error GoTo 0
 
+    '  (6) 基本情報合計(内部に独自ハンドラあり)以降は再度 RefreshError で保護
+    On Error GoTo RefreshError
+    refreshStep = "BasicInfoTotals"
     RefreshBasicInfoConstructionTotals
+
+    refreshStep = "Log"
     LogCI "施工会社別単価列: 会社数=" & vendorNames.Count & _
           " / 単価一致=" & matchedCount & _
           IIf(partialUpdate And layoutMatches, " / 部分更新", "")
@@ -1377,9 +1434,15 @@ RefreshExit:
     End If
     Application.EnableEvents = evt
     If refreshErrNo <> 0 Then
+        '  Setup段階や終盤など、致命的なエラー時のみダイアログ表示
         MsgBox "施工会社別の単価・金額列を更新できませんでした。" & vbCrLf & _
                refreshErrDesc, vbExclamation
-        LogCI "RefreshSubcontractorPriceColumns Err " & refreshErrNo & ": " & refreshErrDesc
+        LogCI "RefreshSubcontractorPriceColumns Err " & refreshErrNo & ": " & refreshErrDesc & " (step=" & refreshStep & ")"
+    ElseIf coreErrNo <> 0 And matchedCount = 0 Then
+        '  単価適用が一件も成功しなかった場合のみ通知
+        MsgBox "施工会社別の単価・金額列を更新できませんでした。" & vbCrLf & _
+               coreErrDesc, vbExclamation
+        LogCI "RefreshSubcontractorPriceColumns core Err " & coreErrNo & ": " & coreErrDesc & " (step=ApplyPrices)"
     End If
 End Sub
 
