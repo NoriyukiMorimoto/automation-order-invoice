@@ -3561,8 +3561,25 @@ Private Function NormalizeLineLookupText(ByVal sourceText As String, _
     Dim result As String
     result = CommonNormalizeText(sourceText)
     result = Replace$(result, ChrW$(&HFF65), ChrW$(&H30FB))
+    result = RemoveTrackDesignationMarker(result)
     If removeParenthetical Then result = RemoveParentheticalText(result)
     NormalizeLineLookupText = CommonRemoveAllSpaces(result)
+End Function
+
+Private Function RemoveTrackDesignationMarker(ByVal sourceText As String) As String
+    Static halfWidthMarker As String
+    Static fullWidthMarker As String
+
+    If Len(halfWidthMarker) = 0 Then
+        halfWidthMarker = ChrW$(&H28) & ChrW$(&H8ECC) & ChrW$(&H9053) & ChrW$(&H29)
+        fullWidthMarker = ChrW$(&HFF08) & ChrW$(&H8ECC) & ChrW$(&H9053) & ChrW$(&HFF09)
+    End If
+
+    Dim result As String
+    result = sourceText
+    result = Replace$(result, halfWidthMarker, "", , , vbTextCompare)
+    result = Replace$(result, fullWidthMarker, "", , , vbTextCompare)
+    RemoveTrackDesignationMarker = result
 End Function
 
 Private Function RemoveParentheticalText(ByVal sourceText As String) As String
@@ -3703,15 +3720,23 @@ Private Sub AddUniqueText(ByVal values As Collection, ByVal newValue As String)
 End Sub
 
 Private Function FindImportedUnitPriceSheetName(ByVal expectedSheetName As String) As String
+    FindImportedUnitPriceSheetName = FindImportedUnitPriceSheetNameCore(expectedSheetName, False)
+    If FindImportedUnitPriceSheetName = "" Then
+        FindImportedUnitPriceSheetName = FindImportedUnitPriceSheetNameCore(expectedSheetName, True)
+    End If
+End Function
+
+Private Function FindImportedUnitPriceSheetNameCore(ByVal expectedSheetName As String, _
+                                                    ByVal useSimplified As Boolean) As String
     Dim normalizedExpected As String
-    normalizedExpected = NormalizeLineLookupText(expectedSheetName, False)
+    normalizedExpected = NormalizeLineLookupText(expectedSheetName, useSimplified)
     If normalizedExpected = "" Then Exit Function
 
     Dim ws As Worksheet
     For Each ws In ThisWorkbook.worksheets
         If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(ws) Then
-            If StrComp(NormalizeLineLookupText(ws.Name, False), normalizedExpected, vbTextCompare) = 0 Then
-                FindImportedUnitPriceSheetName = ws.Name
+            If StrComp(NormalizeLineLookupText(ws.Name, useSimplified), normalizedExpected, vbTextCompare) = 0 Then
+                FindImportedUnitPriceSheetNameCore = ws.Name
                 Exit Function
             End If
         End If
