@@ -3252,7 +3252,11 @@ Private Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
             End If
         End If
 
-        If Not IsEmpty(referencePrice) Then ws.Cells(r, autoPriceColumn).value = referencePrice
+        If IsEmpty(referencePrice) Or IsError(referencePrice) Then
+            ws.Cells(r, autoPriceColumn).ClearContents
+        Else
+            ws.Cells(r, autoPriceColumn).value = referencePrice
+        End If
         WritePriceComparison ws, r, unitPriceSheetName, True, guidanceDocumentName
     Next r
 
@@ -3267,6 +3271,40 @@ Private Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
     LogCI "éQè∆íPâøàÍív=" & matchedCount & _
           " / ê¸ãÊñ¢âåà=" & unresolvedLineCount & _
           " / êÆóùî‘çÜñ¢àÍív=" & missingRecordCount
+End Sub
+
+Public Sub RefreshConstructionReferenceUnitPricesOnExistingSheets()
+    Dim prevScreen As Boolean
+    Dim prevCalc As XlCalculation
+    prevScreen = Application.ScreenUpdating
+    prevCalc = Application.Calculation
+
+    On Error GoTo Cleanup
+    Application.ScreenUpdating = False
+    Application.Calculation = xlCalculationManual
+
+    Dim ws As Worksheet
+    Dim refreshedCount As Long
+    For Each ws In ThisWorkbook.Worksheets
+        If IsConstructionDocumentOutputSheet(ws) Then
+            Dim guidanceDocumentName As String
+            guidanceDocumentName = ResolveGuidanceDocumentNameFromOutputSheet(ws)
+            FillReferenceUnitPrices ws, guidanceDocumentName, IsWeldingOutputSheet(ws)
+            If IsWeldingOutputSheet(ws) Then
+                ApplyPriceGuidanceColumnLayoutAtColumns _
+                    ws, OutputSheetCol(ws, COL_PRICE_COMPARE), OutputSheetCol(ws, COL_PRICE_GUIDANCE)
+            Else
+                ApplyPriceGuidanceColumnLayout ws
+            End If
+            refreshedCount = refreshedCount + 1
+        End If
+    Next ws
+
+    LogCI "ä˘ë∂é{çHéwé¶èëìôÉVÅ[ÉgÇÃéQè∆íPâøçƒì«çû: ëŒè€=" & refreshedCount
+
+Cleanup:
+    Application.Calculation = prevCalc
+    Application.ScreenUpdating = prevScreen
 End Sub
 
 Public Sub RefreshConstructionReferencePricesForUnitPriceChange( _
@@ -3804,6 +3842,25 @@ Private Sub WritePriceComparisonAtColumns( _
         End If
     End With
 End Sub
+
+Private Function ResolveGuidanceDocumentNameFromOutputSheet(ByVal ws As Worksheet) As String
+    Dim mgrColumn As Long
+    mgrColumn = FindHeaderColumn(ws, "ä«óùé∫")
+    If mgrColumn > 0 Then
+        If ws.Columns(mgrColumn).Hidden Then
+            ResolveGuidanceDocumentNameFromOutputSheet = "é{çHí ímèë"
+            Exit Function
+        End If
+    End If
+
+    Dim normalizedName As String
+    normalizedName = CommonRemoveAllSpaces(CommonNormalizeText(ws.Name))
+    If InStr(1, normalizedName, "í ím", vbTextCompare) > 0 Then
+        ResolveGuidanceDocumentNameFromOutputSheet = "é{çHí ímèë"
+    Else
+        ResolveGuidanceDocumentNameFromOutputSheet = "é{çHéwé¶èë"
+    End If
+End Function
 
 Private Function ResolveGuidanceDocumentName(ByVal sourceA3Text As String, _
                                              ByVal docType As Long) As String
