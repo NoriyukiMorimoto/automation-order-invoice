@@ -2,6 +2,7 @@ Option Explicit
 
 Public SharedMasterData As Variant
 Private mClearingImportedLineNames As Boolean
+Private mImportingUnitPriceData As Boolean
 
 Private Type UnitPriceRequest
     Nendo As String
@@ -330,8 +331,16 @@ End Sub
 
 Public Sub ClearAndImportUnitPriceForBasicInfo(ByVal ws As Worksheet)
     If ws Is Nothing Then Exit Sub
+    mImportingUnitPriceData = True
+    On Error GoTo FinallyExit
     ImportUnitPriceData ws
+FinallyExit:
+    mImportingUnitPriceData = False
 End Sub
+
+Public Function IsImportingUnitPriceData() As Boolean
+    IsImportingUnitPriceData = mImportingUnitPriceData
+End Function
 
 Private Sub ImportUnitPriceData(ByVal wsInfo As Worksheet)
     LogUP "ImportUnitPriceData ŠJŽn wb=[" & wsInfo.Parent.Name & "]"
@@ -420,6 +429,7 @@ Private Sub ImportUnitPriceData(ByVal wsInfo As Worksheet)
 
     mod_VendorMaster.RefreshAllVendorUnitPricesForBasicInfo wsInfo
     mod_WeldingUnitPrice.ApplyWeldingVendorUnitPricesForBasicInfo wsInfo
+    mod_Construction_Order_Import.RefreshConstructionReferenceUnitPricesOnExistingSheets
 
     Application.Calculation = xlCalculationAutomatic
     On Error Resume Next
