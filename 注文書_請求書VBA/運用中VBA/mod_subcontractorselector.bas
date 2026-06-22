@@ -305,7 +305,7 @@ Public Sub SelectSubcontractorForSelection()
 
     Application.EnableEvents = prevEvents
 
-    MsgBox "選択された" & targetRows.Count & "行に「施工会社名(" & chosen & ")」の施工単価を設定しました。", _
+    MsgBox "選択された" & targetRows.Count & "行に「" & chosen & "」の施工単価を設定しました。", _
            vbInformation
     Exit Sub
 
