@@ -522,7 +522,7 @@ Private Function BuildConstructionOutputSheet(ByVal sheetName As String, _
     Else
         WriteAdditionalHeaders ws
     End If
-    FillReferenceUnitPrices ws, guidanceDocumentName, isWelding
+    FillReferenceUnitPrices ws, guidanceDocumentName
     If isWelding Then
         FormatSheet ws, OutputSheetCol(ws, COL_SEIRI)
         ApplyPriceGuidanceColumnLayoutAtColumns _
@@ -3182,8 +3182,7 @@ Private Sub WritePurchaseNoticeJrTotalRow(ByVal ws As Worksheet)
 End Sub
 
 Private Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
-                                    ByVal guidanceDocumentName As String, _
-                                    Optional ByVal isWelding As Boolean = False)
+                                    ByVal guidanceDocumentName As String)
     Dim lastRow As Long
     lastRow = GetLastDataRow(ws)
     If lastRow < 2 Then Exit Sub
@@ -3194,16 +3193,6 @@ Private Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
     Dim sheetPriceCaches As Object
     Set sheetPriceCaches = CreateObject("Scripting.Dictionary")
     sheetPriceCaches.CompareMode = vbTextCompare
-
-    Dim weldingPriceSheetName As String
-    If isWelding Then
-        weldingPriceSheetName = ResolveWeldingPriceSheetName()
-        If weldingPriceSheetName = "" Then
-            LogCI "レール溶接単価: シート名の解決に失敗(基本情報B6/C6 または 単価適用線区マスタ未一致)"
-        ElseIf Not SheetExistsByName(weldingPriceSheetName) Then
-            LogCI "レール溶接単価: シート「" & weldingPriceSheetName & "」が見つかりません"
-        End If
-    End If
 
     Dim matchedCount As Long, unresolvedLineCount As Long, missingRecordCount As Long
     Dim seiriColumn As Long
@@ -3223,13 +3212,9 @@ Private Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
     For r = 2 To lastRow
         Dim unitPriceSheetName As String
         Dim recordKey As String
-        If isWelding Then
-            unitPriceSheetName = weldingPriceSheetName
-            recordKey = BuildWeldingLookupKey(ws.Cells(r, seiriColumn).value)
-        Else
-            unitPriceSheetName = ResolveUnitPriceSheetName(lineSheetMap, CommonNzText(ws.Cells(r, OutputSheetCol(ws, COL_LINE)).value))
-            recordKey = NormalizeRecordKey(ws.Cells(r, seiriColumn).value)
-        End If
+        unitPriceSheetName = ResolveUnitPriceSheetName(lineSheetMap, _
+            CommonNzText(ws.Cells(r, OutputSheetCol(ws, COL_LINE)).value))
+        recordKey = NormalizeRecordKey(ws.Cells(r, seiriColumn).value)
 
         Dim referencePrice As Variant
         referencePrice = Empty
@@ -3289,7 +3274,7 @@ Public Sub RefreshConstructionReferenceUnitPricesOnExistingSheets()
         If IsConstructionDocumentOutputSheet(ws) Then
             Dim guidanceDocumentName As String
             guidanceDocumentName = ResolveGuidanceDocumentNameFromOutputSheet(ws)
-            FillReferenceUnitPrices ws, guidanceDocumentName, IsWeldingOutputSheet(ws)
+            FillReferenceUnitPrices ws, guidanceDocumentName
             If IsWeldingOutputSheet(ws) Then
                 ApplyPriceGuidanceColumnLayoutAtColumns _
                     ws, OutputSheetCol(ws, COL_PRICE_COMPARE), OutputSheetCol(ws, COL_PRICE_GUIDANCE)
@@ -3363,10 +3348,6 @@ Private Sub RefreshConstructionReferencePricesOnSheet( _
     ByVal unitPriceSheetName As String, _
     ByVal changedPriceRows As Object, _
     ByVal lineSheetMap As Object)
-
-    ' (溶接)シートは取込時に溶接単価シートからM列を確定するため、
-    ' 工事用単価シートの変更による参照単価の再計算対象から除外する。
-    If Right$(ws.Name, Len(CONSTRUCTION_SHEET_SUFFIX_WELDING)) = CONSTRUCTION_SHEET_SUFFIX_WELDING Then Exit Sub
 
     Dim seiriColumn As Long
     Dim dayNightColumn As Long
