@@ -105,6 +105,22 @@
 ### #22
 - 施工指示書(溶接)シート作成時に F列・I列・R列を中央揃えにする。
 
+### #23
+- 基本情報シートの C22/C24 変更時、既存の施工指示書等シートの参照単価列
+  （工事 M 列・溶接 N 列）を再読み込みする `RefreshConstructionReferenceUnitPricesOnExistingSheets` を追加。
+- 参照単価が解決できない行は M/N 列をクリアし、単価比較・案内列も再計算する。
+
+### #24
+- 施工指示書(工事)の契約線区名に付く `(軌道)` / `（軌道）` を線区名照合時に除去し、
+  単価シート名・工事件名別マスタとの突合を改善。
+- 従来の S\| 簡略照合（括弧内をすべて除去）は `(東)(西)(南)` まで消え誤照合するため廃止。
+  `(軌道)` のみ除去し、方向括弧は保持して照合する。
+
+### #27
+- 施工指示書(溶接)の参照単価(N列)はレール溶接単価シート＋溶接用整理番号キー
+  （BuildWeldingLookupKey）で再照合するよう修正。工事単価シート行別解決は溶接には不適。
+- 単価不一致時の案内文が溶接シートで数量列を誤参照していた不具合を修正。
+
 ---
 
 ## mod_MaterialPriceImport.bas?ｼ亥ｷ･莠句腰萓｡繧､繝ｳ繝昴?ｼ繝医Δ繧ｸ繝･繝ｼ繝ｫ?ｼ?
@@ -170,6 +186,10 @@
   ResolveUnitPriceSourceFilePaths縲！mportSelectedUnitPriceSheets縲?
   ImportPurchaseUnitPriceSheetsByReference縲！mportWeldingUnitPriceSheetsIfRequired縲仝riteSelectedLineNames縲?
 - 譌｢蟄倥?ｮ [FillMgr] 繝ｭ繧ｰ縺ｨ蜷悟ｽ｢蠑上?ｻ蜷後ち繧ｰ驕狗畑縲?
+
+### #29
+- 工事単価取込完了時に既存施工指示書等シートの参照単価を再読み込みするよう連携。
+- 取込処理中は `IsImportingUnitPriceData` で C24 変更イベントからの二重更新を抑止。
 
 ---
 

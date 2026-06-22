@@ -99,6 +99,13 @@ Private Const PRICE_LINE_NAME_COL As Long = 5
 Private Const PRICE_LINE_START_ROW As Long = 2
 Private Const PURCHASE_PRICE_SHEET_SUFFIX As String = "_購入充当単価"
 
+' 対象線区(単価)シートの列構成。COL_SEIRI(=2,B)を整理番号キーとする。
+Private Const UNIT_PRICE_TYPE_COL As Long = 3        ' C 種別
+Private Const UNIT_PRICE_UNIT_COL As Long = 4        ' D 単位
+Private Const UNIT_PRICE_DAY_PRICE_COL As Long = 5   ' E 昼単価
+Private Const UNIT_PRICE_NIGHT_PRICE_COL As Long = 6 ' F 夜単価
+Private Const MISSING_SEIRI_FILL_COLOR As Long = 65535 ' RGB(255,255,0) 黄色
+
 Private mVendorAliasMapCache As Object
 Private Const WELDING_PRICE_SHEET_SUFFIX As String = "_レール溶接単価"
 Private Const PURCHASE_ORDER_SHEET_NAME As String = "購入充当指示"
@@ -3208,6 +3215,18 @@ Private Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
     autoAmountColumn = OutputSheetCol(ws, COL_AUTO_AMOUNT)
     compareColumn = OutputSheetCol(ws, COL_PRICE_COMPARE)
 
+    Dim typeColumn As Long
+    Dim unitColumn As Long
+    Dim lineColumn As Long
+    typeColumn = OutputSheetCol(ws, COL_TYPE)
+    unitColumn = OutputSheetCol(ws, COL_UNIT)
+    lineColumn = OutputSheetCol(ws, COL_LINE)
+
+    ' 整理番号が対象線区(単価)シートに未登録の行を線区シート別に収集する
+    Dim pendingByLineSheet As Object
+    Set pendingByLineSheet = CreateObject("Scripting.Dictionary")
+    pendingByLineSheet.CompareMode = vbTextCompare
+
     Dim isWeldingSheet As Boolean
     Dim weldingPriceSheetName As String
     isWeldingSheet = IsWeldingOutputSheet(ws)
@@ -3224,17 +3243,22 @@ Private Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
     For r = 2 To lastRow
         Dim unitPriceSheetName As String
         Dim recordKey As String
+        Dim rawLineText As String
+        rawLineText = ""
         If isWeldingSheet Then
             unitPriceSheetName = weldingPriceSheetName
             recordKey = BuildWeldingLookupKey(ws.Cells(r, seiriColumn).value)
         Else
-            unitPriceSheetName = ResolveUnitPriceSheetName(lineSheetMap, _
-                CommonNzText(ws.Cells(r, OutputSheetCol(ws, COL_LINE)).value), False)
+            rawLineText = CommonNzText(ws.Cells(r, lineColumn).value)
+            unitPriceSheetName = ResolveUnitPriceSheetName(lineSheetMap, rawLineText, False)
             recordKey = NormalizeRecordKey(ws.Cells(r, seiriColumn).value)
         End If
 
         Dim referencePrice As Variant
         referencePrice = Empty
+
+        Dim recordMissing As Boolean
+        recordMissing = False
 
         If unitPriceSheetName = "" Then
             unresolvedLineCount = unresolvedLineCount + 1
@@ -3244,6 +3268,7 @@ Private Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
 
             If priceRows Is Nothing Or recordKey = "" Then
                 missingRecordCount = missingRecordCount + 1
+                If recordKey <> "" Then recordMissing = True
             ElseIf priceRows.Exists(recordKey) Then
                 Dim dayNightPrices As Variant
                 dayNightPrices = priceRows(recordKey)
@@ -3251,6 +3276,18 @@ Private Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
                 If Not IsEmpty(referencePrice) Then matchedCount = matchedCount + 1
             Else
                 missingRecordCount = missingRecordCount + 1
+                recordMissing = True
+            End If
+        End If
+
+        ' 工事(非溶接)シートのみ: 整理番号が単価マスタに無く、対象線区が(軌道)以外の場合に
+        ' 線区シートへ登録対象として収集する
+        If recordMissing And (Not isWeldingSheet) And unitPriceSheetName <> "" Then
+            If Not LineTextHasTrackDesignation(rawLineText) Then
+                CollectMissingSeiriForLineSheet pendingByLineSheet, unitPriceSheetName, recordKey, _
+                    ws.Cells(r, seiriColumn).value, _
+                    ws.Cells(r, typeColumn).value, _
+                    ws.Cells(r, unitColumn).value
             End If
         End If
 
@@ -3261,6 +3298,9 @@ Private Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
         End If
         WritePriceComparison ws, r, unitPriceSheetName, True, guidanceDocumentName
     Next r
+
+    ' 整理番号が単価マスタに無かった分を、対象線区シートの最下部へ登録する
+    If Not isWeldingSheet Then RegisterMissingSeiriToLineSheets pendingByLineSheet
 
     ws.Range(ws.Cells(2, autoAmountColumn), ws.Cells(lastRow, autoAmountColumn)).FormulaR1C1 = _
         "=IF(OR(RC[" & (autoPriceColumn - autoAmountColumn) & "]="""",RC[" & (qtyColumn - autoAmountColumn) & "]=""""),"""",RC[" & (autoPriceColumn - autoAmountColumn) & "]*RC[" & (qtyColumn - autoAmountColumn) & "])"
@@ -3609,6 +3649,150 @@ Private Function RemoveTrackDesignationMarker(ByVal sourceText As String) As Str
     result = Replace$(result, fullWidthMarker, "", , , vbTextCompare)
     RemoveTrackDesignationMarker = result
 End Function
+
+' 線区テキストに(軌道)マーカーが含まれるか
+Private Function LineTextHasTrackDesignation(ByVal lineText As String) As Boolean
+    Dim normalized As String
+    normalized = CommonNormalizeText(lineText)
+    LineTextHasTrackDesignation = (RemoveTrackDesignationMarker(normalized) <> normalized)
+End Function
+
+' 整理番号が単価マスタに未登録の行を、線区シート別に収集する(同一整理番号は1件のみ)
+Private Sub CollectMissingSeiriForLineSheet(ByVal pendingByLineSheet As Object, _
+                                            ByVal lineSheetName As String, _
+                                            ByVal recordKey As String, _
+                                            ByVal seiriValue As Variant, _
+                                            ByVal typeValue As Variant, _
+                                            ByVal unitValue As Variant)
+    If pendingByLineSheet Is Nothing Then Exit Sub
+    If lineSheetName = "" Or recordKey = "" Then Exit Sub
+
+    Dim sheetPending As Object
+    If pendingByLineSheet.Exists(lineSheetName) Then
+        Set sheetPending = pendingByLineSheet(lineSheetName)
+    Else
+        Set sheetPending = CreateObject("Scripting.Dictionary")
+        sheetPending.CompareMode = vbTextCompare
+        pendingByLineSheet.Add lineSheetName, sheetPending
+    End If
+
+    If Not sheetPending.Exists(recordKey) Then
+        sheetPending.Add recordKey, Array(seiriValue, typeValue, unitValue)
+    End If
+End Sub
+
+' 収集した未登録整理番号を各線区シートへ反映する
+Private Sub RegisterMissingSeiriToLineSheets(ByVal pendingByLineSheet As Object)
+    If pendingByLineSheet Is Nothing Then Exit Sub
+    If pendingByLineSheet.Count = 0 Then Exit Sub
+
+    ' 線区シートのB列書き込みが Worksheet_Change を誘発しないよう局所的に抑制する
+    Dim prevEvents As Boolean
+    prevEvents = Application.EnableEvents
+    Application.EnableEvents = False
+    On Error GoTo RestoreEvents
+
+    Dim sheetName As Variant
+    For Each sheetName In pendingByLineSheet.Keys
+        AppendMissingSeiriToLineSheet CStr(sheetName), pendingByLineSheet(sheetName)
+    Next sheetName
+
+RestoreEvents:
+    Application.EnableEvents = prevEvents
+End Sub
+
+' 1つの線区シートに対し、既存に無い整理番号のみ最下部へ追記し、単価欄(E/F)を黄色化する
+Private Sub AppendMissingSeiriToLineSheet(ByVal lineSheetName As String, _
+                                          ByVal sheetPending As Object)
+    If sheetPending Is Nothing Then Exit Sub
+    If sheetPending.Count = 0 Then Exit Sub
+
+    Dim lineWs As Worksheet
+    On Error Resume Next
+    Set lineWs = ThisWorkbook.worksheets(lineSheetName)
+    On Error GoTo 0
+    If lineWs Is Nothing Then Exit Sub
+
+    Dim lastRow As Long
+    lastRow = lineWs.Cells(lineWs.rows.Count, COL_SEIRI).End(xlUp).Row
+    If lastRow < UNIT_PRICE_DATA_START_ROW - 1 Then lastRow = UNIT_PRICE_DATA_START_ROW - 1
+
+    ' 既存整理番号の集合(重複登録防止)
+    Dim existingKeys As Object
+    Set existingKeys = CreateObject("Scripting.Dictionary")
+    existingKeys.CompareMode = vbTextCompare
+
+    Dim rr As Long
+    Dim existingKey As String
+    For rr = UNIT_PRICE_DATA_START_ROW To lastRow
+        existingKey = NormalizeRecordKey(lineWs.Cells(rr, COL_SEIRI).value)
+        If existingKey <> "" Then
+            If Not existingKeys.Exists(existingKey) Then existingKeys.Add existingKey, True
+        End If
+    Next rr
+
+    ' 既存に無い分のみ追記対象とする
+    Dim rowsToAdd As Collection
+    Set rowsToAdd = New Collection
+    Dim k As Variant
+    For Each k In sheetPending.Keys
+        If Not existingKeys.Exists(CStr(k)) Then rowsToAdd.Add sheetPending(k)
+    Next k
+    If rowsToAdd.Count = 0 Then Exit Sub
+
+    Dim firstRow As Long
+    firstRow = lastRow + 1
+    If firstRow < UNIT_PRICE_DATA_START_ROW Then firstRow = UNIT_PRICE_DATA_START_ROW
+
+    Dim writeArr() As Variant
+    ReDim writeArr(1 To rowsToAdd.Count, 1 To 3)   ' B(整理番号), C(種別), D(単位)
+
+    Dim idx As Long
+    Dim rowData As Variant
+    For idx = 1 To rowsToAdd.Count
+        rowData = rowsToAdd(idx)
+        writeArr(idx, 1) = rowData(0)   ' B 整理番号
+        writeArr(idx, 2) = rowData(1)   ' C 種別
+        writeArr(idx, 3) = rowData(2)   ' D 単位
+    Next idx
+
+    Dim lastAppendRow As Long
+    lastAppendRow = firstRow + rowsToAdd.Count - 1
+
+    lineWs.Range(lineWs.Cells(firstRow, COL_SEIRI), _
+                 lineWs.Cells(lastAppendRow, UNIT_PRICE_UNIT_COL)).value = writeArr
+
+    HighlightLineSheetPriceCellsUntilFilled lineWs, firstRow, lastAppendRow
+
+    LogCI "線区シート[" & lineSheetName & "] 整理番号未登録分を追記: " & _
+          rowsToAdd.Count & "件 rows " & firstRow & "-" & lastAppendRow
+End Sub
+
+' 追記行の単価欄(E/F)を黄色で塗る。条件付き書式により値が入力されると自動解除される
+Private Sub HighlightLineSheetPriceCellsUntilFilled(ByVal lineWs As Worksheet, _
+                                                    ByVal firstRow As Long, _
+                                                    ByVal lastRow As Long)
+    If lineWs Is Nothing Then Exit Sub
+    If lastRow < firstRow Then Exit Sub
+
+    Dim target As Range
+    Set target = lineWs.Range( _
+        lineWs.Cells(firstRow, UNIT_PRICE_DAY_PRICE_COL), _
+        lineWs.Cells(lastRow, UNIT_PRICE_NIGHT_PRICE_COL))
+
+    Dim anchorAddress As String
+    anchorAddress = lineWs.Cells(firstRow, UNIT_PRICE_DAY_PRICE_COL).Address(False, False)
+
+    On Error Resume Next
+    Dim fc As FormatCondition
+    Set fc = target.FormatConditions.Add(Type:=xlExpression, _
+        Formula1:="=" & anchorAddress & "=""""")
+    If Not fc Is Nothing Then
+        fc.Interior.Color = MISSING_SEIRI_FILL_COLOR
+        fc.StopIfTrue = False
+    End If
+    On Error GoTo 0
+End Sub
 
 Private Function ResolveProjectLineMasterPath() As String
     Dim wsInfo As Worksheet
