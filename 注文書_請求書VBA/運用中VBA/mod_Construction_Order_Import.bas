@@ -3394,7 +3394,7 @@ Private Sub RefreshConstructionReferencePricesOnSheet( _
     If lastRow < 2 Then Exit Sub
 
     Dim normalizedSourceSheet As String
-    normalizedSourceSheet = NormalizeLineLookupText(unitPriceSheetName, False)
+    normalizedSourceSheet = NormalizeLineLookupText(unitPriceSheetName)
 
     Dim r As Long
     Dim recordKey As String
@@ -3406,7 +3406,7 @@ Private Sub RefreshConstructionReferencePricesOnSheet( _
             resolvedSheetName = ResolveUnitPriceSheetName( _
                 lineSheetMap, CommonNzText(ws.Cells(r, FindHeaderColumn(ws, "Œ_–ñü‹æ–¼")).value))
 
-            If NormalizeLineLookupText(resolvedSheetName, False) = normalizedSourceSheet Then
+            If NormalizeLineLookupText(resolvedSheetName) = normalizedSourceSheet Then
                 referencePrice = SelectDayNightPrice( _
                     CommonNzText(ws.Cells(r, dayNightColumn).value), _
                     changedPriceRows(recordKey))
@@ -3519,8 +3519,7 @@ End Function
 Private Sub AddLineSheetAliases(ByVal lineSheetMap As Object, _
                                 ByVal sourceLineName As String, _
                                 ByVal unitPriceSheetName As String)
-    AddLineSheetAlias lineSheetMap, "E|" & NormalizeLineLookupText(sourceLineName, False), unitPriceSheetName
-    AddLineSheetAlias lineSheetMap, "S|" & NormalizeLineLookupText(sourceLineName, True), unitPriceSheetName
+    AddLineSheetAlias lineSheetMap, "E|" & NormalizeLineLookupText(sourceLineName), unitPriceSheetName
 End Sub
 
 Private Sub AddLineSheetAlias(ByVal lineSheetMap As Object, _
@@ -3540,13 +3539,7 @@ Private Function ResolveUnitPriceSheetName(ByVal lineSheetMap As Object, _
     If lineSheetMap Is Nothing Then GoTo DirectLookup
 
     Dim key As String
-    key = "E|" & NormalizeLineLookupText(importedLineName, False)
-    If Len(key) > 2 And lineSheetMap.Exists(key) Then
-        ResolveUnitPriceSheetName = CStr(lineSheetMap(key))
-        Exit Function
-    End If
-
-    key = "S|" & NormalizeLineLookupText(importedLineName, True)
+    key = "E|" & NormalizeLineLookupText(importedLineName)
     If Len(key) > 2 And lineSheetMap.Exists(key) Then
         ResolveUnitPriceSheetName = CStr(lineSheetMap(key))
         Exit Function
@@ -3556,13 +3549,11 @@ DirectLookup:
     ResolveUnitPriceSheetName = FindImportedUnitPriceSheetName(importedLineName)
 End Function
 
-Private Function NormalizeLineLookupText(ByVal sourceText As String, _
-                                         ByVal removeParenthetical As Boolean) As String
+Private Function NormalizeLineLookupText(ByVal sourceText As String) As String
     Dim result As String
     result = CommonNormalizeText(sourceText)
     result = Replace$(result, ChrW$(&HFF65), ChrW$(&H30FB))
     result = RemoveTrackDesignationMarker(result)
-    If removeParenthetical Then result = RemoveParentheticalText(result)
     NormalizeLineLookupText = CommonRemoveAllSpaces(result)
 End Function
 
@@ -3580,28 +3571,6 @@ Private Function RemoveTrackDesignationMarker(ByVal sourceText As String) As Str
     result = Replace$(result, halfWidthMarker, "", , , vbTextCompare)
     result = Replace$(result, fullWidthMarker, "", , , vbTextCompare)
     RemoveTrackDesignationMarker = result
-End Function
-
-Private Function RemoveParentheticalText(ByVal sourceText As String) As String
-    Dim result As String, depth As Long
-    Dim i As Long, ch As String
-
-    For i = 1 To Len(sourceText)
-        ch = Mid$(sourceText, i, 1)
-        If ch = "(" Or ch = ChrW$(&HFF08) Then
-            depth = depth + 1
-        ElseIf ch = ")" Or ch = ChrW$(&HFF09) Then
-            If depth > 0 Then
-                depth = depth - 1
-            Else
-                result = result & ch
-            End If
-        ElseIf depth = 0 Then
-            result = result & ch
-        End If
-    Next i
-
-    RemoveParentheticalText = result
 End Function
 
 Private Function ResolveProjectLineMasterPath() As String
@@ -3720,23 +3689,15 @@ Private Sub AddUniqueText(ByVal values As Collection, ByVal newValue As String)
 End Sub
 
 Private Function FindImportedUnitPriceSheetName(ByVal expectedSheetName As String) As String
-    FindImportedUnitPriceSheetName = FindImportedUnitPriceSheetNameCore(expectedSheetName, False)
-    If FindImportedUnitPriceSheetName = "" Then
-        FindImportedUnitPriceSheetName = FindImportedUnitPriceSheetNameCore(expectedSheetName, True)
-    End If
-End Function
-
-Private Function FindImportedUnitPriceSheetNameCore(ByVal expectedSheetName As String, _
-                                                    ByVal useSimplified As Boolean) As String
     Dim normalizedExpected As String
-    normalizedExpected = NormalizeLineLookupText(expectedSheetName, useSimplified)
+    normalizedExpected = NormalizeLineLookupText(expectedSheetName)
     If normalizedExpected = "" Then Exit Function
 
     Dim ws As Worksheet
     For Each ws In ThisWorkbook.worksheets
         If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(ws) Then
-            If StrComp(NormalizeLineLookupText(ws.Name, useSimplified), normalizedExpected, vbTextCompare) = 0 Then
-                FindImportedUnitPriceSheetNameCore = ws.Name
+            If StrComp(NormalizeLineLookupText(ws.Name), normalizedExpected, vbTextCompare) = 0 Then
+                FindImportedUnitPriceSheetName = ws.Name
                 Exit Function
             End If
         End If
