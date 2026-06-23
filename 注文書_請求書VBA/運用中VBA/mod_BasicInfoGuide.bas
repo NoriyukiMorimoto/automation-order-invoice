@@ -222,8 +222,33 @@ End Sub
 ' ----------------------------------------------------------------
 Private Sub ApplyGuideMergedCell(ByVal ws As Worksheet, ByVal addr As String, ByVal commentText As String, ByVal isEmpty As Boolean)
     Dim mergeArea As Range
+    Dim anchorCell As Range
     Set mergeArea = ws.Range(addr).MergeArea
-    ApplyGuideCellToRange mergeArea, commentText, isEmpty
+    Set anchorCell = mergeArea.Cells(1, 1)
+
+    On Error Resume Next
+    If isEmpty Then
+        mergeArea.Interior.Color = COLOR_INPUT_REQUIRED
+        mergeArea.Font.Color = COLOR_INPUT_REQUIRED_FONT
+        anchorCell.Comment.Delete
+        Dim cmt As Comment
+        Set cmt = anchorCell.AddComment(commentText)
+        If Not cmt Is Nothing Then
+            With cmt.Shape.TextFrame.Characters.Font
+                .Color = RGB(255, 0, 0)
+                .Size = COMMENT_FONT_SIZE
+                .Name = COMMENT_FONT_NAME
+                .Bold = True
+            End With
+            cmt.Visible = False
+            AutoSizeComment cmt
+        End If
+    Else
+        mergeArea.Interior.Color = COLOR_FILLED
+        mergeArea.Font.Color = COLOR_FILLED_FONT
+        anchorCell.Comment.Delete
+    End If
+    On Error GoTo 0
 End Sub
 
 ' ----------------------------------------------------------------
