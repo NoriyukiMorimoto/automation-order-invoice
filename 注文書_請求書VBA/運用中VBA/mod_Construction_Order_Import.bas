@@ -108,8 +108,25 @@ Private Const MISSING_SEIRI_FILL_COLOR As Long = 65535 ' RGB(255,255,0) ‰©F
 
 Private mVendorAliasMapCache As Object
 Private Const WELDING_PRICE_SHEET_SUFFIX As String = "_ƒŒ[ƒ‹—nÚ’P‰¿"
-Private Const PURCHASE_ORDER_SHEET_NAME As String = "w“ü[“–ŽwŽ¦"
-Private Const PURCHASE_NOTICE_SHEET_NAME As String = "w“ü[“–’Ê’m"
+
+Public Function PurchaseOrderOutputSheetName() As String
+    Static cached As String
+    If Len(cached) = 0 Then
+        cached = ChrW$(&H8CFC) & ChrW$(&H5165) & ChrW$(&H5145) & ChrW$(&H5F53) & _
+                 ChrW$(&H6307) & ChrW$(&H793A)
+    End If
+    PurchaseOrderOutputSheetName = cached
+End Function
+
+Public Function PurchaseNoticeOutputSheetName() As String
+    Static cached As String
+    If Len(cached) = 0 Then
+        cached = ChrW$(&H8CFC) & ChrW$(&H5165) & ChrW$(&H5145) & ChrW$(&H5F53) & _
+                 ChrW$(&H901A) & ChrW$(&H77E5)
+    End If
+    PurchaseNoticeOutputSheetName = cached
+End Function
+
 Private Const PURCHASE_PRICE_KEY_COL As Long = 1
 Private Const PURCHASE_PRICE_VALUE_COL As Long = 6
 Private Const PURCHASE_PRICE_DATA_START_ROW As Long = 2
@@ -458,9 +475,9 @@ Private Sub ImportOneConstructionDocument(ByVal srcPath As String, _
     If purchRows.Count > 0 Then
         Dim purchName As String
         If docType = DOC_ORDER Then
-            purchName = PURCHASE_ORDER_SHEET_NAME
+            purchName = PurchaseOrderOutputSheetName()
         Else
-            purchName = PURCHASE_NOTICE_SHEET_NAME
+            purchName = PurchaseNoticeOutputSheetName()
         End If
         Set wsPurch = CreateOrReplaceSheet(purchName)
         If Not wsPurch Is Nothing Then
@@ -2167,8 +2184,8 @@ Private Function IsPurchaseOutputSheet(ByVal ws As Worksheet) As Boolean
     If ws Is Nothing Then Exit Function
 
     IsPurchaseOutputSheet = _
-        (StrComp(ws.Name, PURCHASE_ORDER_SHEET_NAME, vbTextCompare) = 0) Or _
-        (StrComp(ws.Name, PURCHASE_NOTICE_SHEET_NAME, vbTextCompare) = 0)
+        (StrComp(ws.Name, PurchaseOrderOutputSheetName(), vbTextCompare) = 0) Or _
+        (StrComp(ws.Name, PurchaseNoticeOutputSheetName(), vbTextCompare) = 0)
 End Function
 
 Private Function IsConstructionOutputSheet(ByVal ws As Worksheet) As Boolean
