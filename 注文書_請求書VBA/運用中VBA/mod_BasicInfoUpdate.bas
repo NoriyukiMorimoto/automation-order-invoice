@@ -11,8 +11,7 @@ Private Const BASIC_INFO_CLEAR_RANGES As String = "C2,C9:C12,C15:C17,C20:C23,C24
 Private Const BASIC_INFO_BILLING_SEQUENCE_CELL As String = "F9"
 
 Private Const CONSTRUCTION_TAB_COLOR As Long = 65535
-Private Const PURCHASE_ORDER_SHEET_NAME As String = "?w???[???w??"
-Private Const PURCHASE_NOTICE_SHEET_NAME As String = "?w???[?????m"
+Private Const PURCHASE_IMPORT_TAB_COLOR As Long = 8122857
 
 Public Sub UpdateBasicInfoPeriod()
     Dim wsInfo As Worksheet
@@ -219,9 +218,10 @@ Private Sub DeleteConstructionImportSheets()
         tabColor = ws.Tab.Color
         On Error GoTo 0
         If tabColor = CONSTRUCTION_TAB_COLOR Then hit = True
+        If tabColor = PURCHASE_IMPORT_TAB_COLOR Then hit = True
 
-        If ws.Name = PURCHASE_ORDER_SHEET_NAME Then hit = True
-        If ws.Name = PURCHASE_NOTICE_SHEET_NAME Then hit = True
+        If ws.Name = PurchaseOrderSheetName() Then hit = True
+        If ws.Name = PurchaseNoticeSheetName() Then hit = True
 
         If hit Then targets.Add ws
 
@@ -272,6 +272,24 @@ Private Sub HideOfficeComboBoxForUpdate(ByVal wsInfo As Worksheet)
 
     On Error GoTo 0
 End Sub
+
+Private Function PurchaseOrderSheetName() As String
+    Static cached As String
+    If Len(cached) = 0 Then
+        cached = ChrW$(&H8CFC) & ChrW$(&H5165) & ChrW$(&H5145) & ChrW$(&H5F53) & _
+                 ChrW$(&H6307) & ChrW$(&H793A)
+    End If
+    PurchaseOrderSheetName = cached
+End Function
+
+Private Function PurchaseNoticeSheetName() As String
+    Static cached As String
+    If Len(cached) = 0 Then
+        cached = ChrW$(&H8CFC) & ChrW$(&H5165) & ChrW$(&H5145) & ChrW$(&H5F53) & _
+                 ChrW$(&H901A) & ChrW$(&H77E5)
+    End If
+    PurchaseNoticeSheetName = cached
+End Function
 
 Private Function GetNextStartDate(ByVal oldDate As Date) As Date
     GetNextStartDate = DateSerial(Year(oldDate), Month(oldDate) + 1, 15)
