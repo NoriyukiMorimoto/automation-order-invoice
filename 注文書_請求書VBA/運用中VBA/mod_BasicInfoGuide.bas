@@ -390,13 +390,12 @@ Private Function GetC9CommentText() As String
 End Function
 
 Private Function GetC22CommentText() As String
-    ' 年初単価又は設計変更単価を選択して下さい。
+    ' 本工事に適用される単価を選択して下さい。
     GetC22CommentText = _
-        ChrW$(&H5E74) & ChrW$(&H521D) & ChrW$(&H5358) & ChrW$(&H4FA1) & ChrW$(&H53C8) & _
-        ChrW$(&H306F) & ChrW$(&H8A2D) & ChrW$(&H8A08) & ChrW$(&H5909) & ChrW$(&H66F4) & _
-        ChrW$(&H5358) & ChrW$(&H4FA1) & ChrW$(&H3092) & ChrW$(&H9078) & ChrW$(&H629E) & _
-        ChrW$(&H3057) & ChrW$(&H3066) & ChrW$(&H4E0B) & ChrW$(&H3055) & ChrW$(&H3044) & _
-        ChrW$(&H3002)
+        ChrW$(&H672C) & ChrW$(&H5DE5) & ChrW$(&H4E8B) & ChrW$(&H306B) & ChrW$(&H9069) & _
+        ChrW$(&H7528) & ChrW$(&H3055) & ChrW$(&H308C) & ChrW$(&H308B) & ChrW$(&H5358) & _
+        ChrW$(&H4FA1) & ChrW$(&H3092) & ChrW$(&H9078) & ChrW$(&H629E) & ChrW$(&H3057) & _
+        ChrW$(&H3066) & ChrW$(&H4E0B) & ChrW$(&H3055) & ChrW$(&H3044) & ChrW$(&H3002)
 End Function
 
 Private Function GetC23CommentText() As String
