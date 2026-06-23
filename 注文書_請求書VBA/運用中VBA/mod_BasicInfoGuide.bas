@@ -35,6 +35,9 @@ Private Const VENDOR_MAX_COUNT  As Long = 10
 ' --- 工事種別行 ---
 Private Const ROW_CONSTRUCTION_TYPE As Long = 10   ' F10/I10/L10...
 
+' --- 線区名（結合セル C24:C28）---
+Private Const BASIC_INFO_IMPORTED_LINE_NAMES_RANGE As String = "C24:C28"
+
 ' ----------------------------------------------------------------
 ' 公開API: シート全体のガイド状態を初期化（Activate時などに呼ぶ）
 ' ----------------------------------------------------------------
@@ -48,6 +51,7 @@ Public Sub InitBasicInfoGuide(ByVal ws As Worksheet)
     ApplyGuideCell ws, "C9",  GetC9CommentText(),  IsEmpty_Cell(ws.Range("C9"))
     ApplyGuideCell ws, "C22", GetC22CommentText(), IsEmpty_Cell(ws.Range("C22"))
     ApplyGuideCell ws, "C23", GetC23CommentText(), IsEmpty_Cell(ws.Range("C23"))
+    ApplyGuideMergedCell ws, BASIC_INFO_IMPORTED_LINE_NAMES_RANGE, GetC24CommentText(), IsImportedLineNamesEmpty(ws)
 
     ' F9（会社数）
     ApplyGuideCell ws, "F9", GetF9CommentText(), IsEmpty_Cell(ws.Range("F9"))
@@ -72,6 +76,8 @@ Public Sub OnCellChanged(ByVal ws As Worksheet, ByVal target As Range)
     If Not Intersect(target, ws.Range("C9"))  Is Nothing Then ApplyGuideCell ws, "C9",  GetC9CommentText(),  IsEmpty_Cell(ws.Range("C9"))
     If Not Intersect(target, ws.Range("C22")) Is Nothing Then ApplyGuideCell ws, "C22", GetC22CommentText(), IsEmpty_Cell(ws.Range("C22"))
     If Not Intersect(target, ws.Range("C23")) Is Nothing Then ApplyGuideCell ws, "C23", GetC23CommentText(), IsEmpty_Cell(ws.Range("C23"))
+    If Not Intersect(target, ws.Range(BASIC_INFO_IMPORTED_LINE_NAMES_RANGE)) Is Nothing Then _
+        ApplyGuideMergedCell ws, BASIC_INFO_IMPORTED_LINE_NAMES_RANGE, GetC24CommentText(), IsImportedLineNamesEmpty(ws)
     If Not Intersect(target, ws.Range("F9"))  Is Nothing Then
         ApplyGuideCell ws, "F9", GetF9CommentText(), IsEmpty_Cell(ws.Range("F9"))
         RefreshVendorRowGuides ws
@@ -212,6 +218,15 @@ Private Sub ApplyGuideCell(ByVal ws As Worksheet, ByVal addr As String, ByVal co
 End Sub
 
 ' ----------------------------------------------------------------
+' 結合セルにガイドを適用（塗色は結合範囲全体、コメントは先頭セル）
+' ----------------------------------------------------------------
+Private Sub ApplyGuideMergedCell(ByVal ws As Worksheet, ByVal addr As String, ByVal commentText As String, ByVal isEmpty As Boolean)
+    Dim mergeArea As Range
+    Set mergeArea = ws.Range(addr).MergeArea
+    ApplyGuideCellToRange mergeArea, commentText, isEmpty
+End Sub
+
+' ----------------------------------------------------------------
 ' 単一セルにガイドを適用（行列番号指定）
 ' ----------------------------------------------------------------
 Private Sub ApplyGuideCellByRowCol(ByVal ws As Worksheet, ByVal rowNum As Long, ByVal colNum As Long, ByVal commentText As String, ByVal isEmpty As Boolean)
@@ -283,6 +298,10 @@ Private Function IsEmpty_Cell(ByVal cell As Range) As Boolean
     On Error GoTo 0
 End Function
 
+Private Function IsImportedLineNamesEmpty(ByVal ws As Worksheet) As Boolean
+    IsImportedLineNamesEmpty = IsEmpty_Cell(ws.Range("C24").MergeArea.Cells(1, 1))
+End Function
+
 ' ----------------------------------------------------------------
 ' 会社数取得（F9セル）
 ' ----------------------------------------------------------------
@@ -350,8 +369,17 @@ Private Function GetC22CommentText() As String
 End Function
 
 Private Function GetC23CommentText() As String
-    ' 本工事に適用される線区名をダブルクリックして選択してください。
+    ' 本工事で溶接工事の有無を選択して下さい。
     GetC23CommentText = _
+        ChrW$(&H672C) & ChrW$(&H5DE5) & ChrW$(&H4E8B) & ChrW$(&H3067) & ChrW$(&H6EB6) & _
+        ChrW$(&H63A5) & ChrW$(&H5DE5) & ChrW$(&H4E8B) & ChrW$(&H306E) & ChrW$(&H6709) & _
+        ChrW$(&H7121) & ChrW$(&H3092) & ChrW$(&H9078) & ChrW$(&H629E) & ChrW$(&H3057) & _
+        ChrW$(&H3066) & ChrW$(&H4E0B) & ChrW$(&H3055) & ChrW$(&H3044) & ChrW$(&H3002)
+End Function
+
+Private Function GetC24CommentText() As String
+    ' 本工事に適用される線区名をダブルクリックして選択してください。
+    GetC24CommentText = _
         ChrW$(&H672C) & ChrW$(&H5DE5) & ChrW$(&H4E8B) & ChrW$(&H306B) & ChrW$(&H9069) & _
         ChrW$(&H7528) & ChrW$(&H3055) & ChrW$(&H308C) & ChrW$(&H308B) & ChrW$(&H7DDA) & _
         ChrW$(&H533A) & ChrW$(&H540D) & ChrW$(&H3092) & ChrW$(&H30C0) & ChrW$(&H30D6) & _
