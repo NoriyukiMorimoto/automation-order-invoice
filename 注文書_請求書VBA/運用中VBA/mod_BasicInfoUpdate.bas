@@ -10,9 +10,6 @@ Private Const OFFICE_COMBO_NAME As String = "ComboBox1"
 Private Const BASIC_INFO_CLEAR_RANGES As String = "C2,C9:C12,C15:C17,C20:C23,C24:C28,C31:C35,F2:F4,F10:F16,F18:F23,F25,F27,F29,F31,F33,I33"
 Private Const BASIC_INFO_BILLING_SEQUENCE_CELL As String = "F9"
 
-Private Const CONSTRUCTION_TAB_COLOR As Long = 65535
-Private Const PURCHASE_IMPORT_TAB_COLOR As Long = 8122857
-
 Public Sub UpdateBasicInfoPeriod()
     Dim wsInfo As Worksheet
     Set wsInfo = CommonGetBasicInfoWorksheet()
@@ -141,15 +138,20 @@ Public Sub ClearBasicInfo()
     wsInfo.Range(BASIC_INFO_BILLING_SEQUENCE_CELL).value = 1
     mod_VendorMaster.SyncVendorBlocksFromCount wsInfo
 
-    Application.EnableEvents = prevEnableEvents
-    DeleteConstructionImportSheets
-    Application.EnableEvents = False
-
-    GoTo FinallyExit
+    GoTo AfterClear
 
 ErrorHandler:
     savedErrNum = Err.Number
     savedErrDesc = Err.Description
+
+AfterClear:
+    On Error Resume Next
+    If Not wsInfo Is Nothing Then mod_BasicInfoGuide.InitBasicInfoGuide wsInfo
+    On Error GoTo 0
+
+    Application.EnableEvents = prevEnableEvents
+    Application.ScreenUpdating = True
+    DeleteConstructionImportSheets
 
 FinallyExit:
     Application.EnableEvents = prevEnableEvents
@@ -182,11 +184,16 @@ Public Sub SilentClearBasicInfo(ByVal wsInfo As Worksheet)
     wsInfo.Range(BASIC_INFO_BILLING_SEQUENCE_CELL).value = 1
     mod_VendorMaster.SyncVendorBlocksFromCount wsInfo
 
-    GoTo FinallyExit
+    GoTo AfterClear
 
 ErrorHandler:
     savedErrNum = Err.Number
     savedErrDesc = Err.Description
+
+AfterClear:
+    On Error Resume Next
+    If Not wsInfo Is Nothing Then mod_BasicInfoGuide.InitBasicInfoGuide wsInfo
+    On Error GoTo 0
 
 FinallyExit:
     Application.EnableEvents = prevEnableEvents
@@ -201,8 +208,8 @@ Private Sub DeleteConstructionImportSheets()
     Dim wsInfo As Worksheet
     Set wsInfo = CommonGetBasicInfoWorksheet()
 
-    Dim targets As Collection
-    Set targets = New Collection
+    Dim targetNames As Collection
+    Set targetNames = New Collection
 
     Dim ws As Worksheet
     For Each ws In ThisWorkbook.Worksheets
@@ -210,30 +217,19 @@ Private Sub DeleteConstructionImportSheets()
             If ws Is wsInfo Then GoTo NextSheet
         End If
 
-        Dim hit As Boolean
-        hit = False
-
-        Dim tabColor As Long
-        On Error Resume Next
-        tabColor = ws.Tab.Color
-        On Error GoTo 0
-        If tabColor = CONSTRUCTION_TAB_COLOR Then hit = True
-        If tabColor = PURCHASE_IMPORT_TAB_COLOR Then hit = True
-
-        If ws.Name = PurchaseOrderSheetName() Then hit = True
-        If ws.Name = PurchaseNoticeSheetName() Then hit = True
-
-        If hit Then targets.Add ws
+        If mod_Construction_Order_Import.IsManagedConstructionImportOutputSheet(ws) Then
+            targetNames.Add ws.Name
+        End If
 
 NextSheet:
     Next ws
 
-    If targets.Count = 0 Then Exit Sub
+    If targetNames.Count = 0 Then Exit Sub
 
     Dim nameList As String
     Dim i As Long
-    For i = 1 To targets.Count
-        nameList = nameList & "  " & ChrW$(&H30FB) & targets(i).Name & vbCrLf
+    For i = 1 To targetNames.Count
+        nameList = nameList & "  " & ChrW$(&H30FB) & CStr(targetNames(i)) & vbCrLf
     Next i
 
     Dim ans As VbMsgBoxResult
@@ -249,14 +245,20 @@ NextSheet:
                  ChrW$(&H306E) & ChrW$(&H78BA) & ChrW$(&H8A8D))
     If ans <> vbYes Then Exit Sub
 
+    If Not wsInfo Is Nothing Then wsInfo.Activate
+
     Dim prevAlerts As Boolean
+    Dim prevScreenUpdating As Boolean
     prevAlerts = Application.DisplayAlerts
+    prevScreenUpdating = Application.ScreenUpdating
     Application.DisplayAlerts = False
+    Application.ScreenUpdating = False
     On Error Resume Next
-    For i = 1 To targets.Count
-        targets(i).Delete
+    For i = targetNames.Count To 1 Step -1
+        ThisWorkbook.Worksheets(CStr(targetNames(i))).Delete
     Next i
     On Error GoTo 0
+    Application.ScreenUpdating = prevScreenUpdating
     Application.DisplayAlerts = prevAlerts
 End Sub
 
@@ -272,24 +274,6 @@ Private Sub HideOfficeComboBoxForUpdate(ByVal wsInfo As Worksheet)
 
     On Error GoTo 0
 End Sub
-
-Private Function PurchaseOrderSheetName() As String
-    Static cached As String
-    If Len(cached) = 0 Then
-        cached = ChrW$(&H8CFC) & ChrW$(&H5165) & ChrW$(&H5145) & ChrW$(&H5F53) & _
-                 ChrW$(&H6307) & ChrW$(&H793A)
-    End If
-    PurchaseOrderSheetName = cached
-End Function
-
-Private Function PurchaseNoticeSheetName() As String
-    Static cached As String
-    If Len(cached) = 0 Then
-        cached = ChrW$(&H8CFC) & ChrW$(&H5165) & ChrW$(&H5145) & ChrW$(&H5F53) & _
-                 ChrW$(&H901A) & ChrW$(&H77E5)
-    End If
-    PurchaseNoticeSheetName = cached
-End Function
 
 Private Function GetNextStartDate(ByVal oldDate As Date) As Date
     GetNextStartDate = DateSerial(Year(oldDate), Month(oldDate) + 1, 15)
