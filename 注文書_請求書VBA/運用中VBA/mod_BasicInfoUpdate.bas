@@ -228,8 +228,8 @@ Private Sub DeleteConstructionImportSheets(Optional ByVal showConfirm As Boolean
 NextSheet:
     Next ws
 
-    AppendUniqueSheetNameIfExists targetNames, mod_Construction_Order_Import.PurchaseOrderOutputSheetName()
-    AppendUniqueSheetNameIfExists targetNames, mod_Construction_Order_Import.PurchaseNoticeOutputSheetName()
+    AppendUniqueSheetNameIfExists targetNames, CommonPurchaseOrderOutputSheetName()
+    AppendUniqueSheetNameIfExists targetNames, CommonPurchaseNoticeOutputSheetName()
 
     If targetNames.Count = 0 Then Exit Sub
 
@@ -276,12 +276,12 @@ Private Function IsConstructionImportSheetForClear(ByVal ws As Worksheet) As Boo
         Exit Function
     End If
 
-    If StrComp(ws.Name, mod_Construction_Order_Import.PurchaseOrderOutputSheetName(), vbTextCompare) = 0 Then
+    If StrComp(ws.Name, CommonPurchaseOrderOutputSheetName(), vbTextCompare) = 0 Then
         IsConstructionImportSheetForClear = True
         Exit Function
     End If
 
-    If StrComp(ws.Name, mod_Construction_Order_Import.PurchaseNoticeOutputSheetName(), vbTextCompare) = 0 Then
+    If StrComp(ws.Name, CommonPurchaseNoticeOutputSheetName(), vbTextCompare) = 0 Then
         IsConstructionImportSheetForClear = True
         Exit Function
     End If
