@@ -1,1 +1,318 @@
-T3B0aW9uIEV4cGxpY2l0DQoNCicgPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0NCicgbW9kX0Jhc2ljSW5mb0d1aWRlDQonIIrulnuP7pXxg1aBW4NngsyT/JfNg0uDQ4NogWmTaJBGICYgg1KDgYOTg2eBaorHl50NCicNCicgg4uBW4OLOg0KJyAgIJaik/yXzSAtPiAjRkZGRjAwIJNokEYgKyCQ1I6aMTJwdCBCaXpVRINTg1aDYoNOgsyDUoOBg5ODZw0KJyAgIJP8l82NzyAtPiAjMDYxMTFEIJNokEYgKyCDUoOBg5ODZ43tj5wNCicNCicgie+O0JCUg1qDiyhGOSmCzJJsgsmJnoK2gsRGL0kvTC9PL1IvVS9YL0FBL0FEL0FHl/GCzIN4g5ODX4FbjXOC8JOuk0mKx5edDQonII3FkeUxMI7Qkc6JnoFpM5fxgqiCq4FBRj02l/GW2o5ugtyC6IFqDQonID09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09DQoNCicgLS0tIJR3jGmQRpLokJQgLS0tDQpQcml2YXRlIENvbnN0IENPTE9SX0lOUFVUX1JFUVVJUkVEIEFzIExvbmcgPSAmSEZGRkYmICAgICAgICAgJyAjRkZGRjAwIChCR1IpDQpQcml2YXRlIENvbnN0IENPTE9SX0ZJTExFRCAgICAgICAgIEFzIExvbmcgPSAmSDFEMTEwNiYgICAgICAgICcgIzA2MTExRCAoQkdSKQ0KDQonIC0tLSCDUoOBg5ODZ4N0g0iDk4NnkN2S6CAtLS0NClByaXZhdGUgQ29uc3QgQ09NTUVOVF9GT05UX05BTUUgQXMgU3RyaW5nID0gIkJJWiBVREdvdGhpYyINClByaXZhdGUgQ29uc3QgQ09NTUVOVF9GT05UX1NJWkUgQXMgTG9uZyA9IDEyDQoNCicgLS0tIIN4g5ODX4Fbl/E6IEY9No5ugtyC6IFBM5fxgqiCq4FBjcWR5TEwjtAgLS0tDQpQcml2YXRlIENvbnN0IFZFTkRPUl9DT0xfU1RBUlQgIEFzIExvbmcgPSA2DQpQcml2YXRlIENvbnN0IFZFTkRPUl9DT0xfU1RFUCAgIEFzIExvbmcgPSAzDQpQcml2YXRlIENvbnN0IFZFTkRPUl9NQVhfQ09VTlQgIEFzIExvbmcgPSAxMA0KDQonIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NCicgjPaKSkFQSTogg1aBW4NnkVORzILMg0uDQ4Noj/OR1ILwj4mK+om7gWlBY3RpdmF0ZY6egsiCx4LJjMSC1IFqDQonIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NClB1YmxpYyBTdWIgSW5pdEJhc2ljSW5mb0d1aWRlKEJ5VmFsIHdzIEFzIFdvcmtzaGVldCkNCiAgICBJZiB3cyBJcyBOb3RoaW5nIFRoZW4gRXhpdCBTdWINCg0KICAgIE9uIEVycm9yIFJlc3VtZSBOZXh0DQogICAgQXBwbGljYXRpb24uU2NyZWVuVXBkYXRpbmcgPSBGYWxzZQ0KDQogICAgJyCMxZLog1qDiw0KICAgIEFwcGx5R3VpZGVDZWxsIHdzLCAiQzkiLCAgR2V0QzlDb21tZW50VGV4dCgpLCAgSXNFbXB0eV9DZWxsKHdzLlJhbmdlKCJDOSIpKQ0KICAgIEFwcGx5R3VpZGVDZWxsIHdzLCAiQzIyIiwgR2V0QzIyQ29tbWVudFRleHQoKSwgSXNFbXB0eV9DZWxsKHdzLlJhbmdlKCJDMjIiKSkNCiAgICBBcHBseUd1aWRlQ2VsbCB3cywgIkMyMyIsIEdldEMyM0NvbW1lbnRUZXh0KCksIElzRW1wdHlfQ2VsbCh3cy5SYW5nZSgiQzIzIikpDQoNCiAgICAnIEY5gWmJ747QkJSBag0KICAgIEFwcGx5R3VpZGVDZWxsIHdzLCAiRjkiLCBHZXRGOUNvbW1lbnRUZXh0KCksIElzRW1wdHlfQ2VsbCh3cy5SYW5nZSgiRjkiKSkNCg0KICAgICcgg3iDk4NfgVuNc4Fpie+O0JCUgsmJnoK2gsSX8ZCUgvCMiJLogWoNCiAgICBSZWZyZXNoVmVuZG9yUm93R3VpZGVzIHdzDQoNCiAgICBBcHBsaWNhdGlvbi5TY3JlZW5VcGRhdGluZyA9IFRydWUNCiAgICBPbiBFcnJvciBHb1RvIDANCkVuZCBTdWINCg0KJyAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tDQonIIz2ikpBUEk6IJPBkuiDWoOLlc+NWI6egsmMxILUgWlXb3Jrc2hlZXRfQ2hhbmdlgqmC54FqDQonIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NClB1YmxpYyBTdWIgT25DZWxsQ2hhbmdlZChCeVZhbCB3cyBBcyBXb3Jrc2hlZXQsIEJ5VmFsIHRhcmdldCBBcyBSYW5nZSkNCiAgICBJZiB3cyBJcyBOb3RoaW5nIE9yIHRhcmdldCBJcyBOb3RoaW5nIFRoZW4gRXhpdCBTdWINCg0KICAgIE9uIEVycm9yIFJlc3VtZSBOZXh0DQogICAgQXBwbGljYXRpb24uU2NyZWVuVXBkYXRpbmcgPSBGYWxzZQ0KDQogICAgJyCMxZLog1qDi5S7kugNCiAgICBJZiBOb3QgSW50ZXJzZWN0KHRhcmdldCwgd3MuUmFuZ2UoIkM5IikpICBJcyBOb3RoaW5nIFRoZW4gQXBwbHlHdWlkZUNlbGwgd3MsICJDOSIsICBHZXRDOUNvbW1lbnRUZXh0KCksICBJc0VtcHR5X0NlbGwod3MuUmFuZ2UoIkM5IikpDQogICAgSWYgTm90IEludGVyc2VjdCh0YXJnZXQsIHdzLlJhbmdlKCJDMjIiKSkgSXMgTm90aGluZyBUaGVuIEFwcGx5R3VpZGVDZWxsIHdzLCAiQzIyIiwgR2V0QzIyQ29tbWVudFRleHQoKSwgSXNFbXB0eV9DZWxsKHdzLlJhbmdlKCJDMjIiKSkNCiAgICBJZiBOb3QgSW50ZXJzZWN0KHRhcmdldCwgd3MuUmFuZ2UoIkMyMyIpKSBJcyBOb3RoaW5nIFRoZW4gQXBwbHlHdWlkZUNlbGwgd3MsICJDMjMiLCBHZXRDMjNDb21tZW50VGV4dCgpLCBJc0VtcHR5X0NlbGwod3MuUmFuZ2UoIkMyMyIpKQ0KICAgIElmIE5vdCBJbnRlcnNlY3QodGFyZ2V0LCB3cy5SYW5nZSgiRjkiKSkgIElzIE5vdGhpbmcgVGhlbg0KICAgICAgICBBcHBseUd1aWRlQ2VsbCB3cywgIkY5IiwgR2V0RjlDb21tZW50VGV4dCgpLCBJc0VtcHR5X0NlbGwod3MuUmFuZ2UoIkY5IikpDQogICAgICAgIFJlZnJlc2hWZW5kb3JSb3dHdWlkZXMgd3MNCiAgICBFbmQgSWYNCg0KICAgICcgg3iDk4NfgVuNc4Nag4uBaZFTMTCO0JWqgsyX8YF+NI1zgvCKxI6LgWoNCiAgICBEaW0gdmVuZG9yTW9uaXRvclJhbmdlIEFzIFJhbmdlDQogICAgU2V0IHZlbmRvck1vbml0b3JSYW5nZSA9IEdldFZlbmRvckd1aWRlTW9uaXRvclJhbmdlKHdzKQ0KICAgIElmIE5vdCB2ZW5kb3JNb25pdG9yUmFuZ2UgSXMgTm90aGluZyBUaGVuDQogICAgICAgIElmIE5vdCBJbnRlcnNlY3QodGFyZ2V0LCB2ZW5kb3JNb25pdG9yUmFuZ2UpIElzIE5vdGhpbmcgVGhlbg0KICAgICAgICAgICAgUmVmcmVzaFZlbmRvclJvd0d1aWRlcyB3cw0KICAgICAgICBFbmQgSWYNCiAgICBFbmQgSWYNCg0KICAgIEFwcGxpY2F0aW9uLlNjcmVlblVwZGF0aW5nID0gVHJ1ZQ0KICAgIE9uIEVycm9yIEdvVG8gMA0KRW5kIFN1Yg0KDQonIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NCicgg3iDk4NfgVuNc4NLg0ODaILwie+O0JCUgsmJnoK2gsSDioN0g4yDYoNWg4WBaY3FkeUxMI7QgWoNCicgLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KUHJpdmF0ZSBTdWIgUmVmcmVzaFZlbmRvclJvd0d1aWRlcyhCeVZhbCB3cyBBcyBXb3Jrc2hlZXQpDQogICAgRGltIHZlbmRvckNvdW50IEFzIExvbmcNCiAgICB2ZW5kb3JDb3VudCA9IEdldFZlbmRvckNvdW50KHdzKQ0KICAgICcgj+OMwILwMTCO0ILJg06DiYOTg3YNCiAgICBJZiB2ZW5kb3JDb3VudCA+IFZFTkRPUl9NQVhfQ09VTlQgVGhlbiB2ZW5kb3JDb3VudCA9IFZFTkRPUl9NQVhfQ09VTlQNCg0KICAgICcgg3iDk4NfgVuNc5TUjYaBaUYxMS9GMjcvRjI5L0YzMSCRzomejXOBag0KICAgIERpbSB2ZW5kb3JSb3dzIEFzIFZhcmlhbnQNCiAgICB2ZW5kb3JSb3dzID0gQXJyYXkoMTEsIDI3LCAyOSwgMzEpDQoNCiAgICBEaW0gdmVuZG9yQ29tbWVudHMgQXMgVmFyaWFudA0KICAgIHZlbmRvckNvbW1lbnRzID0gQXJyYXkoR2V0RjExQ29tbWVudFRleHQoKSwgR2V0RjI3Q29tbWVudFRleHQoKSwgR2V0RjI5Q29tbWVudFRleHQoKSwgR2V0RjMxQ29tbWVudFRleHQoKSkNCg0KICAgIERpbSBpIEFzIExvbmcNCiAgICBGb3IgaSA9IDAgVG8gVUJvdW5kKHZlbmRvclJvd3MpDQogICAgICAgIERpbSByb3dOdW0gQXMgTG9uZw0KICAgICAgICByb3dOdW0gPSB2ZW5kb3JSb3dzKGkpDQogICAgICAgIERpbSBjb21tZW50VGV4dCBBcyBTdHJpbmcNCiAgICAgICAgY29tbWVudFRleHQgPSB2ZW5kb3JDb21tZW50cyhpKQ0KDQogICAgICAgIERpbSBjb21wYW55SWR4IEFzIExvbmcNCiAgICAgICAgRm9yIGNvbXBhbnlJZHggPSAxIFRvIFZFTkRPUl9NQVhfQ09VTlQNCiAgICAgICAgICAgIERpbSBjb2xOdW0gQXMgTG9uZw0KICAgICAgICAgICAgY29sTnVtID0gVkVORE9SX0NPTF9TVEFSVCArIChjb21wYW55SWR4IC0gMSkgKiBWRU5ET1JfQ09MX1NURVANCg0KICAgICAgICAgICAgSWYgY29tcGFueUlkeCA8PSB2ZW5kb3JDb3VudCBUaGVuDQogICAgICAgICAgICAgICAgJyCRzo/bie+O0JCUiMiT4CCBqCCTaJBGK4NSg4GDk4NnDQogICAgICAgICAgICAgICAgQXBwbHlHdWlkZUNlbGxCeVJvd0NvbCB3cywgcm93TnVtLCBjb2xOdW0sIGNvbW1lbnRUZXh0LCBJc0VtcHR5X0NlbGwod3MuQ2VsbHMocm93TnVtLCBjb2xOdW0pKQ0KICAgICAgICAgICAgRWxzZQ0KICAgICAgICAgICAgICAgICcgkc6P24nvjtCQlIpPIIGoIIyzgsyQRoLJlt+Ctw0KICAgICAgICAgICAgICAgIENsZWFyR3VpZGVCeVJvd0NvbCB3cywgcm93TnVtLCBjb2xOdW0NCiAgICAgICAgICAgIEVuZCBJZg0KICAgICAgICBOZXh0IGNvbXBhbnlJZHgNCiAgICBOZXh0IGkNCkVuZCBTdWINCg0KJyAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tDQonIJJQiOqDWoOLgsmDS4NDg2iC8JNLl3CBaYNBg2iDjINYjneS6IFqDQonIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NClByaXZhdGUgU3ViIEFwcGx5R3VpZGVDZWxsKEJ5VmFsIHdzIEFzIFdvcmtzaGVldCwgQnlWYWwgYWRkciBBcyBTdHJpbmcsIEJ5VmFsIGNvbW1lbnRUZXh0IEFzIFN0cmluZywgQnlWYWwgaXNFbXB0eSBBcyBCb29sZWFuKQ0KICAgIEFwcGx5R3VpZGVDZWxsVG9SYW5nZSB3cy5SYW5nZShhZGRyKSwgY29tbWVudFRleHQsIGlzRW1wdHkNCkVuZCBTdWINCg0KJyAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tDQonIJJQiOqDWoOLgsmDS4NDg2iC8JNLl3CBaY1zl/GU1I2GjneS6IFqDQonIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NClByaXZhdGUgU3ViIEFwcGx5R3VpZGVDZWxsQnlSb3dDb2woQnlWYWwgd3MgQXMgV29ya3NoZWV0LCBCeVZhbCByb3dOdW0gQXMgTG9uZywgQnlWYWwgY29sTnVtIEFzIExvbmcsIEJ5VmFsIGNvbW1lbnRUZXh0IEFzIFN0cmluZywgQnlWYWwgaXNFbXB0eSBBcyBCb29sZWFuKQ0KICAgIEFwcGx5R3VpZGVDZWxsVG9SYW5nZSB3cy5DZWxscyhyb3dOdW0sIGNvbE51bSksIGNvbW1lbnRUZXh0LCBpc0VtcHR5DQpFbmQgU3ViDQoNCicgLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KJyCDS4NDg2iC8Inwj5yCtYLEjLOCzJBGgsmW34K3DQonIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NClByaXZhdGUgU3ViIENsZWFyR3VpZGVCeVJvd0NvbChCeVZhbCB3cyBBcyBXb3Jrc2hlZXQsIEJ5VmFsIHJvd051bSBBcyBMb25nLCBCeVZhbCBjb2xOdW0gQXMgTG9uZykNCiAgICBPbiBFcnJvciBSZXN1bWUgTmV4dA0KICAgIFdpdGggd3MuQ2VsbHMocm93TnVtLCBjb2xOdW0pDQogICAgICAgIC5JbnRlcmlvci5Db2xvciA9IENPTE9SX0ZJTExFRA0KICAgICAgICAuQ29tbWVudC5EZWxldGUNCiAgICBFbmQgV2l0aA0KICAgIE9uIEVycm9yIEdvVG8gMA0KRW5kIFN1Yg0KDQonIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NCicgg1KDQYONg1eDYoNOOiCTaJBGICsgg1KDgYOTg2eVdIKvik+CtQ0KJyAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tDQpQcml2YXRlIFN1YiBBcHBseUd1aWRlQ2VsbFRvUmFuZ2UoQnlWYWwgY2VsbCBBcyBSYW5nZSwgQnlWYWwgY29tbWVudFRleHQgQXMgU3RyaW5nLCBCeVZhbCBpc0VtcHR5IEFzIEJvb2xlYW4pDQogICAgT24gRXJyb3IgUmVzdW1lIE5leHQNCiAgICBJZiBpc0VtcHR5IFRoZW4NCiAgICAgICAgY2VsbC5JbnRlcmlvci5Db2xvciA9IENPTE9SX0lOUFVUX1JFUVVJUkVEDQogICAgICAgIGNlbGwuQ29tbWVudC5EZWxldGUNCiAgICAgICAgRGltIGNtdCBBcyBDb21tZW50DQogICAgICAgIFNldCBjbXQgPSBjZWxsLkFkZENvbW1lbnQoY29tbWVudFRleHQpDQogICAgICAgIElmIE5vdCBjbXQgSXMgTm90aGluZyBUaGVuDQogICAgICAgICAgICBXaXRoIGNtdC5TaGFwZS5UZXh0RnJhbWUuQ2hhcmFjdGVycy5Gb250DQogICAgICAgICAgICAgICAgLkNvbG9yID0gUkdCKDI1NSwgMCwgMCkNCiAgICAgICAgICAgICAgICAuU2l6ZSA9IENPTU1FTlRfRk9OVF9TSVpFDQogICAgICAgICAgICAgICAgLk5hbWUgPSBDT01NRU5UX0ZPTlRfTkFNRQ0KICAgICAgICAgICAgICAgIC5Cb2xkID0gVHJ1ZQ0KICAgICAgICAgICAgRW5kIFdpdGgNCiAgICAgICAgICAgIGNtdC5WaXNpYmxlID0gRmFsc2UNCiAgICAgICAgICAgIEF1dG9TaXplQ29tbWVudCBjbXQNCiAgICAgICAgRW5kIElmDQogICAgRWxzZQ0KICAgICAgICBjZWxsLkludGVyaW9yLkNvbG9yID0gQ09MT1JfRklMTEVEDQogICAgICAgIGNlbGwuQ29tbWVudC5EZWxldGUNCiAgICBFbmQgSWYNCiAgICBPbiBFcnJvciBHb1RvIDANCkVuZCBTdWINCg0KJyAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tDQonIINSg4GDk4Nng1SDQ4NZjqmTrpKykK4NCicgLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KUHJpdmF0ZSBTdWIgQXV0b1NpemVDb21tZW50KEJ5VmFsIGNtdCBBcyBDb21tZW50KQ0KICAgIE9uIEVycm9yIFJlc3VtZSBOZXh0DQogICAgV2l0aCBjbXQuU2hhcGUNCiAgICAgICAgLlRleHRGcmFtZS5BdXRvU2l6ZSA9IFRydWUNCiAgICBFbmQgV2l0aA0KICAgIE9uIEVycm9yIEdvVG8gMA0KRW5kIFN1Yg0KDQonIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NCicgg1qDi4Kqi/OCqYLHgqSCqYFpVHJpbYzjgsWUu5LogWoNCicgLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KUHJpdmF0ZSBGdW5jdGlvbiBJc0VtcHR5X0NlbGwoQnlWYWwgY2VsbCBBcyBSYW5nZSkgQXMgQm9vbGVhbg0KICAgIE9uIEVycm9yIFJlc3VtZSBOZXh0DQogICAgSXNFbXB0eV9DZWxsID0gKExlbihUcmltJChDU3RyKGNlbGwudmFsdWUpKSkgPSAwKQ0KICAgIE9uIEVycm9yIEdvVG8gMA0KRW5kIEZ1bmN0aW9uDQoNCicgLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KJyCJ747QkJSO5pO+gWlGOYNag4uBag0KJyAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tDQpQcml2YXRlIEZ1bmN0aW9uIEdldFZlbmRvckNvdW50KEJ5VmFsIHdzIEFzIFdvcmtzaGVldCkgQXMgTG9uZw0KICAgIE9uIEVycm9yIFJlc3VtZSBOZXh0DQogICAgRGltIHYgQXMgVmFyaWFudA0KICAgIHYgPSB3cy5SYW5nZSgiRjkiKS52YWx1ZQ0KICAgIElmIElzTnVtZXJpYyh2KSBUaGVuDQogICAgICAgIEdldFZlbmRvckNvdW50ID0gQ0xuZyh2KQ0KICAgIEVsc2UNCiAgICAgICAgR2V0VmVuZG9yQ291bnQgPSAwDQogICAgRW5kIElmDQogICAgT24gRXJyb3IgR29UbyAwDQpFbmQgRnVuY3Rpb24NCg0KJyAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tDQonIIN4g5ODX4FbjXOCzIrEjouDjIOTg1eBaZFTMTCO0JWqgUGVz41YjJ+SbZdwgWoNCicgLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KUHJpdmF0ZSBGdW5jdGlvbiBHZXRWZW5kb3JHdWlkZU1vbml0b3JSYW5nZShCeVZhbCB3cyBBcyBXb3Jrc2hlZXQpIEFzIFJhbmdlDQogICAgJyBGL0kvTC9PL1IvVS9YL0FBL0FEL0FHIJfxgswgMTEsMjcsMjksMzGNcw0KICAgIERpbSBhZGRyTGlzdCBBcyBTdHJpbmcNCiAgICBhZGRyTGlzdCA9ICIiDQogICAgRGltIGNvbE5hbWVzIEFzIFZhcmlhbnQNCiAgICBjb2xOYW1lcyA9IEFycmF5KCJGIiwgIkkiLCAiTCIsICJPIiwgIlIiLCAiVSIsICJYIiwgIkFBIiwgIkFEIiwgIkFHIikNCiAgICBEaW0gcm93cyBBcyBWYXJpYW50DQogICAgcm93cyA9IEFycmF5KDExLCAyNywgMjksIDMxKQ0KDQogICAgRGltIGMgQXMgTG9uZywgciBBcyBMb25nDQogICAgRm9yIGMgPSAwIFRvIFVCb3VuZChjb2xOYW1lcykNCiAgICAgICAgRm9yIHIgPSAwIFRvIFVCb3VuZChyb3dzKQ0KICAgICAgICAgICAgSWYgYWRkckxpc3QgPD4gIiIgVGhlbiBhZGRyTGlzdCA9IGFkZHJMaXN0ICYgIiwiDQogICAgICAgICAgICBhZGRyTGlzdCA9IGFkZHJMaXN0ICYgY29sTmFtZXMoYykgJiBDU3RyKHJvd3MocikpDQogICAgICAgIE5leHQgcg0KICAgIE5leHQgYw0KDQogICAgT24gRXJyb3IgUmVzdW1lIE5leHQNCiAgICBTZXQgR2V0VmVuZG9yR3VpZGVNb25pdG9yUmFuZ2UgPSB3cy5SYW5nZShhZGRyTGlzdCkNCiAgICBPbiBFcnJvciBHb1RvIDANCkVuZCBGdW5jdGlvbg0KDQonID09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0NCicgg1KDgYOTg2eDZYNMg1iDZ4FpQ2hyVyQggsWT+pZ7jOqNXJJ6gWoNCicgPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PQ0KDQpQcml2YXRlIEZ1bmN0aW9uIEdldEM5Q29tbWVudFRleHQoKSBBcyBTdHJpbmcNCiAgICAnII1IjpaU1I2GgqqNSI6WjLuLtZVcgsmTb5hegrOC6oLEgqKC6Y/qjYeCzYNfg3WDi4NOg4qDYoNOgrWCxIKtgr6Cs4KigUINCiAgICBHZXRDOUNvbW1lbnRUZXh0ID0gXw0KICAgICAgICBDaHJXJCgmSDVERTUpICYgQ2hyVyQoJkg0RThCKSAmIENoclckKCZINzU2QSkgJiBDaHJXJCgmSDUzRjcpICYgQ2hyVyQoJkgzMDRDKSAmIF8NCiAgICAgICAgQ2hyVyQoJkg1REU1KSAmIENoclckKCZINEU4QikgJiBDaHJXJCgmSDczRkUpICYgQ2hyVyQoJkg2Q0MxKSAmIENoclckKCZIODg2OCkgJiBfDQogICAgICAgIENoclckKCZIMzA2QikgJiBDaHJXJCgmSDc2N0IpICYgQ2hyVyQoJkg5MzMyKSAmIENoclckKCZIMzA1NSkgJiBDaHJXJCgmSDMwOEMpICYgXw0KICAgICAgICBDaHJXJCgmSDMwNjYpICYgQ2hyVyQoJkgzMDQ0KSAmIENoclckKCZIMzA4QikgJiBDaHJXJCgmSDU4MzQpICYgQ2hyVyQoJkg1NDA4KSAmIF8NCiAgICAgICAgQ2hyVyQoJkgzMDZGKSAmIENoclckKCZIMzBDMCkgJiBDaHJXJCgmSDMwRDYpICYgQ2hyVyQoJkgzMEVCKSAmIENoclckKCZIMzBBRikgJiBfDQogICAgICAgIENoclckKCZIMzBFQSkgJiBDaHJXJCgmSDMwQzMpICYgQ2hyVyQoJkgzMEFGKSAmIENoclckKCZIMzA1NykgJiBDaHJXJCgmSDMwNjYpICYgXw0KICAgICAgICBDaHJXJCgmSDMwNEYpICYgQ2hyVyQoJkgzMDYwKSAmIENoclckKCZIMzA1NSkgJiBDaHJXJCgmSDMwNDQpICYgQ2hyVyQoJkgzMDAyKQ0KRW5kIEZ1bmN0aW9uDQoNClByaXZhdGUgRnVuY3Rpb24gR2V0QzIyQ29tbWVudFRleHQoKSBBcyBTdHJpbmcNCiAgICAnIJROj4mSUIm/lpSCzZDdjHaVz41YklCJv4LwkUmR8IK1gsSJuoKzgqKBQg0KICAgIEdldEMyMkNvbW1lbnRUZXh0ID0gXw0KICAgICAgICBDaHJXJCgmSDVFNzQpICYgQ2hyVyQoJkg1MjFEKSAmIENoclckKCZINTM1OCkgJiBDaHJXJCgmSDRGQTEpICYgQ2hyVyQoJkg1M0M4KSAmIF8NCiAgICAgICAgQ2hyVyQoJkgzMDZGKSAmIENoclckKCZIOEEyRCkgJiBDaHJXJCgmSDhBMDgpICYgQ2hyVyQoJkg1OTA5KSAmIENoclckKCZINjZGNCkgJiBfDQogICAgICAgIENoclckKCZINTM1OCkgJiBDaHJXJCgmSDRGQTEpICYgQ2hyVyQoJkgzMDkyKSAmIENoclckKCZIOTA3OCkgJiBDaHJXJCgmSDYyOUUpICYgXw0KICAgICAgICBDaHJXJCgmSDMwNTcpICYgQ2hyVyQoJkgzMDY2KSAmIENoclckKCZINEUwQikgJiBDaHJXJCgmSDMwNTUpICYgQ2hyVyQoJkgzMDQ0KSAmIF8NCiAgICAgICAgQ2hyVyQoJkgzMDAyKQ0KRW5kIEZ1bmN0aW9uDQoNClByaXZhdGUgRnVuY3Rpb24gR2V0QzIzQ29tbWVudFRleHQoKSBBcyBTdHJpbmcNCiAgICAnIJZ7jUiOloLJk0uXcIKzguqC6ZD8i+aWvILwg1+DdYOLg06DioNig06CtYLEkUmR8IK1gsSCrYK+grOCooFCDQogICAgR2V0QzIzQ29tbWVudFRleHQgPSBfDQogICAgICAgIENoclckKCZINjcyQykgJiBDaHJXJCgmSDVERTUpICYgQ2hyVyQoJkg0RThCKSAmIENoclckKCZIMzA2QikgJiBDaHJXJCgmSDkwNjkpICYgXw0KICAgICAgICBDaHJXJCgmSDc1MjgpICYgQ2hyVyQoJkgzMDU1KSAmIENoclckKCZIMzA4QykgJiBDaHJXJCgmSDMwOEIpICYgQ2hyVyQoJkg3RERBKSAmIF8NCiAgICAgICAgQ2hyVyQoJkg1MzNBKSAmIENoclckKCZINTQwRCkgJiBDaHJXJCgmSDMwOTIpICYgQ2hyVyQoJkgzMEMwKSAmIENoclckKCZIMzBENikgJiBfDQogICAgICAgIENoclckKCZIMzBFQikgJiBDaHJXJCgmSDMwQUYpICYgQ2hyVyQoJkgzMEVBKSAmIENoclckKCZIMzBDMykgJiBDaHJXJCgmSDMwQUYpICYgXw0KICAgICAgICBDaHJXJCgmSDMwNTcpICYgQ2hyVyQoJkgzMDY2KSAmIENoclckKCZIOTA3OCkgJiBDaHJXJCgmSDYyOUUpICYgQ2hyVyQoJkgzMDU3KSAmIF8NCiAgICAgICAgQ2hyVyQoJkgzMDY2KSAmIENoclckKCZIMzA0RikgJiBDaHJXJCgmSDMwNjApICYgQ2hyVyQoJkgzMDU1KSAmIENoclckKCZIMzA0NCkgJiBfDQogICAgICAgIENoclckKCZIMzAwMikNCkVuZCBGdW5jdGlvbg0KDQpQcml2YXRlIEZ1bmN0aW9uIEdldEY5Q29tbWVudFRleHQoKSBBcyBTdHJpbmcNCiAgICAnIJZ7jUiOloLwjnuNSIK3gumOe41Iie+O0JCUgvCT/JfNgrWCxIm6grOCooFCDQogICAgR2V0RjlDb21tZW50VGV4dCA9IF8NCiAgICAgICAgQ2hyVyQoJkg2NzJDKSAmIENoclckKCZINURFNSkgJiBDaHJXJCgmSDRFOEIpICYgQ2hyVyQoJkgzMDkyKSAmIENoclckKCZINjVCRCkgJiBfDQogICAgICAgIENoclckKCZINURFNSkgJiBDaHJXJCgmSDMwNTkpICYgQ2hyVyQoJkgzMDhCKSAmIENoclckKCZINjVCRCkgJiBDaHJXJCgmSDVERTUpICYgXw0KICAgICAgICBDaHJXJCgmSDRGMUEpICYgQ2hyVyQoJkg3OTNFKSAmIENoclckKCZINjU3MCkgJiBDaHJXJCgmSDMwOTIpICYgQ2hyVyQoJkg1MTY1KSAmIF8NCiAgICAgICAgQ2hyVyQoJkg1MjlCKSAmIENoclckKCZIMzA1NykgJiBDaHJXJCgmSDMwNjYpICYgQ2hyVyQoJkg0RTBCKSAmIENoclckKCZIMzA1NSkgJiBfDQogICAgICAgIENoclckKCZIMzA0NCkgJiBDaHJXJCgmSDMwMDIpDQpFbmQgRnVuY3Rpb24NCg0KUHJpdmF0ZSBGdW5jdGlvbiBHZXRGMTFDb21tZW50VGV4dCgpIEFzIFN0cmluZw0KICAgICcgjnuNSInvjtCWvILwkUmR8IK1gsSJuoKzgqKBQg0KICAgIEdldEYxMUNvbW1lbnRUZXh0ID0gXw0KICAgICAgICBDaHJXJCgmSDY1QkQpICYgQ2hyVyQoJkg1REU1KSAmIENoclckKCZINEYxQSkgJiBDaHJXJCgmSDc5M0UpICYgQ2hyVyQoJkg1NDBEKSAmIF8NCiAgICAgICAgQ2hyVyQoJkgzMDkyKSAmIENoclckKCZIOTA3OCkgJiBDaHJXJCgmSDYyOUUpICYgQ2hyVyQoJkgzMDU3KSAmIENoclckKCZIMzA2NikgJiBfDQogICAgICAgIENoclckKCZINEUwQikgJiBDaHJXJCgmSDMwNTUpICYgQ2hyVyQoJkgzMDQ0KSAmIENoclckKCZIMzAwMikNCkVuZCBGdW5jdGlvbg0KDQpQcml2YXRlIEZ1bmN0aW9uIEdldEYyN0NvbW1lbnRUZXh0KCkgQXMgU3RyaW5nDQogICAgJyCSjZW2lNSNhoLwk/yXzYK1gsSCrYK+grOCooFCDQogICAgR2V0RjI3Q29tbWVudFRleHQgPSBfDQogICAgICAgIENoclckKCZINkNFOCkgJiBDaHJXJCgmSDY1ODcpICYgQ2hyVyQoJkg3NTZBKSAmIENoclckKCZINTNGNykgJiBDaHJXJCgmSDMwOTIpICYgXw0KICAgICAgICBDaHJXJCgmSDUxNjUpICYgQ2hyVyQoJkg1MjlCKSAmIENoclckKCZIMzA1NykgJiBDaHJXJCgmSDMwNjYpICYgQ2hyVyQoJkgzMDRGKSAmIF8NCiAgICAgICAgQ2hyVyQoJkgzMDYwKSAmIENoclckKCZIMzA1NSkgJiBDaHJXJCgmSDMwNDQpICYgQ2hyVyQoJkgzMDAyKQ0KRW5kIEZ1bmN0aW9uDQoNClByaXZhdGUgRnVuY3Rpb24gR2V0RjI5Q29tbWVudFRleHQoKSBBcyBTdHJpbmcNCiAgICAnII57jUiJ747QgsyKT5KNlOSXpoLwk/yXzYK1gsSJuoKzgqKBQg0KICAgIEdldEYyOUNvbW1lbnRUZXh0ID0gXw0KICAgICAgICBDaHJXJCgmSDY1QkQpICYgQ2hyVyQoJkg1REU1KSAmIENoclckKCZINEYxQSkgJiBDaHJXJCgmSDc5M0UpICYgQ2hyVyQoJkgzMDZFKSAmIF8NCiAgICAgICAgQ2hyVyQoJkg1OTE2KSAmIENoclckKCZINkNFOCkgJiBDaHJXJCgmSDZCRDQpICYgQ2hyVyQoJkg3Mzg3KSAmIENoclckKCZIMzA5MikgJiBfDQogICAgICAgIENoclckKCZINTE2NSkgJiBDaHJXJCgmSDUyOUIpICYgQ2hyVyQoJkgzMDU3KSAmIENoclckKCZIMzA2NikgJiBDaHJXJCgmSDRFMEIpICYgXw0KICAgICAgICBDaHJXJCgmSDMwNTUpICYgQ2hyVyQoJkgzMDQ0KSAmIENoclckKCZIMzAwMikNCkVuZCBGdW5jdGlvbg0KDQpQcml2YXRlIEZ1bmN0aW9uIEdldEYzMUNvbW1lbnRUZXh0KCkgQXMgU3RyaW5nDQogICAgJyCLT5O5ie+O0ILMl26Q2o7ojLOC8IpPko2U5JemgsWOeJWlgqSP6o2Hgs2KT5KNlOSXpoLwk/yXzYK1gsSJuoKzgqKBQg0KICAgIEdldEYzMUNvbW1lbnRUZXh0ID0gXw0KICAgICAgICBDaHJXJCgmSDhFQ0MpICYgQ2hyVyQoJkg5MDUzKSAmIENoclckKCZINEYxQSkgJiBDaHJXJCgmSDc5M0UpICYgQ2hyVyQoJkgzMDZFKSAmIF8NCiAgICAgICAgQ2hyVyQoJkg2RUY2KSAmIENoclckKCZINjNBNSkgJiBDaHJXJCgmSDYyNEIpICYgQ2hyVyQoJkg1MTQzKSAmIENoclckKCZIMzA5MikgJiBfDQogICAgICAgIENoclckKCZINTkxNikgJiBDaHJXJCgmSDZDRTgpICYgQ2hyVyQoJkg2QkQ0KSAmIENoclckKCZINzM4NykgJiBDaHJXJCgmSDMwNjcpICYgXw0KICAgICAgICBDaHJXJCgmSDY1MkYpICYgQ2hyVyQoJkg2MjU1KSAmIENoclckKCZIMzA0NikgJiBDaHJXJCgmSDU4MzQpICYgQ2hyVyQoJkg1NDA4KSAmIF8NCiAgICAgICAgQ2hyVyQoJkgzMDZGKSAmIENoclckKCZINTkxNikgJiBDaHJXJCgmSDZDRTgpICYgQ2hyVyQoJkg2QkQ0KSAmIENoclckKCZINzM4NykgJiBfDQogICAgICAgIENoclckKCZIMzA5MikgJiBDaHJXJCgmSDUxNjUpICYgQ2hyVyQoJkg1MjlCKSAmIENoclckKCZIMzA1NykgJiBDaHJXJCgmSDMwNjYpICYgXw0KICAgICAgICBDaHJXJCgmSDRFMEIpICYgQ2hyVyQoJkgzMDU1KSAmIENoclckKCZIMzA0NCkgJiBDaHJXJCgmSDMwMDIpDQpFbmQgRnVuY3Rpb24NCg==
+Option Explicit
+
+' ========================================================
+' mod_BasicInfoGuide
+' 基本情報シートの入力ガイド（塗色 & コメント）管理
+'
+' ルール:
+'   未入力 -> #FFFF00 塗色 + 赤字12pt BizUDゴシックのコメント
+'   入力済 -> #06111D 塗色 + コメント削除
+'
+' 会社数セル(F9)の値に応じてF/I/L/O/R/U/X/AA/AD/AG列のベンダー行を動的管理
+' 最大10社対応（3列おき、F=6列目始まり）
+' ========================================================
+
+' --- 背景色定数 ---
+Private Const COLOR_INPUT_REQUIRED As Long = &HFFFF&         ' #FFFF00 (BGR)
+Private Const COLOR_FILLED         As Long = &H1D1106&        ' #06111D (BGR)
+
+' --- コメントフォント設定 ---
+Private Const COMMENT_FONT_NAME As String = "BIZ UDGothic"
+Private Const COMMENT_FONT_SIZE As Long = 12
+
+' --- ベンダー列: F=6始まり、3列おき、最大10社 ---
+Private Const VENDOR_COL_START  As Long = 6
+Private Const VENDOR_COL_STEP   As Long = 3
+Private Const VENDOR_MAX_COUNT  As Long = 10
+
+' ----------------------------------------------------------------
+' 公開API: シート全体のガイド状態を初期化（Activate時などに呼ぶ）
+' ----------------------------------------------------------------
+Public Sub InitBasicInfoGuide(ByVal ws As Worksheet)
+    If ws Is Nothing Then Exit Sub
+
+    On Error Resume Next
+    Application.ScreenUpdating = False
+
+    ' 固定セル
+    ApplyGuideCell ws, "C9",  GetC9CommentText(),  IsEmpty_Cell(ws.Range("C9"))
+    ApplyGuideCell ws, "C22", GetC22CommentText(), IsEmpty_Cell(ws.Range("C22"))
+    ApplyGuideCell ws, "C23", GetC23CommentText(), IsEmpty_Cell(ws.Range("C23"))
+
+    ' F9（会社数）
+    ApplyGuideCell ws, "F9", GetF9CommentText(), IsEmpty_Cell(ws.Range("F9"))
+
+    ' ベンダー行（会社数に応じて列数を決定）
+    RefreshVendorRowGuides ws
+
+    Application.ScreenUpdating = True
+    On Error GoTo 0
+End Sub
+
+' ----------------------------------------------------------------
+' 公開API: 特定セル変更時に呼ぶ（Worksheet_Changeから）
+' ----------------------------------------------------------------
+Public Sub OnCellChanged(ByVal ws As Worksheet, ByVal target As Range)
+    If ws Is Nothing Or target Is Nothing Then Exit Sub
+
+    On Error Resume Next
+    Application.ScreenUpdating = False
+
+    ' 固定セル判定
+    If Not Intersect(target, ws.Range("C9"))  Is Nothing Then ApplyGuideCell ws, "C9",  GetC9CommentText(),  IsEmpty_Cell(ws.Range("C9"))
+    If Not Intersect(target, ws.Range("C22")) Is Nothing Then ApplyGuideCell ws, "C22", GetC22CommentText(), IsEmpty_Cell(ws.Range("C22"))
+    If Not Intersect(target, ws.Range("C23")) Is Nothing Then ApplyGuideCell ws, "C23", GetC23CommentText(), IsEmpty_Cell(ws.Range("C23"))
+    If Not Intersect(target, ws.Range("F9"))  Is Nothing Then
+        ApplyGuideCell ws, "F9", GetF9CommentText(), IsEmpty_Cell(ws.Range("F9"))
+        RefreshVendorRowGuides ws
+    End If
+
+    ' ベンダー行セル（全10社分の列×4行を監視）
+    Dim vendorMonitorRange As Range
+    Set vendorMonitorRange = GetVendorGuideMonitorRange(ws)
+    If Not vendorMonitorRange Is Nothing Then
+        If Not Intersect(target, vendorMonitorRange) Is Nothing Then
+            RefreshVendorRowGuides ws
+        End If
+    End If
+
+    Application.ScreenUpdating = True
+    On Error GoTo 0
+End Sub
+
+' ----------------------------------------------------------------
+' ベンダー行ガイドを会社数に応じてリフレッシュ（最大10社）
+' ----------------------------------------------------------------
+Private Sub RefreshVendorRowGuides(ByVal ws As Worksheet)
+    Dim vendorCount As Long
+    vendorCount = GetVendorCount(ws)
+    ' 上限を10社にクランプ
+    If vendorCount > VENDOR_MAX_COUNT Then vendorCount = VENDOR_MAX_COUNT
+
+    ' ベンダー行番号（F11/F27/F29/F31 対応行）
+    Dim vendorRows As Variant
+    vendorRows = Array(11, 27, 29, 31)
+
+    Dim vendorComments As Variant
+    vendorComments = Array(GetF11CommentText(), GetF27CommentText(), GetF29CommentText(), GetF31CommentText())
+
+    Dim i As Long
+    For i = 0 To UBound(vendorRows)
+        Dim rowNum As Long
+        rowNum = vendorRows(i)
+        Dim commentText As String
+        commentText = vendorComments(i)
+
+        Dim companyIdx As Long
+        For companyIdx = 1 To VENDOR_MAX_COUNT
+            Dim colNum As Long
+            colNum = VENDOR_COL_START + (companyIdx - 1) * VENDOR_COL_STEP
+
+            If companyIdx <= vendorCount Then
+                ' 対象会社数以内 → 塗色+コメント
+                ApplyGuideCellByRowCol ws, rowNum, colNum, commentText, IsEmpty_Cell(ws.Cells(rowNum, colNum))
+            Else
+                ' 対象会社数外 → 元の色に戻す
+                ClearGuideByRowCol ws, rowNum, colNum
+            End If
+        Next companyIdx
+    Next i
+End Sub
+
+' ----------------------------------------------------------------
+' 単一セルにガイドを適用（アドレス指定）
+' ----------------------------------------------------------------
+Private Sub ApplyGuideCell(ByVal ws As Worksheet, ByVal addr As String, ByVal commentText As String, ByVal isEmpty As Boolean)
+    ApplyGuideCellToRange ws.Range(addr), commentText, isEmpty
+End Sub
+
+' ----------------------------------------------------------------
+' 単一セルにガイドを適用（行列番号指定）
+' ----------------------------------------------------------------
+Private Sub ApplyGuideCellByRowCol(ByVal ws As Worksheet, ByVal rowNum As Long, ByVal colNum As Long, ByVal commentText As String, ByVal isEmpty As Boolean)
+    ApplyGuideCellToRange ws.Cells(rowNum, colNum), commentText, isEmpty
+End Sub
+
+' ----------------------------------------------------------------
+' ガイドを解除して元の色に戻す
+' ----------------------------------------------------------------
+Private Sub ClearGuideByRowCol(ByVal ws As Worksheet, ByVal rowNum As Long, ByVal colNum As Long)
+    On Error Resume Next
+    With ws.Cells(rowNum, colNum)
+        .Interior.Color = COLOR_FILLED
+        .Comment.Delete
+    End With
+    On Error GoTo 0
+End Sub
+
+' ----------------------------------------------------------------
+' コアロジック: 塗色 + コメント付け外し
+' ----------------------------------------------------------------
+Private Sub ApplyGuideCellToRange(ByVal cell As Range, ByVal commentText As String, ByVal isEmpty As Boolean)
+    On Error Resume Next
+    If isEmpty Then
+        cell.Interior.Color = COLOR_INPUT_REQUIRED
+        cell.Comment.Delete
+        Dim cmt As Comment
+        Set cmt = cell.AddComment(commentText)
+        If Not cmt Is Nothing Then
+            With cmt.Shape.TextFrame.Characters.Font
+                .Color = RGB(255, 0, 0)
+                .Size = COMMENT_FONT_SIZE
+                .Name = COMMENT_FONT_NAME
+                .Bold = True
+            End With
+            cmt.Visible = False
+            AutoSizeComment cmt
+        End If
+    Else
+        cell.Interior.Color = COLOR_FILLED
+        cell.Comment.Delete
+    End If
+    On Error GoTo 0
+End Sub
+
+' ----------------------------------------------------------------
+' コメントサイズ自動調整
+' ----------------------------------------------------------------
+Private Sub AutoSizeComment(ByVal cmt As Comment)
+    On Error Resume Next
+    With cmt.Shape
+        .TextFrame.AutoSize = True
+    End With
+    On Error GoTo 0
+End Sub
+
+' ----------------------------------------------------------------
+' セルが空かどうか（Trim後で判定）
+' ----------------------------------------------------------------
+Private Function IsEmpty_Cell(ByVal cell As Range) As Boolean
+    On Error Resume Next
+    IsEmpty_Cell = (Len(Trim$(CStr(cell.value))) = 0)
+    On Error GoTo 0
+End Function
+
+' ----------------------------------------------------------------
+' 会社数取得（F9セル）
+' ----------------------------------------------------------------
+Private Function GetVendorCount(ByVal ws As Worksheet) As Long
+    On Error Resume Next
+    Dim v As Variant
+    v = ws.Range("F9").value
+    If IsNumeric(v) Then
+        GetVendorCount = CLng(v)
+    Else
+        GetVendorCount = 0
+    End If
+    On Error GoTo 0
+End Function
+
+' ----------------------------------------------------------------
+' ベンダー行の監視レンジ（全10社分、変更検知用）
+' ----------------------------------------------------------------
+Private Function GetVendorGuideMonitorRange(ByVal ws As Worksheet) As Range
+    ' F/I/L/O/R/U/X/AA/AD/AG 列の 11,27,29,31行
+    Dim addrList As String
+    addrList = ""
+    Dim colNames As Variant
+    colNames = Array("F", "I", "L", "O", "R", "U", "X", "AA", "AD", "AG")
+    Dim rows As Variant
+    rows = Array(11, 27, 29, 31)
+
+    Dim c As Long, r As Long
+    For c = 0 To UBound(colNames)
+        For r = 0 To UBound(rows)
+            If addrList <> "" Then addrList = addrList & ","
+            addrList = addrList & colNames(c) & CStr(rows(r))
+        Next r
+    Next c
+
+    On Error Resume Next
+    Set GetVendorGuideMonitorRange = ws.Range(addrList)
+    On Error GoTo 0
+End Function
+
+' ================================================================
+' コメントテキスト（ChrW$ で日本語構築）
+' ================================================================
+
+Private Function GetC9CommentText() As String
+    ' 工事番号が工事現況表に登録されている場合はダブルクリックしてください。
+    GetC9CommentText = _
+        ChrW$(&H5DE5) & ChrW$(&H4E8B) & ChrW$(&H756A) & ChrW$(&H53F7) & ChrW$(&H304C) & _
+        ChrW$(&H5DE5) & ChrW$(&H4E8B) & ChrW$(&H73FE) & ChrW$(&H6CC1) & ChrW$(&H8868) & _
+        ChrW$(&H306B) & ChrW$(&H767B) & ChrW$(&H9332) & ChrW$(&H3055) & ChrW$(&H308C) & _
+        ChrW$(&H3066) & ChrW$(&H3044) & ChrW$(&H308B) & ChrW$(&H5834) & ChrW$(&H5408) & _
+        ChrW$(&H306F) & ChrW$(&H30C0) & ChrW$(&H30D6) & ChrW$(&H30EB) & ChrW$(&H30AF) & _
+        ChrW$(&H30EA) & ChrW$(&H30C3) & ChrW$(&H30AF) & ChrW$(&H3057) & ChrW$(&H3066) & _
+        ChrW$(&H304F) & ChrW$(&H3060) & ChrW$(&H3055) & ChrW$(&H3044) & ChrW$(&H3002)
+End Function
+
+Private Function GetC22CommentText() As String
+    ' 年初単価又は設計変更単価を選択して下さい。
+    GetC22CommentText = _
+        ChrW$(&H5E74) & ChrW$(&H521D) & ChrW$(&H5358) & ChrW$(&H4FA1) & ChrW$(&H53C8) & _
+        ChrW$(&H306F) & ChrW$(&H8A2D) & ChrW$(&H8A08) & ChrW$(&H5909) & ChrW$(&H66F4) & _
+        ChrW$(&H5358) & ChrW$(&H4FA1) & ChrW$(&H3092) & ChrW$(&H9078) & ChrW$(&H629E) & _
+        ChrW$(&H3057) & ChrW$(&H3066) & ChrW$(&H4E0B) & ChrW$(&H3055) & ChrW$(&H3044) & _
+        ChrW$(&H3002)
+End Function
+
+Private Function GetC23CommentText() As String
+    ' 本工事に適用される線区名をダブルクリックして選択してください。
+    GetC23CommentText = _
+        ChrW$(&H672C) & ChrW$(&H5DE5) & ChrW$(&H4E8B) & ChrW$(&H306B) & ChrW$(&H9069) & _
+        ChrW$(&H7528) & ChrW$(&H3055) & ChrW$(&H308C) & ChrW$(&H308B) & ChrW$(&H7DDA) & _
+        ChrW$(&H533A) & ChrW$(&H540D) & ChrW$(&H3092) & ChrW$(&H30C0) & ChrW$(&H30D6) & _
+        ChrW$(&H30EB) & ChrW$(&H30AF) & ChrW$(&H30EA) & ChrW$(&H30C3) & ChrW$(&H30AF) & _
+        ChrW$(&H3057) & ChrW$(&H3066) & ChrW$(&H9078) & ChrW$(&H629E) & ChrW$(&H3057) & _
+        ChrW$(&H3066) & ChrW$(&H304F) & ChrW$(&H3060) & ChrW$(&H3055) & ChrW$(&H3044) & _
+        ChrW$(&H3002)
+End Function
+
+Private Function GetF9CommentText() As String
+    ' 本工事を施工する施工会社数を入力して下さい。
+    GetF9CommentText = _
+        ChrW$(&H672C) & ChrW$(&H5DE5) & ChrW$(&H4E8B) & ChrW$(&H3092) & ChrW$(&H65BD) & _
+        ChrW$(&H5DE5) & ChrW$(&H3059) & ChrW$(&H308B) & ChrW$(&H65BD) & ChrW$(&H5DE5) & _
+        ChrW$(&H4F1A) & ChrW$(&H793E) & ChrW$(&H6570) & ChrW$(&H3092) & ChrW$(&H5165) & _
+        ChrW$(&H529B) & ChrW$(&H3057) & ChrW$(&H3066) & ChrW$(&H4E0B) & ChrW$(&H3055) & _
+        ChrW$(&H3044) & ChrW$(&H3002)
+End Function
+
+Private Function GetF11CommentText() As String
+    ' 施工会社名を選択して下さい。
+    GetF11CommentText = _
+        ChrW$(&H65BD) & ChrW$(&H5DE5) & ChrW$(&H4F1A) & ChrW$(&H793E) & ChrW$(&H540D) & _
+        ChrW$(&H3092) & ChrW$(&H9078) & ChrW$(&H629E) & ChrW$(&H3057) & ChrW$(&H3066) & _
+        ChrW$(&H4E0B) & ChrW$(&H3055) & ChrW$(&H3044) & ChrW$(&H3002)
+End Function
+
+Private Function GetF27CommentText() As String
+    ' 注文番号を入力してください。
+    GetF27CommentText = _
+        ChrW$(&H6CE8) & ChrW$(&H6587) & ChrW$(&H756A) & ChrW$(&H53F7) & ChrW$(&H3092) & _
+        ChrW$(&H5165) & ChrW$(&H529B) & ChrW$(&H3057) & ChrW$(&H3066) & ChrW$(&H304F) & _
+        ChrW$(&H3060) & ChrW$(&H3055) & ChrW$(&H3044) & ChrW$(&H3002)
+End Function
+
+Private Function GetF29CommentText() As String
+    ' 施工会社の外注比率を入力して下さい。
+    GetF29CommentText = _
+        ChrW$(&H65BD) & ChrW$(&H5DE5) & ChrW$(&H4F1A) & ChrW$(&H793E) & ChrW$(&H306E) & _
+        ChrW$(&H5916) & ChrW$(&H6CE8) & ChrW$(&H6BD4) & ChrW$(&H7387) & ChrW$(&H3092) & _
+        ChrW$(&H5165) & ChrW$(&H529B) & ChrW$(&H3057) & ChrW$(&H3066) & ChrW$(&H4E0B) & _
+        ChrW$(&H3055) & ChrW$(&H3044) & ChrW$(&H3002)
+End Function
+
+Private Function GetF31CommentText() As String
+    ' 軌道会社の溶接手元を外注比率で支払う場合は外注比率を入力して下さい。
+    GetF31CommentText = _
+        ChrW$(&H8ECC) & ChrW$(&H9053) & ChrW$(&H4F1A) & ChrW$(&H793E) & ChrW$(&H306E) & _
+        ChrW$(&H6EF6) & ChrW$(&H63A5) & ChrW$(&H624B) & ChrW$(&H5143) & ChrW$(&H3092) & _
+        ChrW$(&H5916) & ChrW$(&H6CE8) & ChrW$(&H6BD4) & ChrW$(&H7387) & ChrW$(&H3067) & _
+        ChrW$(&H652F) & ChrW$(&H6255) & ChrW$(&H3046) & ChrW$(&H5834) & ChrW$(&H5408) & _
+        ChrW$(&H306F) & ChrW$(&H5916) & ChrW$(&H6CE8) & ChrW$(&H6BD4) & ChrW$(&H7387) & _
+        ChrW$(&H3092) & ChrW$(&H5165) & ChrW$(&H529B) & ChrW$(&H3057) & ChrW$(&H3066) & _
+        ChrW$(&H4E0B) & ChrW$(&H3055) & ChrW$(&H3044) & ChrW$(&H3002)
+End Function
