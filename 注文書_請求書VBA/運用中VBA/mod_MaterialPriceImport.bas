@@ -1184,6 +1184,7 @@ Private Function ImportAndMergeWeldingUnitPriceSheets(ByVal sourceFilePath As St
         MarkImportedUnitPriceSheet newSheet
         FillBlankUnitPriceEFCells newSheet
         ApplyImportedUnitPriceSheetFormat newSheet
+        ApplyWeldingUnitPriceSheetSectionFormat newSheet
         DeleteWorksheetIfExists targetBook, newSheetName, newSheet
         newSheet.Name = MakeUniqueWorksheetName(targetBook, newSheetName, newSheet.Name)
     End If
@@ -1905,6 +1906,47 @@ Private Sub ApplyImportedUnitPriceSheetFormat(ByVal targetSheet As Worksheet)
     End If
 End Sub
 
+' レール溶接単価シート: A列の「工事件名：」「積算線区：」行の右隣(B列)を左詰めにする
+Private Sub ApplyWeldingUnitPriceSheetSectionFormat(ByVal targetSheet As Worksheet)
+    If targetSheet Is Nothing Then Exit Sub
+
+    Dim lastRow As Long
+    lastRow = FindLastUsedRow(targetSheet)
+    If lastRow < 1 Then Exit Sub
+
+    Dim rowIndex As Long
+    For rowIndex = 1 To lastRow
+        Dim labelText As String
+        labelText = CommonRemoveAllSpaces(CommonNormalizeText(CommonNzText(targetSheet.Cells(rowIndex, 1).value)))
+        If Len(labelText) = 0 Then GoTo NextRow
+
+        If InStr(1, labelText, WeldingProjectNameLabelKeywordText(), vbTextCompare) > 0 Or _
+           InStr(1, labelText, WeldingLineSectionLabelKeywordText(), vbTextCompare) > 0 Then
+            targetSheet.Cells(rowIndex, IMPORTED_UNIT_PRICE_CENTER_COL).HorizontalAlignment = xlLeft
+        End If
+NextRow:
+    Next rowIndex
+End Sub
+
+Private Function WeldingProjectNameLabelKeywordText() As String
+    Static cached As String
+    If cached = "" Then cached = ChrW$(&H5DE5) & ChrW$(&H4E8B) & ChrW$(&H4EF6) & ChrW$(&H540D)
+    WeldingProjectNameLabelKeywordText = cached
+End Function
+
+Private Function WeldingLineSectionLabelKeywordText() As String
+    Static cached As String
+    If cached = "" Then cached = ChrW$(&H7A4D) & ChrW$(&H7B97) & ChrW$(&H7DDA) & ChrW$(&H533A)
+    WeldingLineSectionLabelKeywordText = cached
+End Function
+
+Private Function IsUnitPriceSheetDataSeiriRow(ByVal cellValue As Variant) As Boolean
+    Dim textValue As String
+    textValue = Trim$(StrConv(CommonNzText(cellValue), vbNarrow))
+    If Len(textValue) = 0 Then Exit Function
+    IsUnitPriceSheetDataSeiriRow = IsNumeric(textValue)
+End Function
+
 Private Function ImportedUnitPriceSheetFontNameText() As String
     Static cached As String
     If cached = "" Then
@@ -1941,6 +1983,7 @@ Private Sub FillBlankUnitPriceEFCells(ByVal targetSheet As Worksheet)
     Dim rowIndex As Long
     Dim colIndex As Long
     For rowIndex = UNIT_PRICE_BLANK_FILL_DATA_START_ROW To lastRow
+        If Not IsUnitPriceSheetDataSeiriRow(targetSheet.Cells(rowIndex, UNIT_PRICE_BLANK_FILL_LAST_ROW_COL).value) Then GoTo NextFillRow
         For colIndex = UNIT_PRICE_BLANK_FILL_COL_START To UNIT_PRICE_BLANK_FILL_COL_END
             With targetSheet.Cells(rowIndex, colIndex)
                 If Len(Trim$(CStr(.value))) = 0 Then
@@ -1950,6 +1993,7 @@ Private Sub FillBlankUnitPriceEFCells(ByVal targetSheet As Worksheet)
                 End If
             End With
         Next colIndex
+NextFillRow:
     Next rowIndex
 End Sub
 
