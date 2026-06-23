@@ -5,8 +5,8 @@ Option Explicit
 ' 基本情報シートの入力ガイド（塗色 & コメント）管理
 '
 ' ルール:
-'   未入力 -> #FFFF00 塗色 + 赤字12pt BizUDゴシックのコメント
-'   入力済 -> #06111D 塗色 + コメント削除
+'   未入力 -> #FFFF00 塗色 + 黒文字 + 赤字12pt BizUDゴシックのコメント
+'   入力済 -> #06111D 塗色 + 白文字 + コメント削除
 '
 ' F10（工事種別）による F29/F31 の動的切り替え:
 '   軌道工事 -> F29: 軌道工事会社の外注比率コメント / F31: 現状のまま
@@ -20,6 +20,8 @@ Option Explicit
 ' --- 背景色定数 ---
 Private Const COLOR_INPUT_REQUIRED As Long = &HFFFF&         ' #FFFF00 (BGR)
 Private Const COLOR_FILLED         As Long = &H1D1106&        ' #06111D (BGR)
+Private Const COLOR_INPUT_REQUIRED_FONT As Long = &H0&       ' 黒
+Private Const COLOR_FILLED_FONT         As Long = &HFFFFFF&  ' 白
 
 ' --- コメントフォント設定 ---
 Private Const COMMENT_FONT_NAME As String = "BIZ UDGothic"
@@ -178,6 +180,7 @@ Private Sub ApplyDisabledCell(ByVal cell As Range)
     On Error Resume Next
     cell.Comment.Delete
     cell.Interior.Color = COLOR_FILLED
+    cell.Font.Color = COLOR_FILLED_FONT
     With cell.Borders(xlDiagonalDown)
         .LineStyle = xlContinuous
         .Weight = xlMedium
@@ -225,6 +228,7 @@ Private Sub ClearGuideByRowCol(ByVal ws As Worksheet, ByVal rowNum As Long, ByVa
     RemoveDiagonalBorders ws.Cells(rowNum, colNum)
     With ws.Cells(rowNum, colNum)
         .Interior.Color = COLOR_FILLED
+        .Font.Color = COLOR_FILLED_FONT
         .Comment.Delete
     End With
     On Error GoTo 0
@@ -237,6 +241,7 @@ Private Sub ApplyGuideCellToRange(ByVal cell As Range, ByVal commentText As Stri
     On Error Resume Next
     If isEmpty Then
         cell.Interior.Color = COLOR_INPUT_REQUIRED
+        cell.Font.Color = COLOR_INPUT_REQUIRED_FONT
         cell.Comment.Delete
         Dim cmt As Comment
         Set cmt = cell.AddComment(commentText)
@@ -252,6 +257,7 @@ Private Sub ApplyGuideCellToRange(ByVal cell As Range, ByVal commentText As Stri
         End If
     Else
         cell.Interior.Color = COLOR_FILLED
+        cell.Font.Color = COLOR_FILLED_FONT
         cell.Comment.Delete
     End If
     On Error GoTo 0
