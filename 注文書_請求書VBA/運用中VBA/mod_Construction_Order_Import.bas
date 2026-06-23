@@ -4512,6 +4512,10 @@ Private Function GetLastDataRow(ByVal ws As Worksheet, _
     GetLastDataRow = 1
 End Function
 
+Public Function IsManagedConstructionImportOutputSheet(ByVal ws As Worksheet) As Boolean
+    IsManagedConstructionImportOutputSheet = IsManagedImportOutputSheet(ws)
+End Function
+
 Public Function IsWeldingOutputSheet(ByVal ws As Worksheet) As Boolean
     If ws Is Nothing Then Exit Function
     IsWeldingOutputSheet = (FindHeaderColumn(ws, WELDING_VENDOR_HEADER) > 0)
