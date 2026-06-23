@@ -64,6 +64,24 @@ Public Function CommonCoverSheetNameText() As String
     CommonCoverSheetNameText = cached
 End Function
 
+Public Function CommonPurchaseOrderOutputSheetName() As String
+    Static cached As String
+    If Len(cached) = 0 Then
+        cached = ChrW$(&H8CFC) & ChrW$(&H5165) & ChrW$(&H5145) & ChrW$(&H5F53) & _
+                 ChrW$(&H6307) & ChrW$(&H793A)
+    End If
+    CommonPurchaseOrderOutputSheetName = cached
+End Function
+
+Public Function CommonPurchaseNoticeOutputSheetName() As String
+    Static cached As String
+    If Len(cached) = 0 Then
+        cached = ChrW$(&H8CFC) & ChrW$(&H5165) & ChrW$(&H5145) & ChrW$(&H5F53) & _
+                 ChrW$(&H901A) & ChrW$(&H77E5)
+    End If
+    CommonPurchaseNoticeOutputSheetName = cached
+End Function
+
 Public Function CommonCompanyNameText() As String
     Static cached As String
     If cached = "" Then
