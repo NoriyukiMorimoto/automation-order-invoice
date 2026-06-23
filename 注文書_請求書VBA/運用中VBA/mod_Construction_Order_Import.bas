@@ -1620,7 +1620,8 @@ Private Function LookupSubcontractorVendorPrice( _
 
     Dim recordKey As String
     If isWeldingSheet Then
-        recordKey = BuildWeldingLookupKey(ws.Cells(rowIndex, seiriColumn).value)
+        recordKey = BuildWeldingLineSeiriLookupKey( _
+            CommonNzText(ws.Cells(rowIndex, lineColumn).value), ws.Cells(rowIndex, seiriColumn).value)
     Else
         recordKey = NormalizeRecordKey(ws.Cells(rowIndex, seiriColumn).value)
     End If
@@ -1906,7 +1907,9 @@ Private Function LookupSubcontractorVendorPriceFromArrays( _
 
     Dim recordKey As String
     If isWeldingSheet Then
-        recordKey = BuildWeldingLookupKey(GetArrayCellValue(seiriData, rowIndex, 1))
+        recordKey = BuildWeldingLineSeiriLookupKey( _
+            CommonNzText(GetArrayCellValue(lineData, rowIndex, 1)), _
+            GetArrayCellValue(seiriData, rowIndex, 1))
     Else
         recordKey = NormalizeRecordKey(GetArrayCellValue(seiriData, rowIndex, 1))
     End If
@@ -3247,7 +3250,8 @@ Private Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
         rawLineText = ""
         If isWeldingSheet Then
             unitPriceSheetName = weldingPriceSheetName
-            recordKey = BuildWeldingLookupKey(ws.Cells(r, seiriColumn).value)
+            rawLineText = CommonNzText(ws.Cells(r, lineColumn).value)
+            recordKey = BuildWeldingLineSeiriLookupKey(rawLineText, ws.Cells(r, seiriColumn).value)
         Else
             rawLineText = CommonNzText(ws.Cells(r, lineColumn).value)
             unitPriceSheetName = ResolveUnitPriceSheetName(lineSheetMap, rawLineText, False)
@@ -3943,21 +3947,21 @@ Private Function GetUnitPriceRows(ByVal unitPriceSheetName As String, _
     Set result = CreateObject("Scripting.Dictionary")
     result.CompareMode = vbTextCompare
 
-    Dim lastRow As Long
-    lastRow = priceSheet.Cells(priceSheet.rows.Count, COL_SEIRI).End(xlUp).Row
+    If mod_WeldingUnitPrice.IsWeldingUnitPriceSheet(priceSheet) Then
+        BuildWeldingUnitPriceRowCache priceSheet, result
+    Else
+        Dim lastRow As Long
+        lastRow = priceSheet.Cells(priceSheet.rows.Count, COL_SEIRI).End(xlUp).Row
 
-    Dim r As Long
-    For r = UNIT_PRICE_DATA_START_ROW To lastRow
-        Dim recordKey As String
-        If mod_WeldingUnitPrice.IsWeldingUnitPriceSheet(priceSheet) Then
-            recordKey = BuildWeldingLookupKey(priceSheet.Cells(r, COL_SEIRI).value)
-        Else
+        Dim r As Long
+        For r = UNIT_PRICE_DATA_START_ROW To lastRow
+            Dim recordKey As String
             recordKey = NormalizeRecordKey(priceSheet.Cells(r, COL_SEIRI).value)
-        End If
-        If recordKey <> "" And Not result.Exists(recordKey) Then
-            result.Add recordKey, Array(priceSheet.Cells(r, 5).value, priceSheet.Cells(r, 6).value)
-        End If
-    Next r
+            If recordKey <> "" And Not result.Exists(recordKey) Then
+                result.Add recordKey, Array(priceSheet.Cells(r, 5).value, priceSheet.Cells(r, 6).value)
+            End If
+        Next r
+    End If
 
     sheetPriceCaches.Add unitPriceSheetName, result
     Set GetUnitPriceRows = result
@@ -4337,17 +4341,7 @@ Private Function GetWeldingPriceRowMap(ByVal weldingSheetName As String, _
     Set priceSheet = ThisWorkbook.worksheets(weldingSheetName)
     On Error GoTo 0
     If Not priceSheet Is Nothing Then
-        Dim lastRow As Long
-        lastRow = priceSheet.Cells(priceSheet.rows.Count, WELDING_PRICE_SEIRI_COL).End(xlUp).Row
-
-        Dim r As Long
-        For r = WELDING_PRICE_DATA_START_ROW To lastRow
-            Dim lookupKey As String
-            lookupKey = BuildWeldingLookupKey(priceSheet.Cells(r, WELDING_PRICE_SEIRI_COL).value)
-            If lookupKey <> "" And Not result.Exists(lookupKey) Then
-                result.Add lookupKey, r
-            End If
-        Next r
+        BuildWeldingUnitPriceRowCache priceSheet, Nothing, True, result
     End If
 
     vendorPriceCaches.Add cacheKey, result
@@ -4809,6 +4803,92 @@ Cleanup:
     CommonCloseAdoRecordset recordset
     CommonCloseAdoConnection connection
     ResolveWeldingPriceSheetName = resultName
+End Function
+
+' レール溶接単価シート A列の「積算線区：」行から線区名(B列)を読み取り、
+' 整理番号行(B列=数値)と組み合わせた照合キーを構築する。
+Private Sub BuildWeldingUnitPriceRowCache(ByVal priceSheet As Worksheet, _
+                                          ByVal priceValueMap As Object, _
+                                          Optional ByVal storeRowIndex As Boolean = False, _
+                                          Optional ByVal rowIndexMap As Object = Nothing)
+    Dim lastRow As Long
+    lastRow = priceSheet.Cells(priceSheet.rows.Count, WELDING_PRICE_SEIRI_COL).End(xlUp).Row
+    If lastRow < 1 Then Exit Sub
+
+    Dim currentLineSection As String
+    currentLineSection = ""
+
+    Dim r As Long
+    For r = 1 To lastRow
+        If IsWeldingLineSectionLabelCell(CommonNzText(priceSheet.Cells(r, 1).value)) Then
+            currentLineSection = NormalizeWeldingPriceLineSectionName( _
+                CommonNzText(priceSheet.Cells(r, WELDING_PRICE_SEIRI_COL).value))
+        End If
+
+        If IsWeldingPriceSeiriCellValue(priceSheet.Cells(r, WELDING_PRICE_SEIRI_COL).value) Then
+            Dim seiriKey As String
+            seiriKey = BuildWeldingLookupKey(priceSheet.Cells(r, WELDING_PRICE_SEIRI_COL).value)
+            If seiriKey <> "" Then
+                Dim recordKey As String
+                If Len(currentLineSection) > 0 Then
+                    recordKey = currentLineSection & "|" & seiriKey
+                Else
+                    recordKey = seiriKey
+                End If
+
+                If storeRowIndex Then
+                    If Not rowIndexMap Is Nothing Then
+                        If Not rowIndexMap.Exists(recordKey) Then rowIndexMap.Add recordKey, r
+                    End If
+                ElseIf Not priceValueMap Is Nothing Then
+                    If Not priceValueMap.Exists(recordKey) Then
+                        priceValueMap.Add recordKey, Array( _
+                            priceSheet.Cells(r, UNIT_PRICE_DAY_PRICE_COL).value, _
+                            priceSheet.Cells(r, UNIT_PRICE_NIGHT_PRICE_COL).value)
+                    End If
+                End If
+            End If
+        End If
+    Next r
+End Sub
+
+Private Function BuildWeldingLineSeiriLookupKey(ByVal lineText As String, ByVal seiriValue As Variant) As String
+    Dim seiriKey As String
+    seiriKey = BuildWeldingLookupKey(seiriValue)
+    If seiriKey = "" Then Exit Function
+
+    Dim normalizedLine As String
+    normalizedLine = NormalizeWeldingPriceLineSectionName(lineText)
+    If normalizedLine = "" Then
+        BuildWeldingLineSeiriLookupKey = seiriKey
+    Else
+        BuildWeldingLineSeiriLookupKey = normalizedLine & "|" & seiriKey
+    End If
+End Function
+
+Private Function NormalizeWeldingPriceLineSectionName(ByVal lineText As String) As String
+    NormalizeWeldingPriceLineSectionName = NormalizeLineLookupText(lineText, True)
+End Function
+
+Private Function IsWeldingPriceSeiriCellValue(ByVal value As Variant) As Boolean
+    Dim textValue As String
+    textValue = Trim$(StrConv(CommonNzText(value), vbNarrow))
+    If Len(textValue) = 0 Then Exit Function
+    IsWeldingPriceSeiriCellValue = IsNumeric(textValue)
+End Function
+
+Private Function IsWeldingLineSectionLabelCell(ByVal labelText As String) As Boolean
+    Dim normalized As String
+    normalized = CommonRemoveAllSpaces(CommonNormalizeText(labelText))
+    If Len(normalized) = 0 Then Exit Function
+    IsWeldingLineSectionLabelCell = _
+        (InStr(1, normalized, WeldingLineSectionLabelKeywordText(), vbTextCompare) > 0)
+End Function
+
+Private Function WeldingLineSectionLabelKeywordText() As String
+    Static cached As String
+    If cached = "" Then cached = ChrW$(&H7A4D) & ChrW$(&H7B97) & ChrW$(&H7DDA) & ChrW$(&H533A)
+    WeldingLineSectionLabelKeywordText = cached
 End Function
 
 Private Function BuildWeldingLookupKey(ByVal seiriValue As Variant) As String
