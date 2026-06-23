@@ -151,7 +151,7 @@ AfterClear:
 
     Application.EnableEvents = prevEnableEvents
     Application.ScreenUpdating = True
-    DeleteConstructionImportSheets
+    DeleteConstructionImportSheets False
 
 FinallyExit:
     Application.EnableEvents = prevEnableEvents
@@ -204,51 +204,57 @@ FinallyExit:
 End Sub
 
 '  DeleteConstructionImportSheets
-Private Sub DeleteConstructionImportSheets()
+Private Sub DeleteConstructionImportSheets(Optional ByVal showConfirm As Boolean = True)
     Dim wsInfo As Worksheet
+    Dim targetNames As Collection
+    Dim ws As Worksheet
+    Dim i As Long
+    Dim prevAlerts As Boolean
+    Dim prevScreenUpdating As Boolean
+
     Set wsInfo = CommonGetBasicInfoWorksheet()
 
-    Dim targetNames As Collection
     Set targetNames = New Collection
 
-    Dim ws As Worksheet
     For Each ws In ThisWorkbook.Worksheets
         If Not wsInfo Is Nothing Then
             If ws Is wsInfo Then GoTo NextSheet
         End If
 
-        If mod_Construction_Order_Import.IsManagedConstructionImportOutputSheet(ws) Then
-            targetNames.Add ws.Name
+        If IsConstructionImportSheetForClear(ws) Then
+            AppendUniqueSheetName targetNames, ws.Name
         End If
 
 NextSheet:
     Next ws
 
+    AppendUniqueSheetNameIfExists targetNames, mod_Construction_Order_Import.PurchaseOrderOutputSheetName()
+    AppendUniqueSheetNameIfExists targetNames, mod_Construction_Order_Import.PurchaseNoticeOutputSheetName()
+
     If targetNames.Count = 0 Then Exit Sub
 
-    Dim nameList As String
-    Dim i As Long
-    For i = 1 To targetNames.Count
-        nameList = nameList & "  " & ChrW$(&H30FB) & CStr(targetNames(i)) & vbCrLf
-    Next i
+    If showConfirm Then
+        Dim nameList As String
+        For i = 1 To targetNames.Count
+            nameList = nameList & "  " & ChrW$(&H30FB) & CStr(targetNames(i)) & vbCrLf
+        Next i
 
-    Dim ans As VbMsgBoxResult
-    ans = MsgBox(ChrW$(&H4EE5) & ChrW$(&H4E0B) & ChrW$(&H306E) & ChrW$(&H65BD) & ChrW$(&H5DE5) & _
-                 ChrW$(&H6307) & ChrW$(&H793A) & ChrW$(&H66F8) & ChrW$(&H30FB) & ChrW$(&H901A) & _
-                 ChrW$(&H77E5) & ChrW$(&H66F8) & ChrW$(&H30B7) & ChrW$(&H30FC) & ChrW$(&H30C8) & _
-                 ChrW$(&H3092) & ChrW$(&H524A) & ChrW$(&H9664) & ChrW$(&H3057) & ChrW$(&H307E) & _
-                 ChrW$(&H3059) & ChrW$(&H3002) & ChrW$(&H3088) & ChrW$(&H308D) & ChrW$(&H3057) & _
-                 ChrW$(&H3044) & ChrW$(&H3067) & ChrW$(&H3059) & ChrW$(&H304B) & ChrW$(&HFF1F) & _
-                 vbCrLf & vbCrLf & nameList, _
-                 vbYesNo + vbQuestion + vbDefaultButton2, _
-                 ChrW$(&H30B7) & ChrW$(&H30FC) & ChrW$(&H30C8) & ChrW$(&H524A) & ChrW$(&H9664) & _
-                 ChrW$(&H306E) & ChrW$(&H78BA) & ChrW$(&H8A8D))
-    If ans <> vbYes Then Exit Sub
+        Dim ans As VbMsgBoxResult
+        ans = MsgBox(ChrW$(&H4EE5) & ChrW$(&H4E0B) & ChrW$(&H306E) & ChrW$(&H65BD) & ChrW$(&H5DE5) & _
+                     ChrW$(&H6307) & ChrW$(&H793A) & ChrW$(&H66F8) & ChrW$(&H30FB) & ChrW$(&H901A) & _
+                     ChrW$(&H77E5) & ChrW$(&H66F8) & ChrW$(&H30B7) & ChrW$(&H30FC) & ChrW$(&H30C8) & _
+                     ChrW$(&H3092) & ChrW$(&H524A) & ChrW$(&H9664) & ChrW$(&H3057) & ChrW$(&H307E) & _
+                     ChrW$(&H3059) & ChrW$(&H3002) & ChrW$(&H3088) & ChrW$(&H308D) & ChrW$(&H3057) & _
+                     ChrW$(&H3044) & ChrW$(&H3067) & ChrW$(&H3059) & ChrW$(&H304B) & ChrW$(&HFF1F) & _
+                     vbCrLf & vbCrLf & nameList, _
+                     vbYesNo + vbQuestion + vbDefaultButton2, _
+                     ChrW$(&H30B7) & ChrW$(&H30FC) & ChrW$(&H30C8) & ChrW$(&H524A) & ChrW$(&H9664) & _
+                     ChrW$(&H306E) & ChrW$(&H78BA) & ChrW$(&H8A8D))
+        If ans <> vbYes Then Exit Sub
+    End If
 
     If Not wsInfo Is Nothing Then wsInfo.Activate
 
-    Dim prevAlerts As Boolean
-    Dim prevScreenUpdating As Boolean
     prevAlerts = Application.DisplayAlerts
     prevScreenUpdating = Application.ScreenUpdating
     Application.DisplayAlerts = False
@@ -260,6 +266,51 @@ NextSheet:
     On Error GoTo 0
     Application.ScreenUpdating = prevScreenUpdating
     Application.DisplayAlerts = prevAlerts
+End Sub
+
+Private Function IsConstructionImportSheetForClear(ByVal ws As Worksheet) As Boolean
+    If ws Is Nothing Then Exit Function
+
+    If mod_Construction_Order_Import.IsManagedConstructionImportOutputSheet(ws) Then
+        IsConstructionImportSheetForClear = True
+        Exit Function
+    End If
+
+    If StrComp(ws.Name, mod_Construction_Order_Import.PurchaseOrderOutputSheetName(), vbTextCompare) = 0 Then
+        IsConstructionImportSheetForClear = True
+        Exit Function
+    End If
+
+    If StrComp(ws.Name, mod_Construction_Order_Import.PurchaseNoticeOutputSheetName(), vbTextCompare) = 0 Then
+        IsConstructionImportSheetForClear = True
+        Exit Function
+    End If
+
+    On Error Resume Next
+    If ws.Tab.ColorIndex = xlColorIndexNone Then Exit Function
+    Dim tabColor As Long
+    tabColor = ws.Tab.Color
+    IsConstructionImportSheetForClear = _
+        (tabColor = RGB(255, 255, 0)) Or _
+        (tabColor = RGB(233, 241, 123))
+    On Error GoTo 0
+End Function
+
+Private Sub AppendUniqueSheetName(ByVal targetNames As Collection, ByVal sheetName As String)
+    Dim i As Long
+    For i = 1 To targetNames.Count
+        If StrComp(CStr(targetNames(i)), sheetName, vbTextCompare) = 0 Then Exit Sub
+    Next i
+    targetNames.Add sheetName
+End Sub
+
+Private Sub AppendUniqueSheetNameIfExists(ByVal targetNames As Collection, ByVal sheetName As String)
+    On Error Resume Next
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets(sheetName)
+    On Error GoTo 0
+    If ws Is Nothing Then Exit Sub
+    AppendUniqueSheetName targetNames, sheetName
 End Sub
 
 Private Sub HideOfficeComboBoxForUpdate(ByVal wsInfo As Worksheet)
