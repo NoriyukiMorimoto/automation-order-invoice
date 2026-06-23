@@ -11,8 +11,8 @@ Private Const BASIC_INFO_CLEAR_RANGES As String = "C2,C9:C12,C15:C17,C20:C23,C24
 Private Const BASIC_INFO_BILLING_SEQUENCE_CELL As String = "F9"
 
 Private Const CONSTRUCTION_TAB_COLOR As Long = 65535
-Private Const PURCHASE_ORDER_SHEET_NAME As String = "購入充当指示"
-Private Const PURCHASE_NOTICE_SHEET_NAME As String = "購入充当通知"
+Private Const PURCHASE_ORDER_SHEET_NAME As String = "?w???[???w??"
+Private Const PURCHASE_NOTICE_SHEET_NAME As String = "?w???[?????m"
 
 Public Sub UpdateBasicInfoPeriod()
     Dim wsInfo As Worksheet
@@ -25,10 +25,10 @@ Public Sub UpdateBasicInfoPeriod()
     Dim savedErrNum As Long
     Dim savedErrDesc As String
     Dim previousScreenUpdating As Boolean
-    previousScreenUpdating = Application.screenUpdating
+    previousScreenUpdating = Application.ScreenUpdating
 
     On Error GoTo ErrorHandler
-    Application.screenUpdating = False
+    Application.ScreenUpdating = False
 
     If Not IsDate(wsInfo.Range(BASIC_INFO_START_DATE_CELL).value) Then
         Err.Raise vbObjectError + 515, , "Start date is not a valid date."
@@ -61,7 +61,7 @@ ErrorHandler:
 
 FinallyExit:
     If Not wsInfo Is Nothing Then HideOfficeComboBoxForUpdate wsInfo
-    Application.screenUpdating = previousScreenUpdating
+    Application.ScreenUpdating = previousScreenUpdating
     If savedErrNum <> 0 Then
         MsgBox "Basic information update failed." & vbCrLf & savedErrDesc, vbExclamation
     End If
@@ -128,13 +128,14 @@ Public Sub ClearBasicInfo()
     Dim prevEnableEvents As Boolean
     Dim previousScreenUpdating As Boolean
     prevEnableEvents = Application.EnableEvents
-    previousScreenUpdating = Application.screenUpdating
+    previousScreenUpdating = Application.ScreenUpdating
 
     On Error GoTo ErrorHandler
-    Application.screenUpdating = False
+    Application.ScreenUpdating = False
     Application.EnableEvents = False
 
     HideOfficeComboBoxForUpdate wsInfo
+    mod_BasicInfoGuide.ClearAllGuides wsInfo
     mod_MaterialPriceImport.ConfirmAndClearUnitPriceForBasicInfo wsInfo
     wsInfo.Range(BASIC_INFO_CLEAR_RANGES).ClearContents
     ClearVendorTotalCells wsInfo
@@ -153,7 +154,7 @@ ErrorHandler:
 
 FinallyExit:
     Application.EnableEvents = prevEnableEvents
-    Application.screenUpdating = previousScreenUpdating
+    Application.ScreenUpdating = previousScreenUpdating
     If savedErrNum <> 0 Then
         MsgBox "Basic information clear failed." & vbCrLf & savedErrDesc, vbExclamation
     End If
@@ -168,13 +169,14 @@ Public Sub SilentClearBasicInfo(ByVal wsInfo As Worksheet)
     Dim prevEnableEvents As Boolean
     Dim previousScreenUpdating As Boolean
     prevEnableEvents = Application.EnableEvents
-    previousScreenUpdating = Application.screenUpdating
+    previousScreenUpdating = Application.ScreenUpdating
 
     On Error GoTo ErrorHandler
-    Application.screenUpdating = False
+    Application.ScreenUpdating = False
     Application.EnableEvents = False
 
     HideOfficeComboBoxForUpdate wsInfo
+    mod_BasicInfoGuide.ClearAllGuides wsInfo
     mod_MaterialPriceImport.SilentClearUnitPriceForBasicInfo wsInfo
     wsInfo.Range(BASIC_INFO_CLEAR_RANGES).ClearContents
     ClearVendorTotalCells wsInfo
@@ -189,7 +191,7 @@ ErrorHandler:
 
 FinallyExit:
     Application.EnableEvents = prevEnableEvents
-    Application.screenUpdating = previousScreenUpdating
+    Application.ScreenUpdating = previousScreenUpdating
     If savedErrNum <> 0 Then
         MsgBox "Basic information silent clear failed." & vbCrLf & savedErrDesc, vbExclamation
     End If
@@ -231,12 +233,20 @@ NextSheet:
     Dim nameList As String
     Dim i As Long
     For i = 1 To targets.Count
-        nameList = nameList & "  ・" & targets(i).Name & vbCrLf
+        nameList = nameList & "  " & ChrW$(&H30FB) & targets(i).Name & vbCrLf
     Next i
 
     Dim ans As VbMsgBoxResult
-    ans = MsgBox("以下の施工指示書・通知書シートを削除します。よろしいですか？" & vbCrLf & vbCrLf & nameList, _
-                 vbYesNo + vbQuestion + vbDefaultButton2, "シート削除の確認")
+    ans = MsgBox(ChrW$(&H4EE5) & ChrW$(&H4E0B) & ChrW$(&H306E) & ChrW$(&H65BD) & ChrW$(&H5DE5) & _
+                 ChrW$(&H6307) & ChrW$(&H793A) & ChrW$(&H66F8) & ChrW$(&H30FB) & ChrW$(&H901A) & _
+                 ChrW$(&H77E5) & ChrW$(&H66F8) & ChrW$(&H30B7) & ChrW$(&H30FC) & ChrW$(&H30C8) & _
+                 ChrW$(&H3092) & ChrW$(&H524A) & ChrW$(&H9664) & ChrW$(&H3057) & ChrW$(&H307E) & _
+                 ChrW$(&H3059) & ChrW$(&H3002) & ChrW$(&H3088) & ChrW$(&H308D) & ChrW$(&H3057) & _
+                 ChrW$(&H3044) & ChrW$(&H3067) & ChrW$(&H3059) & ChrW$(&H304B) & ChrW$(&HFF1F) & _
+                 vbCrLf & vbCrLf & nameList, _
+                 vbYesNo + vbQuestion + vbDefaultButton2, _
+                 ChrW$(&H30B7) & ChrW$(&H30FC) & ChrW$(&H30C8) & ChrW$(&H524A) & ChrW$(&H9664) & _
+                 ChrW$(&H306E) & ChrW$(&H78BA) & ChrW$(&H8A8D))
     If ans <> vbYes Then Exit Sub
 
     Dim prevAlerts As Boolean

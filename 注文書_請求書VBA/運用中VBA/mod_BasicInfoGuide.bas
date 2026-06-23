@@ -8,6 +8,11 @@ Option Explicit
 '   未入力 -> #FFFF00 塗色 + 赤字12pt BizUDゴシックのコメント
 '   入力済 -> #06111D 塗色 + コメント削除
 '
+' F10（工事種別）による F29/F31 の動的切り替え:
+'   軌道工事 -> F29: 軌道工事会社の外注比率コメント / F31: 現状のまま
+'   溶接工事 -> F29: 入力不可（斜線×） / F31: 溶接会社の外注比率コメント
+'   その他   -> F29: 施工会社の外注比率コメント / F31: 現状のまま
+'
 ' 会社数セル(F9)の値に応じてF/I/L/O/R/U/X/AA/AD/AG列のベンダー行を動的管理
 ' 最大10社対応（3列おき、F=6列目始まり）
 ' ========================================================
@@ -24,6 +29,9 @@ Private Const COMMENT_FONT_SIZE As Long = 12
 Private Const VENDOR_COL_START  As Long = 6
 Private Const VENDOR_COL_STEP   As Long = 3
 Private Const VENDOR_MAX_COUNT  As Long = 10
+
+' --- 工事種別行 ---
+Private Const ROW_CONSTRUCTION_TYPE As Long = 10   ' F10/I10/L10...
 
 ' ----------------------------------------------------------------
 ' 公開API: シート全体のガイド状態を初期化（Activate時などに呼ぶ）
@@ -42,7 +50,7 @@ Public Sub InitBasicInfoGuide(ByVal ws As Worksheet)
     ' F9（会社数）
     ApplyGuideCell ws, "F9", GetF9CommentText(), IsEmpty_Cell(ws.Range("F9"))
 
-    ' ベンダー行（会社数に応じて列数を決定）
+    ' ベンダー行（会社数・工事種別に応じて列数を決定）
     RefreshVendorRowGuides ws
 
     Application.ScreenUpdating = True
@@ -67,7 +75,7 @@ Public Sub OnCellChanged(ByVal ws As Worksheet, ByVal target As Range)
         RefreshVendorRowGuides ws
     End If
 
-    ' ベンダー行セル（全10社分の列×4行を監視）
+    ' ベンダー行セル（全10社分の列×4行 + F10等の工事種別行を監視）
     Dim vendorMonitorRange As Range
     Set vendorMonitorRange = GetVendorGuideMonitorRange(ws)
     If Not vendorMonitorRange Is Nothing Then
@@ -81,42 +89,116 @@ Public Sub OnCellChanged(ByVal ws As Worksheet, ByVal target As Range)
 End Sub
 
 ' ----------------------------------------------------------------
-' ベンダー行ガイドを会社数に応じてリフレッシュ（最大10社）
+' 公開API: ClearBasicInfo時に全斜線・ガイドをリセット
+' ----------------------------------------------------------------
+Public Sub ClearAllGuides(ByVal ws As Worksheet)
+    If ws Is Nothing Then Exit Sub
+
+    On Error Resume Next
+    Application.ScreenUpdating = False
+
+    Dim companyIdx As Long
+    For companyIdx = 1 To VENDOR_MAX_COUNT
+        Dim colNum As Long
+        colNum = VENDOR_COL_START + (companyIdx - 1) * VENDOR_COL_STEP
+        RemoveDiagonalBorders ws.Cells(29, colNum)
+        RemoveDiagonalBorders ws.Cells(31, colNum)
+    Next companyIdx
+
+    Application.ScreenUpdating = True
+    On Error GoTo 0
+End Sub
+
+' ----------------------------------------------------------------
+' ベンダー行ガイドを会社数・工事種別に応じてリフレッシュ（最大10社）
 ' ----------------------------------------------------------------
 Private Sub RefreshVendorRowGuides(ByVal ws As Worksheet)
     Dim vendorCount As Long
     vendorCount = GetVendorCount(ws)
-    ' 上限を10社にクランプ
     If vendorCount > VENDOR_MAX_COUNT Then vendorCount = VENDOR_MAX_COUNT
 
-    ' ベンダー行番号（F11/F27/F29/F31 対応行）
-    Dim vendorRows As Variant
-    vendorRows = Array(11, 27, 29, 31)
+    Dim companyIdx As Long
+    For companyIdx = 1 To VENDOR_MAX_COUNT
+        Dim colNum As Long
+        colNum = VENDOR_COL_START + (companyIdx - 1) * VENDOR_COL_STEP
 
-    Dim vendorComments As Variant
-    vendorComments = Array(GetF11CommentText(), GetF27CommentText(), GetF29CommentText(), GetF31CommentText())
+        If companyIdx <= vendorCount Then
+            ' 工事種別を取得（各会社の10行目）
+            Dim constructionType As String
+            constructionType = Trim$(CStr(ws.Cells(ROW_CONSTRUCTION_TYPE, colNum).value))
 
-    Dim i As Long
-    For i = 0 To UBound(vendorRows)
-        Dim rowNum As Long
-        rowNum = vendorRows(i)
-        Dim commentText As String
-        commentText = vendorComments(i)
+            ' 行11・27 は工事種別に関係なく共通処理
+            ApplyGuideCellByRowCol ws, 11, colNum, GetF11CommentText(), IsEmpty_Cell(ws.Cells(11, colNum))
+            ApplyGuideCellByRowCol ws, 27, colNum, GetF27CommentText(), IsEmpty_Cell(ws.Cells(27, colNum))
 
-        Dim companyIdx As Long
-        For companyIdx = 1 To VENDOR_MAX_COUNT
-            Dim colNum As Long
-            colNum = VENDOR_COL_START + (companyIdx - 1) * VENDOR_COL_STEP
+            ' 行29・31 は工事種別で切り替え
+            ApplyRow29And31 ws, colNum, constructionType
+        Else
+            ' 会社数外 → 全行を元の色に戻す（斜線も解除）
+            ClearGuideByRowCol ws, 11, colNum
+            ClearGuideByRowCol ws, 27, colNum
+            ClearRow29And31 ws, colNum
+        End If
+    Next companyIdx
+End Sub
 
-            If companyIdx <= vendorCount Then
-                ' 対象会社数以内 → 塗色+コメント
-                ApplyGuideCellByRowCol ws, rowNum, colNum, commentText, IsEmpty_Cell(ws.Cells(rowNum, colNum))
-            Else
-                ' 対象会社数外 → 元の色に戻す
-                ClearGuideByRowCol ws, rowNum, colNum
-            End If
-        Next companyIdx
-    Next i
+' ----------------------------------------------------------------
+' 行29・31 の工事種別別処理
+' ----------------------------------------------------------------
+Private Sub ApplyRow29And31(ByVal ws As Worksheet, ByVal colNum As Long, ByVal constructionType As String)
+    If constructionType = GetKidoKojiText() Then
+        ' 軌道工事: 29=軌道工事会社外注比率コメント / 31=現状のまま
+        ApplyGuideCellByRowCol ws, 29, colNum, GetF29KidoCommentText(), IsEmpty_Cell(ws.Cells(29, colNum))
+        ApplyGuideCellByRowCol ws, 31, colNum, GetF31CommentText(), IsEmpty_Cell(ws.Cells(31, colNum))
+
+    ElseIf constructionType = GetYosetsuKojiText() Then
+        ' 溶接工事: 29=入力不可（斜線×） / 31=溶接会社外注比率コメント
+        ApplyDisabledCell ws.Cells(29, colNum)
+        ApplyGuideCellByRowCol ws, 31, colNum, GetF31YosetsuCommentText(), IsEmpty_Cell(ws.Cells(31, colNum))
+
+    Else
+        ' その他: 29=施工会社外注比率コメント / 31=現状のまま
+        ApplyGuideCellByRowCol ws, 29, colNum, GetF29CommentText(), IsEmpty_Cell(ws.Cells(29, colNum))
+        ApplyGuideCellByRowCol ws, 31, colNum, GetF31CommentText(), IsEmpty_Cell(ws.Cells(31, colNum))
+    End If
+End Sub
+
+' ----------------------------------------------------------------
+' 行29・31 を元の色に戻す（会社数外・クリア時）
+' ----------------------------------------------------------------
+Private Sub ClearRow29And31(ByVal ws As Worksheet, ByVal colNum As Long)
+    ClearGuideByRowCol ws, 29, colNum
+    ClearGuideByRowCol ws, 31, colNum
+End Sub
+
+' ----------------------------------------------------------------
+' 入力不可セル: 斜線×（右下がり＋左下がり）+ #06111D
+' ----------------------------------------------------------------
+Private Sub ApplyDisabledCell(ByVal cell As Range)
+    On Error Resume Next
+    cell.Comment.Delete
+    cell.Interior.Color = COLOR_FILLED
+    With cell.Borders(xlDiagonalDown)
+        .LineStyle = xlContinuous
+        .Weight = xlMedium
+        .Color = RGB(255, 0, 0)
+    End With
+    With cell.Borders(xlDiagonalUp)
+        .LineStyle = xlContinuous
+        .Weight = xlMedium
+        .Color = RGB(255, 0, 0)
+    End With
+    On Error GoTo 0
+End Sub
+
+' ----------------------------------------------------------------
+' 斜線を解除する
+' ----------------------------------------------------------------
+Private Sub RemoveDiagonalBorders(ByVal cell As Range)
+    On Error Resume Next
+    cell.Borders(xlDiagonalDown).LineStyle = xlNone
+    cell.Borders(xlDiagonalUp).LineStyle = xlNone
+    On Error GoTo 0
 End Sub
 
 ' ----------------------------------------------------------------
@@ -130,14 +212,17 @@ End Sub
 ' 単一セルにガイドを適用（行列番号指定）
 ' ----------------------------------------------------------------
 Private Sub ApplyGuideCellByRowCol(ByVal ws As Worksheet, ByVal rowNum As Long, ByVal colNum As Long, ByVal commentText As String, ByVal isEmpty As Boolean)
+    ' 斜線が残っていれば先に解除してからガイドを適用
+    RemoveDiagonalBorders ws.Cells(rowNum, colNum)
     ApplyGuideCellToRange ws.Cells(rowNum, colNum), commentText, isEmpty
 End Sub
 
 ' ----------------------------------------------------------------
-' ガイドを解除して元の色に戻す
+' ガイドを解除して元の色に戻す（斜線も解除）
 ' ----------------------------------------------------------------
 Private Sub ClearGuideByRowCol(ByVal ws As Worksheet, ByVal rowNum As Long, ByVal colNum As Long)
     On Error Resume Next
+    RemoveDiagonalBorders ws.Cells(rowNum, colNum)
     With ws.Cells(rowNum, colNum)
         .Interior.Color = COLOR_FILLED
         .Comment.Delete
@@ -209,21 +294,21 @@ End Function
 
 ' ----------------------------------------------------------------
 ' ベンダー行の監視レンジ（全10社分、変更検知用）
+' F10行も含めて工事種別変更を検知する
 ' ----------------------------------------------------------------
 Private Function GetVendorGuideMonitorRange(ByVal ws As Worksheet) As Range
-    ' F/I/L/O/R/U/X/AA/AD/AG 列の 11,27,29,31行
     Dim addrList As String
     addrList = ""
     Dim colNames As Variant
     colNames = Array("F", "I", "L", "O", "R", "U", "X", "AA", "AD", "AG")
-    Dim rows As Variant
-    rows = Array(11, 27, 29, 31)
+    Dim monitorRows As Variant
+    monitorRows = Array(10, 11, 27, 29, 31)   ' 10行目=工事種別も監視
 
     Dim c As Long, r As Long
     For c = 0 To UBound(colNames)
-        For r = 0 To UBound(rows)
+        For r = 0 To UBound(monitorRows)
             If addrList <> "" Then addrList = addrList & ","
-            addrList = addrList & colNames(c) & CStr(rows(r))
+            addrList = addrList & colNames(c) & CStr(monitorRows(r))
         Next r
     Next c
 
@@ -305,6 +390,15 @@ Private Function GetF29CommentText() As String
         ChrW$(&H3055) & ChrW$(&H3044) & ChrW$(&H3002)
 End Function
 
+Private Function GetF29KidoCommentText() As String
+    ' 軌道工事会社の外注比率を入力して下さい。
+    GetF29KidoCommentText = _
+        ChrW$(&H8ECC) & ChrW$(&H9053) & ChrW$(&H5DE5) & ChrW$(&H4E8B) & ChrW$(&H4F1A) & _
+        ChrW$(&H793E) & ChrW$(&H306E) & ChrW$(&H5916) & ChrW$(&H6CE8) & ChrW$(&H6BD4) & _
+        ChrW$(&H7387) & ChrW$(&H3092) & ChrW$(&H5165) & ChrW$(&H529B) & ChrW$(&H3057) & _
+        ChrW$(&H3066) & ChrW$(&H4E0B) & ChrW$(&H3055) & ChrW$(&H3044) & ChrW$(&H3002)
+End Function
+
 Private Function GetF31CommentText() As String
     ' 軌道会社の溶接手元を外注比率で支払う場合は外注比率を入力して下さい。
     GetF31CommentText = _
@@ -315,4 +409,27 @@ Private Function GetF31CommentText() As String
         ChrW$(&H306F) & ChrW$(&H5916) & ChrW$(&H6CE8) & ChrW$(&H6BD4) & ChrW$(&H7387) & _
         ChrW$(&H3092) & ChrW$(&H5165) & ChrW$(&H529B) & ChrW$(&H3057) & ChrW$(&H3066) & _
         ChrW$(&H4E0B) & ChrW$(&H3055) & ChrW$(&H3044) & ChrW$(&H3002)
+End Function
+
+Private Function GetF31YosetsuCommentText() As String
+    ' 溶接会社の外注比率を入力して下さい。
+    GetF31YosetsuCommentText = _
+        ChrW$(&H6EF6) & ChrW$(&H63A5) & ChrW$(&H4F1A) & ChrW$(&H793E) & ChrW$(&H306E) & _
+        ChrW$(&H5916) & ChrW$(&H6CE8) & ChrW$(&H6BD4) & ChrW$(&H7387) & ChrW$(&H3092) & _
+        ChrW$(&H5165) & ChrW$(&H529B) & ChrW$(&H3057) & ChrW$(&H3066) & ChrW$(&H4E0B) & _
+        ChrW$(&H3055) & ChrW$(&H3044) & ChrW$(&H3002)
+End Function
+
+' ================================================================
+' 工事種別定数文字列（ChrW$ で構築）
+' ================================================================
+
+Private Function GetKidoKojiText() As String
+    ' 軌道工事
+    GetKidoKojiText = ChrW$(&H8ECC) & ChrW$(&H9053) & ChrW$(&H5DE5) & ChrW$(&H4E8B)
+End Function
+
+Private Function GetYosetsuKojiText() As String
+    ' 溶接工事
+    GetYosetsuKojiText = ChrW$(&H6EF6) & ChrW$(&H63A5) & ChrW$(&H5DE5) & ChrW$(&H4E8B)
 End Function
