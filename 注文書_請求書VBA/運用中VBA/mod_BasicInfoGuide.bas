@@ -9,7 +9,7 @@ Option Explicit
 '   入力済 -> #06111D 塗色 + 白文字 + コメント削除
 '
 ' F10（工事種別）による F29/F30/F31 の動的切り替え:
-'   未確定   -> F30左列・値列とも文字なし #F1A983 塗りのみ
+'   未確定   -> F30左列・値列とも文字なし #F1A983 / F31左列=空白・値列=元色(黄色ガイドなし)
 '   軌道工事 -> F29: 軌道工事会社の外注比率コメント / F30: 溶接手元単価ﾊﾟﾀｰﾝ / F31: 現状のまま
 '   溶接工事 -> F29: 入力不可（斜線×） / F30左列: 溶接工事外注比率 / F31: 溶接会社の外注比率コメント
 '   その他   -> F29: 施工会社の外注比率コメント / F31: 現状のまま
@@ -195,7 +195,10 @@ Private Function GuideWritableCell(ByVal ws As Worksheet, ByVal rowNum As Long, 
 End Function
 
 Private Sub ApplyRow29And31(ByVal ws As Worksheet, ByVal colNum As Long, ByVal constructionType As String)
-    If IsRailConstructionType(constructionType) Then
+    If IsConstructionTypeUndetermined(constructionType) Then
+        ApplyGuideCellByRowCol ws, 29, colNum, GetF29CommentText(), IsEmpty_Cell(ws.Cells(29, colNum))
+        ApplyRow31UndeterminedState ws, colNum
+    ElseIf IsRailConstructionType(constructionType) Then
         ' 軌道工事: 29=軌道工事会社外注比率コメント / 31=現状のまま
         ApplyGuideCellByRowCol ws, 29, colNum, GetF29KidoCommentText(), IsEmpty_Cell(ws.Cells(29, colNum))
         ApplyGuideCellByRowCol ws, 31, colNum, GetF31CommentText(), IsEmpty_Cell(ws.Cells(31, colNum))
@@ -212,12 +215,22 @@ Private Sub ApplyRow29And31(ByVal ws As Worksheet, ByVal colNum As Long, ByVal c
     End If
 End Sub
 
+Private Sub ApplyRow31UndeterminedState(ByVal ws As Worksheet, ByVal colNum As Long)
+    Dim labelCol As Long
+    labelCol = colNum - 1
+    ClearInactiveVendorCell ws, 31, labelCol
+    ClearInactiveVendorCell ws, 31, colNum
+End Sub
+
 ' ----------------------------------------------------------------
 ' 行29・31 を元の色に戻す（会社数外・クリア時）
 ' ----------------------------------------------------------------
 Private Sub ClearRow29And31(ByVal ws As Worksheet, ByVal colNum As Long)
+    Dim labelCol As Long
+    labelCol = colNum - 1
     ClearGuideByRowCol ws, 29, colNum
-    ClearGuideByRowCol ws, 31, colNum
+    ClearInactiveVendorCell ws, 31, labelCol
+    ClearInactiveVendorCell ws, 31, colNum
 End Sub
 
 ' ----------------------------------------------------------------
