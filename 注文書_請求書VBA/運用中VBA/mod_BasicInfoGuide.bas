@@ -133,17 +133,7 @@ Private Sub RefreshVendorRowGuides(ByVal ws As Worksheet)
         colNum = VENDOR_COL_START + (companyIdx - 1) * VENDOR_COL_STEP
 
         If companyIdx <= vendorCount Then
-            ' 工事種別を取得（各会社の10行目）
-            Dim constructionType As String
-            constructionType = Trim$(CStr(ws.Cells(ROW_CONSTRUCTION_TYPE, colNum).value))
-
-            ' 行11・27 は工事種別に関係なく共通処理
-            ApplyGuideCellByRowCol ws, 11, colNum, GetF11CommentText(), IsEmpty_Cell(ws.Cells(11, colNum))
-            ApplyGuideCellByRowCol ws, 27, colNum, GetF27CommentText(), IsEmpty_Cell(ws.Cells(27, colNum))
-
-            ' 行29・30・31 は工事種別で切り替え
-            ApplyRow29And31 ws, colNum, constructionType
-            ApplyRow30 ws, colNum, constructionType
+            RefreshSingleVendorRowGuide ws, companyIdx
         Else
             ' 会社数外 → 全行を元の色に戻す（斜線も解除）
             ClearGuideByRowCol ws, 11, colNum
@@ -152,6 +142,28 @@ Private Sub RefreshVendorRowGuides(ByVal ws As Worksheet)
             ClearRow30 ws, colNum
         End If
     Next companyIdx
+End Sub
+
+Private Sub RefreshSingleVendorRowGuide(ByVal ws As Worksheet, ByVal companyIdx As Long)
+    Dim colNum As Long
+    colNum = VENDOR_COL_START + (companyIdx - 1) * VENDOR_COL_STEP
+
+    Dim constructionType As String
+    constructionType = Trim$(CStr(ws.Cells(ROW_CONSTRUCTION_TYPE, colNum).value))
+
+    ApplyGuideCellByRowCol ws, 11, colNum, GetF11CommentText(), IsEmpty_Cell(ws.Cells(11, colNum))
+    ApplyGuideCellByRowCol ws, 27, colNum, GetF27CommentText(), IsEmpty_Cell(ws.Cells(27, colNum))
+    ApplyRow29And31 ws, colNum, constructionType
+    ApplyRow30 ws, colNum, constructionType
+End Sub
+
+' 指定した1社分だけガイドを更新（F9増加後の枠線復元後など）
+Public Sub RefreshSingleVendorRowGuidePublic(ByVal ws As Worksheet, ByVal companyIdx As Long)
+    If ws Is Nothing Then Exit Sub
+    If companyIdx < 1 Or companyIdx > VENDOR_MAX_COUNT Then Exit Sub
+    On Error Resume Next
+    RefreshSingleVendorRowGuide ws, companyIdx
+    On Error GoTo 0
 End Sub
 
 ' ----------------------------------------------------------------
@@ -259,7 +271,7 @@ Private Sub ClearRailPatternValidation(ByVal targetCell As Range)
 End Sub
 
 Private Function VendorRowLabelPrefixText() As String
-    VendorRowLabelPrefixText = "  " & ChrW$(&H25B8) & "  "
+    VendorRowLabelPrefixText = " " & ChrW$(&H25B8) & " "
 End Function
 
 Private Function GetDefaultRow30LabelText() As String
