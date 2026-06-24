@@ -157,13 +157,32 @@ End Sub
 ' ----------------------------------------------------------------
 ' 行29・31 の工事種別別処理
 ' ----------------------------------------------------------------
+Private Function NormalizeConstructionTypeText(ByVal value As Variant) As String
+    NormalizeConstructionTypeText = Trim$(CStr(value))
+End Function
+
+Private Function IsRailConstructionType(ByVal constructionType As String) As Boolean
+    IsRailConstructionType = (StrComp(NormalizeConstructionTypeText(constructionType), GetKidoKojiText(), vbTextCompare) = 0)
+End Function
+
+Private Function IsWeldingConstructionType(ByVal constructionType As String) As Boolean
+    IsWeldingConstructionType = (StrComp(NormalizeConstructionTypeText(constructionType), GetYosetsuKojiText(), vbTextCompare) = 0)
+End Function
+
+Private Function GuideWritableCell(ByVal ws As Worksheet, ByVal rowNum As Long, ByVal colNum As Long) As Range
+    Dim targetCell As Range
+    Set targetCell = ws.Cells(rowNum, colNum)
+    If targetCell.MergeCells Then Set targetCell = targetCell.MergeArea.Cells(1, 1)
+    Set GuideWritableCell = targetCell
+End Function
+
 Private Sub ApplyRow29And31(ByVal ws As Worksheet, ByVal colNum As Long, ByVal constructionType As String)
-    If constructionType = GetKidoKojiText() Then
+    If IsRailConstructionType(constructionType) Then
         ' 軌道工事: 29=軌道工事会社外注比率コメント / 31=現状のまま
         ApplyGuideCellByRowCol ws, 29, colNum, GetF29KidoCommentText(), IsEmpty_Cell(ws.Cells(29, colNum))
         ApplyGuideCellByRowCol ws, 31, colNum, GetF31CommentText(), IsEmpty_Cell(ws.Cells(31, colNum))
 
-    ElseIf constructionType = GetYosetsuKojiText() Then
+    ElseIf IsWeldingConstructionType(constructionType) Then
         ' 溶接工事: 29=入力不可（斜線×） / 31=溶接会社外注比率コメント
         ApplyDisabledCell ws.Cells(29, colNum)
         ApplyGuideCellByRowCol ws, 31, colNum, GetF31YosetsuCommentText(), IsEmpty_Cell(ws.Cells(31, colNum))
@@ -190,27 +209,35 @@ Private Sub ApplyRow30(ByVal ws As Worksheet, ByVal colNum As Long, ByVal constr
     Dim labelCol As Long
     labelCol = colNum - 1
 
-    If constructionType = GetKidoKojiText() Then
-        ws.Cells(ROW_RAIL_PATTERN, labelCol).Value = GetRailPatternRow30LabelText()
-        ApplyRailPatternValidation ws.Cells(ROW_RAIL_PATTERN, colNum)
+    If IsRailConstructionType(constructionType) Then
+        On Error Resume Next
+        GuideWritableCell(ws, ROW_RAIL_PATTERN, labelCol).Value = GetRailPatternRow30LabelText()
+        On Error GoTo 0
+        ApplyRailPatternValidation GuideWritableCell(ws, ROW_RAIL_PATTERN, colNum)
         ApplyGuideCellByRowCol ws, ROW_RAIL_PATTERN, colNum, GetF30RailPatternCommentText(), _
-                               IsEmpty_Cell(ws.Cells(ROW_RAIL_PATTERN, colNum))
+                               IsEmpty_Cell(GuideWritableCell(ws, ROW_RAIL_PATTERN, colNum))
     Else
-        ws.Cells(ROW_RAIL_PATTERN, labelCol).Value = GetDefaultRow30LabelText()
-        ws.Cells(ROW_RAIL_PATTERN, colNum).ClearContents
-        ClearRailPatternValidation ws.Cells(ROW_RAIL_PATTERN, colNum)
+        On Error Resume Next
+        GuideWritableCell(ws, ROW_RAIL_PATTERN, labelCol).Value = GetDefaultRow30LabelText()
+        GuideWritableCell(ws, ROW_RAIL_PATTERN, colNum).ClearContents
+        On Error GoTo 0
+        ClearRailPatternValidation GuideWritableCell(ws, ROW_RAIL_PATTERN, colNum)
         ClearGuideByRowCol ws, ROW_RAIL_PATTERN, colNum
     End If
 End Sub
 
 Private Sub ClearRow30(ByVal ws As Worksheet, ByVal colNum As Long)
-    ClearRailPatternValidation ws.Cells(ROW_RAIL_PATTERN, colNum)
+    ClearRailPatternValidation GuideWritableCell(ws, ROW_RAIL_PATTERN, colNum)
     ClearGuideByRowCol ws, ROW_RAIL_PATTERN, colNum
 End Sub
 
 Private Sub ApplyRailPatternValidation(ByVal targetCell As Range)
+    Dim validationCell As Range
+    Set validationCell = targetCell
+    If validationCell.MergeCells Then Set validationCell = validationCell.MergeArea.Cells(1, 1)
+
     On Error Resume Next
-    With targetCell.Validation
+    With validationCell.Validation
         .Delete
         .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Operator:=xlBetween, _
              Formula1:=mod_WeldingUnitPrice.BasicInfoRailPatternValidationListText()
@@ -222,8 +249,12 @@ Private Sub ApplyRailPatternValidation(ByVal targetCell As Range)
 End Sub
 
 Private Sub ClearRailPatternValidation(ByVal targetCell As Range)
+    Dim validationCell As Range
+    Set validationCell = targetCell
+    If validationCell.MergeCells Then Set validationCell = validationCell.MergeArea.Cells(1, 1)
+
     On Error Resume Next
-    targetCell.Validation.Delete
+    validationCell.Validation.Delete
     On Error GoTo 0
 End Sub
 
@@ -253,6 +284,13 @@ Public Sub RefreshVendorGuidesForBasicInfo(ByVal ws As Worksheet)
     Application.ScreenUpdating = True
     On Error GoTo 0
 End Sub
+
+' ----------------------------------------------------------------
+' 公開API: ベンダー行の監視レンジ（Sheet1 Worksheet_Change 用）
+' ----------------------------------------------------------------
+Public Function GetVendorGuideMonitorRangePublic(ByVal ws As Worksheet) As Range
+    Set GetVendorGuideMonitorRangePublic = GetVendorGuideMonitorRange(ws)
+End Function
 
 ' ----------------------------------------------------------------
 ' 入力不可セル: 斜線×（右下がり＋左下がり）+ #06111D
@@ -428,24 +466,32 @@ End Function
 ' F10行も含めて工事種別変更を検知する
 ' ----------------------------------------------------------------
 Private Function GetVendorGuideMonitorRange(ByVal ws As Worksheet) As Range
-    Dim addrList As String
-    addrList = ""
     Dim colNames As Variant
     colNames = Array("F", "I", "L", "O", "R", "U", "X", "AA", "AD", "AG")
     Dim monitorRows As Variant
     monitorRows = Array(10, 11, 27, 29, 30, 31)   ' 10行目=工事種別も監視
 
-    Dim c As Long, r As Long
-    For c = 0 To UBound(colNames)
-        For r = 0 To UBound(monitorRows)
-            If addrList <> "" Then addrList = addrList & ","
-            addrList = addrList & colNames(c) & CStr(monitorRows(r))
-        Next r
-    Next c
+    Dim result As Range
+    Dim cellAddr As Range
+    Dim c As Long
+    Dim r As Long
 
     On Error Resume Next
-    Set GetVendorGuideMonitorRange = ws.Range(addrList)
+    For c = 0 To UBound(colNames)
+        For r = 0 To UBound(monitorRows)
+            Set cellAddr = ws.Range(CStr(colNames(c)) & CStr(monitorRows(r)))
+            If Not cellAddr Is Nothing Then
+                If result Is Nothing Then
+                    Set result = cellAddr
+                Else
+                    Set result = Union(result, cellAddr)
+                End If
+            End If
+        Next r
+    Next c
     On Error GoTo 0
+
+    Set GetVendorGuideMonitorRange = result
 End Function
 
 ' ================================================================
