@@ -535,15 +535,13 @@ Public Sub SyncVendorBlocksFromCount(ByVal wsInfo As Worksheet)
     ApplyVendorBlockColumnWidths wsInfo, vendorCount
 
     Dim i As Long
-    Dim startIndex As Long
-    If vendorCount > previousCount Then
-        startIndex = Application.Max(2, previousCount + 1)
-    Else
-        startIndex = vendorCount + 1
-    End If
-
-    For i = startIndex To vendorCount
-        CopyVendorBlockFromTemplate wsInfo, i
+    Dim vendorBlocksEnsured As Boolean
+    vendorBlocksEnsured = False
+    For i = 2 To vendorCount
+        If i > previousCount Or VendorBlockNeedsPresentationRestore(wsInfo, i) Then
+            EnsureVendorBlockFromTemplate wsInfo, i
+            vendorBlocksEnsured = True
+        End If
     Next i
 
     For i = 2 To vendorCount
@@ -582,15 +580,11 @@ Public Sub SyncVendorBlocksFromCount(ByVal wsInfo As Worksheet)
     End If
     mLastVendorBlockCount = vendorCount
 
-    If vendorCount > previousCount Then
+    If vendorBlocksEnsured Or vendorCount > previousCount Then
         Dim restoreIndex As Long
-        For restoreIndex = Application.Max(2, previousCount + 1) To vendorCount
-            RestoreVendorBlockPresentationFromTemplate wsInfo, restoreIndex
+        For restoreIndex = 1 To vendorCount
             mod_BasicInfoGuide.RefreshSingleVendorRowGuidePublic wsInfo, restoreIndex
         Next restoreIndex
-        If previousCount <= 0 Then
-            mod_BasicInfoGuide.RefreshSingleVendorRowGuidePublic wsInfo, 1
-        End If
     Else
         mod_BasicInfoGuide.RefreshVendorGuidesForBasicInfo wsInfo
     End If
@@ -1730,8 +1724,13 @@ Private Function HasVendorOutsourceRatio(ByVal wsInfo As Worksheet, ByVal valueC
 End Function
 
 Private Sub SafeUnmergeRange(ByVal targetRange As Range)
+    If targetRange Is Nothing Then Exit Sub
+
     On Error Resume Next
-    If targetRange.MergeCells Then targetRange.UnMerge
+    Dim cell As Range
+    For Each cell In targetRange.Cells
+        If cell.MergeCells Then cell.MergeArea.UnMerge
+    Next cell
     On Error GoTo 0
 End Sub
 
@@ -1866,6 +1865,34 @@ Private Sub ApplyVendorRow10ValueCellFormat(ByVal valueCell As Range)
     mod_VendorInfoColors.ApplyVendorInfoRow10Color valueCell.Worksheet, vendorIndex
 End Sub
 
+Private Function VendorBlockNeedsPresentationRestore(ByVal wsInfo As Worksheet, ByVal vendorIndex As Long) As Boolean
+    If wsInfo Is Nothing Then Exit Function
+    If vendorIndex < 2 Then Exit Function
+
+    Dim srcLabelCol As Long
+    Dim dstLabelCol As Long
+    Dim dstValueCol As Long
+    srcLabelCol = VendorLabelColumnByIndex(1)
+    dstLabelCol = VendorLabelColumnByIndex(vendorIndex)
+    dstValueCol = VendorValueColumnByIndex(vendorIndex)
+
+    If Len(Trim$(CStr(wsInfo.Cells(12, srcLabelCol).value))) > 0 Then
+        If Len(Trim$(CStr(wsInfo.Cells(12, dstLabelCol).value))) = 0 Then
+            VendorBlockNeedsPresentationRestore = True
+            Exit Function
+        End If
+    End If
+
+    If wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, dstValueCol).Borders(xlEdgeLeft).LineStyle = xlNone Then
+        VendorBlockNeedsPresentationRestore = True
+    End If
+End Function
+
+Private Sub EnsureVendorBlockFromTemplate(ByVal wsInfo As Worksheet, ByVal destVendorIndex As Long)
+    CopyVendorBlockFromTemplate wsInfo, destVendorIndex
+    RestoreVendorBlockPresentationFromTemplate wsInfo, destVendorIndex
+End Sub
+
 Private Sub CopyVendorBlockFromTemplate(ByVal wsInfo As Worksheet, ByVal destVendorIndex As Long)
     If wsInfo Is Nothing Then Exit Sub
     If destVendorIndex < 2 Then Exit Sub
@@ -1878,6 +1905,8 @@ Private Sub CopyVendorBlockFromTemplate(ByVal wsInfo As Worksheet, ByVal destVen
     SafeUnmergeRange destRange
     sourceRange.Copy Destination:=destRange
     Application.CutCopyMode = False
+    CopyVendorBlockMergeAreasFromTemplate wsInfo, destVendorIndex
+    CopyVendorBlockFormatsFromTemplate wsInfo, destVendorIndex
 
     wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, VendorLabelColumnByIndex(destVendorIndex)).value = VendorInfoHeaderText(destVendorIndex)
 
@@ -1886,6 +1915,34 @@ Private Sub CopyVendorBlockFromTemplate(ByVal wsInfo As Worksheet, ByVal destVen
 
     wsInfo.Cells(BASIC_INFO_VENDOR_PURCHASE_TOTAL_ROW, VendorValueColumnByIndex(destVendorIndex)).ClearContents
     wsInfo.Cells(BASIC_INFO_VENDOR_TOTAL_ROW, VendorValueColumnByIndex(destVendorIndex)).ClearContents
+End Sub
+
+Private Sub CopyVendorBlockMergeAreasFromTemplate(ByVal wsInfo As Worksheet, ByVal destVendorIndex As Long)
+    If wsInfo Is Nothing Then Exit Sub
+    If destVendorIndex < 2 Then Exit Sub
+
+    Dim srcRange As Range
+    Set srcRange = VendorBlockRangeByIndex(wsInfo, 1)
+    Dim colOffset As Long
+    colOffset = VendorLabelColumnByIndex(destVendorIndex) - VendorLabelColumnByIndex(1)
+
+    On Error Resume Next
+    Dim cell As Range
+    For Each cell In srcRange.Cells
+        If cell.MergeCells Then
+            Dim mergeArea As Range
+            Set mergeArea = cell.MergeArea
+            If cell.Row = mergeArea.Row And cell.Column = mergeArea.Column Then
+                Dim destMerge As Range
+                Set destMerge = wsInfo.Range(wsInfo.Cells(mergeArea.Row, mergeArea.Column + colOffset), _
+                                             wsInfo.Cells(mergeArea.Row + mergeArea.Rows.Count - 1, _
+                                                          mergeArea.Column + colOffset + mergeArea.Columns.Count - 1))
+                SafeUnmergeRange destMerge
+                destMerge.Merge
+            End If
+        End If
+    Next cell
+    On Error GoTo 0
 End Sub
 
 Private Function VendorBlockRangeByIndex(ByVal wsInfo As Worksheet, ByVal vendorIndex As Long) As Range
