@@ -560,6 +560,13 @@ Public Sub SyncVendorBlocksFromCount(ByVal wsInfo As Worksheet)
         wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, VendorLabelColumnByIndex(i)).value = VendorInfoHeaderText(i)
     Next i
 
+    Dim needWeldingRefresh As Boolean
+    needWeldingRefresh = False
+    If vendorCount < previousCount Then
+        needWeldingRefresh = mod_WeldingUnitPrice.RemovedVendorIndicesRequireWeldingRefresh( _
+            wsInfo, vendorCount + 1, previousCount)
+    End If
+
     ClearUnusedVendorBlocks wsInfo, vendorCount + 1
 
     Dim formatIndex As Long
@@ -569,8 +576,19 @@ Public Sub SyncVendorBlocksFromCount(ByVal wsInfo As Worksheet)
 
     Application.CutCopyMode = False
     RefreshVendorListForBasicInfo wsInfo
-    RefreshAllVendorUnitPricesForBasicInfo wsInfo, True
-    mod_WeldingUnitPrice.ApplyWeldingVendorUnitPricesForBasicInfo wsInfo, False, 0, True
+    SyncVendorUnitPriceBlocksAfterCountChange wsInfo, vendorCount, previousCount, True
+
+    If vendorCount > previousCount Then
+        ' 追加ブロックは空のため溶接単価の再展開は不要
+    ElseIf vendorCount < previousCount Then
+        If needWeldingRefresh Then
+            mod_WeldingUnitPrice.ApplyWeldingVendorUnitPricesForBasicInfo wsInfo, False, 0, True
+        Else
+            mod_WeldingUnitPrice.ClearSurplusWeldingVendorBlocksForBasicInfo wsInfo
+        End If
+    Else
+        mod_WeldingUnitPrice.ApplyWeldingVendorUnitPricesForBasicInfo wsInfo, False, 0, True
+    End If
     mLastVendorBlockCount = vendorCount
 
     ' 工事単価・溶接単価の再展開後、ブック全体の再計算は最後に1回だけ行う
@@ -834,27 +852,74 @@ Public Sub RefreshAllVendorUnitPricesForBasicInfo(Optional ByVal wsInfo As Works
 
     EnsureApplicationCalculationAutomatic
 
-    Dim targetBook As Workbook
-    Set targetBook = wsInfo.Parent
-
     Dim vendorCount As Long
     vendorCount = GetVendorBlockCount(wsInfo)
+    SyncVendorUnitPriceBlocksAfterCountChange wsInfo, vendorCount, 0, deferCalculation
+End Sub
 
+' F9(施工会社数)変更時: 増減した列だけ工事単価シートへ反映し、全社・全シート再展開を避ける。
+Private Sub SyncVendorUnitPriceBlocksAfterCountChange(ByVal wsInfo As Worksheet, _
+                                                      ByVal vendorCount As Long, _
+                                                      ByVal previousCount As Long, _
+                                                      ByVal deferCalculation As Boolean)
+    If wsInfo Is Nothing Then Exit Sub
+
+    Dim targetBook As Workbook
     Dim vendorUnitPriceNameMap As Object
-    Set vendorUnitPriceNameMap = BuildVendorUnitPriceNameMap(wsInfo)
-
     Dim wsUnitPrice As Worksheet
+    Dim i As Long
+    Dim blockIndex As Long
+    Dim valueColumn As Long
+    Dim dayCol As Long
+    Dim nightCol As Long
+
+    Set targetBook = wsInfo.Parent
+
+    If previousCount <= 0 Or vendorCount = previousCount Then
+        Set vendorUnitPriceNameMap = BuildVendorUnitPriceNameMap(wsInfo)
+
+        For Each wsUnitPrice In targetBook.worksheets
+            If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) Then
+                RefreshVendorUnitPriceBlocksOnSheet wsUnitPrice, wsInfo, vendorCount, vendorUnitPriceNameMap
+            End If
+        Next wsUnitPrice
+
+        If Not deferCalculation Then
+            On Error Resume Next
+            Application.Calculate
+            On Error GoTo 0
+        End If
+        Exit Sub
+    End If
+
+    If vendorCount > previousCount Then
+        Set vendorUnitPriceNameMap = BuildVendorUnitPriceNameMap(wsInfo)
+        For Each wsUnitPrice In targetBook.worksheets
+            If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) Then
+                For i = previousCount + 1 To vendorCount
+                    valueColumn = VendorValueColumnByIndex(i)
+                    dayCol = VendorUnitPriceDayColumnByValueColumn(valueColumn)
+                    nightCol = dayCol + 1
+                    If ShouldApplyVendorUnitPriceBlock(wsInfo, valueColumn) Then
+                        ApplyVendorUnitPriceBlockToSheet wsUnitPrice, wsInfo, valueColumn, vendorUnitPriceNameMap
+                    Else
+                        ClearVendorUnitPriceBlockOnSheet wsUnitPrice, dayCol, nightCol
+                    End If
+                Next i
+            End If
+        Next wsUnitPrice
+        Exit Sub
+    End If
+
     For Each wsUnitPrice In targetBook.worksheets
         If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) Then
-            RefreshVendorUnitPriceBlocksOnSheet wsUnitPrice, wsInfo, vendorCount, vendorUnitPriceNameMap
+            For blockIndex = vendorCount + 1 To MAX_VENDOR_BLOCK_COUNT
+                dayCol = VendorUnitPriceDayColumnByValueColumn(VendorValueColumnByIndex(blockIndex))
+                nightCol = dayCol + 1
+                ClearVendorUnitPriceBlockOnSheet wsUnitPrice, dayCol, nightCol
+            Next blockIndex
         End If
     Next wsUnitPrice
-
-    If Not deferCalculation Then
-        On Error Resume Next
-        Application.Calculate
-        On Error GoTo 0
-    End If
 End Sub
 
 Private Sub RefreshVendorUnitPriceForValueColumn(ByVal wsInfo As Worksheet, ByVal valueColumn As Long)
