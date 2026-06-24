@@ -598,14 +598,20 @@ Public Sub SyncVendorBlocksFromCount(ByVal wsInfo As Worksheet)
     If vendorCount < previousCount And needWeldingRefresh Then
         On Error Resume Next
         Application.Calculate
-        On Error GoTo 0
+        On Error GoTo ExitHandler
     ElseIf previousCount <= 0 Or vendorCount = previousCount Then
         On Error Resume Next
         Application.Calculate
-        On Error GoTo 0
+        On Error GoTo ExitHandler
     End If
 
+    Exit Sub
+
 ExitHandler:
+    If Err.Number <> 0 Then
+        mod_DebugLog.Log "[VendorMaster] SyncVendorBlocksFromCount Err " & Err.Number & ": " & Err.Description
+        Err.Clear
+    End If
     Application.Calculation = prevCalculation
     Application.ScreenUpdating = prevScreenUpdating
     Application.EnableEvents = prevEvents
