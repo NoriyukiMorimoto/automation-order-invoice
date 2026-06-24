@@ -8,8 +8,8 @@ Option Explicit
 '   未入力 -> #FFFF00 塗色 + 黒文字 + 赤字12pt BizUDゴシックのコメント
 '   入力済 -> #06111D 塗色 + 白文字 + コメント削除
 '
-' F10（工事種別）による F29/F31 の動的切り替え:
-'   軌道工事 -> F29: 軌道工事会社の外注比率コメント / F31: 現状のまま
+' F10（工事種別）による F29/F30/F31 の動的切り替え:
+'   軌道工事 -> F29: 軌道工事会社の外注比率コメント / F30: 溶接手元単価パターン / F31: 現状のまま
 '   溶接工事 -> F29: 入力不可（斜線×） / F31: 溶接会社の外注比率コメント
 '   その他   -> F29: 施工会社の外注比率コメント / F31: 現状のまま
 '
@@ -34,6 +34,7 @@ Private Const VENDOR_MAX_COUNT  As Long = 10
 
 ' --- 工事種別行 ---
 Private Const ROW_CONSTRUCTION_TYPE As Long = 10   ' F10/I10/L10...
+Private Const ROW_RAIL_PATTERN As Long = 30        ' 軌道工事: 溶接手元単価パターン
 
 ' --- 線区名（結合セル C24:C28、先頭セル C24 で MergeArea を取得）---
 Private Const BASIC_INFO_IMPORTED_LINE_NAMES_CELL As String = "C24"
@@ -111,6 +112,7 @@ Public Sub ClearAllGuides(ByVal ws As Worksheet)
         colNum = VENDOR_COL_START + (companyIdx - 1) * VENDOR_COL_STEP
         RemoveDiagonalBorders ws.Cells(29, colNum)
         RemoveDiagonalBorders ws.Cells(31, colNum)
+        ClearRailPatternValidation ws.Cells(ROW_RAIL_PATTERN, colNum)
     Next companyIdx
 
     Application.ScreenUpdating = True
@@ -139,13 +141,15 @@ Private Sub RefreshVendorRowGuides(ByVal ws As Worksheet)
             ApplyGuideCellByRowCol ws, 11, colNum, GetF11CommentText(), IsEmpty_Cell(ws.Cells(11, colNum))
             ApplyGuideCellByRowCol ws, 27, colNum, GetF27CommentText(), IsEmpty_Cell(ws.Cells(27, colNum))
 
-            ' 行29・31 は工事種別で切り替え
+            ' 行29・30・31 は工事種別で切り替え
             ApplyRow29And31 ws, colNum, constructionType
+            ApplyRow30 ws, colNum, constructionType
         Else
             ' 会社数外 → 全行を元の色に戻す（斜線も解除）
             ClearGuideByRowCol ws, 11, colNum
             ClearGuideByRowCol ws, 27, colNum
             ClearRow29And31 ws, colNum
+            ClearRow30 ws, colNum
         End If
     Next companyIdx
 End Sub
@@ -178,6 +182,67 @@ Private Sub ClearRow29And31(ByVal ws As Worksheet, ByVal colNum As Long)
     ClearGuideByRowCol ws, 29, colNum
     ClearGuideByRowCol ws, 31, colNum
 End Sub
+
+' ----------------------------------------------------------------
+' 行30 の工事種別別処理(軌道工事のみパターン選択)
+' ----------------------------------------------------------------
+Private Sub ApplyRow30(ByVal ws As Worksheet, ByVal colNum As Long, ByVal constructionType As String)
+    Dim labelCol As Long
+    labelCol = colNum - 1
+
+    If constructionType = GetKidoKojiText() Then
+        ws.Cells(ROW_RAIL_PATTERN, labelCol).Value = GetRailPatternRow30LabelText()
+        ApplyRailPatternValidation ws.Cells(ROW_RAIL_PATTERN, colNum)
+        ApplyGuideCellByRowCol ws, ROW_RAIL_PATTERN, colNum, GetF30RailPatternCommentText(), _
+                               IsEmpty_Cell(ws.Cells(ROW_RAIL_PATTERN, colNum))
+    Else
+        ws.Cells(ROW_RAIL_PATTERN, labelCol).Value = GetDefaultRow30LabelText()
+        ws.Cells(ROW_RAIL_PATTERN, colNum).ClearContents
+        ClearRailPatternValidation ws.Cells(ROW_RAIL_PATTERN, colNum)
+        ClearGuideByRowCol ws, ROW_RAIL_PATTERN, colNum
+    End If
+End Sub
+
+Private Sub ClearRow30(ByVal ws As Worksheet, ByVal colNum As Long)
+    ClearRailPatternValidation ws.Cells(ROW_RAIL_PATTERN, colNum)
+    ClearGuideByRowCol ws, ROW_RAIL_PATTERN, colNum
+End Sub
+
+Private Sub ApplyRailPatternValidation(ByVal targetCell As Range)
+    On Error Resume Next
+    With targetCell.Validation
+        .Delete
+        .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Operator:=xlBetween, _
+             Formula1:=mod_WeldingUnitPrice.BasicInfoRailPatternValidationListText()
+        .IgnoreBlank = True
+        .InCellDropdown = True
+        .ShowError = False
+    End With
+    On Error GoTo 0
+End Sub
+
+Private Sub ClearRailPatternValidation(ByVal targetCell As Range)
+    On Error Resume Next
+    targetCell.Validation.Delete
+    On Error GoTo 0
+End Sub
+
+Private Function VendorRowLabelPrefixText() As String
+    VendorRowLabelPrefixText = "  " & ChrW$(&H25B8) & "  "
+End Function
+
+Private Function GetDefaultRow30LabelText() As String
+    GetDefaultRow30LabelText = VendorRowLabelPrefixText() & _
+        ChrW$(&H6EB6) & ChrW$(&H63A5) & ChrW$(&H5DE5) & ChrW$(&H4E8B) & _
+        ChrW$(&H5916) & ChrW$(&H6CE8) & ChrW$(&H6BD4) & ChrW$(&H7387)
+End Function
+
+Private Function GetRailPatternRow30LabelText() As String
+    GetRailPatternRow30LabelText = VendorRowLabelPrefixText() & _
+        ChrW$(&H6EB6) & ChrW$(&H63A5) & ChrW$(&H624B) & ChrW$(&H5143) & _
+        ChrW$(&H5358) & ChrW$(&H4FA1) & ChrW$(&H30D1) & ChrW$(&H30BF) & _
+        ChrW$(&H30FC) & ChrW$(&H30F3)
+End Function
 
 ' ----------------------------------------------------------------
 ' 入力不可セル: 斜線×（右下がり＋左下がり）+ #06111D
@@ -358,7 +423,7 @@ Private Function GetVendorGuideMonitorRange(ByVal ws As Worksheet) As Range
     Dim colNames As Variant
     colNames = Array("F", "I", "L", "O", "R", "U", "X", "AA", "AD", "AG")
     Dim monitorRows As Variant
-    monitorRows = Array(10, 11, 27, 29, 31)   ' 10行目=工事種別も監視
+    monitorRows = Array(10, 11, 27, 29, 30, 31)   ' 10行目=工事種別も監視
 
     Dim c As Long, r As Long
     For c = 0 To UBound(colNames)
@@ -482,6 +547,15 @@ Private Function GetF31YosetsuCommentText() As String
         ChrW$(&H5916) & ChrW$(&H6CE8) & ChrW$(&H6BD4) & ChrW$(&H7387) & ChrW$(&H3092) & _
         ChrW$(&H5165) & ChrW$(&H529B) & ChrW$(&H3057) & ChrW$(&H3066) & ChrW$(&H4E0B) & _
         ChrW$(&H3055) & ChrW$(&H3044) & ChrW$(&H3002)
+End Function
+
+Private Function GetF30RailPatternCommentText() As String
+    ' 溶接手元単価の算出パターンを選択して下さい。
+    GetF30RailPatternCommentText = _
+        ChrW$(&H6EB6) & ChrW$(&H63A5) & ChrW$(&H624B) & ChrW$(&H5143) & ChrW$(&H5358) & ChrW$(&H4FA1) & _
+        ChrW$(&H306E) & ChrW$(&H7B97) & ChrW$(&H51FA) & ChrW$(&H30D1) & ChrW$(&H30BF) & ChrW$(&H30FC) & _
+        ChrW$(&H30F3) & ChrW$(&H3092) & ChrW$(&H9078) & ChrW$(&H629E) & ChrW$(&H3057) & ChrW$(&H3066) & _
+        ChrW$(&H4E0B) & ChrW$(&H3055) & ChrW$(&H3044) & ChrW$(&H3002)
 End Function
 
 ' ================================================================
