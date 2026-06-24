@@ -689,8 +689,13 @@ Public Sub HandleVendorUnitPriceMonitorChange(ByVal wsInfo As Worksheet, ByVal c
     Next col
 
     If weldingCols.Count > 0 Then
-        mod_WeldingUnitPrice.ApplyWeldingVendorUnitPricesForBasicInfoColumns _
-            wsInfo, weldingCols, preferredRatioColumn
+        ' 10çsñ⁄(çHéñéÌï )ïœçXÇÕónê⁄/ãOìπóÒÇÃîzíuÇ™ïœÇÌÇÈÇΩÇﬂëSìWäJÇ∑ÇÈ
+        If ChangedRangeIncludesVendorWorkTypeRow(wsInfo, changedRange) Then
+            mod_WeldingUnitPrice.ApplyWeldingVendorUnitPricesForBasicInfo wsInfo, False, preferredRatioColumn
+        Else
+            mod_WeldingUnitPrice.ApplyWeldingVendorUnitPricesForBasicInfoColumns _
+                wsInfo, weldingCols, preferredRatioColumn
+        End If
     End If
 
 ExitHandler:
@@ -767,6 +772,23 @@ ContinueNextVendorColumn:
     Next i
 
     Set CollectMonitorChangedValueColumns = result
+End Function
+
+Private Function ChangedRangeIncludesVendorWorkTypeRow(ByVal wsInfo As Worksheet, _
+                                                       ByVal changedRange As Range) As Boolean
+    Dim vendorCount As Long
+    Dim i As Long
+
+    If wsInfo Is Nothing Then Exit Function
+    If changedRange Is Nothing Then Exit Function
+
+    vendorCount = GetVendorBlockCount(wsInfo)
+    For i = 1 To vendorCount
+        If Not Intersect(changedRange, wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, VendorValueColumnByIndex(i))) Is Nothing Then
+            ChangedRangeIncludesVendorWorkTypeRow = True
+            Exit Function
+        End If
+    Next i
 End Function
 
 Private Sub AddUniqueLongToCollection(ByVal target As Collection, ByVal value As Long)

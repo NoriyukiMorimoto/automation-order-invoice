@@ -4,13 +4,14 @@ Option Explicit
 ' mod_WeldingUnitPrice
 ' 「○○保線区_レール溶接単価」シートへ施工会社別単価を展開するモジュール
 '
-' ・溶接会社 : G列(昼)/H列(夜)
+' ・溶接会社 : G列(昼)/H列(夜)から1社2列ずつ右へ追加(10行目=「溶接工事」のブロックのみ)
 '              単価 = JR単価 ×(1－手元比率)× 溶接工事外注比率(基本情報 31行目)
-' ・軌道会社 : I列(昼)/J列(夜)から1社2列ずつ右へ追加
+'              10行目に溶接工事が無い場合は G5:H5 等へ会社名を入力しない
+' ・軌道会社 : 溶接列の右から [単価ﾊﾟﾀｰﾝ2列 + 会社2列] を1社4列ずつ追加
 '              照合キー = 整理番号(溶接単価シートB列 = マスタ溶接手元割合シートA列)
 '              単価 = JR単価 ×(100/100.7) × 手元割合(マスタ昼E/夜F) × 軌道外注比率(基本情報31行)
 '                     軌道外注比率: 1社目F31 / 2社目I31 …(3列ずつ右)
-'                     軌道単価パターン: 1社目F30 / 2社目I30 …(3列ずつ右)
+'                     軌道単価パターン: 会社列2列左の3行目(右列)に基本情報30行目を表示し数式参照
 '                     1行目: 昼列=「外注比率＝」/ 夜列=基本情報の当社列31行目(F31等)参照
 '                     丸め: 整数部4桁以上は上位3桁＋以降0埋め(切り捨て3桁)、3桁以下はROUNDDOWN
 '              4行目ヘッダー=(回数)(年度)溶接手元単価
@@ -52,13 +53,13 @@ Private Const WUP_SEIRI_COL As Long = 2           ' B列 整理番号
 Private Const WUP_WORK_NAME_COL As Long = 3       ' C列 工種名
 Private Const WUP_JR_DAY_COL As Long = 5          ' E列 JR単価(昼)
 Private Const WUP_JR_NIGHT_COL As Long = 6        ' F列 JR単価(夜)
-Private Const WUP_WELDING_DAY_COL As Long = 7     ' G列 溶接会社(昼)
-Private Const WUP_FIRST_RAIL_DAY_COL As Long = 9  ' I列 軌道会社1社目(昼)
+Private Const WUP_WELDING_DAY_COL As Long = 7     ' G列 溶接会社1社目(昼)
+Private Const WUP_RAIL_SLOT_WIDTH As Long = 4   ' 軌道1社 = 単価ﾊﾟﾀｰﾝ2列 + 会社2列
 Private Const WUP_RAIL_JR_FACTOR As String = "(100/100.7)"  ' 軌道会社: JR単価に掛ける係数(AG5)
-Private Const WUP_PATTERN_ROW As Long = 3              ' 外注費算出パターン行
-Private Const WUP_PATTERN_LABEL_COL_FIRST As Long = 4  ' D列(ラベル結合 開始)
-Private Const WUP_PATTERN_LABEL_COL_LAST As Long = 5   ' E列(ラベル結合 終了)
-Private Const WUP_PATTERN_SELECT_COL As Long = 6       ' F列(パターン選択ドロップダウン)
+Private Const WUP_PATTERN_ROW As Long = 3              ' 軌道会社 単価ﾊﾟﾀｰﾝ行
+Private Const WUP_LEGACY_PATTERN_LABEL_COL_FIRST As Long = 4  ' D列(旧 外注費算出パターン 削除用)
+Private Const WUP_LEGACY_PATTERN_LABEL_COL_LAST As Long = 5   ' E列(旧 外注費算出パターン 削除用)
+Private Const WUP_LEGACY_PATTERN_SELECT_COL As Long = 6       ' F列(旧 パターン選択 削除用)
 Private Const WUP_PACK_SEIRI_MIN As Long = 5000   ' パック工種の整理番号下限
 ' パック構成(マスタ): 0始まりフィールド = Excel列-1。J=9,K=10,L=11,M=12,N=13,O=14
 Private Const WUP_MASTER_PACK_COMP1_FIELD As Long = 9   ' J列 構成1の整理番号
@@ -78,7 +79,7 @@ Private Type WeldingVendorBlock
     valueColumn As Long       ' 基本情報シート上の値列(F/I/L...)
     vendorName As String
     ratioAddress As String    ' '基本情報'!$L$31 等(数式参照用)
-    patternAddress As String  ' '基本情報'!$F$30 等(軌道単価パターン参照用)
+    patternAddress As String  ' 溶接単価シート3行目(軌道会社列左のパターン右列)参照用
     ratioPercent As Variant   ' 0～1 正規化済み(表示用)
     hasRatio As Boolean
 End Type
@@ -94,8 +95,7 @@ Private mSeiriRowMap As Object
 ' =====================================================================
 
 ' ブック内の全「_レール溶接単価」シートへ施工会社別単価を展開する
-'   preferredRatioColumn: 基本情報シートで31行目(溶接外注比率)が変更された列。
-'                         指定された場合、その列のブロックをG/H列の比率参照先として優先採用する。
+'   preferredRatioColumn: 互換用(部分展開 API)。走査結果自体は変更しない。
 Public Sub ApplyWeldingVendorUnitPricesForBasicInfo(Optional ByVal wsInfo As Worksheet, _
                                                     Optional ByVal showWarnings As Boolean = False, _
                                                     Optional ByVal preferredRatioColumn As Long = 0, _
@@ -127,22 +127,24 @@ Public Sub ApplyWeldingVendorUnitPricesForBasicInfo(Optional ByVal wsInfo As Wor
     End If
     LogWUP "手元比率マスタ読込完了 件数=" & CStr(temotoMap.Count)
 
-    ' --- 基本情報の業者ブロック分類とG/H列(溶接施工会社)の決定 ---
-    Dim weldingBlock As WeldingVendorBlock
-    Dim weldingNameSources As Collection
+    ' --- 基本情報の業者ブロック分類 ---
+    Dim weldingBlocks() As WeldingVendorBlock
+    Dim weldingBlockCount As Long
     Dim railBlocks() As WeldingVendorBlock
     Dim railBlockCount As Long
-    Set weldingNameSources = New Collection
-    ScanVendorBlocks wsInfo, weldingBlock, weldingNameSources, railBlocks, railBlockCount, preferredRatioColumn
+    ScanVendorBlocks wsInfo, weldingBlocks, weldingBlockCount, railBlocks, railBlockCount
 
-    If Not weldingBlock.hasRatio Then
-        warningTexts.Add WarnWeldingBlockText(weldingBlock)
-    End If
+    Dim wIdx As Long
+    For wIdx = 1 To weldingBlockCount
+        If Not weldingBlocks(wIdx).hasRatio Then
+            warningTexts.Add WarnWeldingBlockText(weldingBlocks(wIdx))
+        End If
+    Next wIdx
     If railBlockCount = 0 Then
         warningTexts.Add "基本情報に「軌道工事」の業者ブロックが見つかりません。"
     End If
 
-    ' 軌道会社ブロックの比率参照(31行目)・パターン参照(30行目)を再構築
+    ' 軌道会社ブロックの比率参照(31行目)を再構築
     Dim rbIndex As Long
     For rbIndex = 1 To railBlockCount
         railBlocks(rbIndex) = BuildVendorBlock(wsInfo, railBlocks(rbIndex).valueColumn, _
@@ -163,7 +165,7 @@ Public Sub ApplyWeldingVendorUnitPricesForBasicInfo(Optional ByVal wsInfo As Wor
 
     Dim wsWelding As Variant
     For Each wsWelding In weldingSheets
-        ApplyWeldingVendorUnitPricesToSheet wsWelding, wsInfo, weldingBlock, weldingNameSources, _
+        ApplyWeldingVendorUnitPricesToSheet wsWelding, wsInfo, weldingBlocks, weldingBlockCount, _
                                             railBlocks, railBlockCount, temotoMap, missingSeiriMap
     Next wsWelding
 
@@ -199,12 +201,11 @@ Public Sub UpdateWeldingVendorDisplayNamesForBasicInfo(Optional ByVal wsInfo As 
     Set weldingSheets = CollectWeldingUnitPriceSheets(targetBook)
     If weldingSheets.Count = 0 Then Exit Sub
 
-    Dim weldingBlock As WeldingVendorBlock
-    Dim weldingNameSources As Collection
+    Dim weldingBlocks() As WeldingVendorBlock
+    Dim weldingBlockCount As Long
     Dim railBlocks() As WeldingVendorBlock
     Dim railBlockCount As Long
-    Set weldingNameSources = New Collection
-    ScanVendorBlocks wsInfo, weldingBlock, weldingNameSources, railBlocks, railBlockCount, preferredRatioColumn
+    ScanVendorBlocks wsInfo, weldingBlocks, weldingBlockCount, railBlocks, railBlockCount
 
     Dim vendorUnitPriceNameMap As Object
     Set vendorUnitPriceNameMap = mod_VendorMaster.BuildVendorUnitPriceNameMap(wsInfo)
@@ -217,7 +218,7 @@ Public Sub UpdateWeldingVendorDisplayNamesForBasicInfo(Optional ByVal wsInfo As 
     Dim wsWelding As Variant
     For Each wsWelding In weldingSheets
         On Error Resume Next
-        UpdateWeldingVendorDisplayNamesOnSheet wsWelding, weldingBlock, weldingNameSources, _
+        UpdateWeldingVendorDisplayNamesOnSheet wsWelding, weldingBlocks, weldingBlockCount, _
             railBlocks, railBlockCount, vendorUnitPriceNameMap
         If Err.Number <> 0 Then
             LogWUP "表示名更新スキップ sheet=[" & wsWelding.Name & "] Err=" & CStr(Err.Number)
@@ -243,12 +244,11 @@ Public Sub ClearSurplusWeldingVendorBlocksForBasicInfo(Optional ByVal wsInfo As 
     Set weldingSheets = CollectWeldingUnitPriceSheets(targetBook)
     If weldingSheets.Count = 0 Then Exit Sub
 
-    Dim weldingBlock As WeldingVendorBlock
-    Dim weldingNameSources As Collection
+    Dim weldingBlocks() As WeldingVendorBlock
+    Dim weldingBlockCount As Long
     Dim railBlocks() As WeldingVendorBlock
     Dim railBlockCount As Long
-    Set weldingNameSources = New Collection
-    ScanVendorBlocks wsInfo, weldingBlock, weldingNameSources, railBlocks, railBlockCount, 0
+    ScanVendorBlocks wsInfo, weldingBlocks, weldingBlockCount, railBlocks, railBlockCount, 0
 
     Dim previousScreenUpdating As Boolean
     Dim previousCalculation As XlCalculation
@@ -265,9 +265,17 @@ Public Sub ClearSurplusWeldingVendorBlocksForBasicInfo(Optional ByVal wsInfo As 
         lastRow = wsWelding.Cells(wsWelding.Rows.Count, WUP_SEIRI_COL).End(xlUp).Row
         If lastRow < WUP_DATA_START_ROW Then GoTo ContinueNextSheet
 
+        Dim wIdx As Long
+        For wIdx = weldingBlockCount + 1 To MAX_VENDOR_BLOCK_COUNT
+            ClearWeldingVendorBlock wsWelding, lastRow, GetWeldingDayColByIndex(wIdx)
+        Next wIdx
+
         Dim railIndex As Long
         For railIndex = railBlockCount + 1 To MAX_VENDOR_BLOCK_COUNT
-            ClearWeldingVendorBlock wsWelding, lastRow, WUP_FIRST_RAIL_DAY_COL + ((railIndex - 1) * 2)
+            Dim surplusRailDayCol As Long
+            surplusRailDayCol = GetRailDayColByIndex(weldingBlockCount, railIndex)
+            ClearRailPatternBlock wsWelding, surplusRailDayCol
+            ClearWeldingVendorBlock wsWelding, lastRow, surplusRailDayCol
         Next railIndex
 ContinueNextSheet:
     Next wsWelding
@@ -313,20 +321,23 @@ ContinueNextRemoved:
 End Function
 
 Private Sub UpdateWeldingVendorDisplayNamesOnSheet(ByVal wsWelding As Worksheet, _
-                                                  ByRef weldingBlock As WeldingVendorBlock, _
-                                                  ByVal weldingNameSources As Collection, _
+                                                  ByRef weldingBlocks() As WeldingVendorBlock, _
+                                                  ByVal weldingBlockCount As Long, _
                                                   ByRef railBlocks() As WeldingVendorBlock, _
                                                   ByVal railBlockCount As Long, _
                                                   ByVal vendorUnitPriceNameMap As Object)
-    If weldingBlock.valueColumn > 0 And weldingBlock.hasRatio Then
-        UpdateWeldingVendorDisplayNameOnly wsWelding, WUP_WELDING_DAY_COL, _
-            BuildWeldingDisplayName(weldingNameSources, vendorUnitPriceNameMap)
-    End If
+    Dim wIdx As Long
+    For wIdx = 1 To weldingBlockCount
+        If weldingBlocks(wIdx).hasRatio Then
+            UpdateWeldingVendorDisplayNameOnly wsWelding, GetWeldingDayColByIndex(wIdx), _
+                ResolveVendorUnitPriceNameWUP(vendorUnitPriceNameMap, weldingBlocks(wIdx).vendorName)
+        End If
+    Next wIdx
 
     Dim railIndex As Long
     For railIndex = 1 To railBlockCount
         Dim railDayCol As Long
-        railDayCol = WUP_FIRST_RAIL_DAY_COL + ((railIndex - 1) * 2)
+        railDayCol = GetRailDayColByIndex(weldingBlockCount, railIndex)
         If railBlocks(railIndex).hasRatio Then
             UpdateWeldingVendorDisplayNameOnly wsWelding, railDayCol, _
                 ResolveVendorUnitPriceNameWUP(vendorUnitPriceNameMap, railBlocks(railIndex).vendorName)
@@ -365,12 +376,11 @@ Public Sub ApplyWeldingVendorUnitPricesForBasicInfoColumns(ByVal wsInfo As Works
         Exit Sub
     End If
 
-    Dim weldingBlock As WeldingVendorBlock
-    Dim weldingNameSources As Collection
+    Dim weldingBlocks() As WeldingVendorBlock
+    Dim weldingBlockCount As Long
     Dim railBlocks() As WeldingVendorBlock
     Dim railBlockCount As Long
-    Set weldingNameSources = New Collection
-    ScanVendorBlocks wsInfo, weldingBlock, weldingNameSources, railBlocks, railBlockCount, preferredRatioColumn
+    ScanVendorBlocks wsInfo, weldingBlocks, weldingBlockCount, railBlocks, railBlockCount, preferredRatioColumn
 
     Dim rbIndex As Long
     For rbIndex = 1 To railBlockCount
@@ -392,7 +402,7 @@ Public Sub ApplyWeldingVendorUnitPricesForBasicInfoColumns(ByVal wsInfo As Works
 
     Dim wsWelding As Variant
     For Each wsWelding In weldingSheets
-        ApplyWeldingVendorUnitPricesToSheetColumns wsWelding, wsInfo, weldingBlock, weldingNameSources, _
+        ApplyWeldingVendorUnitPricesToSheetColumns wsWelding, wsInfo, weldingBlocks, weldingBlockCount, _
             railBlocks, railBlockCount, temotoMap, missingSeiriMap, targetValueColumns
     Next wsWelding
 
@@ -406,8 +416,8 @@ End Sub
 
 Private Sub ApplyWeldingVendorUnitPricesToSheetColumns(ByVal wsWelding As Worksheet, _
                                                        ByVal wsInfo As Worksheet, _
-                                                       ByRef weldingBlock As WeldingVendorBlock, _
-                                                       ByVal weldingNameSources As Collection, _
+                                                       ByRef weldingBlocks() As WeldingVendorBlock, _
+                                                       ByVal weldingBlockCount As Long, _
                                                        ByRef railBlocks() As WeldingVendorBlock, _
                                                        ByVal railBlockCount As Long, _
                                                        ByVal temotoMap As Object, _
@@ -417,7 +427,7 @@ Private Sub ApplyWeldingVendorUnitPricesToSheetColumns(ByVal wsWelding As Worksh
     lastRow = wsWelding.Cells(wsWelding.Rows.Count, WUP_SEIRI_COL).End(xlUp).Row
     If lastRow < WUP_DATA_START_ROW Then Exit Sub
 
-    SetupOutsourcePatternSelector wsWelding
+    ClearLegacyOutsourcePatternSelector wsWelding
     Set mSeiriRowMap = BuildSeiriRowMapWUP(wsWelding, lastRow)
 
     Dim outsourceHeaderText As String
@@ -428,26 +438,34 @@ Private Sub ApplyWeldingVendorUnitPricesToSheetColumns(ByVal wsWelding As Worksh
     Dim vendorUnitPriceNameMap As Object
     Set vendorUnitPriceNameMap = mod_VendorMaster.BuildVendorUnitPriceNameMap(wsInfo)
 
-    If weldingBlock.valueColumn > 0 And weldingBlock.hasRatio Then
-        If CollectionContainsLongWUP(targetValueColumns, weldingBlock.valueColumn) Then
-            ApplyWeldingVendorBlock wsWelding, lastRow, WUP_WELDING_DAY_COL, weldingBlock, True, _
-                                    outsourceHeaderText, vendorUnitPriceNameMap, temotoMap, missingSeiriMap, _
-                                    BuildWeldingDisplayName(weldingNameSources, vendorUnitPriceNameMap)
-        Else
-            UpdateWeldingVendorDisplayNameOnly wsWelding, WUP_WELDING_DAY_COL, _
-                BuildWeldingDisplayName(weldingNameSources, vendorUnitPriceNameMap)
+    Dim wIdx As Long
+    For wIdx = 1 To weldingBlockCount
+        Dim weldingDayCol As Long
+        weldingDayCol = GetWeldingDayColByIndex(wIdx)
+        If weldingBlocks(wIdx).hasRatio Then
+            If CollectionContainsLongWUP(targetValueColumns, weldingBlocks(wIdx).valueColumn) Then
+                ApplyWeldingVendorBlock wsWelding, lastRow, weldingDayCol, weldingBlocks(wIdx), True, _
+                                        outsourceHeaderText, vendorUnitPriceNameMap, temotoMap, missingSeiriMap, _
+                                        ResolveVendorUnitPriceNameWUP(vendorUnitPriceNameMap, weldingBlocks(wIdx).vendorName)
+            Else
+                UpdateWeldingVendorDisplayNameOnly wsWelding, weldingDayCol, _
+                    ResolveVendorUnitPriceNameWUP(vendorUnitPriceNameMap, weldingBlocks(wIdx).vendorName)
+            End If
         End If
-    End If
+    Next wIdx
 
     Dim railIndex As Long
     For railIndex = 1 To railBlockCount
         Dim railDayCol As Long
-        railDayCol = WUP_FIRST_RAIL_DAY_COL + ((railIndex - 1) * 2)
+        railDayCol = GetRailDayColByIndex(weldingBlockCount, railIndex)
         If CollectionContainsLongWUP(targetValueColumns, railBlocks(railIndex).valueColumn) Then
             If railBlocks(railIndex).hasRatio Then
+                railBlocks(railIndex).patternAddress = BuildRailPatternSheetRef(wsWelding, railDayCol)
+                ApplyRailPatternRow wsWelding, wsInfo, railDayCol, railBlocks(railIndex).valueColumn
                 ApplyWeldingVendorBlock wsWelding, lastRow, railDayCol, railBlocks(railIndex), False, _
                                         railHeaderText, vendorUnitPriceNameMap, temotoMap, missingSeiriMap
             Else
+                ClearRailPatternBlock wsWelding, railDayCol
                 ClearWeldingVendorBlock wsWelding, lastRow, railDayCol
             End If
         End If
@@ -480,8 +498,8 @@ End Function
 
 Private Sub ApplyWeldingVendorUnitPricesToSheet(ByVal wsWelding As Worksheet, _
                                                 ByVal wsInfo As Worksheet, _
-                                                ByRef weldingBlock As WeldingVendorBlock, _
-                                                ByVal weldingNameSources As Collection, _
+                                                ByRef weldingBlocks() As WeldingVendorBlock, _
+                                                ByVal weldingBlockCount As Long, _
                                                 ByRef railBlocks() As WeldingVendorBlock, _
                                                 ByVal railBlockCount As Long, _
                                                 ByVal temotoMap As Object, _
@@ -493,10 +511,8 @@ Private Sub ApplyWeldingVendorUnitPricesToSheet(ByVal wsWelding As Worksheet, _
         Exit Sub
     End If
 
-    ' D3:E3=「外注費算出パターン：」/ F3=パターン選択ドロップダウン を整備
-    SetupOutsourcePatternSelector wsWelding
+    ClearLegacyOutsourcePatternSelector wsWelding
 
-    ' パック工種(5000番台)が構成工種の行を参照できるよう、整理番号->行 を構築
     Set mSeiriRowMap = BuildSeiriRowMapWUP(wsWelding, lastRow)
 
     Dim outsourceHeaderText As String
@@ -507,35 +523,47 @@ Private Sub ApplyWeldingVendorUnitPricesToSheet(ByVal wsWelding As Worksheet, _
     Dim vendorUnitPriceNameMap As Object
     Set vendorUnitPriceNameMap = mod_VendorMaster.BuildVendorUnitPriceNameMap(wsInfo)
 
-    ' --- 溶接施工会社ブロック (G/H列固定) ---
-    ' 会社名は業者マスタ(B6支店シート)のB列一致→A列値へ解決し、複数社は「・」で結合して表示
-    If weldingBlock.valueColumn > 0 And weldingBlock.hasRatio Then
-        ApplyWeldingVendorBlock wsWelding, lastRow, WUP_WELDING_DAY_COL, weldingBlock, True, _
-                                outsourceHeaderText, vendorUnitPriceNameMap, temotoMap, missingSeiriMap, _
-                                BuildWeldingDisplayName(weldingNameSources, vendorUnitPriceNameMap)
-    Else
-        ClearWeldingVendorBlock wsWelding, lastRow, WUP_WELDING_DAY_COL
-    End If
+    ' --- 溶接施工会社ブロック (10行目=溶接工事のみ、1社2列ずつ) ---
+    Dim wIdx As Long
+    For wIdx = 1 To weldingBlockCount
+        Dim weldingDayCol As Long
+        weldingDayCol = GetWeldingDayColByIndex(wIdx)
+        If weldingBlocks(wIdx).hasRatio Then
+            ApplyWeldingVendorBlock wsWelding, lastRow, weldingDayCol, weldingBlocks(wIdx), True, _
+                                    outsourceHeaderText, vendorUnitPriceNameMap, temotoMap, missingSeiriMap, _
+                                    ResolveVendorUnitPriceNameWUP(vendorUnitPriceNameMap, weldingBlocks(wIdx).vendorName)
+        Else
+            ClearWeldingVendorBlock wsWelding, lastRow, weldingDayCol
+        End If
+    Next wIdx
+    For wIdx = weldingBlockCount + 1 To MAX_VENDOR_BLOCK_COUNT
+        ClearWeldingVendorBlock wsWelding, lastRow, GetWeldingDayColByIndex(wIdx)
+    Next wIdx
 
-    ' --- 軌道会社ブロック (I/J列から1社2列ずつ) ---
+    ' --- 軌道会社ブロック (単価ﾊﾟﾀｰﾝ2列 + 会社2列を1社4列ずつ) ---
     Dim railIndex As Long
     For railIndex = 1 To railBlockCount
         Dim railDayCol As Long
-        railDayCol = WUP_FIRST_RAIL_DAY_COL + ((railIndex - 1) * 2)
+        railDayCol = GetRailDayColByIndex(weldingBlockCount, railIndex)
         If railBlocks(railIndex).hasRatio Then
+            railBlocks(railIndex).patternAddress = BuildRailPatternSheetRef(wsWelding, railDayCol)
+            ApplyRailPatternRow wsWelding, wsInfo, railDayCol, railBlocks(railIndex).valueColumn
             ApplyWeldingVendorBlock wsWelding, lastRow, railDayCol, railBlocks(railIndex), False, _
                                     railHeaderText, vendorUnitPriceNameMap, temotoMap, missingSeiriMap
         Else
+            ClearRailPatternBlock wsWelding, railDayCol
             ClearWeldingVendorBlock wsWelding, lastRow, railDayCol
         End If
     Next railIndex
 
-    ' --- 余剰スロットのクリア(業者数減少時の残骸対策) ---
     For railIndex = railBlockCount + 1 To MAX_VENDOR_BLOCK_COUNT
-        ClearWeldingVendorBlock wsWelding, lastRow, WUP_FIRST_RAIL_DAY_COL + ((railIndex - 1) * 2)
+        railDayCol = GetRailDayColByIndex(weldingBlockCount, railIndex)
+        ClearRailPatternBlock wsWelding, railDayCol
+        ClearWeldingVendorBlock wsWelding, lastRow, railDayCol
     Next railIndex
 
-    LogWUP "展開完了 sheet=[" & wsWelding.Name & "] 軌道会社数=" & CStr(railBlockCount)
+    LogWUP "展開完了 sheet=[" & wsWelding.Name & "] 溶接会社数=" & CStr(weldingBlockCount) & _
+           " 軌道会社数=" & CStr(railBlockCount)
 End Sub
 
 Private Sub ApplyWeldingVendorBlock(ByVal wsWelding As Worksheet, _
@@ -919,7 +947,7 @@ Private Sub ApplyRailMarkupCell(ByVal targetCell As Range, _
     targetCell.NumberFormat = WUP_NUMBER_FORMAT
 End Sub
 
-' 軌道会社単価の数式。基本情報30行目(溶接手元単価パターン)の選択値で計算方式を切替える。
+' 軌道会社単価の数式。溶接単価シート3行目(会社列左側のパターン右列)の値で計算方式を切替える。
 '   共通: jr=JR単価(E/F) / lit=手元割合(マスタ昼E/夜F リテラル) / R=軌道外注比率(基本情報31行)
 '   ■物価指数適用 : v=(jr×(100/100.7)×lit)×R を 整数部4桁以上は上位3桁＋0埋め(切り捨て3桁)、
 '                   3桁以下はROUNDDOWNで整数化。
@@ -965,7 +993,7 @@ Private Function BuildRailMarkupFormula(ByVal wsWelding As Worksheet, _
                 "IF(LEN(" & txGaibu & ")<=3," & prodGaibu & "," & _
                 "ROUND(VALUE(LEFT(" & txGaibu & ",4)),-1)*10^VALUE(LEN(" & txGaibu & ")-4)))"
 
-    ' --- 基本情報30行目(パターン)で分岐(前年度単価適用は未定義のため空欄) ---
+    ' --- 溶接単価シート3行目(パターン右列)で分岐(前年度単価適用は未定義のため空欄) ---
     BuildRailMarkupFormula = _
         "=IF(" & patternRef & "=" & q & PatternOutsourceRatioText() & q & "," & exprGaibu & "," & _
         "IF(" & patternRef & "=" & q & PatternPriceIndexText() & q & "," & exprBukka & "," & _
@@ -1156,21 +1184,45 @@ Private Sub ApplyMergedCell(ByVal wsWelding As Worksheet, _
     End With
 End Sub
 
-' D3:E3=「外注費算出パターン：」(右詰・縮小) / F3=パターン選択ドロップダウン(左詰・縮小)
-' F3の選択値で軌道会社の単価計算が切り替わる(各セルの数式がF3を参照して分岐する)。
-Private Sub SetupOutsourcePatternSelector(ByVal wsWelding As Worksheet)
+' 旧 D3:E3「外注費算出パターン：」/ F3 ドロップダウンを削除する
+Private Sub ClearLegacyOutsourcePatternSelector(ByVal wsWelding As Worksheet)
     If wsWelding Is Nothing Then Exit Sub
     On Error GoTo CleanupErr
 
-    ' --- D3:E3 ラベル(右詰・縮小表示) ---
     Dim labelRange As Range
     Set labelRange = wsWelding.Range( _
-        wsWelding.Cells(WUP_PATTERN_ROW, WUP_PATTERN_LABEL_COL_FIRST), _
-        wsWelding.Cells(WUP_PATTERN_ROW, WUP_PATTERN_LABEL_COL_LAST))
+        wsWelding.Cells(WUP_PATTERN_ROW, WUP_LEGACY_PATTERN_LABEL_COL_FIRST), _
+        wsWelding.Cells(WUP_PATTERN_ROW, WUP_LEGACY_PATTERN_LABEL_COL_LAST))
     SafeUnmergeRangeWUP labelRange
-    labelRange.Merge
-    With labelRange
-        .Value = OutsourcePatternLabelText()
+    labelRange.ClearContents
+    labelRange.ShrinkToFit = False
+
+    Dim selectCell As Range
+    Set selectCell = wsWelding.Cells(WUP_PATTERN_ROW, WUP_LEGACY_PATTERN_SELECT_COL)
+    On Error Resume Next
+    selectCell.Validation.Delete
+    On Error GoTo CleanupErr
+    selectCell.ClearContents
+    selectCell.ShrinkToFit = False
+    Exit Sub
+
+CleanupErr:
+    LogWUP "ClearLegacyOutsourcePatternSelector: 失敗 sheet=[" & wsWelding.Name & "] err=" & CStr(Err.Number)
+End Sub
+
+' 軌道会社列2列の左: 3行目左列=「単価ﾊﾟﾀｰﾝ:」(縮小) / 右列=基本情報30行目の選択内容
+Private Sub ApplyRailPatternRow(ByVal wsWelding As Worksheet, _
+                                ByVal wsInfo As Worksheet, _
+                                ByVal railDayCol As Long, _
+                                ByVal basicInfoValueColumn As Long)
+    Dim labelCol As Long
+    Dim valueCol As Long
+    labelCol = railDayCol - 2
+    valueCol = railDayCol - 1
+
+    With wsWelding.Cells(WUP_PATTERN_ROW, labelCol)
+        .Formula = ""
+        .Value = UnitPricePatternLabelText()
         .HorizontalAlignment = xlRight
         .VerticalAlignment = xlCenter
         .ShrinkToFit = True
@@ -1178,13 +1230,12 @@ Private Sub SetupOutsourcePatternSelector(ByVal wsWelding As Worksheet)
         .Font.Name = WeldingUnitPriceFontNameText()
         On Error Resume Next
         .Font.NameFarEast = WeldingUnitPriceFontNameText()
-        On Error GoTo CleanupErr
+        On Error GoTo 0
     End With
 
-    ' --- F3 ドロップダウン(左詰・縮小表示) ---
-    Dim selectCell As Range
-    Set selectCell = wsWelding.Cells(WUP_PATTERN_ROW, WUP_PATTERN_SELECT_COL)
-    With selectCell
+    With wsWelding.Cells(WUP_PATTERN_ROW, valueCol)
+        .Formula = ""
+        .Value = wsInfo.Cells(BASIC_INFO_RAIL_PATTERN_ROW, basicInfoValueColumn).Value
         .HorizontalAlignment = xlLeft
         .VerticalAlignment = xlCenter
         .ShrinkToFit = True
@@ -1192,39 +1243,56 @@ Private Sub SetupOutsourcePatternSelector(ByVal wsWelding As Worksheet)
         .Font.Name = WeldingUnitPriceFontNameText()
         On Error Resume Next
         .Font.NameFarEast = WeldingUnitPriceFontNameText()
-        On Error GoTo CleanupErr
+        On Error GoTo 0
     End With
-
-    With selectCell.Validation
-        .Delete
-        .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Operator:=xlBetween, _
-             Formula1:=BasicInfoRailPatternValidationListText()
-        .IgnoreBlank = True
-        .InCellDropdown = True
-        .ShowError = False
-    End With
-
-    ' 既定値: 空欄なら物価指数適用パターンを設定
-    If Len(Trim$(CStr(selectCell.Value))) = 0 Then
-        selectCell.Value = PatternPriceIndexText()
-    End If
-    Exit Sub
-
-CleanupErr:
-    LogWUP "SetupOutsourcePatternSelector: 失敗 sheet=[" & wsWelding.Name & "] err=" & CStr(Err.Number)
 End Sub
 
-' 外注費算出パターンのラベル・選択肢(ドロップダウンと数式の比較で同一文字列を使用)
+Private Sub ClearRailPatternBlock(ByVal wsWelding As Worksheet, ByVal railDayCol As Long)
+    Dim labelCol As Long
+    Dim valueCol As Long
+    labelCol = railDayCol - 2
+    valueCol = railDayCol - 1
+
+    With wsWelding.Cells(WUP_PATTERN_ROW, labelCol)
+        .ClearContents
+        .ShrinkToFit = False
+        .HorizontalAlignment = xlGeneral
+    End With
+    With wsWelding.Cells(WUP_PATTERN_ROW, valueCol)
+        .ClearContents
+        .ShrinkToFit = False
+        .HorizontalAlignment = xlGeneral
+    End With
+End Sub
+
+Private Function GetWeldingDayColByIndex(ByVal weldingIndex As Long) As Long
+    GetWeldingDayColByIndex = WUP_WELDING_DAY_COL + ((weldingIndex - 1) * 2)
+End Function
+
+Private Function GetRailDayColByIndex(ByVal weldingBlockCount As Long, ByVal railIndex As Long) As Long
+    GetRailDayColByIndex = WUP_WELDING_DAY_COL + (weldingBlockCount * 2) + _
+                           ((railIndex - 1) * WUP_RAIL_SLOT_WIDTH) + 2
+End Function
+
+Private Function BuildRailPatternSheetRef(ByVal wsWelding As Worksheet, ByVal railDayCol As Long) As String
+    BuildRailPatternSheetRef = "'" & Replace$(wsWelding.Name, "'", "''") & "'!" & _
+        wsWelding.Cells(WUP_PATTERN_ROW, railDayCol - 1).Address(True, True)
+End Function
+
+' 外注費算出パターンの選択肢(基本情報30行目のドロップダウンと数式比較で同一文字列を使用)
 Public Function BasicInfoRailPatternValidationListText() As String
     BasicInfoRailPatternValidationListText = PatternPrevYearText() & "," & _
                                              PatternOutsourceRatioText() & "," & _
                                              PatternPriceIndexText()
 End Function
 
-Private Function OutsourcePatternLabelText() As String
+Private Function UnitPricePatternLabelText() As String
     Static cached As String
-    If cached = "" Then cached = "外注費算出パターン："
-    OutsourcePatternLabelText = cached
+    If cached = "" Then
+        cached = ChrW$(&H5358) & ChrW$(&H4FA1) & ChrW$(&HFF8A) & ChrW$(&HFF9F) & ChrW$(&HFF80) & _
+                 ChrW$(&HFF70) & ChrW$(&HFF9D) & ":"
+    End If
+    UnitPricePatternLabelText = cached
 End Function
 
 Private Function PatternPrevYearText() As String
@@ -1338,31 +1406,20 @@ End Sub
 ' 基本情報シートの業者ブロック走査
 ' =====================================================================
 
-' F10から3列おきに工事種別(10行目)を確認し、溶接施工会社ブロックと軌道工事ブロックへ分類する
+' F10から3列おきに工事種別(10行目)を確認し、溶接工事ブロックと軌道工事ブロックへ分類する
 '
-' G/H列(溶接施工会社)の比率参照ブロックの優先順位:
-'   1. preferredRatioColumn (31行目が変更された列) のブロック ※軌道工事ブロックでも可
-'   2. 10行目=「溶接工事」のブロックの31行目
-'   3. 10行目=「軌道工事」で31行目に値を持つ最初のブロック
-'
-' G5:H5の会社名ソース:
-'   採用ブロックが軌道工事 -> 31行目に値を持つ全軌道会社の11行目会社名(後段でA列値へ解決し「・」結合)
-'   採用ブロックが溶接工事 -> そのブロックの11行目会社名
+' 溶接会社列: 10行目=「溶接工事」のブロックのみ、出現順に G/H, I/J … へ1社2列ずつ配置
+' 軌道会社列: 溶接列の右から [単価ﾊﾟﾀｰﾝ2列 + 会社2列] を1社4列ずつ配置
 Private Sub ScanVendorBlocks(ByVal wsInfo As Worksheet, _
-                             ByRef weldingBlock As WeldingVendorBlock, _
-                             ByVal weldingNameSources As Collection, _
+                             ByRef weldingBlocks() As WeldingVendorBlock, _
+                             ByRef weldingBlockCount As Long, _
                              ByRef railBlocks() As WeldingVendorBlock, _
                              ByRef railBlockCount As Long, _
-                             ByVal preferredRatioColumn As Long)
-    Dim emptyBlock As WeldingVendorBlock
-    weldingBlock = emptyBlock
+                             Optional ByVal preferredRatioColumn As Long = 0)
+    weldingBlockCount = 0
     railBlockCount = 0
+    ReDim weldingBlocks(1 To MAX_VENDOR_BLOCK_COUNT)
     ReDim railBlocks(1 To MAX_VENDOR_BLOCK_COUNT)
-
-    Dim dedicatedBlock As WeldingVendorBlock          ' 10行目=溶接工事のブロック(31行目参照)
-    Dim railWeldingBlocks() As WeldingVendorBlock     ' 10行目=軌道工事で31行目に値を持つブロック
-    Dim railWeldingCount As Long
-    ReDim railWeldingBlocks(1 To MAX_VENDOR_BLOCK_COUNT)
 
     Dim vendorCount As Long
     vendorCount = GetVendorBlockCountWUP(wsInfo)
@@ -1376,103 +1433,25 @@ Private Sub ScanVendorBlocks(ByVal wsInfo As Worksheet, _
         workTypeText = NormalizeMatchTextWUP(CStr(wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, valueColumn).Value))
 
         If StrComp(workTypeText, NormalizeMatchTextWUP(WeldingWorkTypeText()), vbTextCompare) = 0 Then
-            ' 溶接工事ブロック(最初の1件のみ採用)
-            If dedicatedBlock.valueColumn = 0 Then
-                dedicatedBlock = BuildVendorBlock(wsInfo, valueColumn, BASIC_INFO_WELDING_RATIO_ROW)
-                LogWUP "溶接工事ブロック col=" & CStr(valueColumn) & _
-                       " 会社=[" & dedicatedBlock.vendorName & "] 比率有=" & CStr(dedicatedBlock.hasRatio)
-            Else
-                LogWUP "溶接工事ブロックが複数あります col=" & CStr(valueColumn) & " -> 無視"
-            End If
+            weldingBlockCount = weldingBlockCount + 1
+            weldingBlocks(weldingBlockCount) = BuildVendorBlock(wsInfo, valueColumn, BASIC_INFO_WELDING_RATIO_ROW)
+            LogWUP "溶接工事ブロック#" & CStr(weldingBlockCount) & " col=" & CStr(valueColumn) & _
+                   " 会社=[" & weldingBlocks(weldingBlockCount).vendorName & "] 比率有=" & _
+                   CStr(weldingBlocks(weldingBlockCount).hasRatio)
         ElseIf StrComp(workTypeText, NormalizeMatchTextWUP(RailWorkTypeText()), vbTextCompare) = 0 Then
-            ' 軌道工事ブロック(基本情報の並び順を維持) -> I/J列以降の手元分単価へ
             railBlockCount = railBlockCount + 1
             railBlocks(railBlockCount) = BuildVendorBlock(wsInfo, valueColumn, BASIC_INFO_RAIL_RATIO_ROW)
             LogWUP "軌道工事ブロック#" & CStr(railBlockCount) & " col=" & CStr(valueColumn) & _
                    " 会社=[" & railBlocks(railBlockCount).vendorName & _
                    "] 比率有=" & CStr(railBlocks(railBlockCount).hasRatio)
-
-            ' 31行目(溶接外注比率)を持つ軌道会社 -> 溶接施工会社の候補
-            Dim railWeldingCandidate As WeldingVendorBlock
-            railWeldingCandidate = BuildVendorBlock(wsInfo, valueColumn, BASIC_INFO_WELDING_RATIO_ROW)
-            If railWeldingCandidate.hasRatio Then
-                railWeldingCount = railWeldingCount + 1
-                railWeldingBlocks(railWeldingCount) = railWeldingCandidate
-                LogWUP "軌道会社の溶接比率あり col=" & CStr(valueColumn) & _
-                       " 会社=[" & railWeldingCandidate.vendorName & "]"
-            End If
         End If
     Next i
 
-    ' --- G/H列の比率参照ブロックを決定 ---
+    ' preferredRatioColumn は部分展開時の互換用(走査結果は変更しない)
     If preferredRatioColumn > 0 Then
-        Dim preferredBlock As WeldingVendorBlock
-        preferredBlock = BuildVendorBlock(wsInfo, preferredRatioColumn, BASIC_INFO_WELDING_RATIO_ROW)
-        If preferredBlock.hasRatio Then
-            weldingBlock = preferredBlock
-            LogWUP "比率参照=変更列 col=" & CStr(preferredRatioColumn)
-        End If
-    End If
-    If weldingBlock.valueColumn = 0 And dedicatedBlock.hasRatio Then
-        weldingBlock = dedicatedBlock
-        LogWUP "比率参照=溶接工事ブロック col=" & CStr(dedicatedBlock.valueColumn)
-    End If
-    If weldingBlock.valueColumn = 0 And railWeldingCount > 0 Then
-        weldingBlock = railWeldingBlocks(1)
-        LogWUP "比率参照=軌道工事ブロック(31行目) col=" & CStr(weldingBlock.valueColumn)
-    End If
-    If weldingBlock.valueColumn = 0 And dedicatedBlock.valueColumn > 0 Then
-        weldingBlock = dedicatedBlock   ' 比率未入力でも警告文言判定用に保持
-    End If
-
-    ' --- G5:H5へ表示する会社名ソースを決定 ---
-    If weldingBlock.valueColumn > 0 Then
-        Dim weldingBlockWorkType As String
-        weldingBlockWorkType = NormalizeMatchTextWUP( _
-            CStr(wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, weldingBlock.valueColumn).Value))
-
-        If StrComp(weldingBlockWorkType, NormalizeMatchTextWUP(RailWorkTypeText()), vbTextCompare) = 0 Then
-            ' 軌道会社が溶接施工 -> 31行目に値を持つ全軌道会社名を結合表示
-            Dim j As Long
-            For j = 1 To railWeldingCount
-                AddNameSourceIfMissing weldingNameSources, railWeldingBlocks(j).vendorName
-            Next j
-            AddNameSourceIfMissing weldingNameSources, weldingBlock.vendorName
-        Else
-            AddNameSourceIfMissing weldingNameSources, weldingBlock.vendorName
-        End If
+        LogWUP "ScanVendorBlocks preferredRatioColumn=" & CStr(preferredRatioColumn)
     End If
 End Sub
-
-' 会社名ソースへ重複・空文字を除いて追加
-Private Sub AddNameSourceIfMissing(ByVal nameSources As Collection, ByVal vendorName As String)
-    Dim normalizedName As String
-    normalizedName = CommonNormalizeText(vendorName)
-    If Len(normalizedName) = 0 Then Exit Sub
-
-    Dim existingName As Variant
-    For Each existingName In nameSources
-        If StrComp(CommonNormalizeText(CStr(existingName)), normalizedName, vbTextCompare) = 0 Then Exit Sub
-    Next existingName
-
-    nameSources.Add vendorName
-End Sub
-
-' 会社名ソースを業者マスタ(B列一致→A列値)へ解決し、複数社は「・」で結合
-Private Function BuildWeldingDisplayName(ByVal nameSources As Collection, _
-                                         ByVal vendorUnitPriceNameMap As Object) As String
-    Dim nameValue As Variant
-    Dim result As String
-    For Each nameValue In nameSources
-        Dim resolvedName As String
-        resolvedName = ResolveVendorUnitPriceNameWUP(vendorUnitPriceNameMap, CStr(nameValue))
-        If Len(resolvedName) > 0 Then
-            If Len(result) > 0 Then result = result & MiddleDotText()
-            result = result & resolvedName
-        End If
-    Next nameValue
-    BuildWeldingDisplayName = result
-End Function
 
 Private Function GetVendorBlockCountWUP(ByVal wsInfo As Worksheet) As Long
     Dim countValue As Long
@@ -1811,11 +1790,10 @@ End Function
 
 Private Function WarnWeldingBlockText(ByRef weldingBlock As WeldingVendorBlock) As String
     If weldingBlock.valueColumn = 0 Then
-        WarnWeldingBlockText = "基本情報に「溶接工事」のブロックも、31行目に溶接外注比率を持つ「軌道工事」のブロックも見つかりません。" & vbCrLf & _
-                               "溶接施工会社の単価列(G/H列)は作成されません。"
+        WarnWeldingBlockText = "基本情報に「溶接工事」の業者ブロックが見つかりません。"
     Else
         WarnWeldingBlockText = "基本情報の溶接外注比率(31行目)が未入力です。" & vbCrLf & _
-                               "溶接施工会社の単価列(G/H列)は作成されません。"
+                               "会社=[" & weldingBlock.vendorName & "] の溶接単価列は作成されません。"
     End If
 End Function
 
