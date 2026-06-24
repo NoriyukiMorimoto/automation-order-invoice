@@ -88,7 +88,8 @@ Private Const IMPORTED_UNIT_PRICE_MERGE_FIRST_ROW As Long = 1   ' A~FŒ‹‡‘ÎÛ‚ÌŠ
 Private Const IMPORTED_UNIT_PRICE_MERGE_LAST_ROW As Long = 2    ' A~FŒ‹‡‘ÎÛ‚ÌI—¹s(2s–Ú)
 Private Const IMPORTED_UNIT_PRICE_MERGE_FIRST_COL As Long = 1   ' A—ñ
 Private Const IMPORTED_UNIT_PRICE_MERGE_LAST_COL As Long = 6    ' F—ñ
-Private Const IMPORTED_UNIT_PRICE_COL_A_WIDTH As Double = 10#   ' A—ñ‚ÌƒZƒ‹•
+Private Const IMPORTED_UNIT_PRICE_COL_A_WIDTH As Double = 10#   ' A—ñ‚ÌƒZƒ‹•iH–’P‰¿E—nÚ’P‰¿j
+Private Const PURCHASE_IMPORTED_UNIT_PRICE_COL_A_WIDTH As Double = 13#   ' A—ñ‚ÌƒZƒ‹•iw“ü[“–’P‰¿j
 Private Const IMPORTED_UNIT_PRICE_LEFT_ALIGN_ROW_FIRST As Long = 3  ' B3
 Private Const IMPORTED_UNIT_PRICE_LEFT_ALIGN_ROW_LAST As Long = 4   ' B4
 
@@ -1199,6 +1200,7 @@ Private Function ImportAndMergePurchaseUnitPriceSheets(ByVal sourceFilePath As S
         newSheet.Tab.Color = RGB(PURCHASE_SHEET_TAB_R, PURCHASE_SHEET_TAB_G, PURCHASE_SHEET_TAB_B)
         MarkImportedUnitPriceSheet newSheet
         ApplyImportedUnitPriceSheetFormat newSheet
+        newSheet.Columns(IMPORTED_UNIT_PRICE_MERGE_FIRST_COL).ColumnWidth = PURCHASE_IMPORTED_UNIT_PRICE_COL_A_WIDTH
         DeleteWorksheetIfExists targetBook, newSheetName, newSheet
         newSheet.Name = MakeUniqueWorksheetName(targetBook, newSheetName, newSheet.Name)
     End If
