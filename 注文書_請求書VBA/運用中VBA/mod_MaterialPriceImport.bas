@@ -891,34 +891,114 @@ Private Function ResolveUnitPriceFolderName(ByVal priceKind As String) As String
     End If
 End Function
 
-Private Function LoadWorksheetNamesFromWorkbook(ByVal sourceFilePath As String) As Collection
+Private Function NormalizeWorkbookPathForCompare(ByVal filePath As String) As String
+    Dim trimmedPath As String
+    trimmedPath = Trim$(filePath)
+    If trimmedPath = "" Then Exit Function
+
+    On Error GoTo Fallback
+    Dim fso As Object
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If fso.FileExists(trimmedPath) Then
+        NormalizeWorkbookPathForCompare = LCase$(fso.GetAbsolutePathName(trimmedPath))
+        Exit Function
+    End If
+
+Fallback:
+    NormalizeWorkbookPathForCompare = LCase$(Replace$(trimmedPath, "/", "\"))
+End Function
+
+Private Function FindOpenWorkbookByPath(ByVal sourceFilePath As String) As Workbook
+    Dim normalizedPath As String
+    normalizedPath = NormalizeWorkbookPathForCompare(sourceFilePath)
+    If normalizedPath = "" Then Exit Function
+
+    Dim wb As Workbook
+    For Each wb In Application.Workbooks
+        If NormalizeWorkbookPathForCompare(wb.FullName) = normalizedPath Then
+            Set FindOpenWorkbookByPath = wb
+            Exit Function
+        End If
+    Next wb
+End Function
+
+Private Function LoadWorksheetNamesFromWorkbookByAdo(ByVal sourceFilePath As String) As Collection
+    Dim cn As Object
+
+    On Error GoTo ErrorHandler
+    Set cn = CommonOpenExcelAdoConnection(sourceFilePath)
+    If cn Is Nothing Then Exit Function
+
+    Set LoadWorksheetNamesFromWorkbookByAdo = CommonGetAdoWorksheetNames(cn)
+
+Cleanup:
+    CommonCloseAdoConnection cn
+    Exit Function
+
+ErrorHandler:
+    Set LoadWorksheetNamesFromWorkbookByAdo = Nothing
+    Resume Cleanup
+End Function
+
+Private Function LoadWorksheetNamesFromWorkbookByExcel(ByVal sourceFilePath As String) As Collection
     Dim sourceBook As Workbook
     Dim sourceSheet As Worksheet
     Dim result As Collection
+    Dim openedByThisCall As Boolean
+    Dim previousDisplayAlerts As Boolean
     Dim previousScreenUpdating As Boolean
 
     On Error GoTo ErrorHandler
+    previousDisplayAlerts = Application.DisplayAlerts
     previousScreenUpdating = Application.screenUpdating
+    Application.DisplayAlerts = False
     Application.screenUpdating = False
 
-    Set sourceBook = Workbooks.Open(fileName:=sourceFilePath, ReadOnly:=True, UpdateLinks:=False, AddToMru:=False)
+    Set sourceBook = FindOpenWorkbookByPath(sourceFilePath)
+    If sourceBook Is Nothing Then
+        Set sourceBook = Workbooks.Open(fileName:=sourceFilePath, ReadOnly:=True, UpdateLinks:=False, AddToMru:=False)
+        openedByThisCall = True
+    End If
+    If sourceBook Is Nothing Then Err.Raise 91
+
     Set result = New Collection
-    For Each sourceSheet In sourceBook.worksheets
+    For Each sourceSheet In sourceBook.Worksheets
         result.Add sourceSheet.Name
     Next sourceSheet
-    Set LoadWorksheetNamesFromWorkbook = result
+    If result.Count = 0 Then Err.Raise 91
+
+    Set LoadWorksheetNamesFromWorkbookByExcel = result
 
 Cleanup:
     On Error Resume Next
-    If Not sourceBook Is Nothing Then sourceBook.Close SaveChanges:=False
+    If openedByThisCall Then
+        If Not sourceBook Is Nothing Then sourceBook.Close SaveChanges:=False
+    End If
+    Application.DisplayAlerts = previousDisplayAlerts
     Application.screenUpdating = previousScreenUpdating
     On Error GoTo 0
     Exit Function
 
 ErrorHandler:
-    Set LoadWorksheetNamesFromWorkbook = Nothing
+    Set LoadWorksheetNamesFromWorkbookByExcel = Nothing
     MsgBox UiMsgUnitPriceBookOpenFailedText() & vbCrLf & sourceFilePath & vbCrLf & Err.Description, vbExclamation
     Resume Cleanup
+End Function
+
+Private Function LoadWorksheetNamesFromWorkbook(ByVal sourceFilePath As String) As Collection
+    Dim result As Collection
+
+    If Len(Trim$(sourceFilePath)) = 0 Then Exit Function
+
+    Set result = LoadWorksheetNamesFromWorkbookByAdo(sourceFilePath)
+    If Not result Is Nothing Then
+        If result.Count > 0 Then
+            Set LoadWorksheetNamesFromWorkbook = result
+            Exit Function
+        End If
+    End If
+
+    Set LoadWorksheetNamesFromWorkbook = LoadWorksheetNamesFromWorkbookByExcel(sourceFilePath)
 End Function
 
 Private Function LoadWorksheetNameCandidatesFromWorkbooks(ByVal sourceFilePaths As Collection, _
