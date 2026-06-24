@@ -277,7 +277,29 @@ Private Sub ApplyPendingWorkTypeFill(ByVal cell As Range)
 End Sub
 
 Private Sub ClearRow30(ByVal ws As Worksheet, ByVal colNum As Long)
-    ApplyRow30PendingState ws, colNum
+    ' 会社数外(F9件数超過)の列は #F1A983 にせず、未使用ブロックと同様に暗色へ戻す
+    Dim labelCol As Long
+    Dim spacerCol As Long
+    labelCol = colNum - 1
+    spacerCol = colNum + 1
+
+    ClearRailPatternValidation GuideWritableCell(ws, ROW_RAIL_PATTERN, colNum)
+    ClearInactiveVendorCell ws, ROW_RAIL_PATTERN, labelCol
+    ClearInactiveVendorCell ws, ROW_RAIL_PATTERN, colNum
+    ClearInactiveVendorCell ws, ROW_RAIL_PATTERN, spacerCol
+End Sub
+
+Private Sub ClearInactiveVendorCell(ByVal ws As Worksheet, ByVal rowNum As Long, ByVal colNum As Long)
+    On Error Resume Next
+    RemoveDiagonalBorders GuideWritableCell(ws, rowNum, colNum)
+    With GuideWritableCell(ws, rowNum, colNum)
+        .ClearContents
+        .Comment.Delete
+        .Interior.Pattern = xlSolid
+        .Interior.Color = COLOR_FILLED
+        .Font.Color = COLOR_FILLED_FONT
+    End With
+    On Error GoTo 0
 End Sub
 
 Private Sub ApplyRailPatternValidation(ByVal targetCell As Range)
