@@ -2401,13 +2401,13 @@ Private Function GetUnitPriceDataRootPath() As String
     Dim masterFilePath As String
     masterFilePath = GetMasterFilePath()
     If masterFilePath <> "" Then
-        GetUnitPriceDataRootPath = fso.BuildPath(fso.GetParentFolderName(fso.GetParentFolderName(masterFilePath)), _
+        GetUnitPriceDataRootPath = fso.BuildPath(fso.GetParentFolderName(masterFilePath), _
                                    UnitPriceMasterFolderText() & "\" & UNIT_PRICE_DATA_FOLDER)
         Exit Function
     End If
     If Len(ThisWorkbook.Path) > 0 Then
         GetUnitPriceDataRootPath = fso.BuildPath(fso.GetParentFolderName(ThisWorkbook.Path), _
-                                   UnitPriceMasterFolderText() & "\" & UNIT_PRICE_DATA_FOLDER)
+                                   MasterDataFolderText() & "\" & UnitPriceMasterFolderText() & "\" & UNIT_PRICE_DATA_FOLDER)
     End If
 End Function
 
