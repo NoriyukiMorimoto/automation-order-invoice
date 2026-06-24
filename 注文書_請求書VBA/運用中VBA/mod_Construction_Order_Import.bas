@@ -4902,14 +4902,16 @@ Private Function BuildWeldingLookupKey(ByVal seiriValue As Variant) As String
         Dim seiriNumber As Long
         seiriNumber = CLng(CDbl(keyText))
         ' 5Œ…‚Ì®—”Ô†‚Í‰º4Œ…‚ğ—nÚ’P‰¿ƒV[ƒg‚Ì®—”Ô†‚Æ‚µ‚ÄÆ‡‚·‚éB
+        ' ‰º4Œ…‚Ìæ“ªƒ[ƒ‚Íœ‹‚µ‚Ä³‹K‰»‚·‚é(—á:20130->0130->130)B
+        ' ’P‰¿ƒV[ƒg‘¤‚ªæ“ªƒ[ƒ–³‚µ(130)‚ÅŠi”[‚³‚ê‚Ä‚¢‚Ä‚àˆê’v‚³‚¹‚é‚½‚ßB
         If seiriNumber >= 10000 And seiriNumber <= 99999 Then
-            BuildWeldingLookupKey = Right$(Format$(seiriNumber, "00000"), 4)
+            BuildWeldingLookupKey = CStr(CLng(Right$(Format$(seiriNumber, "00000"), 4)))
         Else
             BuildWeldingLookupKey = CStr(seiriNumber)
         End If
     Else
         If Len(keyText) = 5 And IsNumeric(keyText) Then
-            BuildWeldingLookupKey = Right$(keyText, 4)
+            BuildWeldingLookupKey = CStr(CLng(Right$(keyText, 4)))
         Else
             BuildWeldingLookupKey = keyText
         End If
