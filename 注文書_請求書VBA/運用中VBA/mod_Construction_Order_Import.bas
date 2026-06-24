@@ -100,7 +100,7 @@ Private Const PRICE_LINE_START_ROW As Long = 2
 Private Const PURCHASE_PRICE_SHEET_SUFFIX As String = "_購入充当単価"
 
 ' 対象線区(単価)シートの列構成。COL_SEIRI(=2,B)を整理番号キーとする。
-Private Const UNIT_PRICE_WORK_TYPE_COL As Long = 1   ' A 工種
+Private Const UNIT_PRICE_WORK_KIND_COL As Long = 1   ' A 工種
 Private Const UNIT_PRICE_TYPE_COL As Long = 3        ' C 種別
 Private Const UNIT_PRICE_UNIT_COL As Long = 4        ' D 単位
 Private Const UNIT_PRICE_DAY_PRICE_COL As Long = 5   ' E 昼単価
@@ -3784,7 +3784,7 @@ Private Sub AppendMissingSeiriToLineSheet(ByVal lineSheetName As String, _
     Dim lastAppendRow As Long
     lastAppendRow = firstRow + rowsToAdd.Count - 1
 
-    lineWs.Range(lineWs.Cells(firstRow, UNIT_PRICE_WORK_TYPE_COL), _
+    lineWs.Range(lineWs.Cells(firstRow, UNIT_PRICE_WORK_KIND_COL), _
                  lineWs.Cells(lastAppendRow, UNIT_PRICE_UNIT_COL)).value = writeArr
 
     HighlightLineSheetPriceCellsUntilFilled lineWs, firstRow, lastAppendRow
