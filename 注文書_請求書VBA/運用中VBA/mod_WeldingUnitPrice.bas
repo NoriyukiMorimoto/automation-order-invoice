@@ -278,6 +278,7 @@ Cleanup:
 End Sub
 
 ' 施工会社数減少で外れるブロックに溶接/軌道の設定が含まれるか判定する。
+' 未入力の空ブロック(会社名・工事種別・比率すべて空)は除外し、不要な全展開を避ける。
 Public Function RemovedVendorIndicesRequireWeldingRefresh(ByVal wsInfo As Worksheet, _
                                                           ByVal firstRemovedIndex As Long, _
                                                           ByVal lastRemovedIndex As Long) As Boolean
@@ -289,21 +290,25 @@ Public Function RemovedVendorIndicesRequireWeldingRefresh(ByVal wsInfo As Worksh
         Dim valueColumn As Long
         valueColumn = BASIC_INFO_VENDOR_BLOCK_VALUE_COL + ((i - 1) * BASIC_INFO_VENDOR_BLOCK_STEP_COLS)
 
+        Dim vendorName As String
         Dim workTypeText As String
+        vendorName = Trim$(CStr(wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, valueColumn).Value))
         workTypeText = NormalizeMatchTextWUP(CStr(wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, valueColumn).Value))
 
+        If Len(vendorName) = 0 And Len(workTypeText) = 0 Then
+            If Len(Trim$(CStr(wsInfo.Cells(BASIC_INFO_WELDING_RATIO_ROW, valueColumn).Value))) = 0 Then
+                GoTo ContinueNextRemoved
+            End If
+        End If
+
         If StrComp(workTypeText, NormalizeMatchTextWUP(WeldingWorkTypeText()), vbTextCompare) = 0 Then
-            RemovedVendorIndicesRequireWeldingRefresh = True
-            Exit Function
+            If Len(vendorName) > 0 Or _
+               Len(Trim$(CStr(wsInfo.Cells(BASIC_INFO_WELDING_RATIO_ROW, valueColumn).Value))) > 0 Then
+                RemovedVendorIndicesRequireWeldingRefresh = True
+                Exit Function
+            End If
         End If
-        If StrComp(workTypeText, NormalizeMatchTextWUP(RailWorkTypeText()), vbTextCompare) = 0 Then
-            RemovedVendorIndicesRequireWeldingRefresh = True
-            Exit Function
-        End If
-        If Len(Trim$(CStr(wsInfo.Cells(BASIC_INFO_WELDING_RATIO_ROW, valueColumn).Value))) > 0 Then
-            RemovedVendorIndicesRequireWeldingRefresh = True
-            Exit Function
-        End If
+ContinueNextRemoved:
     Next i
 End Function
 
