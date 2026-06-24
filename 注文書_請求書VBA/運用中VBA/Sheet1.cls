@@ -66,7 +66,6 @@ Private Sub Worksheet_Change(ByVal target As Range)
     If Not Intersect(target, Me.Range("F9")) Is Nothing Then
         mod_VendorMaster.SyncVendorBlocksFromCount Me
         Set vendorNameRange = mod_VendorMaster.GetVendorNameRange(Me)
-        mod_Construction_Order_Import.RefreshBasicInfoConstructionTotals
     End If
 
     If Not Intersect(target, Me.Range("B6,C6")) Is Nothing Then
