@@ -534,10 +534,6 @@ Public Sub SyncVendorBlocksFromCount(ByVal wsInfo As Worksheet)
     wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, BASIC_INFO_VENDOR_BLOCK_LABEL_COL).value = VendorInfoHeaderText(1)
     ApplyVendorBlockColumnWidths wsInfo, vendorCount
 
-    Dim sourceBlock As Range
-    Set sourceBlock = wsInfo.Range(wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, BASIC_INFO_VENDOR_BLOCK_LABEL_COL), _
-                                   wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_BOTTOM_ROW, BASIC_INFO_VENDOR_BLOCK_VALUE_COL))
-
     Dim i As Long
     Dim startIndex As Long
     If vendorCount > previousCount Then
@@ -547,14 +543,7 @@ Public Sub SyncVendorBlocksFromCount(ByVal wsInfo As Worksheet)
     End If
 
     For i = startIndex To vendorCount
-        Dim destBlock As Range
-        Set destBlock = wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, VendorLabelColumnByIndex(i)).Resize(sourceBlock.rows.Count, sourceBlock.Columns.Count)
-        sourceBlock.Copy Destination:=destBlock
-        destBlock.Cells(1, 1).value = VendorInfoHeaderText(i)
-        ClearVendorInfoBlock VendorNameCellByIndex(wsInfo, i)
-        CopyVendorBlockFormatsFromTemplate wsInfo, i
-        CopyVendorBlockTotalRowsFromTemplate wsInfo, i
-        CopyVendorWorkTypeFromTemplate wsInfo, i
+        CopyVendorBlockFromTemplate wsInfo, i
     Next i
 
     For i = 2 To vendorCount
@@ -593,7 +582,18 @@ Public Sub SyncVendorBlocksFromCount(ByVal wsInfo As Worksheet)
     End If
     mLastVendorBlockCount = vendorCount
 
-    mod_BasicInfoGuide.RefreshVendorGuidesForBasicInfo wsInfo
+    If vendorCount > previousCount Then
+        Dim restoreIndex As Long
+        For restoreIndex = Application.Max(2, previousCount + 1) To vendorCount
+            RestoreVendorBlockPresentationFromTemplate wsInfo, restoreIndex
+            mod_BasicInfoGuide.RefreshSingleVendorRowGuidePublic wsInfo, restoreIndex
+        Next restoreIndex
+        If previousCount <= 0 Then
+            mod_BasicInfoGuide.RefreshSingleVendorRowGuidePublic wsInfo, 1
+        End If
+    Else
+        mod_BasicInfoGuide.RefreshVendorGuidesForBasicInfo wsInfo
+    End If
 
     If vendorCount < previousCount And needWeldingRefresh Then
         On Error Resume Next
@@ -1864,6 +1864,127 @@ Private Sub ApplyVendorRow10ValueCellFormat(ByVal valueCell As Range)
     If vendorIndex <= 0 Then Exit Sub
 
     mod_VendorInfoColors.ApplyVendorInfoRow10Color valueCell.Worksheet, vendorIndex
+End Sub
+
+Private Sub CopyVendorBlockFromTemplate(ByVal wsInfo As Worksheet, ByVal destVendorIndex As Long)
+    If wsInfo Is Nothing Then Exit Sub
+    If destVendorIndex < 2 Then Exit Sub
+
+    Dim sourceRange As Range
+    Dim destRange As Range
+    Set sourceRange = VendorBlockRangeByIndex(wsInfo, 1)
+    Set destRange = VendorBlockRangeByIndex(wsInfo, destVendorIndex)
+
+    SafeUnmergeRange destRange
+    sourceRange.Copy Destination:=destRange
+    Application.CutCopyMode = False
+
+    wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, VendorLabelColumnByIndex(destVendorIndex)).value = VendorInfoHeaderText(destVendorIndex)
+
+    ClearVendorInfoBlock VendorNameCellByIndex(wsInfo, destVendorIndex)
+    CopyVendorWorkTypeFromTemplate wsInfo, destVendorIndex
+
+    wsInfo.Cells(BASIC_INFO_VENDOR_PURCHASE_TOTAL_ROW, VendorValueColumnByIndex(destVendorIndex)).ClearContents
+    wsInfo.Cells(BASIC_INFO_VENDOR_TOTAL_ROW, VendorValueColumnByIndex(destVendorIndex)).ClearContents
+End Sub
+
+Private Function VendorBlockRangeByIndex(ByVal wsInfo As Worksheet, ByVal vendorIndex As Long) As Range
+    Set VendorBlockRangeByIndex = wsInfo.Range( _
+        wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, VendorLabelColumnByIndex(vendorIndex)), _
+        wsInfo.Cells(BASIC_INFO_VENDOR_TOTAL_ROW, VendorSpacerColumnByIndex(vendorIndex)))
+End Function
+
+Private Sub RestoreVendorBlockPresentationFromTemplate(ByVal wsInfo As Worksheet, ByVal destVendorIndex As Long)
+    If wsInfo Is Nothing Then Exit Sub
+    If destVendorIndex < 2 Then Exit Sub
+
+    Dim sourceRange As Range
+    Dim destRange As Range
+    Set sourceRange = VendorBlockRangeByIndex(wsInfo, 1)
+    Set destRange = VendorBlockRangeByIndex(wsInfo, destVendorIndex)
+
+    CopyRangeBorders sourceRange, destRange
+    RestoreVendorBlockLabelTextsFromTemplate wsInfo, destVendorIndex
+
+    Dim srcLabelCol As Long
+    Dim dstLabelCol As Long
+    Dim srcSpacerCol As Long
+    Dim dstSpacerCol As Long
+    srcLabelCol = VendorLabelColumnByIndex(1)
+    dstLabelCol = VendorLabelColumnByIndex(destVendorIndex)
+    srcSpacerCol = VendorSpacerColumnByIndex(1)
+    dstSpacerCol = VendorSpacerColumnByIndex(destVendorIndex)
+
+    CopyRangeFormats wsInfo.Range(wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, srcLabelCol), _
+                                  wsInfo.Cells(BASIC_INFO_VENDOR_TOTAL_ROW, srcLabelCol)), _
+                     wsInfo.Range(wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, dstLabelCol), _
+                                  wsInfo.Cells(BASIC_INFO_VENDOR_TOTAL_ROW, dstLabelCol))
+    CopyRangeFormats wsInfo.Range(wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, srcSpacerCol), _
+                                  wsInfo.Cells(BASIC_INFO_VENDOR_TOTAL_ROW, srcSpacerCol)), _
+                     wsInfo.Range(wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, dstSpacerCol), _
+                                  wsInfo.Cells(BASIC_INFO_VENDOR_TOTAL_ROW, dstSpacerCol))
+End Sub
+
+Private Sub RestoreVendorBlockLabelTextsFromTemplate(ByVal wsInfo As Worksheet, ByVal destVendorIndex As Long)
+    Dim srcLabelCol As Long
+    Dim dstLabelCol As Long
+    srcLabelCol = VendorLabelColumnByIndex(1)
+    dstLabelCol = VendorLabelColumnByIndex(destVendorIndex)
+
+    Dim rowIndex As Long
+    For rowIndex = BASIC_INFO_VENDOR_BLOCK_TOP_ROW + 1 To BASIC_INFO_VENDOR_BLOCK_BOTTOM_ROW
+        If rowIndex <> 30 Then
+            wsInfo.Cells(rowIndex, dstLabelCol).value = wsInfo.Cells(rowIndex, srcLabelCol).value
+        End If
+    Next rowIndex
+
+    For rowIndex = BASIC_INFO_VENDOR_PURCHASE_TOTAL_ROW To BASIC_INFO_VENDOR_TOTAL_ROW
+        wsInfo.Cells(rowIndex, dstLabelCol).value = wsInfo.Cells(rowIndex, srcLabelCol).value
+    Next rowIndex
+End Sub
+
+Private Sub CopyRangeFormats(ByVal sourceRange As Range, ByVal destRange As Range)
+    If sourceRange Is Nothing Then Exit Sub
+    If destRange Is Nothing Then Exit Sub
+    If sourceRange.Rows.Count <> destRange.Rows.Count Then Exit Sub
+    If sourceRange.Columns.Count <> destRange.Columns.Count Then Exit Sub
+
+    sourceRange.Copy
+    destRange.PasteSpecial Paste:=xlPasteFormats
+    Application.CutCopyMode = False
+End Sub
+
+Private Sub CopyRangeBorders(ByVal sourceRange As Range, ByVal destRange As Range)
+    If sourceRange Is Nothing Then Exit Sub
+    If destRange Is Nothing Then Exit Sub
+    If sourceRange.Rows.Count <> destRange.Rows.Count Then Exit Sub
+    If sourceRange.Columns.Count <> destRange.Columns.Count Then Exit Sub
+
+    Dim rowOffset As Long
+    Dim colOffset As Long
+    Dim edgeIndex As Long
+    Dim borderEdgeIds As Variant
+    borderEdgeIds = Array(xlEdgeLeft, xlEdgeTop, xlEdgeBottom, xlEdgeRight, _
+                          xlInsideVertical, xlInsideHorizontal)
+
+    For rowOffset = 1 To sourceRange.Rows.Count
+        For colOffset = 1 To sourceRange.Columns.Count
+            Dim sourceCell As Range
+            Dim destCell As Range
+            Set sourceCell = sourceRange.Cells(rowOffset, colOffset)
+            Set destCell = destRange.Cells(rowOffset, colOffset)
+
+            For edgeIndex = LBound(borderEdgeIds) To UBound(borderEdgeIds)
+                On Error Resume Next
+                With destCell.Borders(borderEdgeIds(edgeIndex))
+                    .LineStyle = sourceCell.Borders(borderEdgeIds(edgeIndex)).LineStyle
+                    .Weight = sourceCell.Borders(borderEdgeIds(edgeIndex)).Weight
+                    .Color = sourceCell.Borders(borderEdgeIds(edgeIndex)).Color
+                End With
+                On Error GoTo 0
+            Next edgeIndex
+        Next colOffset
+    Next rowOffset
 End Sub
 
 Private Sub CopyVendorBlockFormatsFromTemplate(ByVal wsInfo As Worksheet, ByVal destVendorIndex As Long)
