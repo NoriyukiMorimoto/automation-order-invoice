@@ -10,7 +10,7 @@ Option Explicit
 '              Æ‡ƒL[ = ®—”Ô†(—nÚ’P‰¿ƒV[ƒgB—ñ = ƒ}ƒXƒ^—nÚèŒ³Š„‡ƒV[ƒgA—ñ)
 '              ’P‰¿ = JR’P‰¿ ~(100/100.7) ~ èŒ³Š„‡(ƒ}ƒXƒ^’‹E/–éF) ~ ‹O“¹ŠO’”ä—¦(Šî–{î•ñ31s)
 '                     ‹O“¹ŠO’”ä—¦: 1Ğ–ÚF31 / 2Ğ–ÚI31 c(3—ñ‚¸‚Â‰E)
-'                     Šî–{î•ñC23=—nÚH–‚ ‚è‚ÌA‹O“¹H–ƒuƒƒbƒN‚Ì31s–Ú‚ª‹ó—“‚È‚ç60.1%‚ğŠù’è“ü—Í(è“ü—Í‚Í‘¸d)
+'                     ‹O“¹’P‰¿ƒpƒ^[ƒ“: 1Ğ–ÚF30 / 2Ğ–ÚI30 c(3—ñ‚¸‚Â‰E)
 '                     1s–Ú: ’‹—ñ=uŠO’”ä—¦v/ –é—ñ=Šî–{î•ñ‚Ì“–Ğ—ñ31s–Ú(F31“™)QÆ
 '                     ŠÛ‚ß: ®”•”4Œ…ˆÈã‚ÍãˆÊ3Œ…{ˆÈ~0–„‚ß(Ø‚èÌ‚Ä3Œ…)A3Œ…ˆÈ‰º‚ÍROUNDDOWN
 '              4s–Úƒwƒbƒ_[=(‰ñ”)(”N“x)—nÚèŒ³’P‰¿
@@ -32,9 +32,9 @@ Private Const BASIC_INFO_VENDOR_BLOCK_TOP_ROW As Long = 10    ' H–í•Ê(‹O“¹H
 Private Const BASIC_INFO_VENDOR_NAME_ROW As Long = 11         ' ‰ïĞ–¼
 Private Const BASIC_INFO_RAIL_RATIO_ROW As Long = 29          ' ‹O“¹H–ŠO’”ä—¦
 Private Const BASIC_INFO_WELDING_RATIO_ROW As Long = 31       ' —nÚH–ŠO’”ä—¦
+Private Const BASIC_INFO_RAIL_PATTERN_ROW As Long = 30        ' ‹O“¹H– —nÚèŒ³’P‰¿ƒpƒ^[ƒ“
 Private Const BASIC_INFO_WELDING_FLAG_ROW As Long = 23        ' —nÚH–—L–³ƒtƒ‰ƒO(C23)
 Private Const BASIC_INFO_WELDING_FLAG_COL As Long = 3         ' C—ñ
-Private Const WUP_RAIL_FIXED_RATIO As Double = 0.601          ' ‹O“¹H–ƒuƒƒbƒN31s–Ú‚Ö“ü—Í‚·‚éŒÅ’è”ä—¦(60.1%)
 Private Const BASIC_INFO_VENDOR_BLOCK_VALUE_COL As Long = 6   ' F—ñ(1Ğ–Ú)
 Private Const BASIC_INFO_VENDOR_BLOCK_STEP_COLS As Long = 3
 Private Const BASIC_INFO_VENDOR_COUNT_CELL As String = "F9"
@@ -78,6 +78,7 @@ Private Type WeldingVendorBlock
     valueColumn As Long       ' Šî–{î•ñƒV[ƒgã‚Ì’l—ñ(F/I/L...)
     vendorName As String
     ratioAddress As String    ' 'Šî–{î•ñ'!$L$31 “™(”®QÆ—p)
+    patternAddress As String  ' 'Šî–{î•ñ'!$F$30 “™(‹O“¹’P‰¿ƒpƒ^[ƒ“QÆ—p)
     ratioPercent As Variant   ' 0`1 ³‹K‰»Ï‚İ(•\¦—p)
     hasRatio As Boolean
 End Type
@@ -141,14 +142,7 @@ Public Sub ApplyWeldingVendorUnitPricesForBasicInfo(Optional ByVal wsInfo As Wor
         warningTexts.Add "Šî–{î•ñ‚Éu‹O“¹H–v‚Ì‹ÆÒƒuƒƒbƒN‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB"
     End If
 
-    ' --- Šî–{î•ñC23=—nÚH–‚ ‚è‚Ìê‡A‹O“¹H–ƒuƒƒbƒN‚Ì31s–Ú‚ÖŒÅ’è”ä—¦(60.1%)‚ğ“ü—Í ---
-    ' (ScanVendorBlocksŒã‚ÉÀsB‘–¸‚Ì—nÚƒuƒƒbƒN”»’è‚É‚Í‰e‹¿‚³‚¹‚È‚¢)
-    Dim railRatioWritten As Boolean
-    railRatioWritten = WriteRailOutsourceRatioToBasicInfo(wsInfo)
-    LogWUP "‹O“¹31s–Ú”ä—¦(60.1%)“ü—Í=" & CStr(railRatioWritten)
-
-    ' ‹O“¹‰ïĞƒuƒƒbƒN‚Ì”ä—¦QÆ‚ğ29s–Ú¨31s–Ú‚ÖØ‘Ö(60.1%“ü—ÍŒã‚ÉÄ\’z)B
-    ' ‚±‚ê‚É‚æ‚è”®E1s–Ú‚Æ‚àŠî–{î•ñ!$<—ñ>$31 ‚ğQÆ‚·‚éB
+    ' ‹O“¹‰ïĞƒuƒƒbƒN‚Ì”ä—¦QÆ(31s–Ú)Eƒpƒ^[ƒ“QÆ(30s–Ú)‚ğÄ\’z
     Dim rbIndex As Long
     For rbIndex = 1 To railBlockCount
         railBlocks(rbIndex) = BuildVendorBlock(wsInfo, railBlocks(rbIndex).valueColumn, _
@@ -295,8 +289,6 @@ Public Sub ApplyWeldingVendorUnitPricesForBasicInfoColumns(ByVal wsInfo As Works
     Dim railBlockCount As Long
     Set weldingNameSources = New Collection
     ScanVendorBlocks wsInfo, weldingBlock, weldingNameSources, railBlocks, railBlockCount, preferredRatioColumn
-
-    WriteRailOutsourceRatioToBasicInfo wsInfo
 
     Dim rbIndex As Long
     For rbIndex = 1 To railBlockCount
@@ -608,9 +600,11 @@ Private Sub ApplyWeldingVendorDataRowsBatch(ByVal wsWelding As Worksheet, _
                         Dim temotoPair As Variant
                         temotoPair = temotoMap(seiriKey)
                         dayF = BuildWeldingDataCellFormula(wsWelding, rowIndex, WUP_JR_DAY_COL, _
-                                   src(r, COL_JR_DAY), temotoPair(0), block.ratioAddress, isWeldingVendor)
+                                   src(r, COL_JR_DAY), temotoPair(0), block.ratioAddress, _
+                                   block.patternAddress, isWeldingVendor)
                         nightF = BuildWeldingDataCellFormula(wsWelding, rowIndex, WUP_JR_NIGHT_COL, _
-                                   src(r, COL_JR_NIGHT), temotoPair(1), block.ratioAddress, isWeldingVendor)
+                                   src(r, COL_JR_NIGHT), temotoPair(1), block.ratioAddress, _
+                                   block.patternAddress, isWeldingVendor)
                     End If
                 End If
             End If
@@ -660,6 +654,7 @@ Private Function BuildWeldingDataCellFormula(ByVal wsWelding As Worksheet, _
                                              ByVal jrValue As Variant, _
                                              ByVal temotoRatio As Variant, _
                                              ByVal ratioAddress As String, _
+                                             ByVal patternAddress As String, _
                                              ByVal isWeldingVendor As Boolean) As String
     If Len(Trim$(CStr(CommonNzText(jrValue)))) = 0 Then Exit Function
     If Not IsNumeric(temotoRatio) Then Exit Function
@@ -669,7 +664,7 @@ Private Function BuildWeldingDataCellFormula(ByVal wsWelding As Worksheet, _
                                           CDbl(temotoRatio), ratioAddress, isWeldingVendor)
     Else
         BuildWeldingDataCellFormula = BuildRailMarkupFormula(wsWelding, rowIndex, sourceCol, _
-                                          CDbl(temotoRatio), ratioAddress)
+                                          CDbl(temotoRatio), ratioAddress, patternAddress)
     End If
 End Function
 
@@ -738,9 +733,9 @@ Private Sub ApplyWeldingVendorRow(ByVal wsWelding As Worksheet, _
     Else
         ' ‹O“¹‰ïĞ: (JR~100/100.7)~èŒ³Š„‡(’‹E/–éF)~‹O“¹ŠO’”ä—¦(Šî–{î•ñ31s)
         ApplyRailMarkupCell wsWelding.Cells(rowIndex, dayCol), wsWelding, rowIndex, _
-                            WUP_JR_DAY_COL, temotoPair(0), block.ratioAddress
+                            WUP_JR_DAY_COL, temotoPair(0), block.ratioAddress, block.patternAddress
         ApplyRailMarkupCell wsWelding.Cells(rowIndex, nightCol), wsWelding, rowIndex, _
-                            WUP_JR_NIGHT_COL, temotoPair(1), block.ratioAddress
+                            WUP_JR_NIGHT_COL, temotoPair(1), block.ratioAddress, block.patternAddress
     End If
 End Sub
 
@@ -820,7 +815,8 @@ Private Sub ApplyRailMarkupCell(ByVal targetCell As Range, _
                                 ByVal rowIndex As Long, _
                                 ByVal sourceCol As Long, _
                                 ByVal temotoRatio As Variant, _
-                                ByVal ratioAddress As String)
+                                ByVal ratioAddress As String, _
+                                ByVal patternAddress As String)
     With targetCell
         .ShrinkToFit = False
         .Interior.ColorIndex = xlColorIndexNone
@@ -837,11 +833,11 @@ Private Sub ApplyRailMarkupCell(ByVal targetCell As Range, _
     End If
 
     targetCell.Formula = BuildRailMarkupFormula(wsWelding, rowIndex, sourceCol, _
-                                                CDbl(temotoRatio), ratioAddress)
+                                                CDbl(temotoRatio), ratioAddress, patternAddress)
     targetCell.NumberFormat = WUP_NUMBER_FORMAT
 End Sub
 
-' ‹O“¹‰ïĞ’P‰¿‚Ì”®BF3(ŠO’”ïZoƒpƒ^[ƒ“)‚Ì‘I‘ğ’l‚ÅŒvZ•û®‚ğØ‘Ö‚¦‚éB
+' ‹O“¹‰ïĞ’P‰¿‚Ì”®BŠî–{î•ñ30s–Ú(—nÚèŒ³’P‰¿ƒpƒ^[ƒ“)‚Ì‘I‘ğ’l‚ÅŒvZ•û®‚ğØ‘Ö‚¦‚éB
 '   ‹¤’Ê: jr=JR’P‰¿(E/F) / lit=èŒ³Š„‡(ƒ}ƒXƒ^’‹E/–éF ƒŠƒeƒ‰ƒ‹) / R=‹O“¹ŠO’”ä—¦(Šî–{î•ñ31s)
 '   ¡•¨‰¿w”“K—p : v=(jr~(100/100.7)~lit)~R ‚ğ ®”•”4Œ…ˆÈã‚ÍãˆÊ3Œ…{0–„‚ß(Ø‚èÌ‚Ä3Œ…)A
 '                   3Œ…ˆÈ‰º‚ÍROUNDDOWN‚Å®”‰»B
@@ -849,12 +845,13 @@ End Sub
 '                   (ƒ†[ƒU[w’è®: =IF(J="","",IF(LEN(TEXT(Y*J,"#"))<=3,Y*J,
 '                     ROUND(VALUE(LEFT(TEXT(Y*J,"#"),4)),-1)*10^VALUE(LEN(TEXT(Y*J,"#"))-4))))
 '   ¡‘O”N“x’P‰¿“K—p: –¢’è‹`‚Ì‚½‚ß‹ó—“("")B
-' F3‚ğØ‚è‘Ö‚¦‚é‚ÆExcel‚ÌÄŒvZ‚Å‚»‚Ì‚Ü‚Ü’P‰¿‚ªØ‚è‘Ö‚í‚éB
+' Šî–{î•ñ30s–Ú‚ğØ‚è‘Ö‚¦‚é‚ÆExcel‚ÌÄŒvZ‚Å‚»‚Ì‚Ü‚Ü’P‰¿‚ªØ‚è‘Ö‚í‚éB
 Private Function BuildRailMarkupFormula(ByVal wsWelding As Worksheet, _
                                         ByVal rowIndex As Long, _
                                         ByVal sourceCol As Long, _
                                         ByVal temotoRatio As Double, _
-                                        ByVal ratioAddress As String) As String
+                                        ByVal ratioAddress As String, _
+                                        ByVal patternAddress As String) As String
     Dim q As String
     q = Chr$(34)
 
@@ -863,8 +860,8 @@ Private Function BuildRailMarkupFormula(ByVal wsWelding As Worksheet, _
     Dim lit As String
     lit = RatioLiteralText(temotoRatio)
 
-    Dim f3Ref As String
-    f3Ref = wsWelding.Cells(WUP_PATTERN_ROW, WUP_PATTERN_SELECT_COL).Address(True, True)  ' $F$3
+    Dim patternRef As String
+    patternRef = patternAddress
 
     ' --- •¨‰¿w”“K—p ---
     Dim coreBukka As String
@@ -886,10 +883,10 @@ Private Function BuildRailMarkupFormula(ByVal wsWelding As Worksheet, _
                 "IF(LEN(" & txGaibu & ")<=3," & prodGaibu & "," & _
                 "ROUND(VALUE(LEFT(" & txGaibu & ",4)),-1)*10^VALUE(LEN(" & txGaibu & ")-4)))"
 
-    ' --- F3‚Å•ªŠò(‘O”N“x’P‰¿“K—p‚Í–¢’è‹`‚Ì‚½‚ß‹ó—“) ---
+    ' --- Šî–{î•ñ30s–Ú(ƒpƒ^[ƒ“)‚Å•ªŠò(‘O”N“x’P‰¿“K—p‚Í–¢’è‹`‚Ì‚½‚ß‹ó—“) ---
     BuildRailMarkupFormula = _
-        "=IF(" & f3Ref & "=" & q & PatternOutsourceRatioText() & q & "," & exprGaibu & "," & _
-        "IF(" & f3Ref & "=" & q & PatternPriceIndexText() & q & "," & exprBukka & "," & _
+        "=IF(" & patternRef & "=" & q & PatternOutsourceRatioText() & q & "," & exprGaibu & "," & _
+        "IF(" & patternRef & "=" & q & PatternPriceIndexText() & q & "," & exprBukka & "," & _
         q & q & "))"
 End Function
 
@@ -1034,7 +1031,7 @@ Private Sub ApplyRailMarkupRatioRow(ByVal wsWelding As Worksheet, _
         .VerticalAlignment = xlCenter
     End With
 
-    ' –é—ñ1s–Ú: Šî–{î•ñ‚Ì“–Ğ—ñ31s–Ú‚Ö‚ÌQÆ(—á ='Šî–{î•ñ'!$F$31)B60.1%“™‚ğ•\¦B
+    ' –é—ñ1s–Ú: Šî–{î•ñ‚Ì“–Ğ—ñ31s–Ú‚Ö‚ÌQÆ(—á ='Šî–{î•ñ'!$F$31)
     With wsWelding.Cells(WUP_RATIO_ROW, nightCol)
         If Len(ratioAddress) > 0 Then
             .Formula = "=" & ratioAddress
@@ -1119,13 +1116,13 @@ Private Sub SetupOutsourcePatternSelector(ByVal wsWelding As Worksheet)
     With selectCell.Validation
         .Delete
         .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Operator:=xlBetween, _
-             Formula1:=PatternPrevYearText() & "," & PatternOutsourceRatioText() & "," & PatternPriceIndexText()
+             Formula1:=BasicInfoRailPatternValidationListText()
         .IgnoreBlank = True
         .InCellDropdown = True
         .ShowError = False
     End With
 
-    ' Šù’è’l: ‹ó—“‚È‚çŒ»sƒƒWƒbƒN=•¨‰¿w”“K—p ‚ğİ’è
+    ' Šù’è’l: ‹ó—“‚È‚ç•¨‰¿w”“K—pƒpƒ^[ƒ“‚ğİ’è
     If Len(Trim$(CStr(selectCell.Value))) = 0 Then
         selectCell.Value = PatternPriceIndexText()
     End If
@@ -1136,6 +1133,12 @@ CleanupErr:
 End Sub
 
 ' ŠO’”ïZoƒpƒ^[ƒ“‚Ìƒ‰ƒxƒ‹E‘I‘ğˆ(ƒhƒƒbƒvƒ_ƒEƒ“‚Æ”®‚Ì”äŠr‚Å“¯ˆê•¶š—ñ‚ğg—p)
+Public Function BasicInfoRailPatternValidationListText() As String
+    BasicInfoRailPatternValidationListText = PatternPrevYearText() & "," & _
+                                             PatternOutsourceRatioText() & "," & _
+                                             PatternPriceIndexText()
+End Function
+
 Private Function OutsourcePatternLabelText() As String
     Static cached As String
     If cached = "" Then cached = "ŠO’”ïZoƒpƒ^[ƒ“F"
@@ -1144,19 +1147,28 @@ End Function
 
 Private Function PatternPrevYearText() As String
     Static cached As String
-    If cached = "" Then cached = "‘O”N“x’P‰¿“K—p"
+    If cached = "" Then
+        cached = ChrW$(&H524D) & ChrW$(&H5E74) & ChrW$(&H5EA6) & ChrW$(&H5358) & ChrW$(&H4FA1) & _
+                 ChrW$(&H9069) & ChrW$(&H7528) & ChrW$(&H30D1) & ChrW$(&H30BF) & ChrW$(&H30FC) & ChrW$(&H30F3)
+    End If
     PatternPrevYearText = cached
 End Function
 
 Private Function PatternOutsourceRatioText() As String
     Static cached As String
-    If cached = "" Then cached = "ŠO’”ä—¦“K—p"
+    If cached = "" Then
+        cached = ChrW$(&H5916) & ChrW$(&H6CE8) & ChrW$(&H6BD4) & ChrW$(&H7387) & ChrW$(&H9069) & ChrW$(&H7528) & _
+                 ChrW$(&H30D1) & ChrW$(&H30BF) & ChrW$(&H30FC) & ChrW$(&H30F3)
+    End If
     PatternOutsourceRatioText = cached
 End Function
 
 Private Function PatternPriceIndexText() As String
     Static cached As String
-    If cached = "" Then cached = "•¨‰¿w”“K—p"
+    If cached = "" Then
+        cached = ChrW$(&H7269) & ChrW$(&H4FA1) & ChrW$(&H6307) & ChrW$(&H6570) & ChrW$(&H9069) & ChrW$(&H7528) & _
+                 ChrW$(&H30D1) & ChrW$(&H30BF) & ChrW$(&H30FC) & ChrW$(&H30F3)
+    End If
     PatternPriceIndexText = cached
 End Function
 
@@ -1396,6 +1408,8 @@ Private Function BuildVendorBlock(ByVal wsInfo As Worksheet, _
     result.vendorName = Trim$(CStr(wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, valueColumn).Value))
     result.ratioAddress = "'" & Replace$(wsInfo.Name, "'", "''") & "'!" & _
                           wsInfo.Cells(ratioRow, valueColumn).Address(True, True)
+    result.patternAddress = "'" & Replace$(wsInfo.Name, "'", "''") & "'!" & _
+                            wsInfo.Cells(BASIC_INFO_RAIL_PATTERN_ROW, valueColumn).Address(True, True)
     result.ratioPercent = NormalizeRatioValue(wsInfo.Cells(ratioRow, valueColumn).Value)
     result.hasRatio = IsNumeric(result.ratioPercent)
     BuildVendorBlock = result
@@ -1480,44 +1494,6 @@ Private Function LoadTemotoRatioMap(ByRef loadErrorText As String) As Object
 
 Cleanup:
     CommonCloseAdoConnection cn
-End Function
-
-' Šî–{î•ñC23‚ªu—nÚH–‚ ‚èv‚Ìê‡‚Ì‚İAF—ñˆÈ~3—ñ‚²‚Æ‚Ì‹ÆÒƒuƒƒbƒN‚Ì‚¤‚¿
-' 10s–Ú‚ªu‹O“¹H–v‚ÌƒuƒƒbƒN‚Ì31s–Ú‚ÖŠù’è”ä—¦(60.1%)‚ğ“ü—Í‚·‚éB
-' ¦31s–Ú‚ª‹ó—“‚Ì‚Æ‚«‚¾‚¯“ü—Í‚·‚é(Šù‚É’l‚ª‚ ‚ê‚Îè“ü—Í‚ğ‘¸d‚µ‚Äã‘‚«‚µ‚È‚¢)B
-' ¦ScanVendorBlocksŒã‚ÉŒÄ‚Ô‚±‚Æ(‘–¸‚Ì—nÚƒuƒƒbƒN”»’è‚Ö‰e‹¿‚³‚¹‚È‚¢‚½‚ß)B
-' –ß‚è’l: 1Œ‚Å‚à“ü—Í‚µ‚½‚çTrueB
-Private Function WriteRailOutsourceRatioToBasicInfo(ByVal wsInfo As Worksheet) As Boolean
-    Dim flagText As String
-    flagText = NormalizeMatchTextWUP(CStr(wsInfo.Cells(BASIC_INFO_WELDING_FLAG_ROW, _
-                                                       BASIC_INFO_WELDING_FLAG_COL).Value))
-    If InStr(1, flagText, NormalizeMatchTextWUP(WeldingWorkPresentKeywordText()), vbTextCompare) = 0 Then
-        Exit Function   ' C23‚ªu—nÚH–‚ ‚èv‚Å‚È‚¢ -> ‰½‚à‚µ‚È‚¢
-    End If
-
-    Dim vendorCount As Long
-    vendorCount = GetVendorBlockCountWUP(wsInfo)
-
-    Dim i As Long, valueColumn As Long, workTypeText As String
-    For i = 1 To vendorCount
-        valueColumn = BASIC_INFO_VENDOR_BLOCK_VALUE_COL + ((i - 1) * BASIC_INFO_VENDOR_BLOCK_STEP_COLS)
-        workTypeText = NormalizeMatchTextWUP(CStr(wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, valueColumn).Value))
-        If StrComp(workTypeText, NormalizeMatchTextWUP(RailWorkTypeText()), vbTextCompare) = 0 Then
-            Dim ratioCell As Range
-            Set ratioCell = wsInfo.Cells(BASIC_INFO_WELDING_RATIO_ROW, valueColumn)
-            ' ‹ó—“‚Ì‚Æ‚«‚¾‚¯Šù’è’l‚ğ“ü‚ê‚éBè“ü—ÍÏ‚İ(‹ó—“‚Å‚È‚¢)‚È‚çã‘‚«‚µ‚È‚¢B
-            If Len(Trim$(CStr(ratioCell.Value))) = 0 Then
-                ratioCell.Value = WUP_RAIL_FIXED_RATIO
-                ratioCell.NumberFormat = WUP_RATIO_NUMBER_FORMAT
-                WriteRailOutsourceRatioToBasicInfo = True
-                LogWUP "‹O“¹H–ƒuƒƒbƒN col=" & CStr(valueColumn) & " 31s–Ú‚ÖŠù’è’l" & _
-                       Format$(WUP_RAIL_FIXED_RATIO, "0.0%") & "‚ğ“ü—Í(‹ó—“‚Ì‚½‚ß)"
-            Else
-                LogWUP "‹O“¹H–ƒuƒƒbƒN col=" & CStr(valueColumn) & " 31s–Ú‚ÍŠù‘¶’l[" & _
-                       CStr(ratioCell.Value) & "]‚Ì‚½‚ßã‘‚«‚¹‚¸"
-            End If
-        End If
-    Next i
 End Function
 
 Private Function BuildTemotoMapFromData(ByVal data As Variant, _
