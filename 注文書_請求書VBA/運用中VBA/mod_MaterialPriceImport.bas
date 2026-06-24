@@ -77,6 +77,8 @@ Private Const UNIT_PRICE_BLANK_FILL_COL_END As Long = 6
 Private Const UNIT_PRICE_BLANK_FILL_COLOR_R As Long = 128
 Private Const UNIT_PRICE_BLANK_FILL_COLOR_G As Long = 128
 Private Const UNIT_PRICE_BLANK_FILL_COLOR_B As Long = 128
+Private Const WELDING_BLANK_FILL_COL_I_START As Long = 9             ' I列以降の無値塗りつぶし開始列
+Private Const WELDING_YEAR_HEADER_SKIP_ROWS As Long = 4              ' 年度ヘッダー行および直下のスキップ行数
 Private Const IMPORTED_LINE_NAME_BASE_FONT_SIZE As Double = 16
 Private Const IMPORTED_LINE_NAME_MIN_FONT_SIZE As Double = 5
 Private Const IMPORTED_LINE_NAME_LINE_HEIGHT_RATIO As Double = 1.25
@@ -1182,7 +1184,7 @@ Private Function ImportAndMergeWeldingUnitPriceSheets(ByVal sourceFilePath As St
     If Not newSheet Is Nothing Then
         newSheet.Tab.Color = RGB(WELDING_SHEET_TAB_R, WELDING_SHEET_TAB_G, WELDING_SHEET_TAB_B)
         MarkImportedUnitPriceSheet newSheet
-        FillBlankUnitPriceEFCells newSheet
+        FillBlankWeldingUnitPriceCells newSheet
         ApplyImportedUnitPriceSheetFormat newSheet
         ApplyWeldingUnitPriceSheetSectionFormat newSheet
         DeleteWorksheetIfExists targetBook, newSheetName, newSheet
@@ -1996,6 +1998,87 @@ Private Sub FillBlankUnitPriceEFCells(ByVal targetSheet As Worksheet)
 NextFillRow:
     Next rowIndex
 End Sub
+
+Private Sub FillBlankWeldingUnitPriceCells(ByVal targetSheet As Worksheet)
+    ' レール溶接単価シート専用の塗りつぶし処理。
+    ' A列に「XXXX年度」形式のヘッダー行がある場合、その行と直下WELDING_YEAR_HEADER_SKIP_ROWS行は塗りつぶし対象外。
+    ' 対象列: E/F列(準日/夜単価) および I列以降(軌道会社単価)。
+    ' 塗りつぶし条件: 年度ヘッダー行以外のデータ行(B列数値)で、対象列の値が空のセル。
+    If targetSheet Is Nothing Then Exit Sub
+    If IsPurchaseUnitPriceProjectName(CStr(targetSheet.Name)) Then Exit Sub
+
+    Dim lastRow As Long
+    lastRow = targetSheet.Cells(targetSheet.Rows.Count, UNIT_PRICE_BLANK_FILL_LAST_ROW_COL).End(xlUp).Row
+    If lastRow < UNIT_PRICE_BLANK_FILL_DATA_START_ROW Then Exit Sub
+
+    Dim lastCol As Long
+    lastCol = targetSheet.Cells(targetSheet.Rows.Count, 1).End(xlUp).Row
+    lastCol = targetSheet.Cells(1, targetSheet.Columns.Count).End(xlToLeft).Column
+
+    Dim skipUntilRow As Long
+    skipUntilRow = 0
+
+    Dim rowIndex As Long
+    For rowIndex = UNIT_PRICE_BLANK_FILL_DATA_START_ROW To lastRow
+        ' A列に年度ヘッダー（XXXX年度）があればその行と直下 WELDING_YEAR_HEADER_SKIP_ROWS 行をスキップ
+        Dim aVal As String
+        aVal = CommonRemoveAllSpaces(CommonNzText(targetSheet.Cells(rowIndex, 1).Value))
+        If IsWeldingYearHeaderRow(aVal) Then
+            skipUntilRow = rowIndex + WELDING_YEAR_HEADER_SKIP_ROWS
+        End If
+        If rowIndex <= skipUntilRow Then GoTo NextWeldFillRow
+
+        ' B列が整数（データ行）でなければスキップ
+        If Not IsUnitPriceSheetDataSeiriRow(targetSheet.Cells(rowIndex, UNIT_PRICE_BLANK_FILL_LAST_ROW_COL).Value) Then GoTo NextWeldFillRow
+
+        ' E/F列：値が空の場合に塗りつぶし
+        Dim colIndex As Long
+        For colIndex = UNIT_PRICE_BLANK_FILL_COL_START To UNIT_PRICE_BLANK_FILL_COL_END
+            With targetSheet.Cells(rowIndex, colIndex)
+                If Len(Trim$(CStr(.Value))) = 0 Then
+                    .Interior.Color = RGB(UNIT_PRICE_BLANK_FILL_COLOR_R, _
+                                          UNIT_PRICE_BLANK_FILL_COLOR_G, _
+                                          UNIT_PRICE_BLANK_FILL_COLOR_B)
+                End If
+            End With
+        Next colIndex
+
+        ' I列以降：計算式が入っているが値として表示されない（空文字列）セルのみ塗りつぶす
+        If lastCol >= WELDING_BLANK_FILL_COL_I_START Then
+            For colIndex = WELDING_BLANK_FILL_COL_I_START To lastCol
+                With targetSheet.Cells(rowIndex, colIndex)
+                    If .HasFormula Then
+                        If Len(Trim$(CStr(.Value))) = 0 Then
+                            .Interior.Color = RGB(UNIT_PRICE_BLANK_FILL_COLOR_R, _
+                                                  UNIT_PRICE_BLANK_FILL_COLOR_G, _
+                                                  UNIT_PRICE_BLANK_FILL_COLOR_B)
+                        End If
+                    End If
+                End With
+            Next colIndex
+        End If
+
+NextWeldFillRow:
+    Next rowIndex
+End Sub
+
+Private Function IsWeldingYearHeaderRow(ByVal normalizedAColText As String) As Boolean
+    ' A列の内容が「XXXX年度」パターンかどうかを判定する。
+    ' 例: 2026年度、 2027年度 など。
+    If Len(normalizedAColText) = 0 Then Exit Function
+    Dim nenDoText As String
+    nenDoText = ChrW$(&H5E74) & ChrW$(&H5EA6)   ' 年度
+    If InStr(1, normalizedAColText, nenDoText, vbTextCompare) = 0 Then Exit Function
+    ' 数字が4桁以上含まれるか確認（XXXX年度の形式）
+    Dim i As Long
+    Dim digitCount As Long
+    For i = 1 To Len(normalizedAColText)
+        If Mid$(normalizedAColText, i, 1) >= "0" And Mid$(normalizedAColText, i, 1) <= "9" Then
+            digitCount = digitCount + 1
+        End If
+    Next i
+    IsWeldingYearHeaderRow = (digitCount >= 4)
+End Function
 
 Private Function MakeUniqueWorksheetName(ByVal targetBook As Workbook, _
                                          ByVal requestedName As String, _
