@@ -16,6 +16,7 @@ Private Const BASIC_INFO_VENDOR_VALUE_COL_WIDTH As Double = 42.5
 Private Const BASIC_INFO_VENDOR_SPACER_COL_WIDTH As Double = 0.92
 Private Const BASIC_INFO_VENDOR_PERCENT_ROW As Long = 25
 Private Const BASIC_INFO_VENDOR_OUTSOURCE_RATIO_ROW As Long = 29
+Private Const BASIC_INFO_VENDOR_RAIL_PATTERN_ROW As Long = 30
 Private Const BASIC_INFO_VENDOR_WELDING_RATIO_ROW As Long = 31
 Private Const BASIC_INFO_YEAR_CELL As String = "B4"
 Private Const BASIC_INFO_BILLING_COUNT_CELL As String = "F4"
@@ -601,6 +602,7 @@ Public Function GetVendorUnitPriceMonitorRange(ByVal wsInfo As Worksheet) As Ran
         Set blockRange = Union(wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, valueCol), _
                                wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, valueCol), _
                                wsInfo.Cells(BASIC_INFO_VENDOR_OUTSOURCE_RATIO_ROW, valueCol), _
+                               wsInfo.Cells(BASIC_INFO_VENDOR_RAIL_PATTERN_ROW, valueCol), _
                                wsInfo.Cells(BASIC_INFO_VENDOR_WELDING_RATIO_ROW, valueCol))
 
         If result Is Nothing Then
@@ -723,6 +725,12 @@ Private Function CollectMonitorChangedValueColumns(ByVal wsInfo As Worksheet, _
 
         If includeWeldingRatioRow Then
             Set monitorCell = wsInfo.Cells(BASIC_INFO_VENDOR_WELDING_RATIO_ROW, valueCol)
+            If Not Intersect(changedRange, monitorCell) Is Nothing Then
+                AddUniqueLongToCollection result, valueCol
+                GoTo ContinueNextVendorColumn
+            End If
+
+            Set monitorCell = wsInfo.Cells(BASIC_INFO_VENDOR_RAIL_PATTERN_ROW, valueCol)
             If Not Intersect(changedRange, monitorCell) Is Nothing Then
                 AddUniqueLongToCollection result, valueCol
             End If
