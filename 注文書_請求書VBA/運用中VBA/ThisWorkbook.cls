@@ -114,17 +114,21 @@ Private Sub Workbook_SheetChange(ByVal Sh As Object, ByVal Target As Range)
     If mod_VendorMaster.IsSyncVendorBlocksInProgress() Then Exit Sub
 
     If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(Sh) Then
-        If Application.Intersect(Target, Sh.Range("B:B,E:F")) Is Nothing Then Exit Sub
+    If Application.Intersect(Target, Sh.Range("B:B,E:F")) Is Nothing Then Exit Sub
 
-        Dim unitPricePrevEE As Boolean
-        unitPricePrevEE = Application.EnableEvents
-        On Error GoTo UnitPriceCleanup
-        Application.EnableEvents = False
+    Dim unitPricePrevEE As Boolean
+    Dim unitPricePrevScreen As Boolean
+    unitPricePrevEE = Application.EnableEvents
+    unitPricePrevScreen = Application.ScreenUpdating
+    On Error GoTo UnitPriceCleanup
+    Application.EnableEvents = False
+    Application.ScreenUpdating = False
 
-        mod_VendorMaster.HandleConstructionUnitPriceSheetChange Sh, Target
+    mod_VendorMaster.HandleConstructionUnitPriceSheetChange Sh, Target
 
 UnitPriceCleanup:
-        Application.EnableEvents = unitPricePrevEE
+    Application.ScreenUpdating = unitPricePrevScreen
+    Application.EnableEvents = unitPricePrevEE
         Exit Sub
     End If
 
@@ -132,13 +136,17 @@ UnitPriceCleanup:
     If Application.Intersect(Target, GetVendorSelectionColumns(Sh)) Is Nothing Then Exit Sub
 
     Dim prevEE As Boolean
+    Dim prevScreen As Boolean
     prevEE = Application.EnableEvents
+    prevScreen = Application.ScreenUpdating
     On Error GoTo Cleanup
     Application.EnableEvents = False
+    Application.ScreenUpdating = False
 
     mod_Construction_Order_Import.RefreshSubcontractorPriceColumns Sh
     GetVendorSelectionColumns(Sh).AutoFit
 
 Cleanup:
+    Application.ScreenUpdating = prevScreen
     Application.EnableEvents = prevEE
 End Sub
