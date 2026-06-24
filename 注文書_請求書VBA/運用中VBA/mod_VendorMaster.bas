@@ -762,6 +762,24 @@ Private Function GetPreferredWeldingRatioColumnFromChange(ByVal wsInfo As Worksh
     Next i
 End Function
 
+Public Sub ApplyConstructionUnitPriceImportedRowDecorations(ByVal wsUnitPrice As Worksheet, _
+                                                            ByVal firstRow As Long, _
+                                                            ByVal lastRow As Long)
+    If wsUnitPrice Is Nothing Then Exit Sub
+    If lastRow < firstRow Then Exit Sub
+    If firstRow < VENDOR_UNIT_PRICE_DATA_START_ROW Then Exit Sub
+
+    Dim wsInfo As Worksheet
+    Set wsInfo = CommonGetBasicInfoWorksheet(wsUnitPrice.Parent)
+    If wsInfo Is Nothing Then Exit Sub
+
+    Dim bColRange As Range
+    Set bColRange = wsUnitPrice.Range( _
+        wsUnitPrice.Cells(firstRow, VENDOR_UNIT_PRICE_LAST_ROW_COL), _
+        wsUnitPrice.Cells(lastRow, VENDOR_UNIT_PRICE_LAST_ROW_COL))
+    ApplyVendorUnitPriceBaseRowBorders wsUnitPrice, wsInfo, bColRange
+End Sub
+
 Public Sub HandleConstructionUnitPriceSheetChange(ByVal wsUnitPrice As Worksheet, _
                                                    ByVal changedRange As Range)
     If wsUnitPrice Is Nothing Then Exit Sub
