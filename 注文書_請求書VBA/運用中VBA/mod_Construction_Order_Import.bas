@@ -100,6 +100,7 @@ Private Const PRICE_LINE_START_ROW As Long = 2
 Private Const PURCHASE_PRICE_SHEET_SUFFIX As String = "_購入充当単価"
 
 ' 対象線区(単価)シートの列構成。COL_SEIRI(=2,B)を整理番号キーとする。
+Private Const UNIT_PRICE_WORK_TYPE_COL As Long = 1   ' A 工種
 Private Const UNIT_PRICE_TYPE_COL As Long = 3        ' C 種別
 Private Const UNIT_PRICE_UNIT_COL As Long = 4        ' D 単位
 Private Const UNIT_PRICE_DAY_PRICE_COL As Long = 5   ' E 昼単価
@@ -3765,21 +3766,25 @@ Private Sub AppendMissingSeiriToLineSheet(ByVal lineSheetName As String, _
     If firstRow < UNIT_PRICE_DATA_START_ROW Then firstRow = UNIT_PRICE_DATA_START_ROW
 
     Dim writeArr() As Variant
-    ReDim writeArr(1 To rowsToAdd.Count, 1 To 3)   ' B(整理番号), C(種別), D(単位)
+    ReDim writeArr(1 To rowsToAdd.Count, 1 To 4)   ' A(工種), B(整理番号), C(種別), D(単位)
+
+    Dim workTypeLabel As String
+    workTypeLabel = MissingSeiriWorkTypeLabelText()
 
     Dim idx As Long
     Dim rowData As Variant
     For idx = 1 To rowsToAdd.Count
         rowData = rowsToAdd(idx)
-        writeArr(idx, 1) = rowData(0)   ' B 整理番号
-        writeArr(idx, 2) = rowData(1)   ' C 種別
-        writeArr(idx, 3) = rowData(2)   ' D 単位
+        writeArr(idx, 1) = workTypeLabel          ' A 工種
+        writeArr(idx, 2) = rowData(0)             ' B 整理番号
+        writeArr(idx, 3) = rowData(1)             ' C 種別
+        writeArr(idx, 4) = rowData(2)             ' D 単位
     Next idx
 
     Dim lastAppendRow As Long
     lastAppendRow = firstRow + rowsToAdd.Count - 1
 
-    lineWs.Range(lineWs.Cells(firstRow, COL_SEIRI), _
+    lineWs.Range(lineWs.Cells(firstRow, UNIT_PRICE_WORK_TYPE_COL), _
                  lineWs.Cells(lastAppendRow, UNIT_PRICE_UNIT_COL)).value = writeArr
 
     HighlightLineSheetPriceCellsUntilFilled lineWs, firstRow, lastAppendRow
@@ -3822,6 +3827,14 @@ Private Sub AddEmptyCellHighlightCondition(ByVal lineWs As Worksheet, _
     End If
     On Error GoTo 0
 End Sub
+
+Private Function MissingSeiriWorkTypeLabelText() As String
+    Static cached As String
+    If Len(cached) = 0 Then
+        cached = ChrW$(&H72EC) & ChrW$(&H81EA) & ChrW$(&H5DE5) & ChrW$(&H7A2E)
+    End If
+    MissingSeiriWorkTypeLabelText = cached
+End Function
 
 Private Function ResolveProjectLineMasterPath() As String
     Dim wsInfo As Worksheet
