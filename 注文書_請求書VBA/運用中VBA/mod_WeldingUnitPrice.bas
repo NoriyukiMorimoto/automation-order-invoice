@@ -230,6 +230,83 @@ Cleanup:
     Application.ScreenUpdating = previousScreenUpdating
 End Sub
 
+' F9(施工会社数)を減らしたとき、余剰の軌道列だけをクリアする軽量処理。
+' 削除対象に溶接/軌道の設定が無い場合は全行再展開の代わりにこちらを使う。
+Public Sub ClearSurplusWeldingVendorBlocksForBasicInfo(Optional ByVal wsInfo As Worksheet)
+    If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet()
+    If wsInfo Is Nothing Then Exit Sub
+
+    Dim targetBook As Workbook
+    Set targetBook = wsInfo.Parent
+
+    Dim weldingSheets As Collection
+    Set weldingSheets = CollectWeldingUnitPriceSheets(targetBook)
+    If weldingSheets.Count = 0 Then Exit Sub
+
+    Dim weldingBlock As WeldingVendorBlock
+    Dim weldingNameSources As Collection
+    Dim railBlocks() As WeldingVendorBlock
+    Dim railBlockCount As Long
+    Set weldingNameSources = New Collection
+    ScanVendorBlocks wsInfo, weldingBlock, weldingNameSources, railBlocks, railBlockCount, 0
+
+    Dim previousScreenUpdating As Boolean
+    Dim previousCalculation As XlCalculation
+    previousScreenUpdating = Application.ScreenUpdating
+    previousCalculation = Application.Calculation
+    Application.ScreenUpdating = False
+    Application.Calculation = xlCalculationManual
+
+    On Error GoTo Cleanup
+
+    Dim wsWelding As Variant
+    For Each wsWelding In weldingSheets
+        Dim lastRow As Long
+        lastRow = wsWelding.Cells(wsWelding.Rows.Count, WUP_SEIRI_COL).End(xlUp).Row
+        If lastRow < WUP_DATA_START_ROW Then GoTo ContinueNextSheet
+
+        Dim railIndex As Long
+        For railIndex = railBlockCount + 1 To MAX_VENDOR_BLOCK_COUNT
+            ClearWeldingVendorBlock wsWelding, lastRow, WUP_FIRST_RAIL_DAY_COL + ((railIndex - 1) * 2)
+        Next railIndex
+ContinueNextSheet:
+    Next wsWelding
+
+Cleanup:
+    Application.Calculation = previousCalculation
+    Application.ScreenUpdating = previousScreenUpdating
+End Sub
+
+' 施工会社数減少で外れるブロックに溶接/軌道の設定が含まれるか判定する。
+Public Function RemovedVendorIndicesRequireWeldingRefresh(ByVal wsInfo As Worksheet, _
+                                                          ByVal firstRemovedIndex As Long, _
+                                                          ByVal lastRemovedIndex As Long) As Boolean
+    If wsInfo Is Nothing Then Exit Function
+    If firstRemovedIndex > lastRemovedIndex Then Exit Function
+
+    Dim i As Long
+    For i = firstRemovedIndex To lastRemovedIndex
+        Dim valueColumn As Long
+        valueColumn = BASIC_INFO_VENDOR_BLOCK_VALUE_COL + ((i - 1) * BASIC_INFO_VENDOR_BLOCK_STEP_COLS)
+
+        Dim workTypeText As String
+        workTypeText = NormalizeMatchTextWUP(CStr(wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, valueColumn).Value))
+
+        If StrComp(workTypeText, NormalizeMatchTextWUP(WeldingWorkTypeText()), vbTextCompare) = 0 Then
+            RemovedVendorIndicesRequireWeldingRefresh = True
+            Exit Function
+        End If
+        If StrComp(workTypeText, NormalizeMatchTextWUP(RailWorkTypeText()), vbTextCompare) = 0 Then
+            RemovedVendorIndicesRequireWeldingRefresh = True
+            Exit Function
+        End If
+        If Len(Trim$(CStr(wsInfo.Cells(BASIC_INFO_WELDING_RATIO_ROW, valueColumn).Value))) > 0 Then
+            RemovedVendorIndicesRequireWeldingRefresh = True
+            Exit Function
+        End If
+    Next i
+End Function
+
 Private Sub UpdateWeldingVendorDisplayNamesOnSheet(ByVal wsWelding As Worksheet, _
                                                   ByRef weldingBlock As WeldingVendorBlock, _
                                                   ByVal weldingNameSources As Collection, _
