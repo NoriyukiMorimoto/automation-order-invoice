@@ -9,8 +9,9 @@ Option Explicit
 '   ì¸óÕçœ -> #06111D ìhêF + îíï∂éö + ÉRÉÅÉìÉgçÌèú
 '
 ' F10ÅiçHéñéÌï ÅjÇ…ÇÊÇÈ F29/F30/F31 ÇÃìÆìIêÿÇËë÷Ç¶:
-'   ãOìπçHéñ -> F29: ãOìπçHéñâÔé–ÇÃäOíçî‰ó¶ÉRÉÅÉìÉg / F30: ónê⁄éËå≥íPâøÉpÉ^Å[Éì / F31: åªèÛÇÃÇ‹Ç‹
-'   ónê⁄çHéñ -> F29: ì¸óÕïsâ¬ÅiéŒê¸Å~Åj / F31: ónê⁄âÔé–ÇÃäOíçî‰ó¶ÉRÉÅÉìÉg
+'   ñ¢ämíË   -> F30ç∂óÒÅEílóÒÇ∆Ç‡ï∂éöÇ»Çµ #F1A983 ìhÇËÇÃÇ›
+'   ãOìπçHéñ -> F29: ãOìπçHéñâÔé–ÇÃäOíçî‰ó¶ÉRÉÅÉìÉg / F30: ónê⁄éËå≥íPâø ﬂ¿∞› / F31: åªèÛÇÃÇ‹Ç‹
+'   ónê⁄çHéñ -> F29: ì¸óÕïsâ¬ÅiéŒê¸Å~Åj / F30ç∂óÒ: ónê⁄çHéñäOíçî‰ó¶ / F31: ónê⁄âÔé–ÇÃäOíçî‰ó¶ÉRÉÅÉìÉg
 '   ÇªÇÃëº   -> F29: é{çHâÔé–ÇÃäOíçî‰ó¶ÉRÉÅÉìÉg / F31: åªèÛÇÃÇ‹Ç‹
 '
 ' âÔé–êîÉZÉã(F9)ÇÃílÇ…âûÇ∂ÇƒF/I/L/O/R/U/X/AA/AD/AGóÒÇÃÉxÉìÉ_Å[çsÇìÆìIä«óù
@@ -20,6 +21,7 @@ Option Explicit
 ' --- îwåiêFíËêî ---
 Private Const COLOR_INPUT_REQUIRED As Long = &HFFFF&         ' #FFFF00 (BGR)
 Private Const COLOR_FILLED         As Long = &H1D1106&        ' #06111D (BGR)
+Private Const COLOR_PENDING_WORK_TYPE As Long = 8628721    ' #F1A983 RGB(241,169,131)
 Private Const COLOR_INPUT_REQUIRED_FONT As Long = &H0&       ' çï
 Private Const COLOR_FILLED_FONT         As Long = &HFFFFFF&  ' îí
 
@@ -181,6 +183,10 @@ Private Function IsWeldingConstructionType(ByVal constructionType As String) As 
     IsWeldingConstructionType = (StrComp(NormalizeConstructionTypeText(constructionType), GetYosetsuKojiText(), vbTextCompare) = 0)
 End Function
 
+Private Function IsConstructionTypeUndetermined(ByVal constructionType As String) As Boolean
+    IsConstructionTypeUndetermined = (Len(NormalizeConstructionTypeText(constructionType)) = 0)
+End Function
+
 Private Function GuideWritableCell(ByVal ws As Worksheet, ByVal rowNum As Long, ByVal colNum As Long) As Range
     Dim targetCell As Range
     Set targetCell = ws.Cells(rowNum, colNum)
@@ -215,18 +221,30 @@ Private Sub ClearRow29And31(ByVal ws As Worksheet, ByVal colNum As Long)
 End Sub
 
 ' ----------------------------------------------------------------
-' çs30 ÇÃçHéñéÌï ï èàóù(ãOìπçHéñÇÃÇ›ÉpÉ^Å[ÉìëIë)
+' çs30 ÇÃçHéñéÌï ï èàóù
+'   ñ¢ämíË -> ç∂óÒÅEílóÒÇ∆Ç‡ï∂éöÇ»Çµ #F1A983 ìhÇËÇÃÇ›
+'   ãOìπçHéñ -> ç∂óÒ=ónê⁄éËå≥íPâø ﬂ¿∞› / ílóÒ=â©êF+ÉhÉçÉbÉvÉ_ÉEÉì
+'   ónê⁄çHéñ -> ç∂óÒ=ónê⁄çHéñäOíçî‰ó¶ / ílóÒ=è]óàÇ«Ç®ÇË
 ' ----------------------------------------------------------------
 Private Sub ApplyRow30(ByVal ws As Worksheet, ByVal colNum As Long, ByVal constructionType As String)
     Dim labelCol As Long
     labelCol = colNum - 1
 
-    If IsRailConstructionType(constructionType) Then
+    If IsConstructionTypeUndetermined(constructionType) Then
+        ApplyRow30PendingState ws, colNum
+    ElseIf IsRailConstructionType(constructionType) Then
         On Error Resume Next
         GuideWritableCell(ws, ROW_RAIL_PATTERN, labelCol).Value = GetRailPatternRow30LabelText()
         On Error GoTo 0
         ApplyRailPatternValidation GuideWritableCell(ws, ROW_RAIL_PATTERN, colNum)
         ApplyGuideCellByRowCol ws, ROW_RAIL_PATTERN, colNum, GetF30RailPatternCommentText(), _
+                               IsEmpty_Cell(GuideWritableCell(ws, ROW_RAIL_PATTERN, colNum))
+    ElseIf IsWeldingConstructionType(constructionType) Then
+        On Error Resume Next
+        GuideWritableCell(ws, ROW_RAIL_PATTERN, labelCol).Value = GetWeldingRow30LabelText()
+        On Error GoTo 0
+        ClearRailPatternValidation GuideWritableCell(ws, ROW_RAIL_PATTERN, colNum)
+        ApplyGuideCellByRowCol ws, ROW_RAIL_PATTERN, colNum, GetF31YosetsuCommentText(), _
                                IsEmpty_Cell(GuideWritableCell(ws, ROW_RAIL_PATTERN, colNum))
     Else
         On Error Resume Next
@@ -238,9 +256,28 @@ Private Sub ApplyRow30(ByVal ws As Worksheet, ByVal colNum As Long, ByVal constr
     End If
 End Sub
 
-Private Sub ClearRow30(ByVal ws As Worksheet, ByVal colNum As Long)
+Private Sub ApplyRow30PendingState(ByVal ws As Worksheet, ByVal colNum As Long)
+    Dim labelCol As Long
+    labelCol = colNum - 1
+
     ClearRailPatternValidation GuideWritableCell(ws, ROW_RAIL_PATTERN, colNum)
-    ClearGuideByRowCol ws, ROW_RAIL_PATTERN, colNum
+    ApplyPendingWorkTypeFill GuideWritableCell(ws, ROW_RAIL_PATTERN, labelCol)
+    ApplyPendingWorkTypeFill GuideWritableCell(ws, ROW_RAIL_PATTERN, colNum)
+End Sub
+
+Private Sub ApplyPendingWorkTypeFill(ByVal cell As Range)
+    On Error Resume Next
+    RemoveDiagonalBorders cell
+    cell.ClearContents
+    cell.Comment.Delete
+    cell.Interior.Pattern = xlSolid
+    cell.Interior.Color = COLOR_PENDING_WORK_TYPE
+    cell.Font.Color = COLOR_INPUT_REQUIRED_FONT
+    On Error GoTo 0
+End Sub
+
+Private Sub ClearRow30(ByVal ws As Worksheet, ByVal colNum As Long)
+    ApplyRow30PendingState ws, colNum
 End Sub
 
 Private Sub ApplyRailPatternValidation(ByVal targetCell As Range)
@@ -275,7 +312,11 @@ Private Function VendorRowLabelPrefixText() As String
 End Function
 
 Private Function GetDefaultRow30LabelText() As String
-    GetDefaultRow30LabelText = VendorRowLabelPrefixText() & _
+    GetDefaultRow30LabelText = GetWeldingRow30LabelText()
+End Function
+
+Private Function GetWeldingRow30LabelText() As String
+    GetWeldingRow30LabelText = VendorRowLabelPrefixText() & _
         ChrW$(&H6EB6) & ChrW$(&H63A5) & ChrW$(&H5DE5) & ChrW$(&H4E8B) & _
         ChrW$(&H5916) & ChrW$(&H6CE8) & ChrW$(&H6BD4) & ChrW$(&H7387)
 End Function
