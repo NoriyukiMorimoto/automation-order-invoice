@@ -554,6 +554,7 @@ Public Sub SyncVendorBlocksFromCount(ByVal wsInfo As Worksheet)
         ClearVendorInfoBlock VendorNameCellByIndex(wsInfo, i)
         CopyVendorBlockFormatsFromTemplate wsInfo, i
         CopyVendorBlockTotalRowsFromTemplate wsInfo, i
+        CopyVendorWorkTypeFromTemplate wsInfo, i
     Next i
 
     For i = 2 To vendorCount
@@ -581,20 +582,28 @@ Public Sub SyncVendorBlocksFromCount(ByVal wsInfo As Worksheet)
     If vendorCount > previousCount Then
         ' 追加ブロックは空のため溶接単価の再展開は不要
     ElseIf vendorCount < previousCount Then
+        mod_WeldingUnitPrice.ClearSurplusWeldingVendorBlocksForBasicInfo wsInfo
         If needWeldingRefresh Then
             mod_WeldingUnitPrice.ApplyWeldingVendorUnitPricesForBasicInfo wsInfo, False, 0, True
         Else
-            mod_WeldingUnitPrice.ClearSurplusWeldingVendorBlocksForBasicInfo wsInfo
+            mod_WeldingUnitPrice.UpdateWeldingVendorDisplayNamesForBasicInfo wsInfo
         End If
     Else
         mod_WeldingUnitPrice.ApplyWeldingVendorUnitPricesForBasicInfo wsInfo, False, 0, True
     End If
     mLastVendorBlockCount = vendorCount
 
-    ' 工事単価・溶接単価の再展開後、ブック全体の再計算は最後に1回だけ行う
-    On Error Resume Next
-    Application.Calculate
-    On Error GoTo 0
+    mod_BasicInfoGuide.RefreshVendorGuidesForBasicInfo wsInfo
+
+    If vendorCount < previousCount And needWeldingRefresh Then
+        On Error Resume Next
+        Application.Calculate
+        On Error GoTo 0
+    ElseIf previousCount <= 0 Or vendorCount = previousCount Then
+        On Error Resume Next
+        Application.Calculate
+        On Error GoTo 0
+    End If
 
 ExitHandler:
     Application.Calculation = prevCalculation
@@ -1884,6 +1893,17 @@ Private Sub CopyVendorBlockTotalRowsFromTemplate(ByVal wsInfo As Worksheet, ByVa
     destRange.ClearContents
     sourceRange.Copy Destination:=destRange
     Application.CutCopyMode = False
+End Sub
+
+Private Sub CopyVendorWorkTypeFromTemplate(ByVal wsInfo As Worksheet, ByVal destVendorIndex As Long)
+    If wsInfo Is Nothing Then Exit Sub
+    If destVendorIndex < 2 Then Exit Sub
+
+    Dim templateWorkType As String
+    templateWorkType = Trim$(CStr(wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, VendorValueColumnByIndex(1)).value))
+    If templateWorkType = "" Then Exit Sub
+
+    wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, VendorValueColumnByIndex(destVendorIndex)).value = templateWorkType
 End Sub
 
 Private Sub ApplyVendorBlockColumnWidths(ByVal wsInfo As Worksheet, ByVal vendorCount As Long)
