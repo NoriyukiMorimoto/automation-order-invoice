@@ -240,9 +240,19 @@ End Function
 Private Function GetRailPatternRow30LabelText() As String
     GetRailPatternRow30LabelText = VendorRowLabelPrefixText() & _
         ChrW$(&H6EB6) & ChrW$(&H63A5) & ChrW$(&H624B) & ChrW$(&H5143) & _
-        ChrW$(&H5358) & ChrW$(&H4FA1) & ChrW$(&H30D1) & ChrW$(&H30BF) & _
-        ChrW$(&H30FC) & ChrW$(&H30F3)
+        ChrW$(&H5358) & ChrW$(&H4FA1) & _
+        ChrW$(&HFF8A) & ChrW$(&HFF9F) & ChrW$(&HFF80) & ChrW$(&HFF70) & ChrW$(&HFF9D)
 End Function
+
+' F9(施工会社数)変更後など、ベンダー行ガイドを一括更新する。
+Public Sub RefreshVendorGuidesForBasicInfo(ByVal ws As Worksheet)
+    If ws Is Nothing Then Exit Sub
+    On Error Resume Next
+    Application.ScreenUpdating = False
+    RefreshVendorRowGuides ws
+    Application.ScreenUpdating = True
+    On Error GoTo 0
+End Sub
 
 ' ----------------------------------------------------------------
 ' 入力不可セル: 斜線×（右下がり＋左下がり）+ #06111D
