@@ -3766,6 +3766,8 @@ Private Sub AppendMissingSeiriToLineSheet(ByVal lineSheetName As String, _
                  lineWs.Cells(lastAppendRow, UNIT_PRICE_UNIT_COL)).value = writeArr
 
     HighlightLineSheetPriceCellsUntilFilled lineWs, firstRow, lastAppendRow
+    mod_VendorMaster.ApplyConstructionUnitPriceImportedRowDecorations _
+        lineWs, firstRow, lastAppendRow
 
     LogCI "線区シート[" & lineSheetName & "] 整理番号未登録分を追記: " & _
           rowsToAdd.Count & "件 rows " & firstRow & "-" & lastAppendRow
@@ -3778,13 +3780,20 @@ Private Sub HighlightLineSheetPriceCellsUntilFilled(ByVal lineWs As Worksheet, _
     If lineWs Is Nothing Then Exit Sub
     If lastRow < firstRow Then Exit Sub
 
+    AddEmptyCellHighlightCondition lineWs, firstRow, lastRow, UNIT_PRICE_DAY_PRICE_COL
+    AddEmptyCellHighlightCondition lineWs, firstRow, lastRow, UNIT_PRICE_NIGHT_PRICE_COL
+End Sub
+
+Private Sub AddEmptyCellHighlightCondition(ByVal lineWs As Worksheet, _
+                                           ByVal firstRow As Long, _
+                                           ByVal lastRow As Long, _
+                                           ByVal columnIndex As Long)
     Dim target As Range
-    Set target = lineWs.Range( _
-        lineWs.Cells(firstRow, UNIT_PRICE_DAY_PRICE_COL), _
-        lineWs.Cells(lastRow, UNIT_PRICE_NIGHT_PRICE_COL))
+    Set target = lineWs.Range(lineWs.Cells(firstRow, columnIndex), _
+                              lineWs.Cells(lastRow, columnIndex))
 
     Dim anchorAddress As String
-    anchorAddress = lineWs.Cells(firstRow, UNIT_PRICE_DAY_PRICE_COL).Address(False, False)
+    anchorAddress = lineWs.Cells(firstRow, columnIndex).Address(False, False)
 
     On Error Resume Next
     Dim fc As FormatCondition
