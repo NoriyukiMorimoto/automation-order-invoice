@@ -3204,6 +3204,7 @@ Private Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
     sheetPriceCaches.CompareMode = vbTextCompare
 
     Dim matchedCount As Long, unresolvedLineCount As Long, missingRecordCount As Long
+    Dim pendingCollectCount As Long
     Dim seiriColumn As Long
     Dim dayNightColumn As Long
     Dim qtyColumn As Long
@@ -3283,15 +3284,14 @@ Private Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
             End If
         End If
 
-        ' 工事(非溶接)シートのみ: 整理番号が単価マスタに無く、対象線区が(軌道)以外の場合に
-        ' 線区シートへ登録対象として収集する
+        ' 工事(非溶接)シートのみ: 整理番号が単価マスタに無い行を線区シートへ登録対象として収集する。
+        ' G列の(軌道)は NormalizeLineLookupText でシート名照合時に除去済み。追記自体は行う。
         If recordMissing And (Not isWeldingSheet) And unitPriceSheetName <> "" Then
-            If Not LineTextHasTrackDesignation(rawLineText) Then
-                CollectMissingSeiriForLineSheet pendingByLineSheet, unitPriceSheetName, recordKey, _
-                    ws.Cells(r, seiriColumn).value, _
-                    ws.Cells(r, typeColumn).value, _
-                    ws.Cells(r, unitColumn).value
-            End If
+            CollectMissingSeiriForLineSheet pendingByLineSheet, unitPriceSheetName, recordKey, _
+                ws.Cells(r, seiriColumn).value, _
+                ws.Cells(r, typeColumn).value, _
+                ws.Cells(r, unitColumn).value
+            pendingCollectCount = pendingCollectCount + 1
         End If
 
         If IsEmpty(referencePrice) Or IsError(referencePrice) Then
@@ -3303,7 +3303,13 @@ Private Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
     Next r
 
     ' 整理番号が単価マスタに無かった分を、対象線区シートの最下部へ登録する
-    If Not isWeldingSheet Then RegisterMissingSeiriToLineSheets pendingByLineSheet
+    If Not isWeldingSheet Then
+        If pendingCollectCount > 0 Then
+            LogCI "整理番号未登録の追記候補=" & pendingCollectCount & _
+                  " (線区シート数=" & pendingByLineSheet.Count & ")"
+        End If
+        RegisterMissingSeiriToLineSheets pendingByLineSheet
+    End If
 
     ws.Range(ws.Cells(2, autoAmountColumn), ws.Cells(lastRow, autoAmountColumn)).FormulaR1C1 = _
         "=IF(OR(RC[" & (autoPriceColumn - autoAmountColumn) & "]="""",RC[" & (qtyColumn - autoAmountColumn) & "]=""""),"""",RC[" & (autoPriceColumn - autoAmountColumn) & "]*RC[" & (qtyColumn - autoAmountColumn) & "])"
@@ -3701,6 +3707,10 @@ Private Sub RegisterMissingSeiriToLineSheets(ByVal pendingByLineSheet As Object)
     Next sheetName
 
 RestoreEvents:
+    If Err.Number <> 0 Then
+        LogCI "整理番号追記エラー Err " & Err.Number & ": " & Err.Description
+        Err.Clear
+    End If
     Application.EnableEvents = prevEvents
 End Sub
 
@@ -3714,7 +3724,10 @@ Private Sub AppendMissingSeiriToLineSheet(ByVal lineSheetName As String, _
     On Error Resume Next
     Set lineWs = ThisWorkbook.worksheets(lineSheetName)
     On Error GoTo 0
-    If lineWs Is Nothing Then Exit Sub
+    If lineWs Is Nothing Then
+        LogCI "線区シート[" & lineSheetName & "] が見つからないため追記をスキップ"
+        Exit Sub
+    End If
 
     Dim lastRow As Long
     lastRow = lineWs.Cells(lineWs.rows.Count, COL_SEIRI).End(xlUp).Row
@@ -3741,7 +3754,11 @@ Private Sub AppendMissingSeiriToLineSheet(ByVal lineSheetName As String, _
     For Each k In sheetPending.Keys
         If Not existingKeys.Exists(CStr(k)) Then rowsToAdd.Add sheetPending(k)
     Next k
-    If rowsToAdd.Count = 0 Then Exit Sub
+    If rowsToAdd.Count = 0 Then
+        LogCI "線区シート[" & lineSheetName & "] 追記候補=" & sheetPending.Count & _
+              "件は既存整理番号と重複のためスキップ"
+        Exit Sub
+    End If
 
     Dim firstRow As Long
     firstRow = lastRow + 1
