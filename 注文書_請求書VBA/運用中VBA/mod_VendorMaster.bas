@@ -512,6 +512,7 @@ Public Sub InitVendorBlockCountFromSheet(Optional ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Exit Sub
     mLastVendorBlockCount = GetVendorBlockCount(wsInfo)
     mod_VendorInfoColors.ApplyVendorInfoRow10Colors wsInfo
+    ClearVendorWorkTypeWhenCompanyEmpty wsInfo
     RestoreVendorBlockValueColumnRightBorders wsInfo, mLastVendorBlockCount
 End Sub
 
@@ -569,6 +570,8 @@ Public Sub SyncVendorBlocksFromCount(ByVal wsInfo As Worksheet)
     End If
 
     ClearUnusedVendorBlocks wsInfo, vendorCount + 1
+
+    ClearVendorWorkTypeWhenCompanyEmpty wsInfo, vendorCount
 
     Dim formatIndex As Long
     For formatIndex = 1 To vendorCount
@@ -1948,7 +1951,6 @@ Private Sub CopyVendorBlockFromTemplate(ByVal wsInfo As Worksheet, ByVal destVen
     wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, VendorLabelColumnByIndex(destVendorIndex)).value = VendorInfoHeaderText(destVendorIndex)
 
     ClearVendorInfoBlock VendorNameCellByIndex(wsInfo, destVendorIndex)
-    CopyVendorWorkTypeFromTemplate wsInfo, destVendorIndex
 
     wsInfo.Cells(BASIC_INFO_VENDOR_PURCHASE_TOTAL_ROW, VendorValueColumnByIndex(destVendorIndex)).ClearContents
     wsInfo.Cells(BASIC_INFO_VENDOR_TOTAL_ROW, VendorValueColumnByIndex(destVendorIndex)).ClearContents
@@ -2147,15 +2149,18 @@ Private Sub CopyVendorBlockTotalRowsFromTemplate(ByVal wsInfo As Worksheet, ByVa
     Application.CutCopyMode = False
 End Sub
 
-Private Sub CopyVendorWorkTypeFromTemplate(ByVal wsInfo As Worksheet, ByVal destVendorIndex As Long)
+Private Sub ClearVendorWorkTypeWhenCompanyEmpty(ByVal wsInfo As Worksheet, Optional ByVal vendorCount As Long = 0)
     If wsInfo Is Nothing Then Exit Sub
-    If destVendorIndex < 2 Then Exit Sub
+    If vendorCount <= 0 Then vendorCount = GetVendorBlockCount(wsInfo)
 
-    Dim templateWorkType As String
-    templateWorkType = Trim$(CStr(wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, VendorValueColumnByIndex(1)).value))
-    If templateWorkType = "" Then Exit Sub
-
-    wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, VendorValueColumnByIndex(destVendorIndex)).value = templateWorkType
+    Dim vendorIndex As Long
+    For vendorIndex = 1 To vendorCount
+        Dim valueCol As Long
+        valueCol = VendorValueColumnByIndex(vendorIndex)
+        If Len(Trim$(CStr(wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, valueCol).value))) = 0 Then
+            wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, valueCol).ClearContents
+        End If
+    Next vendorIndex
 End Sub
 
 Private Sub ApplyVendorBlockColumnWidths(ByVal wsInfo As Worksheet, ByVal vendorCount As Long)
