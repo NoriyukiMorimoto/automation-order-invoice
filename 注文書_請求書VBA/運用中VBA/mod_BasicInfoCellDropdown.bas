@@ -17,7 +17,12 @@ Option Explicit
 ' ========================================================
 
 Private Const CELL_DROPDOWN_COMBO_NAME As String = "ComboBoxCellDropdown"
+Private Const CELL_DROPDOWN_POLL_PROC As String = "mod_BasicInfoCellDropdown.PollCellDropdownSelection"
+Private Const CELL_DROPDOWN_POLL_INTERVAL_DAYS As Double = 0.05 / 86400#
 Private mCellDropdownTargetAddress As String
+Private mCellDropdownWorksheetName As String
+Private mCellDropdownPollTime As Date
+Private mLastComboListIndex As Long
 Private mInCellDropdownPrompt As Boolean
 
 Public Function IsPromptingCellDropdown() As Boolean
@@ -84,6 +89,7 @@ Public Sub ShowCellValidationDropdown(ByVal wsInfo As Worksheet, ByVal target As
     End If
 
     mCellDropdownTargetAddress = anchor.Address(False, False)
+    mCellDropdownWorksheetName = wsInfo.Name
     mInCellDropdownPrompt = True
     FitComboToCell anchor, ole
 
@@ -94,6 +100,7 @@ Public Sub ShowCellValidationDropdown(ByVal wsInfo As Worksheet, ByVal target As
     On Error Resume Next
     ole.Object.DropDown
     On Error GoTo CleanFail
+    StartCellDropdownPolling
     Exit Sub
 
 CleanFail:
@@ -110,8 +117,50 @@ Public Sub CommitCellDropdownSelection(ByVal wsInfo As Worksheet)
     End If
 End Sub
 
+' Enter / LostFocus 直後は ListIndex 更新前のことがあるため、少し遅らせて確定する
+Public Sub ScheduleDeferredCommitCellDropdownSelection()
+    On Error Resume Next
+    Application.OnTime Now + TimeValue("00:00:00"), "mod_BasicInfoCellDropdown.RunDeferredCommitCellDropdownSelection"
+    On Error GoTo 0
+End Sub
+
+Public Sub RunDeferredCommitCellDropdownSelection()
+    Dim wsInfo As Worksheet
+    Set wsInfo = GetCellDropdownWorksheet()
+    If wsInfo Is Nothing Then Exit Sub
+    If Not mInCellDropdownPrompt Then Exit Sub
+
+    Dim combo As Object
+    On Error Resume Next
+    Set combo = wsInfo.OLEObjects(CELL_DROPDOWN_COMBO_NAME).Object
+    On Error GoTo 0
+    If Not combo Is Nothing Then
+        On Error Resume Next
+        If combo.DroppedDown Then
+            combo.DroppedDown = False
+        End If
+        On Error GoTo 0
+    End If
+
+    CommitCellDropdownSelection wsInfo
+End Sub
+
 ' コンボからフォーカスが外れた時: 選択済みなら反映、未選択なら閉じる
 Public Sub HandleCellDropdownLostFocus(ByVal wsInfo As Worksheet)
+    If wsInfo Is Nothing Then Exit Sub
+    If Not mInCellDropdownPrompt Then Exit Sub
+    ScheduleDeferredHandleCellDropdownLostFocus
+End Sub
+
+Public Sub ScheduleDeferredHandleCellDropdownLostFocus()
+    On Error Resume Next
+    Application.OnTime Now + TimeValue("00:00:00"), "mod_BasicInfoCellDropdown.RunDeferredHandleCellDropdownLostFocus"
+    On Error GoTo 0
+End Sub
+
+Public Sub RunDeferredHandleCellDropdownLostFocus()
+    Dim wsInfo As Worksheet
+    Set wsInfo = GetCellDropdownWorksheet()
     If wsInfo Is Nothing Then Exit Sub
     If Not mInCellDropdownPrompt Then Exit Sub
 
@@ -120,6 +169,70 @@ Public Sub HandleCellDropdownLostFocus(ByVal wsInfo As Worksheet)
     Else
         HideCellDropdown wsInfo
     End If
+End Sub
+
+' 動的生成コンボは Sheet イベントが届かない環境があるため、ListIndex を監視して確定する
+Public Sub PollCellDropdownSelection()
+    On Error GoTo CleanExit
+
+    If Not mInCellDropdownPrompt Then Exit Sub
+
+    Dim wsInfo As Worksheet
+    Set wsInfo = GetCellDropdownWorksheet()
+    If wsInfo Is Nothing Then GoTo CleanExit
+
+    Dim ole As OLEObject
+    On Error Resume Next
+    Set ole = wsInfo.OLEObjects(CELL_DROPDOWN_COMBO_NAME)
+    On Error GoTo CleanExit
+    If ole Is Nothing Or Not ole.Visible Then GoTo CleanExit
+
+    Dim combo As Object
+    Set combo = ole.Object
+
+    Dim droppedDown As Boolean
+    droppedDown = False
+    On Error Resume Next
+    droppedDown = combo.DroppedDown
+    On Error GoTo CleanExit
+
+    Dim currentIndex As Long
+    currentIndex = -1
+    On Error Resume Next
+    currentIndex = combo.ListIndex
+    On Error GoTo CleanExit
+
+    If droppedDown Then
+        If currentIndex >= 0 Then mLastComboListIndex = currentIndex
+        ScheduleCellDropdownPoll
+        Exit Sub
+    End If
+
+    If currentIndex >= 0 And currentIndex <> mLastComboListIndex Then
+        mLastComboListIndex = currentIndex
+        If TryCommitCellDropdownSelection(wsInfo) Then
+            CloseCellDropdownSession wsInfo
+            Exit Sub
+        End If
+    End If
+
+    If Not IsCellDropdownTarget(wsInfo, wsInfo.Application.ActiveCell) Then
+        If currentIndex >= 0 Then
+            If TryCommitCellDropdownSelection(wsInfo) Then
+                CloseCellDropdownSession wsInfo
+                Exit Sub
+            End If
+        End If
+        HideCellDropdown wsInfo
+        Exit Sub
+    End If
+
+    ScheduleCellDropdownPoll
+    Exit Sub
+
+CleanExit:
+    CancelCellDropdownPoll
+    If mInCellDropdownPrompt Then HideCellDropdown wsInfo
 End Sub
 
 ' 選択が対象セルから外れた時などに呼ぶ: コンボを消す
@@ -187,8 +300,47 @@ Private Sub CloseCellDropdownSession(ByVal wsInfo As Worksheet)
 End Sub
 
 Private Sub ResetCellDropdownSession()
+    CancelCellDropdownPoll
     mInCellDropdownPrompt = False
     mCellDropdownTargetAddress = ""
+    mCellDropdownWorksheetName = ""
+    mLastComboListIndex = -2
+End Sub
+
+Private Function GetCellDropdownWorksheet() As Worksheet
+    On Error GoTo CleanFail
+
+    If Len(mCellDropdownWorksheetName) > 0 Then
+        Set GetCellDropdownWorksheet = ThisWorkbook.Worksheets(mCellDropdownWorksheetName)
+        Exit Function
+    End If
+
+CleanFail:
+    Set GetCellDropdownWorksheet = CommonGetBasicInfoWorksheet()
+End Function
+
+Private Sub StartCellDropdownPolling()
+    mLastComboListIndex = -2
+    ScheduleCellDropdownPoll
+End Sub
+
+Private Sub ScheduleCellDropdownPoll()
+    If Not mInCellDropdownPrompt Then Exit Sub
+
+    CancelCellDropdownPoll
+    mCellDropdownPollTime = Now + CELL_DROPDOWN_POLL_INTERVAL_DAYS
+    On Error Resume Next
+    Application.OnTime EarliestTime:=mCellDropdownPollTime, Procedure:=CELL_DROPDOWN_POLL_PROC
+    On Error GoTo 0
+End Sub
+
+Private Sub CancelCellDropdownPoll()
+    On Error Resume Next
+    If mCellDropdownPollTime <> 0 Then
+        Application.OnTime EarliestTime:=mCellDropdownPollTime, Procedure:=CELL_DROPDOWN_POLL_PROC, Schedule:=False
+    End If
+    mCellDropdownPollTime = 0
+    On Error GoTo 0
 End Sub
 
 Private Function GetCellDropdownComboBox(ByVal wsInfo As Worksheet, ByVal anchor As Range) As OLEObject
