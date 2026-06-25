@@ -296,15 +296,21 @@ Public Sub CommitOfficeComboBoxSelection(Optional ByVal selectC6 As Boolean = Tr
     If ole Is Nothing Then GoTo ExitHandler
 
     Dim selectedOffice As String
+    Dim previousOffice As String
     selectedOffice = CommonNormalizeText(CStr(ole.Object.value))
     If selectedOffice = "" Then GoTo ExitHandler
+    previousOffice = CommonNormalizeText(CStr(wsInfo.Range("C6").value))
 
     mSuppressC6Change = True
     ClearOfficeComboBoxLinkedCell ole
     wsInfo.Range("C6").value = selectedOffice
     mSuppressC6Change = False
 
-    mod_BasicInfoUpdate.SilentClearBasicInfo wsInfo
+    If StrComp(previousOffice, selectedOffice, vbTextCompare) <> 0 Then
+        If Not mod_MaterialPriceImport.IsImportingUnitPriceData() Then
+            mod_BasicInfoUpdate.SilentClearBasicInfo wsInfo
+        End If
+    End If
     FillManagerNameToBasicInfo
 
 ExitHandler:
