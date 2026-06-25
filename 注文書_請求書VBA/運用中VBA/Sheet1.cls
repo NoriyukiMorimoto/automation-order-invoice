@@ -273,16 +273,16 @@ Private Sub ComboBoxVendor_KeyDown(ByVal KeyCode As MSForms.ReturnInteger, ByVal
 End Sub
 
 Private Sub ComboBoxCellDropdown_Change()
-    mod_BasicInfoCellDropdown.CommitCellDropdownSelection Me
+    mod_BasicInfoCellDropdown.ScheduleDeferredCommitCellDropdownSelection
 End Sub
 
 Private Sub ComboBoxCellDropdown_Click()
-    mod_BasicInfoCellDropdown.CommitCellDropdownSelection Me
+    mod_BasicInfoCellDropdown.ScheduleDeferredCommitCellDropdownSelection
 End Sub
 
 Private Sub ComboBoxCellDropdown_KeyDown(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift As Integer)
     If KeyCode = vbKeyReturn Then
-        mod_BasicInfoCellDropdown.CommitCellDropdownSelection Me
+        mod_BasicInfoCellDropdown.ScheduleDeferredCommitCellDropdownSelection
     End If
 End Sub
 
