@@ -195,6 +195,10 @@ AfterClear:
     If Not wsInfo Is Nothing Then mod_BasicInfoGuide.InitBasicInfoGuide wsInfo
     On Error GoTo 0
 
+    Application.EnableEvents = prevEnableEvents
+    Application.ScreenUpdating = True
+    DeleteConstructionImportSheets False
+
 FinallyExit:
     Application.EnableEvents = prevEnableEvents
     Application.ScreenUpdating = previousScreenUpdating
