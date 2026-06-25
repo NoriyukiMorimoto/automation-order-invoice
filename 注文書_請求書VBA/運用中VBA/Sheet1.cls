@@ -219,27 +219,25 @@ Private Sub Worksheet_SelectionChange(ByVal target As Range)
     mod_DebugLog.Log "[Sheet1] SelectionChange: " & target.Address & " IsPromptingOffice=" & mod_FillManagerName.IsPromptingOfficeComboBox() & " CellDropdownOpen=" & mod_BasicInfoCellDropdown.IsCellDropdownSessionOpen(Me)
     mod_BasicInfoCalendar.HandleBasicInfoSelectionChange target
 
+    If Not mod_FillManagerName.IsPromptingOfficeComboBox() Then
+        If Intersect(target, Me.Range("C6")) Is Nothing Then
+            mod_DebugLog.Log "[Sheet1] SelectionChange: C6?? -> HideOfficeComboBox"
+            mod_FillManagerName.HideOfficeComboBox Me
+        End If
+    Else
+        mod_DebugLog.Log "[Sheet1] SelectionChange: IsPrompting=True -> Hide????"
+    End If
+
     If mod_BasicInfoCellDropdown.IsCellDropdownSessionOpen(Me) Then
         mod_BasicInfoCellDropdown.PollCellDropdownSelection
     End If
 
-    If Not mod_FillManagerName.IsPromptingOfficeComboBox() Then
-        If Intersect(target, Me.Range("C6")) Is Nothing Then
-            mod_DebugLog.Log "[Sheet1] SelectionChange: C6以外 -> HideOfficeComboBox"
-            mod_FillManagerName.HideOfficeComboBox Me
-        End If
-    Else
-        mod_DebugLog.Log "[Sheet1] SelectionChange: IsPrompting=True -> Hideスキップ"
+    If Not mod_BasicInfoCellDropdown.IsCellDropdownTarget(Me, target) Then
+        mod_BasicInfoCellDropdown.HideCellDropdown Me
     End If
 
     If Not Intersect(target, Me.Range("C21")) Is Nothing Then
         mod_MaterialPriceImport.RefreshUnitPriceProjectNameValidation Me, True
-    End If
-
-    If Not mod_BasicInfoCellDropdown.IsCellDropdownSessionOpen(Me) Then
-        If Not mod_BasicInfoCellDropdown.IsCellDropdownTarget(Me, target) Then
-            mod_BasicInfoCellDropdown.HideCellDropdown Me
-        End If
     End If
 
     Dim vendorNameRange As Range
