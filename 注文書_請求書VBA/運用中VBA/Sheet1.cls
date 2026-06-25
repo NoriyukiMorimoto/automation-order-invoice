@@ -27,6 +27,13 @@ End Sub
 
 Private Sub Worksheet_Change(ByVal target As Range)
     mod_DebugLog.Log "[Sheet1] Worksheet_Change: " & target.Address & " Value=[" & GetTargetValueText(target) & "] EnableEvents=" & Application.EnableEvents
+
+    If mod_BasicInfoCellDropdown.IsPromptingCellDropdown() Then
+        If Not Intersect(target, Me.Range("C22,C23")) Is Nothing Then
+            mod_BasicInfoCellDropdown.CompleteCellDropdownFromSheetChange Me
+        End If
+    End If
+
     Dim vendorNameRange As Range
     Set vendorNameRange = mod_VendorMaster.GetVendorNameRange(Me)
 
@@ -209,8 +216,12 @@ Private Function IsUnitPriceImportDoubleClickTarget(ByVal target As Range) As Bo
 End Function
 
 Private Sub Worksheet_SelectionChange(ByVal target As Range)
-    mod_DebugLog.Log "[Sheet1] SelectionChange: " & target.Address & " IsPrompting=" & mod_FillManagerName.IsPromptingOfficeComboBox()
+    mod_DebugLog.Log "[Sheet1] SelectionChange: " & target.Address & " IsPromptingOffice=" & mod_FillManagerName.IsPromptingOfficeComboBox() & " IsPromptingCellDropdown=" & mod_BasicInfoCellDropdown.IsPromptingCellDropdown()
     mod_BasicInfoCalendar.HandleBasicInfoSelectionChange target
+
+    If mod_BasicInfoCellDropdown.IsPromptingCellDropdown() Then
+        mod_BasicInfoCellDropdown.PollCellDropdownSelection
+    End If
 
     If Not mod_FillManagerName.IsPromptingOfficeComboBox() Then
         If Intersect(target, Me.Range("C6")) Is Nothing Then
