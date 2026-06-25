@@ -82,6 +82,42 @@ Public Function CommonPurchaseNoticeOutputSheetName() As String
     CommonPurchaseNoticeOutputSheetName = cached
 End Function
 
+Public Function CommonConstructionOrderWorksSheetName() As String
+    Static cached As String
+    If Len(cached) = 0 Then
+        cached = ChrW$(&H65BD) & ChrW$(&H5DE5) & ChrW$(&H6307) & ChrW$(&H793A) & ChrW$(&H66F8) & _
+                 "(" & ChrW$(&H5DE5) & ChrW$(&H4E8B) & ")"
+    End If
+    CommonConstructionOrderWorksSheetName = cached
+End Function
+
+Public Function CommonConstructionOrderWeldingSheetName() As String
+    Static cached As String
+    If Len(cached) = 0 Then
+        cached = ChrW$(&H65BD) & ChrW$(&H5DE5) & ChrW$(&H6307) & ChrW$(&H793A) & ChrW$(&H66F8) & _
+                 "(" & ChrW$(&H6EB6) & ChrW$(&H63A5) & ")"
+    End If
+    CommonConstructionOrderWeldingSheetName = cached
+End Function
+
+Public Function CommonConstructionNoticeWorksSheetName() As String
+    Static cached As String
+    If Len(cached) = 0 Then
+        cached = ChrW$(&H65BD) & ChrW$(&H5DE5) & ChrW$(&H901A) & ChrW$(&H77E5) & ChrW$(&H66F8) & _
+                 "(" & ChrW$(&H5DE5) & ChrW$(&H4E8B) & ")"
+    End If
+    CommonConstructionNoticeWorksSheetName = cached
+End Function
+
+Public Function CommonConstructionNoticeWeldingSheetName() As String
+    Static cached As String
+    If Len(cached) = 0 Then
+        cached = ChrW$(&H65BD) & ChrW$(&H5DE5) & ChrW$(&H901A) & ChrW$(&H77E5) & ChrW$(&H66F8) & _
+                 "(" & ChrW$(&H6EB6) & ChrW$(&H63A5) & ")"
+    End If
+    CommonConstructionNoticeWeldingSheetName = cached
+End Function
+
 Public Function CommonCompanyNameText() As String
     Static cached As String
     If cached = "" Then
