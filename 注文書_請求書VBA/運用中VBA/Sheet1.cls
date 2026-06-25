@@ -28,8 +28,8 @@ End Sub
 Private Sub Worksheet_Change(ByVal target As Range)
     mod_DebugLog.Log "[Sheet1] Worksheet_Change: " & target.Address & " Value=[" & GetTargetValueText(target) & "] EnableEvents=" & Application.EnableEvents
 
-    If mod_BasicInfoCellDropdown.IsPromptingCellDropdown() Then
-        If Not Intersect(target, Me.Range("C22,C23")) Is Nothing Then
+    If Not Intersect(target, Me.Range("C22,C23")) Is Nothing Then
+        If mod_BasicInfoCellDropdown.IsCellDropdownSessionOpen(Me) Then
             mod_BasicInfoCellDropdown.CompleteCellDropdownFromSheetChange Me
         End If
     End If
@@ -216,10 +216,10 @@ Private Function IsUnitPriceImportDoubleClickTarget(ByVal target As Range) As Bo
 End Function
 
 Private Sub Worksheet_SelectionChange(ByVal target As Range)
-    mod_DebugLog.Log "[Sheet1] SelectionChange: " & target.Address & " IsPromptingOffice=" & mod_FillManagerName.IsPromptingOfficeComboBox() & " IsPromptingCellDropdown=" & mod_BasicInfoCellDropdown.IsPromptingCellDropdown()
+    mod_DebugLog.Log "[Sheet1] SelectionChange: " & target.Address & " IsPromptingOffice=" & mod_FillManagerName.IsPromptingOfficeComboBox() & " CellDropdownOpen=" & mod_BasicInfoCellDropdown.IsCellDropdownSessionOpen(Me)
     mod_BasicInfoCalendar.HandleBasicInfoSelectionChange target
 
-    If mod_BasicInfoCellDropdown.IsPromptingCellDropdown() Then
+    If mod_BasicInfoCellDropdown.IsCellDropdownSessionOpen(Me) Then
         mod_BasicInfoCellDropdown.PollCellDropdownSelection
     End If
 
@@ -236,7 +236,7 @@ Private Sub Worksheet_SelectionChange(ByVal target As Range)
         mod_MaterialPriceImport.RefreshUnitPriceProjectNameValidation Me, True
     End If
 
-    If Not mod_BasicInfoCellDropdown.IsPromptingCellDropdown() Then
+    If Not mod_BasicInfoCellDropdown.IsCellDropdownSessionOpen(Me) Then
         If Not mod_BasicInfoCellDropdown.IsCellDropdownTarget(Me, target) Then
             mod_BasicInfoCellDropdown.HideCellDropdown Me
         End If
