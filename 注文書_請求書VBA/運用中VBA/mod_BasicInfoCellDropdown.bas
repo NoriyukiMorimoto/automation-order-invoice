@@ -34,6 +34,17 @@ Public Function IsPromptingCellDropdown() As Boolean
     IsPromptingCellDropdown = mInCellDropdownPrompt
 End Function
 
+Public Function IsCellDropdownSessionOpen(ByVal wsInfo As Worksheet) As Boolean
+    If wsInfo Is Nothing Then Exit Function
+    If Len(mCellDropdownTargetAddress) > 0 Then
+        IsCellDropdownSessionOpen = True
+        Exit Function
+    End If
+    On Error Resume Next
+    IsCellDropdownSessionOpen = wsInfo.OLEObjects(CELL_DROPDOWN_COMBO_NAME).Visible
+    On Error GoTo 0
+End Function
+
 Private Function CellDropdownTargetAddresses() As Variant
     CellDropdownTargetAddresses = Array("C22", "C23")
 End Function
@@ -274,7 +285,15 @@ End Sub
 
 Public Sub HideCellDropdown(ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Exit Sub
-    mod_DebugLog.Log LOG_TAG & " Hide"
+
+    If IsCellDropdownSessionOpen(wsInfo) Then
+        If ShouldFinalizeCellDropdownSession(wsInfo) Then
+            CloseCellDropdownSession wsInfo
+            Exit Sub
+        End If
+    End If
+
+    mod_DebugLog.Log LOG_TAG & " Hide without commit"
     ResetCellDropdownSession
     DeleteCellDropdownComboBox wsInfo
 End Sub
@@ -292,6 +311,12 @@ Private Function TryCommitCellDropdownSelection(ByVal wsInfo As Worksheet) As Bo
     selectedValue = Trim$(CStr(anchor.value))
     If Len(selectedValue) > 0 And StrComp(selectedValue, mCellDropdownStartValue, vbBinaryCompare) <> 0 Then
         mod_DebugLog.Log LOG_TAG & " TryCommit via anchor value=[" & selectedValue & "]"
+        TryCommitCellDropdownSelection = True
+        Exit Function
+    End If
+
+    If Len(selectedValue) > 0 And (mDropdownInteracted Or mInCellDropdownPrompt) Then
+        mod_DebugLog.Log LOG_TAG & " TryCommit confirm anchor value=[" & selectedValue & "]"
         TryCommitCellDropdownSelection = True
         Exit Function
     End If
@@ -336,6 +361,17 @@ Private Sub NotifyCellDropdownValueCommitted(ByVal wsInfo As Worksheet, ByVal an
         mod_Construction_Order_Import.RefreshConstructionReferenceUnitPricesOnExistingSheets
     End If
 End Sub
+
+Private Function ShouldFinalizeCellDropdownSession(ByVal wsInfo As Worksheet) As Boolean
+    ShouldFinalizeCellDropdownSession = TryCommitCellDropdownSelection(wsInfo)
+    If ShouldFinalizeCellDropdownSession Then Exit Function
+
+    Dim anchor As Range
+    Set anchor = GetCellDropdownAnchor(wsInfo)
+    If anchor Is Nothing Then Exit Function
+
+    ShouldFinalizeCellDropdownSession = (Len(Trim$(CStr(anchor.value))) > 0)
+End Function
 
 Private Function HasAnchorValueChanged(ByVal wsInfo As Worksheet) As Boolean
     Dim anchor As Range
