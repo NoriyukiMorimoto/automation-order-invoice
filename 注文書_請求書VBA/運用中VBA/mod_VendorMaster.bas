@@ -62,6 +62,10 @@ Public Function IsSyncVendorBlocksInProgress() As Boolean
     IsSyncVendorBlocksInProgress = mSyncVendorBlocksInProgress
 End Function
 
+Public Sub ResetVendorBlockSyncState()
+    mSyncVendorBlocksInProgress = False
+End Sub
+
 Public Sub RefreshVendorListForBasicInfo(Optional ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet()
     If wsInfo Is Nothing Then Exit Sub
@@ -545,10 +549,18 @@ End Function
 Public Sub InitVendorBlockCountFromSheet(Optional ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet()
     If wsInfo Is Nothing Then Exit Sub
-    mLastVendorBlockCount = GetVendorBlockCount(wsInfo)
-    mod_VendorInfoColors.ApplyVendorInfoRow10Colors wsInfo
-    ClearVendorWorkTypeWhenCompanyEmpty wsInfo
-    RestoreVendorBlockValueColumnRightBorders wsInfo, mLastVendorBlockCount
+
+    ResetVendorBlockSyncState
+
+    Dim existingBlockCount As Long
+    existingBlockCount = CountExistingVendorBlocks(wsInfo)
+    If existingBlockCount <= 0 Then
+        mLastVendorBlockCount = 0
+    Else
+        mLastVendorBlockCount = existingBlockCount
+    End If
+
+    SyncVendorBlocksFromCount wsInfo
 End Sub
 
 Public Sub SyncVendorBlocksFromCount(ByVal wsInfo As Worksheet)
