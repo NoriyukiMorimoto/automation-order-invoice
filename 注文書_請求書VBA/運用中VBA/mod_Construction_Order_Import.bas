@@ -151,6 +151,7 @@ Private mSuppressOverwritePrompt As Boolean
 Private mLastCreatedImportSheet As Worksheet
 Private mSanpaiFillColorCached As Boolean
 Private mSanpaiFillColorCache As Long
+Private mWeldingLineSectionAliasMap As Object
 
 Public Sub ImportConstructionDocument()
     Dim scrn As Boolean, evt As Boolean, alerts As Boolean
@@ -161,6 +162,7 @@ Public Sub ImportConstructionDocument()
 
     mSuppressOverwritePrompt = False
     Set mLastCreatedImportSheet = Nothing
+    Set mWeldingLineSectionAliasMap = Nothing
 
     On Error GoTo Cleanup
 
@@ -3274,14 +3276,23 @@ Private Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
             If priceRows Is Nothing Or recordKey = "" Then
                 missingRecordCount = missingRecordCount + 1
                 If recordKey <> "" Then recordMissing = True
-            ElseIf priceRows.Exists(recordKey) Then
-                Dim dayNightPrices As Variant
-                dayNightPrices = priceRows(recordKey)
-                referencePrice = SelectDayNightPrice(CommonNzText(ws.Cells(r, dayNightColumn).value), dayNightPrices)
-                If Not IsEmpty(referencePrice) Then matchedCount = matchedCount + 1
             Else
-                missingRecordCount = missingRecordCount + 1
-                recordMissing = True
+                Dim resolvedRecordKey As String
+                If isWeldingSheet Then
+                    resolvedRecordKey = FindWeldingPriceRecordKey(priceRows, rawLineText, ws.Cells(r, seiriColumn).value)
+                Else
+                    resolvedRecordKey = recordKey
+                End If
+
+                If resolvedRecordKey <> "" And priceRows.Exists(resolvedRecordKey) Then
+                    Dim dayNightPrices As Variant
+                    dayNightPrices = priceRows(resolvedRecordKey)
+                    referencePrice = SelectDayNightPrice(CommonNzText(ws.Cells(r, dayNightColumn).value), dayNightPrices)
+                    If Not IsEmpty(referencePrice) Then matchedCount = matchedCount + 1
+                Else
+                    missingRecordCount = missingRecordCount + 1
+                    recordMissing = True
+                End If
             End If
         End If
 
@@ -3330,6 +3341,7 @@ Public Sub RefreshConstructionReferenceUnitPricesOnExistingSheets()
     Dim prevCalc As XlCalculation
     prevScreen = Application.ScreenUpdating
     prevCalc = Application.Calculation
+    Set mWeldingLineSectionAliasMap = Nothing
 
     On Error GoTo Cleanup
     Application.ScreenUpdating = False
@@ -3589,6 +3601,135 @@ Private Sub AddLineSheetAlias(ByVal lineSheetMap As Object, _
               "] ignored=[" & unitPriceSheetName & "]"
     End If
 End Sub
+
+' 工事件名別マスタ G列(施工指示書記載線区名) -> F列(積算線区) の対応を溶接照合用に返す。
+' レール溶接単価シートの「積算線区：」行は F 列表記、施工指示書(溶接)の契約線区名は G 列表記のため、
+' 両者が異なる場合(例: 関西本線 vs 関西)に複合キー照合が失敗する。工事シートと同じマスタで解決する。
+Private Function GetWeldingLineSectionAliasMap() As Object
+    If mWeldingLineSectionAliasMap Is Nothing Then
+        Set mWeldingLineSectionAliasMap = BuildWeldingLineSectionAliasMap()
+        LogCI "溶接線区名エイリアス数=" & mWeldingLineSectionAliasMap.Count
+    End If
+    Set GetWeldingLineSectionAliasMap = mWeldingLineSectionAliasMap
+End Function
+
+Private Function BuildWeldingLineSectionAliasMap() As Object
+    Dim result As Object
+    Set result = CreateObject("Scripting.Dictionary")
+    result.CompareMode = vbTextCompare
+
+    Dim masterPath As String
+    masterPath = ResolveProjectLineMasterPath()
+    If masterPath = "" Then
+        Set BuildWeldingLineSectionAliasMap = result
+        Exit Function
+    End If
+
+    Dim connection As Object
+    Set connection = CommonOpenExcelAdoConnection(masterPath)
+    If connection Is Nothing Then
+        LogCI "溶接線区名エイリアス: 工事件名別マスタへADO接続できない path=[" & masterPath & "]"
+        Set BuildWeldingLineSectionAliasMap = result
+        Exit Function
+    End If
+
+    On Error GoTo Cleanup
+
+    Dim sheetNames As Collection
+    Set sheetNames = CommonGetAdoWorksheetNames(connection)
+
+    Dim sheetName As Variant
+    Dim recordset As Object
+    For Each sheetName In sheetNames
+        Set recordset = CreateObject("ADODB.Recordset")
+        recordset.Open "SELECT [F6], [F7] FROM " & _
+                       BuildAdoSheetTableName(CStr(sheetName)), connection, 0, 1, 1
+
+        Dim rowNumber As Long
+        rowNumber = 1
+        Do Until recordset.EOF
+            Dim unitPriceLineName As String
+            Dim sourceLineName As String
+
+            unitPriceLineName = CommonNzText(recordset.Fields(0).value)
+            If rowNumber >= PROJECT_MASTER_START_ROW And Trim$(unitPriceLineName) <> "" Then
+                sourceLineName = CommonNzText(recordset.Fields(1).value)
+                If Trim$(sourceLineName) = "" Then sourceLineName = unitPriceLineName
+
+                Dim normalizedUnit As String
+                Dim normalizedSource As String
+                normalizedUnit = NormalizeLineLookupText(unitPriceLineName, True)
+                normalizedSource = NormalizeLineLookupText(sourceLineName, True)
+
+                If normalizedSource <> "" And normalizedUnit <> "" Then
+                    If StrComp(normalizedSource, normalizedUnit, vbTextCompare) <> 0 Then
+                        AddWeldingLineSectionAlias result, normalizedSource, normalizedUnit
+                    End If
+                End If
+            End If
+            recordset.MoveNext
+            rowNumber = rowNumber + 1
+        Loop
+
+        CommonCloseAdoRecordset recordset
+        Set recordset = Nothing
+    Next sheetName
+
+Cleanup:
+    If Err.Number <> 0 Then
+        LogCI "溶接線区名エイリアス読込エラー Err " & Err.Number & ": " & Err.Description
+        Err.Clear
+    End If
+    CommonCloseAdoRecordset recordset
+    CommonCloseAdoConnection connection
+
+    Set BuildWeldingLineSectionAliasMap = result
+End Function
+
+Private Sub AddWeldingLineSectionAlias(ByVal aliasMap As Object, _
+                                       ByVal sourceLineName As String, _
+                                       ByVal unitPriceLineName As String)
+    If aliasMap Is Nothing Then Exit Sub
+    If Len(sourceLineName) = 0 Or Len(unitPriceLineName) = 0 Then Exit Sub
+
+    If Not aliasMap.Exists(sourceLineName) Then
+        aliasMap.Add sourceLineName, unitPriceLineName
+    ElseIf StrComp(CStr(aliasMap(sourceLineName)), unitPriceLineName, vbTextCompare) <> 0 Then
+        LogCI "溶接線区名エイリアス重複 source=[" & sourceLineName & "] first=[" & _
+              CStr(aliasMap(sourceLineName)) & "] ignored=[" & unitPriceLineName & "]"
+    End If
+End Sub
+
+Private Function ResolveWeldingLineSectionAlias(ByVal normalizedLineName As String) As String
+    If Len(normalizedLineName) = 0 Then Exit Function
+
+    Dim aliasMap As Object
+    Set aliasMap = GetWeldingLineSectionAliasMap()
+    If Not aliasMap Is Nothing And aliasMap.Exists(normalizedLineName) Then
+        ResolveWeldingLineSectionAlias = CStr(aliasMap(normalizedLineName))
+    Else
+        ResolveWeldingLineSectionAlias = normalizedLineName
+    End If
+End Function
+
+Private Function FindWeldingPriceRecordKey(ByVal priceRows As Object, _
+                                           ByVal lineText As String, _
+                                           ByVal seiriValue As Variant) As String
+    If priceRows Is Nothing Then Exit Function
+
+    Dim primaryKey As String
+    primaryKey = BuildWeldingLineSeiriLookupKey(lineText, seiriValue, True)
+    If primaryKey <> "" And priceRows.Exists(primaryKey) Then
+        FindWeldingPriceRecordKey = primaryKey
+        Exit Function
+    End If
+
+    Dim fallbackKey As String
+    fallbackKey = BuildWeldingLineSeiriLookupKey(lineText, seiriValue, False)
+    If fallbackKey <> "" And StrComp(fallbackKey, primaryKey, vbTextCompare) <> 0 Then
+        If priceRows.Exists(fallbackKey) Then FindWeldingPriceRecordKey = fallbackKey
+    End If
+End Function
 
 Private Function ResolveUnitPriceSheetName(ByVal lineSheetMap As Object, _
                                            ByVal importedLineName As String, _
@@ -4894,13 +5035,18 @@ Private Sub BuildWeldingUnitPriceRowCache(ByVal priceSheet As Worksheet, _
     Next r
 End Sub
 
-Private Function BuildWeldingLineSeiriLookupKey(ByVal lineText As String, ByVal seiriValue As Variant) As String
+Private Function BuildWeldingLineSeiriLookupKey(ByVal lineText As String, _
+                                                ByVal seiriValue As Variant, _
+                                                Optional ByVal useLineAlias As Boolean = True) As String
     Dim seiriKey As String
     seiriKey = BuildWeldingLookupKey(seiriValue)
     If seiriKey = "" Then Exit Function
 
     Dim normalizedLine As String
     normalizedLine = NormalizeWeldingPriceLineSectionName(lineText)
+    If useLineAlias Then
+        normalizedLine = ResolveWeldingLineSectionAlias(normalizedLine)
+    End If
     If normalizedLine = "" Then
         BuildWeldingLineSeiriLookupKey = seiriKey
     Else
