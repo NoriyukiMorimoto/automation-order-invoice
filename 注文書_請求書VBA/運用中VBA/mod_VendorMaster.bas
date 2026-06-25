@@ -109,26 +109,15 @@ Public Sub FillVendorInfoToBasicInfo(Optional ByVal wsInfo As Worksheet, Optiona
     If selectedVendorName = "" Then
         ClearVendorInfoBlock targetCell
         RefreshVendorUnitPriceForValueColumn wsInfo, targetCell.Column
-        GoTo RefreshWelding
+        NotifyVendorBasicInfoBlockChanged wsInfo, targetCell.Column, previousWorkType
+        Exit Sub
     End If
-    If BranchName = "" Then Exit Sub
+    If BranchName = "" Then
+        NotifyVendorBasicInfoBlockChanged wsInfo, targetCell.Column, previousWorkType
+        Exit Sub
+    End If
 
     ApplyVendorSelection BranchName, selectedVendorName, wsInfo, targetCell
-
-RefreshWelding:
-    Dim currentWorkType As String
-    currentWorkType = CommonNormalizeText(CStr(wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, targetCell.Column).value))
-
-    If StrComp(previousWorkType, currentWorkType, vbTextCompare) = 0 Then
-        mod_WeldingUnitPrice.UpdateWeldingVendorDisplayNamesForBasicInfo wsInfo, targetCell.Column
-    ElseIf Len(previousWorkType) = 0 And Len(currentWorkType) > 0 Then
-        Dim firstFillCols As Collection
-        Set firstFillCols = New Collection
-        firstFillCols.Add targetCell.Column
-        mod_WeldingUnitPrice.ApplyWeldingVendorUnitPricesForBasicInfoColumns wsInfo, firstFillCols, targetCell.Column
-    Else
-        mod_WeldingUnitPrice.ApplyWeldingVendorUnitPricesForBasicInfo wsInfo, False, targetCell.Column
-    End If
     Exit Sub
 
 ErrorHandler:
@@ -171,6 +160,47 @@ Public Sub ApplyVendorSelection(ByVal BranchName As String, ByVal vendorName As 
     End If
 
     RefreshVendorUnitPriceForValueColumn wsInfo, targetCell.Column
+    NotifyVendorBasicInfoBlockChanged wsInfo, targetCell.Column
+End Sub
+
+Public Sub NotifyVendorBasicInfoBlockChanged(ByVal wsInfo As Worksheet, _
+                                              ByVal valueColumn As Long, _
+                                              Optional ByVal previousWorkType As Variant)
+    If wsInfo Is Nothing Then Exit Sub
+    If valueColumn <= 0 Then Exit Sub
+
+    On Error GoTo ErrorHandler
+
+    If IsMissing(previousWorkType) Then
+        mod_WeldingUnitPrice.UpdateWeldingVendorDisplayNamesForBasicInfo wsInfo, valueColumn
+    Else
+        Dim prevWorkType As String
+        Dim currentWorkType As String
+        prevWorkType = CommonNormalizeText(CStr(previousWorkType))
+        currentWorkType = CommonNormalizeText(CStr(wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, valueColumn).value))
+
+        If StrComp(prevWorkType, currentWorkType, vbTextCompare) = 0 Then
+            mod_WeldingUnitPrice.UpdateWeldingVendorDisplayNamesForBasicInfo wsInfo, valueColumn
+        ElseIf Len(prevWorkType) = 0 And Len(currentWorkType) > 0 Then
+            Dim firstFillCols As Collection
+            Set firstFillCols = New Collection
+            firstFillCols.Add valueColumn
+            mod_WeldingUnitPrice.ApplyWeldingVendorUnitPricesForBasicInfoColumns wsInfo, firstFillCols, valueColumn
+        Else
+            mod_WeldingUnitPrice.ApplyWeldingVendorUnitPricesForBasicInfo wsInfo, False, valueColumn
+        End If
+    End If
+
+    Dim vendorIndex As Long
+    vendorIndex = GetVendorIndexFromValueColumn(valueColumn)
+    If vendorIndex > 0 Then
+        mod_BasicInfoGuide.RefreshSingleVendorRowGuidePublic wsInfo, vendorIndex
+        mod_Construction_Order_Import.RefreshBasicInfoConstructionTotals vendorIndex
+    End If
+    Exit Sub
+
+ErrorHandler:
+    Err.Clear
 End Sub
 
 Public Function GetVendorIndexFromValueColumnPublic(ByVal valueColumn As Long) As Long
@@ -187,6 +217,9 @@ Private Sub ApplyVendorRowSelection(ByVal wsInfo As Worksheet, ByVal BranchName 
     Dim currentOfficeName As String
     currentOfficeName = CStr(wsInfo.Range("C6").value)
 
+    Dim previousWorkType As String
+    previousWorkType = CommonNormalizeText(CStr(wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, targetCell.Column).value))
+
     On Error GoTo ExitHandler
     Application.EnableEvents = False
 
@@ -197,6 +230,8 @@ Private Sub ApplyVendorRowSelection(ByVal wsInfo As Worksheet, ByVal BranchName 
 ExitHandler:
     Application.EnableEvents = previousEnableEvents
     Err.Clear
+
+    NotifyVendorBasicInfoBlockChanged wsInfo, targetCell.Column, previousWorkType
 End Sub
 
 Public Function GetAllVendorSelectionData() As Variant
