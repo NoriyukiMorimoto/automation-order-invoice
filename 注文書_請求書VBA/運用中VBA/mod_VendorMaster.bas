@@ -307,11 +307,18 @@ Private Sub ShowVendorComboBox(ByVal wsInfo As Worksheet)
     LoadVendorComboBoxItems wsInfo, ole, targetCell
     FitVendorComboBoxToTarget targetCell, ole
 
+    Dim comboDisplayText As String
+    comboDisplayText = ole.Object.Text
+    With ole.Object
+        If .ListCount > 0 Then .ListIndex = 0
+    End With
+
     wsInfo.Activate
     targetCell.Select
     ole.Visible = True
     ole.Activate
     ole.Object.DropDown
+    If Len(Trim$(comboDisplayText)) > 0 Then ole.Object.Text = comboDisplayText
     Exit Sub
 
 ExitHandler:
@@ -377,7 +384,12 @@ Private Sub LoadVendorComboBoxItems(ByVal wsInfo As Worksheet, ByVal ole As OLEO
         .LinkedCell = ""
         .ListRows = Application.Max(1, Application.Min(12, .ListCount))
         .MatchRequired = False
-        .value = currentValue
+        .ListIndex = -1
+        If Len(Trim$(currentValue)) > 0 Then
+            .Text = currentValue
+        Else
+            .Text = ""
+        End If
     End With
 End Sub
 
