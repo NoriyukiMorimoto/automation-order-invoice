@@ -18,6 +18,11 @@ Option Explicit
 
 Private Const CELL_DROPDOWN_COMBO_NAME As String = "ComboBoxCellDropdown"
 Private mCellDropdownTargetAddress As String
+Private mInCellDropdownPrompt As Boolean
+
+Public Function IsPromptingCellDropdown() As Boolean
+    IsPromptingCellDropdown = mInCellDropdownPrompt
+End Function
 
 ' ドロップダウン対象セル(値セル。結合は左上)。必要に応じて追加可能。
 Private Function CellDropdownTargetAddresses() As Variant
@@ -79,6 +84,7 @@ Public Sub ShowCellValidationDropdown(ByVal wsInfo As Worksheet, ByVal target As
     End If
 
     mCellDropdownTargetAddress = anchor.Address(False, False)
+    mInCellDropdownPrompt = True
     FitComboToCell anchor, ole
 
     wsInfo.Activate
@@ -91,41 +97,97 @@ Public Sub ShowCellValidationDropdown(ByVal wsInfo As Worksheet, ByVal target As
     Exit Sub
 
 CleanFail:
+    ResetCellDropdownSession
     DeleteCellDropdownComboBox wsInfo
 End Sub
 
-' コンボの Click / Enter から呼ぶ: 選択値をセルへ反映
+' コンボの Click / Change / Enter / LostFocus から呼ぶ: 選択値をセルへ反映
 Public Sub CommitCellDropdownSelection(ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Exit Sub
-    On Error GoTo CleanExit
 
-    If Len(mCellDropdownTargetAddress) = 0 Then GoTo CleanExit
-
-    Dim selectedValue As String
-    selectedValue = CStr(wsInfo.OLEObjects(CELL_DROPDOWN_COMBO_NAME).Object.value)
-
-    Dim anchor As Range
-    Set anchor = wsInfo.Range(mCellDropdownTargetAddress)
-
-    ' 実際に値が変わる場合のみ書込み(不要な Worksheet_Change の連鎖を避ける)
-    If Len(Trim$(selectedValue)) > 0 Then
-        If StrComp(selectedValue, CStr(anchor.value), vbBinaryCompare) <> 0 Then
-            anchor.value = selectedValue
-        End If
+    If TryCommitCellDropdownSelection(wsInfo) Then
+        CloseCellDropdownSession wsInfo
     End If
+End Sub
 
-CleanExit:
-    DeleteCellDropdownComboBox wsInfo
-    On Error Resume Next
-    If Len(mCellDropdownTargetAddress) > 0 Then wsInfo.Range(mCellDropdownTargetAddress).Select
-    mCellDropdownTargetAddress = ""
-    On Error GoTo 0
+' コンボからフォーカスが外れた時: 選択済みなら反映、未選択なら閉じる
+Public Sub HandleCellDropdownLostFocus(ByVal wsInfo As Worksheet)
+    If wsInfo Is Nothing Then Exit Sub
+    If Not mInCellDropdownPrompt Then Exit Sub
+
+    If TryCommitCellDropdownSelection(wsInfo) Then
+        CloseCellDropdownSession wsInfo
+    Else
+        HideCellDropdown wsInfo
+    End If
 End Sub
 
 ' 選択が対象セルから外れた時などに呼ぶ: コンボを消す
 Public Sub HideCellDropdown(ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Exit Sub
+    ResetCellDropdownSession
     DeleteCellDropdownComboBox wsInfo
+End Sub
+
+Private Function TryCommitCellDropdownSelection(ByVal wsInfo As Worksheet) As Boolean
+    On Error GoTo CleanFail
+
+    If Len(mCellDropdownTargetAddress) = 0 Then Exit Function
+
+    Dim combo As Object
+    Set combo = wsInfo.OLEObjects(CELL_DROPDOWN_COMBO_NAME).Object
+
+    Dim selectedValue As String
+    selectedValue = ReadComboSelectedText(combo)
+    If Len(selectedValue) = 0 Then Exit Function
+
+    Dim anchor As Range
+    Set anchor = wsInfo.Range(mCellDropdownTargetAddress)
+
+    ' 実際に値が変わる場合のみ書込み(不要な Worksheet_Change の連鎖を避ける)
+    If StrComp(selectedValue, CStr(anchor.value), vbBinaryCompare) <> 0 Then
+        anchor.value = selectedValue
+    End If
+
+    TryCommitCellDropdownSelection = True
+    Exit Function
+
+CleanFail:
+    TryCommitCellDropdownSelection = False
+End Function
+
+Private Function ReadComboSelectedText(ByVal combo As Object) As String
+    Dim selectedValue As String
+
+    On Error Resume Next
+    If combo.ListIndex >= 0 Then
+        selectedValue = Trim$(CStr(combo.List(combo.ListIndex)))
+    End If
+    If Len(selectedValue) = 0 Then
+        selectedValue = Trim$(CStr(combo.Text))
+    End If
+    If Len(selectedValue) = 0 Then
+        selectedValue = Trim$(CStr(combo.value))
+    End If
+    On Error GoTo 0
+
+    ReadComboSelectedText = selectedValue
+End Function
+
+Private Sub CloseCellDropdownSession(ByVal wsInfo As Worksheet)
+    Dim targetAddress As String
+    targetAddress = mCellDropdownTargetAddress
+
+    ResetCellDropdownSession
+    DeleteCellDropdownComboBox wsInfo
+
+    On Error Resume Next
+    If Len(targetAddress) > 0 Then wsInfo.Range(targetAddress).Select
+    On Error GoTo 0
+End Sub
+
+Private Sub ResetCellDropdownSession()
+    mInCellDropdownPrompt = False
     mCellDropdownTargetAddress = ""
 End Sub
 
@@ -200,8 +262,9 @@ Private Sub LoadComboItemsFromValidation(ByVal anchor As Range, ByVal ole As OLE
             End If
         End If
 
+        .Style = fmStyleDropDownList
         .ListRows = Application.Max(1, Application.Min(12, .ListCount))
-        .MatchRequired = False
+        .MatchRequired = True
         .value = CStr(anchor.value)
     End With
 
