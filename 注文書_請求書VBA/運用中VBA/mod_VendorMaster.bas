@@ -552,15 +552,24 @@ Public Sub InitVendorBlockCountFromSheet(Optional ByVal wsInfo As Worksheet)
 
     ResetVendorBlockSyncState
 
+    Dim vendorCount As Long
+    vendorCount = GetVendorBlockCount(wsInfo)
+
     Dim existingBlockCount As Long
     existingBlockCount = CountExistingVendorBlocks(wsInfo)
-    If existingBlockCount <= 0 Then
-        mLastVendorBlockCount = 0
-    Else
-        mLastVendorBlockCount = existingBlockCount
-    End If
 
-    SyncVendorBlocksFromCount wsInfo
+    ' F9件数に対し業者情報ブロックが不足しているときだけフル同期する。
+    ' 毎回 SyncVendorBlocksFromCount を呼ぶと溶接単価展開等で Activate が固まる。
+    If vendorCount > existingBlockCount Then
+        mLastVendorBlockCount = existingBlockCount
+        If mLastVendorBlockCount < 1 Then mLastVendorBlockCount = 1
+        SyncVendorBlocksFromCount wsInfo
+    Else
+        mLastVendorBlockCount = vendorCount
+        mod_VendorInfoColors.ApplyVendorInfoRow10Colors wsInfo
+        ClearVendorWorkTypeWhenCompanyEmpty wsInfo, vendorCount
+        RestoreVendorBlockValueColumnRightBorders wsInfo, vendorCount
+    End If
 End Sub
 
 Public Sub SyncVendorBlocksFromCount(ByVal wsInfo As Worksheet)
@@ -638,7 +647,7 @@ Public Sub SyncVendorBlocksFromCount(ByVal wsInfo As Worksheet)
         Else
             mod_WeldingUnitPrice.UpdateWeldingVendorDisplayNamesForBasicInfo wsInfo
         End If
-    Else
+    ElseIf vendorBlocksEnsured Then
         mod_WeldingUnitPrice.ApplyWeldingVendorUnitPricesForBasicInfo wsInfo, False, 0, True
     End If
     mLastVendorBlockCount = vendorCount
@@ -648,17 +657,13 @@ Public Sub SyncVendorBlocksFromCount(ByVal wsInfo As Worksheet)
         For restoreIndex = 1 To vendorCount
             mod_BasicInfoGuide.RefreshSingleVendorRowGuidePublic wsInfo, restoreIndex
         Next restoreIndex
-    Else
+    ElseIf vendorCount <> previousCount Then
         mod_BasicInfoGuide.RefreshVendorGuidesForBasicInfo wsInfo
     End If
 
     RestoreVendorBlockValueColumnRightBorders wsInfo, vendorCount
 
-    If vendorCount < previousCount And needWeldingRefresh Then
-        On Error Resume Next
-        Application.Calculate
-        On Error GoTo ExitHandler
-    ElseIf previousCount <= 0 Or vendorCount = previousCount Then
+    If vendorBlocksEnsured Or vendorCount <> previousCount Or needWeldingRefresh Then
         On Error Resume Next
         Application.Calculate
         On Error GoTo ExitHandler
