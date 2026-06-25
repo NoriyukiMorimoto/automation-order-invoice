@@ -1645,6 +1645,12 @@ Public Sub FormatImportedLineNamesCell(ByVal wsInfo As Worksheet)
     targetCell.MergeArea.WrapText = True
     targetCell.MergeArea.VerticalAlignment = xlVAlignCenter
     targetCell.MergeArea.Font.Size = CalculateImportedLineNameFontSize(targetCell.MergeArea, formattedText)
+
+    ' 線区名(C24:C28)はEnableEvents=Falseの取込経路でも書込まれるため、
+    ' ガイド(塗色・コメント)を明示的に更新して黄色塗りを解除/復帰する。
+    On Error Resume Next
+    mod_BasicInfoGuide.OnCellChanged wsInfo, wsInfo.Range(BASIC_INFO_IMPORTED_LINE_NAMES_CELL)
+    On Error GoTo 0
 End Sub
 
 Private Function CalculateImportedLineNameFontSize(ByVal targetArea As Range, ByVal LineNameText As String) As Double

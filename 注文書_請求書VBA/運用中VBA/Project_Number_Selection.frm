@@ -30,8 +30,8 @@ Private Sub SetupListView()
         .MultiSelect = False
         .ColumnHeaders.Clear
         .ColumnHeaders.Add , , "", 0
-        .ColumnHeaders.Add , , "H–”Ô†", 100, lvwColumnCenter
-        .ColumnHeaders.Add , , "H–Œ–¼", 500
+        .ColumnHeaders.Add , , "????", 100, lvwColumnCenter
+        .ColumnHeaders.Add , , "????", 500
         .ColumnHeaders.Add , , "", 0
         .ColumnHeaders.Add , , "", 0
         .ColumnHeaders.Add , , "", 0
@@ -124,11 +124,11 @@ FinallyExit:
 End Sub
 Private Function GetProjectStatusDataFolderPath() As String
     GetProjectStatusDataFolderPath = Environ$("USERPROFILE") & _
-        "\‘å“SH‹ÆŠ”®‰ïĞ\’ •[7_x•¥‹àŠzŒvZƒV[ƒg - ’ •[7_x•¥‹àŠzŒvZƒV[ƒg\yŠex“XH–”Ô†ƒf[ƒ^z" & Chr$(92)
+        "\????????\??7_????????? - ??7_?????????\????????????" & Chr$(92)
 End Function
 Private Function GetProjectStatusSourceArray(ByVal folderPath As String, ByVal targetYear As String, ByVal targetBranch As String) As Variant
     Dim sourcePath As String
-    sourcePath = folderPath & targetYear & "_" & GetProjectSelectionBranchNameForFile(targetBranch) & "_H–Œ»‹µ•\ƒf[ƒ^.xlsx"
+    sourcePath = folderPath & targetYear & "_" & GetProjectSelectionBranchNameForFile(targetBranch) & "_????????.xlsx"
 
     If Len(Dir(sourcePath, vbNormal)) = 0 Then Exit Function
     GetProjectStatusSourceArray = ReadProjectStatusFileToArray(sourcePath, "Sheet1")
@@ -308,6 +308,9 @@ Private Sub SetBasicInfoProjectSelection(ByVal projectNo As String, ByVal projec
     SetBasicInfoDateValueLikeCell targetWs.Range("C15"), workStartDate, targetWs.Range("C11")
     SetBasicInfoDateValueLikeCell targetWs.Range("C16"), workEndDate, targetWs.Range("C11")
     mod_BasicInfoUpdate.ApplyWorkDaysFromWorkDates targetWs
+    ' ????(C9)??EnableEvents=False???????Change???????
+    ' ???(???????)???????????????????
+    mod_BasicInfoGuide.OnCellChanged targetWs, targetWs.Range("C9")
     Application.EnableEvents = previousEnableEvents
 
     SelectionConfirmed = True
@@ -329,10 +332,10 @@ Private Sub SetBasicInfoContractDateValue(ByVal targetCell As Range, ByVal contr
 
     If TryParseProjectContractDate(contractDate, parsedDate) Then
         targetCell.value = parsedDate
-        displayRange.NumberFormatLocal = "yyyy”NmŒd“ú"
+        displayRange.NumberFormatLocal = "yyyy?m?d?"
     Else
         targetCell.value = RemoveProjectContractWeekday(contractDate)
-        displayRange.NumberFormatLocal = "yyyy”NmŒd“ú"
+        displayRange.NumberFormatLocal = "yyyy?m?d?"
     End If
 End Sub
 
@@ -391,9 +394,9 @@ Private Function TryParseProjectContractDate(ByVal sourceText As String, ByRef p
 
     sourceText = Replace$(sourceText, ".", "/")
     sourceText = Replace$(sourceText, "-", "/")
-    sourceText = Replace$(sourceText, "”N", "/")
-    sourceText = Replace$(sourceText, "Œ", "/")
-    sourceText = Replace$(sourceText, "“ú", "")
+    sourceText = Replace$(sourceText, "?", "/")
+    sourceText = Replace$(sourceText, "?", "/")
+    sourceText = Replace$(sourceText, "?", "")
     If IsDate(sourceText) Then
         parsedDate = CDate(sourceText)
         TryParseProjectContractDate = True
@@ -411,12 +414,12 @@ Private Function RemoveProjectContractWeekday(ByVal sourceText As String) As Str
     p = InStr(sourceText, "(")
     If p > 0 Then sourceText = Left$(sourceText, p - 1)
 
-    p = InStr(sourceText, "i")
+    p = InStr(sourceText, "?")
     If p > 0 Then sourceText = Left$(sourceText, p - 1)
 
     Dim weekdayNames As Variant
-    weekdayNames = Array("Œ—j“ú", "‰Î—j“ú", "…—j“ú", "–Ø—j“ú", "‹à—j“ú", "“y—j“ú", "“ú—j“ú", _
-                         "Œ—j", "‰Î—j", "…—j", "–Ø—j", "‹à—j", "“y—j", "“ú—j")
+    weekdayNames = Array("???", "???", "???", "???", "???", "???", "???", _
+                         "??", "??", "??", "??", "??", "??", "??")
     Dim j As Long
     For j = 0 To UBound(weekdayNames)
         Dim suffixH As String
@@ -427,7 +430,7 @@ Private Function RemoveProjectContractWeekday(ByVal sourceText As String) As Str
             Exit For
         End If
         Dim suffixZ As String
-        suffixZ = "@" & weekdayNames(j)
+        suffixZ = "?" & weekdayNames(j)
         If Right$(sourceText, Len(suffixZ)) = suffixZ Then
             sourceText = Left$(sourceText, Len(sourceText) - Len(suffixZ))
             sourceText = Trim$(sourceText)
@@ -436,7 +439,7 @@ Private Function RemoveProjectContractWeekday(ByVal sourceText As String) As Str
     Next j
 
     Dim weekdays As Variant
-    weekdays = Array("Œ", "‰Î", "…", "–Ø", "‹à", "“y", "“ú")
+    weekdays = Array("?", "?", "?", "?", "?", "?", "?")
     Dim i As Long
     For i = 0 To UBound(weekdays)
         Dim sLen As Long

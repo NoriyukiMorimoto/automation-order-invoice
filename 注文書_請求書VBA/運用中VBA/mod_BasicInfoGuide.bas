@@ -199,14 +199,14 @@ Private Sub ApplyRow29And31(ByVal ws As Worksheet, ByVal colNum As Long, ByVal c
         ApplyGuideCellByRowCol ws, 29, colNum, GetF29CommentText(), IsEmpty_Cell(ws.Cells(29, colNum))
         ApplyRow31UndeterminedState ws, colNum
     ElseIf IsRailConstructionType(constructionType) Then
-        ' 軌道工事: 29=軌道工事会社外注比率コメント / 31=現状のまま
+        ' 軌道工事: 29=軌道工事会社外注比率コメント / 31=行30パターン依存
         ApplyGuideCellByRowCol ws, 29, colNum, GetF29KidoCommentText(), IsEmpty_Cell(ws.Cells(29, colNum))
-        ApplyGuideCellByRowCol ws, 31, colNum, GetF31CommentText(), IsEmpty_Cell(ws.Cells(31, colNum))
+        ApplyRow31ForRail ws, colNum
 
     ElseIf IsWeldingConstructionType(constructionType) Then
-        ' 溶接工事: 29=入力不可（斜線×） / 31=溶接会社外注比率コメント
+        ' 溶接工事: 29=入力不可（斜線×・白） / 31左列=外注比率(%)右詰め・値列=溶接会社外注比率コメント
         ApplyDisabledCell ws.Cells(29, colNum)
-        ApplyGuideCellByRowCol ws, 31, colNum, GetF31YosetsuCommentText(), IsEmpty_Cell(ws.Cells(31, colNum))
+        ApplyRow31ForWelding ws, colNum
 
     Else
         ' その他: 29=施工会社外注比率コメント / 31=現状のまま
@@ -221,6 +221,50 @@ Private Sub ApplyRow31UndeterminedState(ByVal ws As Worksheet, ByVal colNum As L
     ClearInactiveVendorCell ws, 31, labelCol
     ClearInactiveVendorCell ws, 31, colNum
 End Sub
+
+' 軌道工事の行31:
+'   外注比率適用パターン -> 左列=外注比率(%)右詰め / 値列=黄色+「軌道工事会社の溶接手元の外注比率」コメント
+'   それ以外(前年度単価適用/物価指数適用/未選択) -> 左列・値列とも #06111D（黄色なし・コメントなし）
+Private Sub ApplyRow31ForRail(ByVal ws As Worksheet, ByVal colNum As Long)
+    Dim patternValue As String
+    On Error Resume Next
+    patternValue = NormalizeConstructionTypeText(GuideWritableCell(ws, ROW_RAIL_PATTERN, colNum).value)
+    On Error GoTo 0
+
+    If IsOutsourceRatioPattern(patternValue) Then
+        ApplyRow31OutsourceRatioLabel ws, colNum
+        ApplyGuideCellByRowCol ws, 31, colNum, GetF31KidoTemotoCommentText(), IsEmpty_Cell(ws.Cells(31, colNum))
+    Else
+        ClearInactiveVendorCell ws, 31, colNum - 1
+        ClearInactiveVendorCell ws, 31, colNum
+    End If
+End Sub
+
+' 溶接工事の行31: 左列=外注比率(%)右詰め / 値列=黄色+「溶接会社の外注比率」コメント
+Private Sub ApplyRow31ForWelding(ByVal ws As Worksheet, ByVal colNum As Long)
+    ApplyRow31OutsourceRatioLabel ws, colNum
+    ApplyGuideCellByRowCol ws, 31, colNum, GetF31YosetsuCommentText(), IsEmpty_Cell(ws.Cells(31, colNum))
+End Sub
+
+' 行31の左列(施工会社列の1つ左)に「外注比率(%)」を右詰めで表示（#06111D・白文字）
+Private Sub ApplyRow31OutsourceRatioLabel(ByVal ws As Worksheet, ByVal colNum As Long)
+    On Error Resume Next
+    RemoveDiagonalBorders GuideWritableCell(ws, 31, colNum - 1)
+    With GuideWritableCell(ws, 31, colNum - 1)
+        .Comment.Delete
+        .Interior.Pattern = xlSolid
+        .Interior.Color = COLOR_FILLED
+        .Font.Color = COLOR_FILLED_FONT
+        .value = GetOutsourceRatioLabelText()
+        .HorizontalAlignment = xlRight
+    End With
+    On Error GoTo 0
+End Sub
+
+' 行30の値が「外注比率適用パターン」かどうか
+Private Function IsOutsourceRatioPattern(ByVal value As String) As Boolean
+    IsOutsourceRatioPattern = (StrComp(NormalizeConstructionTypeText(value), GetPatternOutsourceRatioText(), vbTextCompare) = 0)
+End Function
 
 ' ----------------------------------------------------------------
 ' 行29・31 を元の色に戻す（会社数外・クリア時）
@@ -254,11 +298,11 @@ Private Sub ApplyRow30(ByVal ws As Worksheet, ByVal colNum As Long, ByVal constr
                                IsEmpty_Cell(GuideWritableCell(ws, ROW_RAIL_PATTERN, colNum))
     ElseIf IsWeldingConstructionType(constructionType) Then
         On Error Resume Next
-        GuideWritableCell(ws, ROW_RAIL_PATTERN, labelCol).Value = GetWeldingRow30LabelText()
+        GuideWritableCell(ws, ROW_RAIL_PATTERN, labelCol).value = GetWeldingRow30LabelText()
         On Error GoTo 0
         ClearRailPatternValidation GuideWritableCell(ws, ROW_RAIL_PATTERN, colNum)
-        ApplyGuideCellByRowCol ws, ROW_RAIL_PATTERN, colNum, GetF31YosetsuCommentText(), _
-                               IsEmpty_Cell(GuideWritableCell(ws, ROW_RAIL_PATTERN, colNum))
+        ' Req3: 溶接工事の行30値列は黄色塗り・コメントなし -> #06111D
+        ClearGuideByRowCol ws, ROW_RAIL_PATTERN, colNum
     Else
         On Error Resume Next
         GuideWritableCell(ws, ROW_RAIL_PATTERN, labelCol).Value = GetDefaultRow30LabelText()
@@ -382,6 +426,7 @@ End Function
 
 ' ----------------------------------------------------------------
 ' 入力不可セル: 斜線×（右下がり＋左下がり）+ #06111D
+' 斜線色は白（#FFFFFF）
 ' ----------------------------------------------------------------
 Private Sub ApplyDisabledCell(ByVal cell As Range)
     On Error Resume Next
@@ -391,12 +436,12 @@ Private Sub ApplyDisabledCell(ByVal cell As Range)
     With cell.Borders(xlDiagonalDown)
         .LineStyle = xlContinuous
         .Weight = xlMedium
-        .Color = RGB(255, 0, 0)
+        .Color = RGB(255, 255, 255)
     End With
     With cell.Borders(xlDiagonalUp)
         .LineStyle = xlContinuous
         .Weight = xlMedium
-        .Color = RGB(255, 0, 0)
+        .Color = RGB(255, 255, 255)
     End With
     On Error GoTo 0
 End Sub
@@ -691,6 +736,30 @@ Private Function GetF31YosetsuCommentText() As String
         ChrW$(&H5916) & ChrW$(&H6CE8) & ChrW$(&H6BD4) & ChrW$(&H7387) & ChrW$(&H3092) & _
         ChrW$(&H5165) & ChrW$(&H529B) & ChrW$(&H3057) & ChrW$(&H3066) & ChrW$(&H4E0B) & _
         ChrW$(&H3055) & ChrW$(&H3044) & ChrW$(&H3002)
+End Function
+
+Private Function GetF31KidoTemotoCommentText() As String
+    ' 軌道工事会社の溶接手元の外注比率を入力して下さい。
+    GetF31KidoTemotoCommentText = _
+        ChrW$(&H8ECC) & ChrW$(&H9053) & ChrW$(&H5DE5) & ChrW$(&H4E8B) & ChrW$(&H4F1A) & _
+        ChrW$(&H793E) & ChrW$(&H306E) & ChrW$(&H6EB6) & ChrW$(&H63A5) & ChrW$(&H624B) & _
+        ChrW$(&H5143) & ChrW$(&H306E) & ChrW$(&H5916) & ChrW$(&H6CE8) & ChrW$(&H6BD4) & _
+        ChrW$(&H7387) & ChrW$(&H3092) & ChrW$(&H5165) & ChrW$(&H529B) & ChrW$(&H3057) & _
+        ChrW$(&H3066) & ChrW$(&H4E0B) & ChrW$(&H3055) & ChrW$(&H3044) & ChrW$(&H3002)
+End Function
+
+' 行31左列ラベル「外注比率(%)」
+Private Function GetOutsourceRatioLabelText() As String
+    GetOutsourceRatioLabelText = _
+        ChrW$(&H5916) & ChrW$(&H6CE8) & ChrW$(&H6BD4) & ChrW$(&H7387) & "(%)"
+End Function
+
+' 行30ドロップダウン「外注比率適用パターン」
+' （mod_WeldingUnitPrice.PatternOutsourceRatioText と同一文字列を維持すること）
+Private Function GetPatternOutsourceRatioText() As String
+    GetPatternOutsourceRatioText = _
+        ChrW$(&H5916) & ChrW$(&H6CE8) & ChrW$(&H6BD4) & ChrW$(&H7387) & ChrW$(&H9069) & _
+        ChrW$(&H7528) & ChrW$(&H30D1) & ChrW$(&H30BF) & ChrW$(&H30FC) & ChrW$(&H30F3)
 End Function
 
 Private Function GetF30RailPatternCommentText() As String
