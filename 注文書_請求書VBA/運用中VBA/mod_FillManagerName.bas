@@ -304,6 +304,7 @@ Public Sub CommitOfficeComboBoxSelection(Optional ByVal selectC6 As Boolean = Tr
     wsInfo.Range("C6").value = selectedOffice
     mSuppressC6Change = False
 
+    mod_BasicInfoUpdate.SilentClearBasicInfo wsInfo
     FillManagerNameToBasicInfo
 
 ExitHandler:
