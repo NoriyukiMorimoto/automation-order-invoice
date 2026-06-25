@@ -442,14 +442,23 @@ Private Sub ApplyDisabledCell(ByVal cell As Range)
     cell.Comment.Delete
     cell.Interior.Color = COLOR_FILLED
     cell.Font.Color = COLOR_FILLED_FONT
+
+    Dim edgeId As Variant
+    For Each edgeId In Array(xlEdgeLeft, xlEdgeTop, xlEdgeRight, xlEdgeBottom)
+        With cell.Borders(edgeId)
+            .LineStyle = xlContinuous
+            .Weight = xlThin
+        End With
+    Next edgeId
+
     With cell.Borders(xlDiagonalDown)
         .LineStyle = xlContinuous
-        .Weight = xlMedium
+        .Weight = xlThin
         .Color = RGB(255, 255, 255)
     End With
     With cell.Borders(xlDiagonalUp)
         .LineStyle = xlContinuous
-        .Weight = xlMedium
+        .Weight = xlThin
         .Color = RGB(255, 255, 255)
     End With
     On Error GoTo 0
