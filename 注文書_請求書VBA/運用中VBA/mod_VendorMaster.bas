@@ -904,7 +904,9 @@ Public Sub ApplyConstructionUnitPriceImportedRowDecorations(ByVal wsUnitPrice As
     Set bColRange = wsUnitPrice.Range( _
         wsUnitPrice.Cells(firstRow, VENDOR_UNIT_PRICE_LAST_ROW_COL), _
         wsUnitPrice.Cells(lastRow, VENDOR_UNIT_PRICE_LAST_ROW_COL))
+    ApplyVendorUnitPriceNewRowFill wsUnitPrice, wsInfo, bColRange
     ApplyVendorUnitPriceBaseRowBorders wsUnitPrice, wsInfo, bColRange
+    ApplyVendorUnitPriceSourceRowsForRange wsUnitPrice, wsInfo, firstRow, lastRow
 End Sub
 
 Public Sub HandleConstructionUnitPriceSheetChange(ByVal wsUnitPrice As Worksheet, _
@@ -930,9 +932,11 @@ Public Sub HandleConstructionUnitPriceSheetChange(ByVal wsUnitPrice As Worksheet
         ApplyVendorUnitPriceBaseRowBorders wsUnitPrice, wsInfo, changedB
     End If
     If Not changedE Is Nothing Then
+        EnsureVendorUnitPriceNewRowFillForSourceRows wsUnitPrice, wsInfo, changedE
         HandleVendorUnitPriceSourceChanges wsUnitPrice, wsInfo, changedE, True
     End If
     If Not changedF Is Nothing Then
+        EnsureVendorUnitPriceNewRowFillForSourceRows wsUnitPrice, wsInfo, changedF
         HandleVendorUnitPriceSourceChanges wsUnitPrice, wsInfo, changedF, False
     End If
     If Not changedB Is Nothing Then
@@ -1598,6 +1602,67 @@ Private Sub HandleVendorUnitPriceSourceChanges(ByVal wsUnitPrice As Worksheet, _
         End If
 ContinueNextSourceCell:
     Next sourceCell
+End Sub
+
+' 独自工種などプログラム追記行は B 列の Worksheet_Change を経由しないため、
+' E/F 入力時に手入力追記と同じ新規行初期化を補完する。
+Private Sub EnsureVendorUnitPriceNewRowFillForSourceRows(ByVal wsUnitPrice As Worksheet, _
+                                                         ByVal wsInfo As Worksheet, _
+                                                         ByVal sourceChangedCells As Range)
+    If wsUnitPrice Is Nothing Then Exit Sub
+    If wsInfo Is Nothing Then Exit Sub
+    If sourceChangedCells Is Nothing Then Exit Sub
+
+    Dim bColRange As Range
+    Dim sourceCell As Range
+    For Each sourceCell In sourceChangedCells.Cells
+        If sourceCell.Row >= VENDOR_UNIT_PRICE_DATA_START_ROW Then
+            If Len(Trim$(CStr(wsUnitPrice.Cells(sourceCell.Row, VENDOR_UNIT_PRICE_LAST_ROW_COL).value))) > 0 Then
+                If bColRange Is Nothing Then
+                    Set bColRange = wsUnitPrice.Cells(sourceCell.Row, VENDOR_UNIT_PRICE_LAST_ROW_COL)
+                Else
+                    Set bColRange = Union(bColRange, wsUnitPrice.Cells(sourceCell.Row, VENDOR_UNIT_PRICE_LAST_ROW_COL))
+                End If
+            End If
+        End If
+    Next sourceCell
+
+    If Not bColRange Is Nothing Then
+        ApplyVendorUnitPriceNewRowFill wsUnitPrice, wsInfo, bColRange
+    End If
+End Sub
+
+Private Sub ApplyVendorUnitPriceSourceRowsForRange(ByVal wsUnitPrice As Worksheet, _
+                                                   ByVal wsInfo As Worksheet, _
+                                                   ByVal firstRow As Long, _
+                                                   ByVal lastRow As Long)
+    Dim rowIndex As Long
+    For rowIndex = firstRow To lastRow
+        If Len(Trim$(CStr(wsUnitPrice.Cells(rowIndex, VENDOR_UNIT_PRICE_LAST_ROW_COL).value))) = 0 Then GoTo ContinueRow
+
+        ApplyVendorUnitPriceSourceRowIfNeeded wsUnitPrice, wsInfo, rowIndex, _
+            VENDOR_UNIT_PRICE_REF_UNIT_COL, True
+        ApplyVendorUnitPriceSourceRowIfNeeded wsUnitPrice, wsInfo, rowIndex, _
+            VENDOR_UNIT_PRICE_REF_WIDTH_COL, False
+ContinueRow:
+    Next rowIndex
+End Sub
+
+Private Sub ApplyVendorUnitPriceSourceRowIfNeeded(ByVal wsUnitPrice As Worksheet, _
+                                                  ByVal wsInfo As Worksheet, _
+                                                  ByVal rowIndex As Long, _
+                                                  ByVal sourceCol As Long, _
+                                                  ByVal isDayColumn As Boolean)
+    Dim sourceCell As Range
+    Set sourceCell = wsUnitPrice.Cells(rowIndex, sourceCol)
+
+    If HasNumericVendorUnitPriceSource(sourceCell) Then
+        sourceCell.Interior.ColorIndex = xlColorIndexNone
+        ApplyVendorUnitPriceCellsForSourceRow wsUnitPrice, wsInfo, rowIndex, isDayColumn
+    ElseIf IsVendorUnitPriceSourceCellBlank(sourceCell) Then
+        ApplyVendorUnitPriceSourceGreyFill sourceCell
+        ApplyVendorUnitPriceCellsForSourceRow wsUnitPrice, wsInfo, rowIndex, isDayColumn
+    End If
 End Sub
 
 Private Function HasNumericVendorUnitPriceSource(ByVal sourceCell As Range) As Boolean
