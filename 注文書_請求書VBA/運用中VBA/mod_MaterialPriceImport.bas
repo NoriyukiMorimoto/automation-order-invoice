@@ -394,6 +394,19 @@ Private Sub ImportUnitPriceData(ByVal wsInfo As Worksheet)
     End If
     LogUP "LoadWorksheetNameCandidatesFromWorkbooks: 候補シート数=" & CStr(sheetNames.Count)
 
+    ' C20=在来線の場合のみ、単価シート候補を「工事件名別マスタ F列(積算線区)の出現順」に
+    ' 並べ替える。マスタF列に該当しないシートは取込対象から除外する。
+    ' ここで並べ替えることで、選択ダイアログの表示順・取込順・C24の記載順がすべて揃う。
+    If StrComp(request.lineType, ZAIRAISEN_NAME, vbTextCompare) = 0 Then
+        Set sheetNames = OrderUnitPriceSheetNamesByProjectMasterFColumn(sheetNames, sheetSourceSheetMap)
+        If sheetNames Is Nothing Or sheetNames.Count = 0 Then
+            LogUP "F列順並べ替え後に対象シートが0件 -> 中断"
+            MsgBox UiMsgUnitPriceImportableSheetNotFoundText() & vbCrLf & JoinCollectionText(sourceFilePaths, vbCrLf), vbExclamation
+            Exit Sub
+        End If
+        LogUP "F列順並べ替え後の候補シート数=" & CStr(sheetNames.Count)
+    End If
+
     Dim selectedSheetNames As Collection
     Set selectedSheetNames = PromptLineNameSelection(sheetNames)
     If selectedSheetNames Is Nothing Then
@@ -1621,6 +1634,95 @@ Private Function TrimLeadingDigitsAndSeparators(ByVal rawValue As String) As Str
         result = Mid$(result, 2)
     Loop
     TrimLeadingDigitsAndSeparators = Trim$(result)
+End Function
+
+' ============================================================
+' 単価シート名候補(displayName)を、工事件名別マスタ F列(積算線区)の
+' 出現順に並べ替える。照合は実シート名(sheetSourceSheetMap)で行う。
+' マスタF列に該当しない(rank<0)候補は除外する。
+' 同順位内は元の出現順を保持する(安定ソート)。
+' ============================================================
+Private Function OrderUnitPriceSheetNamesByProjectMasterFColumn( _
+        ByVal sheetNames As Collection, _
+        ByVal sheetSourceSheetMap As Object) As Collection
+    Dim result As Collection
+    Set result = New Collection
+    If sheetNames Is Nothing Then
+        Set OrderUnitPriceSheetNamesByProjectMasterFColumn = result
+        Exit Function
+    End If
+
+    ' (rank, 元順, displayName) を集め、rank 昇順→元順昇順で並べ替える。
+    Dim ranks() As Long
+    Dim origins() As Long
+    Dim names() As String
+    Dim n As Long
+    n = 0
+    ReDim ranks(1 To sheetNames.Count)
+    ReDim origins(1 To sheetNames.Count)
+    ReDim names(1 To sheetNames.Count)
+
+    Dim originIndex As Long
+    originIndex = 0
+
+    Dim displayName As Variant
+    For Each displayName In sheetNames
+        originIndex = originIndex + 1
+
+        Dim lookupName As String
+        lookupName = CStr(displayName)
+        If Not sheetSourceSheetMap Is Nothing Then
+            If sheetSourceSheetMap.Exists(CStr(displayName)) Then
+                lookupName = CStr(sheetSourceSheetMap(CStr(displayName)))
+            End If
+        End If
+
+        Dim rank As Long
+        rank = mod_Construction_Order_Import.GetProjectMasterLineOrderRank(lookupName)
+        If rank >= 0 Then
+            n = n + 1
+            ranks(n) = rank
+            origins(n) = originIndex
+            names(n) = CStr(displayName)
+        Else
+            LogUP "F列順除外(マスタF列に未登録) sheet=[" & CStr(displayName) & "] lookup=[" & lookupName & "]"
+        End If
+    Next displayName
+
+    If n = 0 Then
+        Set OrderUnitPriceSheetNamesByProjectMasterFColumn = result
+        Exit Function
+    End If
+
+    ' 挿入ソート(安定): キー=(rank, 元順)
+    Dim i As Long, j As Long
+    Dim kr As Long, ko As Long
+    Dim kn As String
+    For i = 2 To n
+        kr = ranks(i)
+        ko = origins(i)
+        kn = names(i)
+        j = i - 1
+        Do While j >= 1
+            If (ranks(j) > kr) Or (ranks(j) = kr And origins(j) > ko) Then
+                ranks(j + 1) = ranks(j)
+                origins(j + 1) = origins(j)
+                names(j + 1) = names(j)
+                j = j - 1
+            Else
+                Exit Do
+            End If
+        Loop
+        ranks(j + 1) = kr
+        origins(j + 1) = ko
+        names(j + 1) = kn
+    Next i
+
+    For i = 1 To n
+        result.Add names(i)
+    Next i
+
+    Set OrderUnitPriceSheetNamesByProjectMasterFColumn = result
 End Function
 
 Private Sub WriteSelectedLineNames(ByVal wsInfo As Worksheet, ByVal selectedSheetNames As Collection)

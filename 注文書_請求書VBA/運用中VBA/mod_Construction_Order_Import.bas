@@ -154,6 +154,7 @@ Private mSanpaiFillColorCache As Long
 Private mProjectLineNameAliasMapWelding As Object
 Private mProjectLineNameAliasMapConstruction As Object
 Private mProjectLineNameReverseAliasWelding As Object
+Private mProjectMasterLineOrderRankMap As Object
 
 Public Sub ImportConstructionDocument()
     Dim scrn As Boolean, evt As Boolean, alerts As Boolean
@@ -3564,7 +3565,73 @@ Private Sub ClearProjectLineNameAliasCache()
     Set mProjectLineNameAliasMapWelding = Nothing
     Set mProjectLineNameAliasMapConstruction = Nothing
     Set mProjectLineNameReverseAliasWelding = Nothing
+    Set mProjectMasterLineOrderRankMap = Nothing
 End Sub
+
+' ============================================================
+' 在来線フォルダ各ファイルの F列(積算線区) 出現順を順位として返す。
+' mod_MaterialPriceImport が単価シートの表示・取込・C24順を F列順に揃えるために使用する。
+' 照合は線区名対応(エイリアス)と同じ正規化 NormalizeLineLookupText(_, False) を用いる。
+' 該当無しは -1 を返す。
+' ============================================================
+Public Function GetProjectMasterLineOrderRank(ByVal lineName As String) As Long
+    GetProjectMasterLineOrderRank = -1
+    EnsureProjectMasterLineOrderMapLoaded
+    If mProjectMasterLineOrderRankMap Is Nothing Then Exit Function
+
+    Dim key As String
+    key = NormalizeLineLookupText(lineName, False)
+    If Len(key) = 0 Then Exit Function
+
+    If mProjectMasterLineOrderRankMap.Exists(key) Then
+        GetProjectMasterLineOrderRank = CLng(mProjectMasterLineOrderRankMap(key))
+    End If
+End Function
+
+' 順位辞書のキャッシュを明示的に破棄する(取込前に呼んで最新化したい場合)。
+Public Sub ClearProjectMasterLineOrderCache()
+    Set mProjectMasterLineOrderRankMap = Nothing
+End Sub
+
+Private Sub EnsureProjectMasterLineOrderMapLoaded()
+    If Not mProjectMasterLineOrderRankMap Is Nothing Then Exit Sub
+
+    Set mProjectMasterLineOrderRankMap = CreateObject("Scripting.Dictionary")
+    mProjectMasterLineOrderRankMap.CompareMode = vbTextCompare
+
+    Dim lineNamePairs As Collection
+    Set lineNamePairs = LoadProjectMasterLineNamePairs()
+    If lineNamePairs Is Nothing Then Exit Sub
+
+    Dim nextRank As Long
+    nextRank = 0
+
+    Dim pairItem As Variant
+    For Each pairItem In lineNamePairs
+        ' 同一マスタ行の F列(積算線区)と G列(施工指示書記載線区名) は
+        ' 同一順位を共有させ、マスタの行順をそのまま順位とする。
+        ' F列を主キー、G列を補助キー(単価シート同がG列と一致する場合のフォールバック)とする。
+        Dim registeredF As Boolean
+        registeredF = RegisterProjectMasterLineOrderKeyAtRank(CStr(pairItem(0)), nextRank)
+        Dim registeredG As Boolean
+        registeredG = RegisterProjectMasterLineOrderKeyAtRank(CStr(pairItem(1)), nextRank)
+        If registeredF Or registeredG Then nextRank = nextRank + 1
+    Next pairItem
+
+    LogCI "単価シート並順キー数(F列順)=" & mProjectMasterLineOrderRankMap.Count
+End Sub
+
+' 指定 rank でキーを登録する。新規登録したら True、既出キーなら False を返す。
+Private Function RegisterProjectMasterLineOrderKeyAtRank(ByVal lineName As String, _
+                                                         ByVal rankValue As Long) As Boolean
+    Dim key As String
+    key = NormalizeLineLookupText(lineName, False)
+    If Len(key) = 0 Then Exit Function
+    If mProjectMasterLineOrderRankMap.Exists(key) Then Exit Function
+
+    mProjectMasterLineOrderRankMap.Add key, rankValue
+    RegisterProjectMasterLineOrderKeyAtRank = True
+End Function
 
 ' 工事件名別マスタ F列(積算線区)・G列(施工指示書記載線区名) のペアを返す。
 ' C21 で指定された1ファイルだけでなく、C20 フォルダ内の全 .xlsx(①軌道整備他 等)を走査する。
