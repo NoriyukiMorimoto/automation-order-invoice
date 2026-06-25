@@ -27,6 +27,7 @@ Private mCellDropdownWorksheetName As String
 Private mCellDropdownStartValue As String
 Private mCellDropdownPollTime As Date
 Private mLastComboListIndex As Long
+Private mDropdownInteracted As Boolean
 Private mInCellDropdownPrompt As Boolean
 
 Public Function IsPromptingCellDropdown() As Boolean
@@ -104,6 +105,7 @@ Public Sub ShowCellValidationDropdown(ByVal wsInfo As Worksheet, ByVal target As
     mCellDropdownWorksheetName = wsInfo.Name
     mCellDropdownStartValue = Trim$(CStr(anchor.value))
     mInCellDropdownPrompt = True
+    mDropdownInteracted = False
     FitComboToCell anchor, ole
     BindCellDropdownLinkedCell ole, anchor
 
@@ -120,7 +122,7 @@ Public Sub ShowCellValidationDropdown(ByVal wsInfo As Worksheet, ByVal target As
     On Error GoTo 0
 
     StartCellDropdownPolling
-    mod_DebugLog.Log LOG_TAG & " Show ready LinkedCell=[" & ole.LinkedCell & "] prompting=True"
+    mod_DebugLog.Log LOG_TAG & " Show ready LinkedCell=[" & ole.LinkedCell & "] prompting=" & mInCellDropdownPrompt
     Exit Sub
 
 CleanFail:
@@ -236,12 +238,13 @@ Public Sub PollCellDropdownSelection()
     On Error GoTo CleanExit
 
     If droppedDown Then
+        mDropdownInteracted = True
         If currentIndex >= 0 Then mLastComboListIndex = currentIndex
         ScheduleCellDropdownPoll
         Exit Sub
     End If
 
-    If currentIndex >= 0 Then
+    If mDropdownInteracted And currentIndex >= 0 Then
         If TryCommitCellDropdownSelection(wsInfo) Then
             mod_DebugLog.Log LOG_TAG & " Poll commit ListIndex=" & currentIndex
             CloseCellDropdownSession wsInfo
@@ -289,10 +292,11 @@ Private Function TryCommitCellDropdownSelection(ByVal wsInfo As Worksheet) As Bo
     selectedValue = Trim$(CStr(anchor.value))
     If Len(selectedValue) > 0 And StrComp(selectedValue, mCellDropdownStartValue, vbBinaryCompare) <> 0 Then
         mod_DebugLog.Log LOG_TAG & " TryCommit via anchor value=[" & selectedValue & "]"
-        NotifyCellDropdownValueCommitted wsInfo, anchor
         TryCommitCellDropdownSelection = True
         Exit Function
     End If
+
+    If Not mDropdownInteracted Then Exit Function
 
     Dim combo As Object
     Set combo = wsInfo.OLEObjects(CELL_DROPDOWN_COMBO_NAME).Object
@@ -304,7 +308,6 @@ Private Function TryCommitCellDropdownSelection(ByVal wsInfo As Worksheet) As Bo
         anchor.value = selectedValue
     End If
 
-    NotifyCellDropdownValueCommitted wsInfo, anchor
     TryCommitCellDropdownSelection = True
     Exit Function
 
@@ -317,7 +320,14 @@ Private Sub NotifyCellDropdownValueCommitted(ByVal wsInfo As Worksheet, ByVal an
     If wsInfo Is Nothing Or anchor Is Nothing Then Exit Sub
 
     mod_DebugLog.Log LOG_TAG & " NotifyCommitted " & anchor.Address(False, False) & "=[" & Trim$(CStr(anchor.value)) & "]"
+
+    On Error Resume Next
+    Application.ScreenUpdating = True
     mod_BasicInfoGuide.OnCellChanged wsInfo, anchor
+    Application.ScreenUpdating = True
+    anchor.MergeArea.Cells(1, 1).Calculate
+    DoEvents
+    On Error GoTo 0
 
     If Not Intersect(anchor, wsInfo.Range("C22,C23")) Is Nothing Then
         If Trim$(CStr(wsInfo.Range("C24").MergeArea.Cells(1, 1).value)) <> "" Then
@@ -357,10 +367,19 @@ End Function
 
 Private Sub CloseCellDropdownSession(ByVal wsInfo As Worksheet)
     Dim targetAddress As String
+    Dim anchor As Range
+
     targetAddress = mCellDropdownTargetAddress
+    Set anchor = GetCellDropdownAnchor(wsInfo)
 
     ResetCellDropdownSession
     DeleteCellDropdownComboBox wsInfo
+
+    If Not anchor Is Nothing Then
+        If Len(Trim$(CStr(anchor.value))) > 0 Then
+            NotifyCellDropdownValueCommitted wsInfo, anchor
+        End If
+    End If
 
     On Error Resume Next
     If Len(targetAddress) > 0 Then wsInfo.Range(targetAddress).Select
@@ -375,6 +394,7 @@ Private Sub ResetCellDropdownSession()
     mCellDropdownWorksheetName = ""
     mCellDropdownStartValue = ""
     mLastComboListIndex = -2
+    mDropdownInteracted = False
 End Sub
 
 Private Function GetCellDropdownWorksheet() As Worksheet
@@ -391,8 +411,8 @@ End Function
 
 Private Sub StartCellDropdownPolling()
     mLastComboListIndex = -2
+    mDropdownInteracted = False
     ScheduleCellDropdownPoll
-    PollCellDropdownSelection
 End Sub
 
 Private Sub ScheduleCellDropdownPoll()
