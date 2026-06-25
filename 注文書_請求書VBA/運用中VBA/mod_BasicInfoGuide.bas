@@ -11,7 +11,7 @@ Option Explicit
 ' F10iHŽ–Ží•Êj‚É‚æ‚é F29/F30/F31 ‚Ì“®“IØ‚è‘Ö‚¦:
 '   –¢Šm’è   -> F30¶—ñE’l—ñ‚Æ‚à•¶Žš‚È‚µ #F1A983 / F31¶—ñ=‹ó”’E’l—ñ=Œ³F(‰©FƒKƒCƒh‚È‚µ)
 '   ‹O“¹HŽ– -> F29: ‹O“¹HŽ–‰ïŽÐ‚ÌŠO’”ä—¦ƒRƒƒ“ƒg / F30: —nÚŽèŒ³’P‰¿ÊßÀ°Ý / F31: Œ»ó‚Ì‚Ü‚Ü
-'   —nÚHŽ– -> F29: “ü—Í•s‰ÂiŽÎü~j / F30¶—ñ: —nÚHŽ–ŠO’”ä—¦ / F31: —nÚ‰ïŽÐ‚ÌŠO’”ä—¦ƒRƒƒ“ƒg
+'   —nÚHŽ– -> F29: “ü—Í•s‰ÂiŽÎü~j / F30¶—ñ: —nÚHŽ–ŠO’”ä—¦ / F30’l—ñ: #F1A983 / F31: —nÚ‰ïŽÐ‚ÌŠO’”ä—¦ƒRƒƒ“ƒg
 '   ‚»‚Ì‘¼   -> F29: Ž{H‰ïŽÐ‚ÌŠO’”ä—¦ƒRƒƒ“ƒg / F31: Œ»ó‚Ì‚Ü‚Ü
 '
 ' ‰ïŽÐ”ƒZƒ‹(F9)‚Ì’l‚É‰ž‚¶‚ÄF/I/L/O/R/U/X/AA/AD/AG—ñ‚Ìƒxƒ“ƒ_[s‚ð“®“IŠÇ—
@@ -281,7 +281,7 @@ End Sub
 ' s30 ‚ÌHŽ–Ží•Ê•Êˆ—
 '   –¢Šm’è -> ¶—ñE’l—ñ‚Æ‚à•¶Žš‚È‚µ #F1A983 “h‚è‚Ì‚Ý
 '   ‹O“¹HŽ– -> ¶—ñ=—nÚŽèŒ³’P‰¿ÊßÀ°Ý / ’l—ñ=‰©F+ƒhƒƒbƒvƒ_ƒEƒ“
-'   —nÚHŽ– -> ¶—ñ=—nÚHŽ–ŠO’”ä—¦ / ’l—ñ=]—ˆ‚Ç‚¨‚è
+'   —nÚHŽ– -> ¶—ñ=—nÚHŽ–ŠO’”ä—¦ / ’l—ñ=#F1A983
 ' ----------------------------------------------------------------
 Private Sub ApplyRow30(ByVal ws As Worksheet, ByVal colNum As Long, ByVal constructionType As String)
     Dim labelCol As Long
@@ -301,8 +301,7 @@ Private Sub ApplyRow30(ByVal ws As Worksheet, ByVal colNum As Long, ByVal constr
         GuideWritableCell(ws, ROW_RAIL_PATTERN, labelCol).value = GetWeldingRow30LabelText()
         On Error GoTo 0
         ClearRailPatternValidation GuideWritableCell(ws, ROW_RAIL_PATTERN, colNum)
-        ' Req3: —nÚHŽ–‚Ìs30’l—ñ‚Í‰©F“h‚èEƒRƒƒ“ƒg‚È‚µ -> #06111D
-        ClearGuideByRowCol ws, ROW_RAIL_PATTERN, colNum
+        ApplyRow30WeldingValueFill GuideWritableCell(ws, ROW_RAIL_PATTERN, colNum)
     Else
         On Error Resume Next
         GuideWritableCell(ws, ROW_RAIL_PATTERN, labelCol).Value = GetDefaultRow30LabelText()
@@ -326,6 +325,16 @@ Private Sub ApplyPendingWorkTypeFill(ByVal cell As Range)
     On Error Resume Next
     RemoveDiagonalBorders cell
     cell.ClearContents
+    cell.Comment.Delete
+    cell.Interior.Pattern = xlSolid
+    cell.Interior.Color = COLOR_PENDING_WORK_TYPE
+    cell.Font.Color = COLOR_INPUT_REQUIRED_FONT
+    On Error GoTo 0
+End Sub
+
+Private Sub ApplyRow30WeldingValueFill(ByVal cell As Range)
+    On Error Resume Next
+    RemoveDiagonalBorders cell
     cell.Comment.Delete
     cell.Interior.Pattern = xlSolid
     cell.Interior.Color = COLOR_PENDING_WORK_TYPE
