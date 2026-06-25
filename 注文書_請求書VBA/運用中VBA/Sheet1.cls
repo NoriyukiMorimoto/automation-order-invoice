@@ -26,23 +26,22 @@ ExitHandler:
 End Sub
 
 Private Sub Worksheet_Change(ByVal target As Range)
-    mod_DebugLog.Log "[Sheet1] Worksheet_Change fired: " & target.Address & " Value=[" & GetTargetValueText(target) & "] EnableEvents=" & Application.EnableEvents
+    mod_DebugLog.Log "[Sheet1] Worksheet_Change î≠âŒ: " & target.Address & " Value=[" & GetTargetValueText(target) & "] EnableEvents=" & Application.EnableEvents
     Dim vendorNameRange As Range
     Set vendorNameRange = mod_VendorMaster.GetVendorNameRange(Me)
 
     Dim vendorUnitPriceMonitorRange As Range
     Set vendorUnitPriceMonitorRange = mod_VendorMaster.GetVendorUnitPriceMonitorRange(Me)
 
-    Dim vendorGuideMonitorRange As Range
-    Set vendorGuideMonitorRange = mod_BasicInfoGuide.GetVendorGuideMonitorRangePublic(Me)
-
-    If Intersect(target, Me.Range("B4,B6,C6,C10,C15:C16,F9,C9,C20,C22,C23,C24,F2")) Is Nothing And _
+    If Intersect(target, Me.Range("B4,B6,C6,C10,C15:C16,F9,C20,C22,C23,C24,F2")) Is Nothing And _
        Intersect(target, vendorNameRange) Is Nothing And _
        Intersect(target, vendorUnitPriceMonitorRange) Is Nothing And _
-       Intersect(target, vendorGuideMonitorRange) Is Nothing Then
-        mod_DebugLog.Log "[Sheet1] out-of-scope -> Exit"
+       Intersect(target, Me.Range("C9,C22,C23,F9,F10,F11,F27,F29,F31,I10,I11,I27,I29,I31,L10,L11,L27,L29,L31,O10,O11,O27,O29,O31,R10,R11,R27,R29,R31,U10,U11,U27,U29,U31,X10,X11,X27,X29,X31,AA10,AA11,AA27,AA29,AA31,AD10,AD11,AD27,AD29,AD31,AG10,AG11,AG27,AG29,AG31")) Is Nothing Then
+        mod_DebugLog.Log "[Sheet1] äƒéãëŒù€äO -> Exit"
         Exit Sub
     End If
+
+    If mod_VendorMaster.IsSyncVendorBlocksInProgress() Then Exit Sub
 
     Dim prevCalc As XlCalculation, prevScreen As Boolean
     prevScreen = Application.ScreenUpdating
@@ -57,9 +56,9 @@ Private Sub Worksheet_Change(ByVal target As Range)
     needComboPrompt = False
 
     If Not Intersect(target, Me.Range("B4,B6")) Is Nothing Then
-        mod_DebugLog.Log "[Sheet1] B4/B6changed -> RefreshBranchOfficeValidation(False) call"
+        mod_DebugLog.Log "[Sheet1] B4/B6ïœùX -> RefreshBranchOfficeValidation(False) åƒÇ—ùoÇµ"
         needComboPrompt = mod_FillManagerName.RefreshBranchOfficeValidation(False)
-        mod_DebugLog.Log "[Sheet1] RefreshBranchOfficeValidation result needComboPrompt=" & needComboPrompt
+        mod_DebugLog.Log "[Sheet1] RefreshBranchOfficeValidation ñﬂÇËíl needComboPrompt=" & needComboPrompt
     End If
 
     If Not Intersect(target, Me.Range("B6")) Is Nothing Then
@@ -69,14 +68,15 @@ Private Sub Worksheet_Change(ByVal target As Range)
     If Not Intersect(target, Me.Range("F9")) Is Nothing Then
         mod_VendorMaster.SyncVendorBlocksFromCount Me
         Set vendorNameRange = mod_VendorMaster.GetVendorNameRange(Me)
+        mod_Construction_Order_Import.RefreshBasicInfoConstructionTotals
     End If
 
     If Not Intersect(target, Me.Range("B6,C6")) Is Nothing Then
-        mod_DebugLog.Log "[Sheet1] B6/C6changed IsSuppressing=" & mod_FillManagerName.IsSuppressingC6Change()
+        mod_DebugLog.Log "[Sheet1] B6/C6ïœùX IsSuppressing=" & mod_FillManagerName.IsSuppressingC6Change()
         If Not mod_FillManagerName.IsSuppressingC6Change() Then
-            mod_DebugLog.Log "[Sheet1] SilentClearBasicInfo call"
+            mod_DebugLog.Log "[Sheet1] SilentClearBasicInfo åƒÇ—ùoÇµ"
             mod_BasicInfoUpdate.SilentClearBasicInfo Me
-            mod_DebugLog.Log "[Sheet1] SilentClearBasicInfo done"
+            mod_DebugLog.Log "[Sheet1] SilentClearBasicInfo äÆóπ"
         End If
     End If
 
@@ -141,14 +141,13 @@ Private Sub Worksheet_Change(ByVal target As Range)
         End If
     End If
 
-    ' ùg????K?C?h?iùgh?F+?R???ùg?g?j?X?V
     mod_BasicInfoGuide.OnCellChanged Me, target
 
     mod_DebugLog.Log "[Sheet1] needComboPrompt=" & needComboPrompt
     If needComboPrompt Then
-        mod_DebugLog.Log "[Sheet1] PromptOfficeComboBox before-call EnableEvents=" & Application.EnableEvents
+        mod_DebugLog.Log "[Sheet1] PromptOfficeComboBox åƒÇ—ùoÇµëO EnableEvents=" & Application.EnableEvents
         mod_FillManagerName.PromptOfficeComboBox
-        mod_DebugLog.Log "[Sheet1] PromptOfficeComboBox after-call EnableEvents=" & Application.EnableEvents
+        mod_DebugLog.Log "[Sheet1] PromptOfficeComboBox åƒÇ—ùoÇµå„ EnableEvents=" & Application.EnableEvents
     End If
 
 ExitHandler:
@@ -162,6 +161,12 @@ Private Sub Worksheet_BeforeDoubleClick(ByVal target As Range, Cancel As Boolean
     If IsUnitPriceImportDoubleClickTarget(target) Then
         Cancel = True
         mod_MaterialPriceImport.ImportConstructionUnitPriceForBasicInfo
+        Exit Sub
+    End If
+
+    If mod_BasicInfoCellDropdown.IsCellDropdownTarget(Me, target) Then
+        Cancel = True
+        mod_BasicInfoCellDropdown.ShowCellValidationDropdown Me, target
         Exit Sub
     End If
 
@@ -203,15 +208,19 @@ Private Sub Worksheet_SelectionChange(ByVal target As Range)
 
     If Not mod_FillManagerName.IsPromptingOfficeComboBox() Then
         If Intersect(target, Me.Range("C6")) Is Nothing Then
-            mod_DebugLog.Log "[Sheet1] SelectionChange: C6-other -> HideOfficeComboBox"
+            mod_DebugLog.Log "[Sheet1] SelectionChange: C6à»äO -> HideOfficeComboBox"
             mod_FillManagerName.HideOfficeComboBox Me
         End If
     Else
-        mod_DebugLog.Log "[Sheet1] SelectionChange: IsPrompting=True -> Hide-skip"
+        mod_DebugLog.Log "[Sheet1] SelectionChange: IsPrompting=True -> HideÉXÉLÉbÉv"
     End If
 
     If Not Intersect(target, Me.Range("C21")) Is Nothing Then
         mod_MaterialPriceImport.RefreshUnitPriceProjectNameValidation Me, True
+    End If
+
+    If Not mod_BasicInfoCellDropdown.IsCellDropdownTarget(Me, target) Then
+        mod_BasicInfoCellDropdown.HideCellDropdown Me
     End If
 
     Dim vendorNameRange As Range
@@ -239,7 +248,7 @@ End Sub
 Private Sub ComboBox1_LostFocus()
     mod_DebugLog.Log "[Sheet1] ComboBox1_LostFocus IsPrompting=" & mod_FillManagerName.IsPromptingOfficeComboBox()
     If mod_FillManagerName.IsPromptingOfficeComboBox() Then
-        mod_DebugLog.Log "[Sheet1] ComboBox1_LostFocus: IsPrompting=True -> skip"
+        mod_DebugLog.Log "[Sheet1] ComboBox1_LostFocus: IsPrompting=True -> ÉXÉLÉbÉv"
         Exit Sub
     End If
     mod_FillManagerName.CommitOfficeComboBoxSelection False
@@ -252,6 +261,16 @@ End Sub
 Private Sub ComboBoxVendor_KeyDown(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift As Integer)
     If KeyCode = vbKeyReturn Then
         mod_VendorMaster.CommitVendorComboBoxSelection Me
+    End If
+End Sub
+
+Private Sub ComboBoxCellDropdown_Click()
+    mod_BasicInfoCellDropdown.CommitCellDropdownSelection Me
+End Sub
+
+Private Sub ComboBoxCellDropdown_KeyDown(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift As Integer)
+    If KeyCode = vbKeyReturn Then
+        mod_BasicInfoCellDropdown.CommitCellDropdownSelection Me
     End If
 End Sub
 
