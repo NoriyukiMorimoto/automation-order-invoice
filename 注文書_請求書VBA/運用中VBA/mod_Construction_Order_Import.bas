@@ -5200,7 +5200,7 @@ Private Sub RegisterWeldingPriceCacheEntry(ByVal priceValueMap As Object, _
     If primaryKey = "" Then Exit Sub
     If Not priceValueMap.Exists(primaryKey) Then priceValueMap.Add primaryKey, values
 
-    EnsureProjectLineNameAliasMapsLoaded()
+    EnsureProjectLineNameAliasMapsLoaded
     If mProjectLineNameReverseAliasWelding Is Nothing Then Exit Sub
     If Len(unitLineSection) = 0 Then Exit Sub
     If Not mProjectLineNameReverseAliasWelding.Exists(unitLineSection) Then Exit Sub
@@ -5228,7 +5228,7 @@ Private Sub RegisterWeldingPriceRowIndex(ByVal rowIndexMap As Object, _
     If primaryKey = "" Then Exit Sub
     If Not rowIndexMap.Exists(primaryKey) Then rowIndexMap.Add primaryKey, rowIndex
 
-    EnsureProjectLineNameAliasMapsLoaded()
+    EnsureProjectLineNameAliasMapsLoaded
     If mProjectLineNameReverseAliasWelding Is Nothing Then Exit Sub
     If Len(unitLineSection) = 0 Then Exit Sub
     If Not mProjectLineNameReverseAliasWelding.Exists(unitLineSection) Then Exit Sub
