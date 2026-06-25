@@ -275,6 +275,11 @@ End Sub
 Private Function IsConstructionImportSheetForClear(ByVal ws As Worksheet) As Boolean
     If ws Is Nothing Then Exit Function
 
+    If IsKnownConstructionOutputTemplateSheet(ws.Name) Then
+        IsConstructionImportSheetForClear = True
+        Exit Function
+    End If
+
     If mod_Construction_Order_Import.IsManagedConstructionImportOutputSheet(ws) Then
         IsConstructionImportSheetForClear = True
         Exit Function
@@ -298,6 +303,44 @@ Private Function IsConstructionImportSheetForClear(ByVal ws As Worksheet) As Boo
         (tabColor = RGB(255, 255, 0)) Or _
         (tabColor = RGB(233, 241, 123))
     On Error GoTo 0
+End Function
+
+Private Function IsKnownConstructionOutputTemplateSheet(ByVal sheetName As String) As Boolean
+    Dim key As String
+    key = NormalizeOutputSheetNameKey(sheetName)
+    If Len(key) = 0 Then Exit Function
+
+    If StrComp(key, NormalizeOutputSheetNameKey(CommonConstructionOrderWorksSheetName()), vbTextCompare) = 0 Then
+        IsKnownConstructionOutputTemplateSheet = True
+        Exit Function
+    End If
+    If StrComp(key, NormalizeOutputSheetNameKey(CommonConstructionOrderWeldingSheetName()), vbTextCompare) = 0 Then
+        IsKnownConstructionOutputTemplateSheet = True
+        Exit Function
+    End If
+    If StrComp(key, NormalizeOutputSheetNameKey(CommonConstructionNoticeWorksSheetName()), vbTextCompare) = 0 Then
+        IsKnownConstructionOutputTemplateSheet = True
+        Exit Function
+    End If
+    If StrComp(key, NormalizeOutputSheetNameKey(CommonConstructionNoticeWeldingSheetName()), vbTextCompare) = 0 Then
+        IsKnownConstructionOutputTemplateSheet = True
+        Exit Function
+    End If
+    If StrComp(key, NormalizeOutputSheetNameKey(CommonPurchaseOrderOutputSheetName()), vbTextCompare) = 0 Then
+        IsKnownConstructionOutputTemplateSheet = True
+        Exit Function
+    End If
+    If StrComp(key, NormalizeOutputSheetNameKey(CommonPurchaseNoticeOutputSheetName()), vbTextCompare) = 0 Then
+        IsKnownConstructionOutputTemplateSheet = True
+    End If
+End Function
+
+Private Function NormalizeOutputSheetNameKey(ByVal sheetName As String) As String
+    Dim t As String
+    t = CommonNormalizeText(sheetName)
+    t = Replace$(t, ChrW$(&HFF08), "(")
+    t = Replace$(t, ChrW$(&HFF09), ")")
+    NormalizeOutputSheetNameKey = t
 End Function
 
 Private Sub AppendUniqueSheetName(ByVal targetNames As Collection, ByVal sheetName As String)
