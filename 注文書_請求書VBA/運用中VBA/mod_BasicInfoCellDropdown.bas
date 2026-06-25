@@ -94,6 +94,10 @@ Public Sub ShowCellValidationDropdown(ByVal wsInfo As Worksheet, ByVal target As
 
     mod_DebugLog.Log LOG_TAG & " Show start " & anchor.Address(False, False)
 
+    If IsCellDropdownSessionOpen(wsInfo) Then
+        FinalizeOrAbandonCellDropdownSession wsInfo
+    End If
+
     On Error GoTo CleanFail
     DeleteCellDropdownComboBox wsInfo
 
@@ -144,7 +148,7 @@ End Sub
 
 Public Sub CompleteCellDropdownFromSheetChange(ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Exit Sub
-    If Not mInCellDropdownPrompt Then Exit Sub
+    If Len(mCellDropdownTargetAddress) = 0 Then Exit Sub
 
     Dim anchor As Range
     Set anchor = GetCellDropdownAnchor(wsInfo)
@@ -162,6 +166,7 @@ End Sub
 
 Public Sub CommitCellDropdownSelection(ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Exit Sub
+    mDropdownInteracted = True
 
     If TryCommitCellDropdownSelection(wsInfo) Then
         CloseCellDropdownSession wsInfo
@@ -176,7 +181,9 @@ Public Sub RunDeferredCommitCellDropdownSelection()
     Dim wsInfo As Worksheet
     Set wsInfo = GetCellDropdownWorksheet()
     If wsInfo Is Nothing Then Exit Sub
-    If Not mInCellDropdownPrompt Then Exit Sub
+    If Len(mCellDropdownTargetAddress) = 0 Then Exit Sub
+
+    mDropdownInteracted = True
 
     Dim combo As Object
     On Error Resume Next
@@ -193,7 +200,7 @@ End Sub
 
 Public Sub HandleCellDropdownLostFocus(ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Exit Sub
-    If Not mInCellDropdownPrompt Then Exit Sub
+    If Len(mCellDropdownTargetAddress) = 0 Then Exit Sub
     ScheduleQualifiedOnTime CELL_DROPDOWN_DEFER_LOSTFOCUS_PROC
 End Sub
 
@@ -201,9 +208,9 @@ Public Sub RunDeferredHandleCellDropdownLostFocus()
     Dim wsInfo As Worksheet
     Set wsInfo = GetCellDropdownWorksheet()
     If wsInfo Is Nothing Then Exit Sub
-    If Not mInCellDropdownPrompt Then Exit Sub
+    If Len(mCellDropdownTargetAddress) = 0 Then Exit Sub
 
-    If TryCommitCellDropdownSelection(wsInfo) Then
+    If ShouldFinalizeCellDropdownSession(wsInfo) Then
         CloseCellDropdownSession wsInfo
     Else
         HideCellDropdown wsInfo
@@ -213,11 +220,12 @@ End Sub
 Public Sub PollCellDropdownSelection()
     On Error GoTo CleanExit
 
-    If Not mInCellDropdownPrompt Then Exit Sub
-
     Dim wsInfo As Worksheet
     Set wsInfo = GetCellDropdownWorksheet()
-    If wsInfo Is Nothing Then GoTo CleanExit
+    If wsInfo Is Nothing Then Exit Sub
+    If Not IsCellDropdownSessionOpen(wsInfo) Then Exit Sub
+
+    mod_DebugLog.Log LOG_TAG & " Poll active=" & wsInfo.Application.ActiveCell.Address(False, False) & " target=" & mCellDropdownTargetAddress
 
     If HasAnchorValueChanged(wsInfo) Then
         mod_DebugLog.Log LOG_TAG & " Poll detected anchor value change"
@@ -264,8 +272,8 @@ Public Sub PollCellDropdownSelection()
     End If
 
     If Not IsCellDropdownTarget(wsInfo, wsInfo.Application.ActiveCell) Then
-        If TryCommitCellDropdownSelection(wsInfo) Then
-            mod_DebugLog.Log LOG_TAG & " Poll commit on focus leave"
+        If ShouldFinalizeCellDropdownSession(wsInfo) Then
+            mod_DebugLog.Log LOG_TAG & " Poll finalize on focus leave"
             CloseCellDropdownSession wsInfo
         Else
             mod_DebugLog.Log LOG_TAG & " Poll hide on focus leave without selection"
@@ -280,7 +288,7 @@ Public Sub PollCellDropdownSelection()
 CleanExit:
     mod_DebugLog.Log LOG_TAG & " Poll CleanExit Err=" & Err.Number
     CancelCellDropdownPoll
-    If mInCellDropdownPrompt Then HideCellDropdown wsInfo
+    If IsCellDropdownSessionOpen(wsInfo) Then HideCellDropdown wsInfo
 End Sub
 
 Public Sub HideCellDropdown(ByVal wsInfo As Worksheet)
@@ -307,33 +315,45 @@ Private Function TryCommitCellDropdownSelection(ByVal wsInfo As Worksheet) As Bo
     Set anchor = GetCellDropdownAnchor(wsInfo)
     If anchor Is Nothing Then Exit Function
 
+    Dim combo As Object
+    Set combo = Nothing
+    On Error Resume Next
+    Set combo = wsInfo.OLEObjects(CELL_DROPDOWN_COMBO_NAME).Object
+    On Error GoTo CleanFail
+
     Dim selectedValue As String
     selectedValue = Trim$(CStr(anchor.value))
-    If Len(selectedValue) > 0 And StrComp(selectedValue, mCellDropdownStartValue, vbBinaryCompare) <> 0 Then
-        mod_DebugLog.Log LOG_TAG & " TryCommit via anchor value=[" & selectedValue & "]"
-        TryCommitCellDropdownSelection = True
-        Exit Function
+
+    If Not combo Is Nothing Then
+        On Error Resume Next
+        If combo.ListIndex >= 0 Then mDropdownInteracted = True
+        On Error GoTo CleanFail
+
+        Dim comboValue As String
+        comboValue = ReadComboSelectedText(combo)
+        If Len(comboValue) > 0 Then
+            If StrComp(comboValue, selectedValue, vbBinaryCompare) <> 0 Then
+                mod_DebugLog.Log LOG_TAG & " TryCommit write value=[" & comboValue & "] to " & anchor.Address(False, False)
+                anchor.value = comboValue
+                selectedValue = comboValue
+            End If
+        End If
     End If
 
-    If Len(selectedValue) > 0 And (mDropdownInteracted Or mInCellDropdownPrompt) Then
-        mod_DebugLog.Log LOG_TAG & " TryCommit confirm anchor value=[" & selectedValue & "]"
-        TryCommitCellDropdownSelection = True
-        Exit Function
-    End If
-
-    If Not mDropdownInteracted Then Exit Function
-
-    Dim combo As Object
-    Set combo = wsInfo.OLEObjects(CELL_DROPDOWN_COMBO_NAME).Object
-    selectedValue = ReadComboSelectedText(combo)
     If Len(selectedValue) = 0 Then Exit Function
 
-    mod_DebugLog.Log LOG_TAG & " TryCommit write value=[" & selectedValue & "] to " & anchor.Address(False, False)
-    If StrComp(selectedValue, Trim$(CStr(anchor.value)), vbBinaryCompare) <> 0 Then
-        anchor.value = selectedValue
+    If StrComp(selectedValue, mCellDropdownStartValue, vbBinaryCompare) <> 0 Then
+        mod_DebugLog.Log LOG_TAG & " TryCommit via value change=[" & selectedValue & "]"
+        TryCommitCellDropdownSelection = True
+        Exit Function
     End If
 
-    TryCommitCellDropdownSelection = True
+    If mDropdownInteracted Then
+        mod_DebugLog.Log LOG_TAG & " TryCommit confirm value=[" & selectedValue & "]"
+        TryCommitCellDropdownSelection = True
+        Exit Function
+    End If
+
     Exit Function
 
 CleanFail:
@@ -451,8 +471,16 @@ Private Sub StartCellDropdownPolling()
     ScheduleCellDropdownPoll
 End Sub
 
+Private Sub FinalizeOrAbandonCellDropdownSession(ByVal wsInfo As Worksheet)
+    If ShouldFinalizeCellDropdownSession(wsInfo) Then
+        CloseCellDropdownSession wsInfo
+    Else
+        HideCellDropdown wsInfo
+    End If
+End Sub
+
 Private Sub ScheduleCellDropdownPoll()
-    If Not mInCellDropdownPrompt Then Exit Sub
+    If Len(mCellDropdownTargetAddress) = 0 Then Exit Sub
 
     CancelCellDropdownPoll
     mCellDropdownPollTime = Now + CELL_DROPDOWN_POLL_INTERVAL_DAYS
