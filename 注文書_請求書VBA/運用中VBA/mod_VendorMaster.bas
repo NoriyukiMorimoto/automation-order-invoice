@@ -512,6 +512,7 @@ Public Sub InitVendorBlockCountFromSheet(Optional ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Exit Sub
     mLastVendorBlockCount = GetVendorBlockCount(wsInfo)
     mod_VendorInfoColors.ApplyVendorInfoRow10Colors wsInfo
+    RestoreVendorBlockValueColumnRightBorders wsInfo, mLastVendorBlockCount
 End Sub
 
 Public Sub SyncVendorBlocksFromCount(ByVal wsInfo As Worksheet)
@@ -600,6 +601,8 @@ Public Sub SyncVendorBlocksFromCount(ByVal wsInfo As Worksheet)
     Else
         mod_BasicInfoGuide.RefreshVendorGuidesForBasicInfo wsInfo
     End If
+
+    RestoreVendorBlockValueColumnRightBorders wsInfo, vendorCount
 
     If vendorCount < previousCount And needWeldingRefresh Then
         On Error Resume Next
@@ -2043,6 +2046,37 @@ Private Sub CopyRangeFormats(ByVal sourceRange As Range, ByVal destRange As Rang
     sourceRange.Copy
     destRange.PasteSpecial Paste:=xlPasteFormats
     Application.CutCopyMode = False
+End Sub
+
+Private Sub RestoreVendorBlockValueColumnRightBorders(ByVal wsInfo As Worksheet, ByVal vendorCount As Long)
+    If wsInfo Is Nothing Then Exit Sub
+    If vendorCount < 1 Then Exit Sub
+
+    Dim templateValueCol As Long
+    templateValueCol = VendorValueColumnByIndex(1)
+
+    Dim rowIndex As Long
+    Dim vendorIndex As Long
+
+    For rowIndex = BASIC_INFO_VENDOR_BLOCK_TOP_ROW To BASIC_INFO_VENDOR_TOTAL_ROW
+        Dim templateCell As Range
+        Set templateCell = wsInfo.Cells(rowIndex, templateValueCol)
+
+        For vendorIndex = 1 To vendorCount
+            CopyCellBorderEdge templateCell, _
+                wsInfo.Cells(rowIndex, VendorValueColumnByIndex(vendorIndex)), xlEdgeRight
+        Next vendorIndex
+    Next rowIndex
+End Sub
+
+Private Sub CopyCellBorderEdge(ByVal sourceCell As Range, ByVal destCell As Range, ByVal edgeId As Long)
+    On Error Resume Next
+    With destCell.Borders(edgeId)
+        .LineStyle = sourceCell.Borders(edgeId).LineStyle
+        .Weight = sourceCell.Borders(edgeId).Weight
+        .Color = sourceCell.Borders(edgeId).Color
+    End With
+    On Error GoTo 0
 End Sub
 
 Private Sub CopyRangeBorders(ByVal sourceRange As Range, ByVal destRange As Range)
