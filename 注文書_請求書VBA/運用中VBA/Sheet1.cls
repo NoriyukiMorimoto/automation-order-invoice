@@ -225,8 +225,10 @@ Private Sub Worksheet_SelectionChange(ByVal target As Range)
         mod_MaterialPriceImport.RefreshUnitPriceProjectNameValidation Me, True
     End If
 
-    If Not mod_BasicInfoCellDropdown.IsCellDropdownTarget(Me, target) Then
-        mod_BasicInfoCellDropdown.HideCellDropdown Me
+    If Not mod_BasicInfoCellDropdown.IsPromptingCellDropdown() Then
+        If Not mod_BasicInfoCellDropdown.IsCellDropdownTarget(Me, target) Then
+            mod_BasicInfoCellDropdown.HideCellDropdown Me
+        End If
     End If
 
     Dim vendorNameRange As Range
@@ -270,6 +272,10 @@ Private Sub ComboBoxVendor_KeyDown(ByVal KeyCode As MSForms.ReturnInteger, ByVal
     End If
 End Sub
 
+Private Sub ComboBoxCellDropdown_Change()
+    mod_BasicInfoCellDropdown.CommitCellDropdownSelection Me
+End Sub
+
 Private Sub ComboBoxCellDropdown_Click()
     mod_BasicInfoCellDropdown.CommitCellDropdownSelection Me
 End Sub
@@ -278,6 +284,10 @@ Private Sub ComboBoxCellDropdown_KeyDown(ByVal KeyCode As MSForms.ReturnInteger,
     If KeyCode = vbKeyReturn Then
         mod_BasicInfoCellDropdown.CommitCellDropdownSelection Me
     End If
+End Sub
+
+Private Sub ComboBoxCellDropdown_LostFocus()
+    mod_BasicInfoCellDropdown.HandleCellDropdownLostFocus Me
 End Sub
 
 Private Sub btnUpdateBilling_Click()
