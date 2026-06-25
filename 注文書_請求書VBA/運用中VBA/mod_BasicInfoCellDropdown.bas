@@ -2,17 +2,17 @@ Option Explicit
 
 ' ========================================================
 ' mod_BasicInfoCellDropdown
-' Šî–{î•ñƒV[ƒg‚Ì C22 / C23 ‚ğƒ_ƒuƒ‹ƒNƒŠƒbƒN‚·‚é‚ÆA
-' ‚»‚ÌƒZƒ‹‚Ì“ü—Í‹K‘¥(ƒŠƒXƒg)‚©‚çƒhƒƒbƒvƒ_ƒEƒ“‚ğ•\¦‚·‚éB
+' åŸºæœ¬æƒ…å ±ã‚·ãƒ¼ãƒˆã® C22 / C23 ã‚’ãƒ€ãƒ–ãƒ«ã‚¯ãƒªãƒƒã‚¯ã™ã‚‹ã¨ã€
+' ãã®ã‚»ãƒ«ã®å…¥åŠ›è¦å‰‡(ãƒªã‚¹ãƒˆ)ã‹ã‚‰ãƒ‰ãƒ­ãƒƒãƒ—ãƒ€ã‚¦ãƒ³ã‚’è¡¨ç¤ºã™ã‚‹ã€‚
 '
-' •û®: SendKeys ‚Íg‚í‚¸(NumLock•ÛŒì)AƒZƒ‹ã‚Éˆê Forms.ComboBox.1
-'       ‚ğd‚Ë‚Ä .DropDown ‚ÅŠJ‚­(office C6 / ‹ÆÒ–¼ ‚Æ“¯•û®)B
-' ‘I‘ğ’l‚Í LinkedCell ‚Æè“®‘‚İ‚Ì‘o•û‚ÅƒZƒ‹‚Ö”½‰f‚·‚éB
+' æ–¹å¼: SendKeys ã¯ä½¿ã‚ãš(NumLockä¿è­·)ã€ã‚»ãƒ«ä¸Šã«ä¸€æ™‚ Forms.ComboBox.1
+'       ã‚’é‡ã­ã¦ .DropDown ã§é–‹ã(office C6 / æ¥­è€…å ã¨åŒæ–¹å¼)ã€‚
+' é¸æŠå€¤ã¯ LinkedCell ã¨æ‰‹å‹•æ›¸è¾¼ã¿ã®åŒæ–¹ã§ã‚»ãƒ«ã¸åæ˜ ã™ã‚‹ã€‚
 '
-' ƒŠƒXƒg“à—e‚ÍƒZƒ‹‚Ì“ü—Í‹K‘¥(Validation.Formula1)‚ğÀs‚É“Ç‚Ş‚½‚ßA
-' ”ÍˆÍQÆ(=$AG$2:$AG$3 “™)EƒCƒ“ƒ‰ƒCƒ“("‚ ‚è,‚È‚µ" “™)‚Ì‘o•û‚É’Ç]‚·‚éB
+' ãƒªã‚¹ãƒˆå†…å®¹ã¯ã‚»ãƒ«ã®å…¥åŠ›è¦å‰‡(Validation.Formula1)ã‚’å®Ÿè¡Œæ™‚ã«èª­ã‚€ãŸã‚ã€
+' ç¯„å›²å‚ç…§(=$AG$2:$AG$3 ç­‰)ãƒ»ã‚¤ãƒ³ãƒ©ã‚¤ãƒ³("ã‚ã‚Š,ãªã—" ç­‰)ã®åŒæ–¹ã«è¿½å¾“ã™ã‚‹ã€‚
 '
-' ‰üC—š—ğ: CHANGELOG.md QÆ
+' æ”¹ä¿®å±¥æ­´: CHANGELOG.md å‚ç…§
 ' ========================================================
 
 Private Const CELL_DROPDOWN_COMBO_NAME As String = "ComboBoxCellDropdown"
@@ -368,11 +368,8 @@ Private Sub NotifyCellDropdownValueCommitted(ByVal wsInfo As Worksheet, ByVal an
 
     On Error Resume Next
     Application.ScreenUpdating = True
-    mod_BasicInfoGuide.OnCellChanged wsInfo, anchor
-    Application.ScreenUpdating = True
     anchor.MergeArea.Cells(1, 1).Calculate
     DoEvents
-    On Error GoTo 0
 
     If Not Intersect(anchor, wsInfo.Range("C22,C23")) Is Nothing Then
         If Trim$(CStr(wsInfo.Range("C24").MergeArea.Cells(1, 1).value)) <> "" Then
@@ -380,6 +377,10 @@ Private Sub NotifyCellDropdownValueCommitted(ByVal wsInfo As Worksheet, ByVal an
         End If
         mod_Construction_Order_Import.RefreshConstructionReferenceUnitPricesOnExistingSheets
     End If
+
+    mod_BasicInfoGuide.OnCellChanged wsInfo, anchor
+    Application.ScreenUpdating = True
+    On Error GoTo 0
 End Sub
 
 Private Function ShouldFinalizeCellDropdownSession(ByVal wsInfo As Worksheet) As Boolean
