@@ -7,8 +7,7 @@ Option Explicit
 '
 ' 方式: SendKeys は使わず(NumLock保護)、セル上に一時 Forms.ComboBox.1
 '       を重ねて .DropDown で開く(office C6 / 業者名 と同方式)。
-' 選択値はセルへ反映し、既存の Worksheet_Change を発火させる
-' (EnableEvents=True のまま書込むため、単価再計算・ガイド解除が走る)。
+' 選択値は LinkedCell と手動書込みの双方でセルへ反映する。
 '
 ' リスト内容はセルの入力規則(Validation.Formula1)を実行時に読むため、
 ' 範囲参照(=$AG$2:$AG$3 等)・インライン("あり,なし" 等)の双方に追従する。
@@ -18,9 +17,14 @@ Option Explicit
 
 Private Const CELL_DROPDOWN_COMBO_NAME As String = "ComboBoxCellDropdown"
 Private Const CELL_DROPDOWN_POLL_PROC As String = "mod_BasicInfoCellDropdown.PollCellDropdownSelection"
-Private Const CELL_DROPDOWN_POLL_INTERVAL_DAYS As Double = 0.05 / 86400#
+Private Const CELL_DROPDOWN_DEFER_COMMIT_PROC As String = "mod_BasicInfoCellDropdown.RunDeferredCommitCellDropdownSelection"
+Private Const CELL_DROPDOWN_DEFER_LOSTFOCUS_PROC As String = "mod_BasicInfoCellDropdown.RunDeferredHandleCellDropdownLostFocus"
+Private Const CELL_DROPDOWN_POLL_INTERVAL_DAYS As Double = 0.1 / 86400#
+Private Const LOG_TAG As String = "[CellDropdown]"
+
 Private mCellDropdownTargetAddress As String
 Private mCellDropdownWorksheetName As String
+Private mCellDropdownStartValue As String
 Private mCellDropdownPollTime As Date
 Private mLastComboListIndex As Long
 Private mInCellDropdownPrompt As Boolean
@@ -29,12 +33,10 @@ Public Function IsPromptingCellDropdown() As Boolean
     IsPromptingCellDropdown = mInCellDropdownPrompt
 End Function
 
-' ドロップダウン対象セル(値セル。結合は左上)。必要に応じて追加可能。
 Private Function CellDropdownTargetAddresses() As Variant
     CellDropdownTargetAddresses = Array("C22", "C23")
 End Function
 
-' 指定セルがドロップダウン対象(C22/C23、結合範囲含む)か
 Public Function IsCellDropdownTarget(ByVal wsInfo As Worksheet, ByVal target As Range) As Boolean
     If wsInfo Is Nothing Or target Is Nothing Then Exit Function
 
@@ -50,7 +52,6 @@ Public Function IsCellDropdownTarget(ByVal wsInfo As Worksheet, ByVal target As 
     Next i
 End Function
 
-' 対象セルのアンカー(結合左上)を返す
 Private Function ResolveCellDropdownAnchor(ByVal wsInfo As Worksheet, ByVal target As Range) As Range
     Dim addrs As Variant
     addrs = CellDropdownTargetAddresses()
@@ -66,7 +67,12 @@ Private Function ResolveCellDropdownAnchor(ByVal wsInfo As Worksheet, ByVal targ
     Next i
 End Function
 
-' ダブルクリックから呼ぶ: セル上にコンボを出してドロップダウンを開く
+Private Function GetCellDropdownAnchor(ByVal wsInfo As Worksheet) As Range
+    If wsInfo Is Nothing Then Exit Function
+    If Len(mCellDropdownTargetAddress) = 0 Then Exit Function
+    Set GetCellDropdownAnchor = wsInfo.Range(mCellDropdownTargetAddress).MergeArea.Cells(1, 1)
+End Function
+
 Public Sub ShowCellValidationDropdown(ByVal wsInfo As Worksheet, ByVal target As Range)
     If wsInfo Is Nothing Or target Is Nothing Then Exit Sub
 
@@ -74,24 +80,32 @@ Public Sub ShowCellValidationDropdown(ByVal wsInfo As Worksheet, ByVal target As
     Set anchor = ResolveCellDropdownAnchor(wsInfo, target)
     If anchor Is Nothing Then Exit Sub
 
+    mod_DebugLog.Log LOG_TAG & " Show start " & anchor.Address(False, False)
+
     On Error GoTo CleanFail
     DeleteCellDropdownComboBox wsInfo
 
     Dim ole As OLEObject
     Set ole = GetCellDropdownComboBox(wsInfo, anchor)
-    If ole Is Nothing Then Exit Sub
+    If ole Is Nothing Then
+        mod_DebugLog.Log LOG_TAG & " GetCellDropdownComboBox failed"
+        Exit Sub
+    End If
 
     LoadComboItemsFromValidation anchor, ole
+    mod_DebugLog.Log LOG_TAG & " ListCount=" & ole.Object.ListCount
     If ole.Object.ListCount = 0 Then
-        ' 入力規則リストが無い/空 -> コンボは出さない
+        mod_DebugLog.Log LOG_TAG & " empty list -> abort"
         DeleteCellDropdownComboBox wsInfo
         Exit Sub
     End If
 
     mCellDropdownTargetAddress = anchor.Address(False, False)
     mCellDropdownWorksheetName = wsInfo.Name
+    mCellDropdownStartValue = Trim$(CStr(anchor.value))
     mInCellDropdownPrompt = True
     FitComboToCell anchor, ole
+    BindCellDropdownLinkedCell ole, anchor
 
     wsInfo.Activate
     anchor.Select
@@ -99,16 +113,38 @@ Public Sub ShowCellValidationDropdown(ByVal wsInfo As Worksheet, ByVal target As
     ole.Activate
     On Error Resume Next
     ole.Object.DropDown
-    On Error GoTo CleanFail
+    If Err.Number <> 0 Then
+        mod_DebugLog.Log LOG_TAG & " DropDown Err=" & Err.Number & " " & Err.Description
+        Err.Clear
+    End If
+    On Error GoTo 0
+
     StartCellDropdownPolling
+    mod_DebugLog.Log LOG_TAG & " Show ready LinkedCell=[" & ole.LinkedCell & "] prompting=True"
     Exit Sub
 
 CleanFail:
+    mod_DebugLog.Log LOG_TAG & " Show CleanFail Err=" & Err.Number & " " & Err.Description
     ResetCellDropdownSession
     DeleteCellDropdownComboBox wsInfo
 End Sub
 
-' コンボの Click / Change / Enter / LostFocus から呼ぶ: 選択値をセルへ反映
+Public Sub CompleteCellDropdownFromSheetChange(ByVal wsInfo As Worksheet)
+    If wsInfo Is Nothing Then Exit Sub
+    If Not mInCellDropdownPrompt Then Exit Sub
+
+    Dim anchor As Range
+    Set anchor = GetCellDropdownAnchor(wsInfo)
+    If anchor Is Nothing Then Exit Sub
+
+    Dim currentValue As String
+    currentValue = Trim$(CStr(anchor.value))
+    If Len(currentValue) = 0 Then Exit Sub
+
+    mod_DebugLog.Log LOG_TAG & " CompleteFromSheetChange value=[" & currentValue & "]"
+    CloseCellDropdownSession wsInfo
+End Sub
+
 Public Sub CommitCellDropdownSelection(ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Exit Sub
 
@@ -117,11 +153,8 @@ Public Sub CommitCellDropdownSelection(ByVal wsInfo As Worksheet)
     End If
 End Sub
 
-' Enter / LostFocus 直後は ListIndex 更新前のことがあるため、少し遅らせて確定する
 Public Sub ScheduleDeferredCommitCellDropdownSelection()
-    On Error Resume Next
-    Application.OnTime Now + TimeValue("00:00:00"), "mod_BasicInfoCellDropdown.RunDeferredCommitCellDropdownSelection"
-    On Error GoTo 0
+    ScheduleQualifiedOnTime CELL_DROPDOWN_DEFER_COMMIT_PROC
 End Sub
 
 Public Sub RunDeferredCommitCellDropdownSelection()
@@ -136,26 +169,17 @@ Public Sub RunDeferredCommitCellDropdownSelection()
     On Error GoTo 0
     If Not combo Is Nothing Then
         On Error Resume Next
-        If combo.DroppedDown Then
-            combo.DroppedDown = False
-        End If
+        If combo.DroppedDown Then combo.DroppedDown = False
         On Error GoTo 0
     End If
 
     CommitCellDropdownSelection wsInfo
 End Sub
 
-' コンボからフォーカスが外れた時: 選択済みなら反映、未選択なら閉じる
 Public Sub HandleCellDropdownLostFocus(ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Exit Sub
     If Not mInCellDropdownPrompt Then Exit Sub
-    ScheduleDeferredHandleCellDropdownLostFocus
-End Sub
-
-Public Sub ScheduleDeferredHandleCellDropdownLostFocus()
-    On Error Resume Next
-    Application.OnTime Now + TimeValue("00:00:00"), "mod_BasicInfoCellDropdown.RunDeferredHandleCellDropdownLostFocus"
-    On Error GoTo 0
+    ScheduleQualifiedOnTime CELL_DROPDOWN_DEFER_LOSTFOCUS_PROC
 End Sub
 
 Public Sub RunDeferredHandleCellDropdownLostFocus()
@@ -171,7 +195,6 @@ Public Sub RunDeferredHandleCellDropdownLostFocus()
     End If
 End Sub
 
-' 動的生成コンボは Sheet イベントが届かない環境があるため、ListIndex を監視して確定する
 Public Sub PollCellDropdownSelection()
     On Error GoTo CleanExit
 
@@ -180,6 +203,12 @@ Public Sub PollCellDropdownSelection()
     Dim wsInfo As Worksheet
     Set wsInfo = GetCellDropdownWorksheet()
     If wsInfo Is Nothing Then GoTo CleanExit
+
+    If HasAnchorValueChanged(wsInfo) Then
+        mod_DebugLog.Log LOG_TAG & " Poll detected anchor value change"
+        CloseCellDropdownSession wsInfo
+        Exit Sub
+    End If
 
     Dim ole As OLEObject
     On Error Resume Next
@@ -208,22 +237,22 @@ Public Sub PollCellDropdownSelection()
         Exit Sub
     End If
 
-    If currentIndex >= 0 And currentIndex <> mLastComboListIndex Then
-        mLastComboListIndex = currentIndex
+    If currentIndex >= 0 Then
         If TryCommitCellDropdownSelection(wsInfo) Then
+            mod_DebugLog.Log LOG_TAG & " Poll commit ListIndex=" & currentIndex
             CloseCellDropdownSession wsInfo
             Exit Sub
         End If
     End If
 
     If Not IsCellDropdownTarget(wsInfo, wsInfo.Application.ActiveCell) Then
-        If currentIndex >= 0 Then
-            If TryCommitCellDropdownSelection(wsInfo) Then
-                CloseCellDropdownSession wsInfo
-                Exit Sub
-            End If
+        If TryCommitCellDropdownSelection(wsInfo) Then
+            mod_DebugLog.Log LOG_TAG & " Poll commit on focus leave"
+            CloseCellDropdownSession wsInfo
+        Else
+            mod_DebugLog.Log LOG_TAG & " Poll hide on focus leave without selection"
+            HideCellDropdown wsInfo
         End If
-        HideCellDropdown wsInfo
         Exit Sub
     End If
 
@@ -231,13 +260,14 @@ Public Sub PollCellDropdownSelection()
     Exit Sub
 
 CleanExit:
+    mod_DebugLog.Log LOG_TAG & " Poll CleanExit Err=" & Err.Number
     CancelCellDropdownPoll
     If mInCellDropdownPrompt Then HideCellDropdown wsInfo
 End Sub
 
-' 選択が対象セルから外れた時などに呼ぶ: コンボを消す
 Public Sub HideCellDropdown(ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Exit Sub
+    mod_DebugLog.Log LOG_TAG & " Hide"
     ResetCellDropdownSession
     DeleteCellDropdownComboBox wsInfo
 End Sub
@@ -247,18 +277,25 @@ Private Function TryCommitCellDropdownSelection(ByVal wsInfo As Worksheet) As Bo
 
     If Len(mCellDropdownTargetAddress) = 0 Then Exit Function
 
-    Dim combo As Object
-    Set combo = wsInfo.OLEObjects(CELL_DROPDOWN_COMBO_NAME).Object
+    Dim anchor As Range
+    Set anchor = GetCellDropdownAnchor(wsInfo)
+    If anchor Is Nothing Then Exit Function
 
     Dim selectedValue As String
+    selectedValue = Trim$(CStr(anchor.value))
+    If Len(selectedValue) > 0 And StrComp(selectedValue, mCellDropdownStartValue, vbBinaryCompare) <> 0 Then
+        mod_DebugLog.Log LOG_TAG & " TryCommit via anchor value=[" & selectedValue & "]"
+        TryCommitCellDropdownSelection = True
+        Exit Function
+    End If
+
+    Dim combo As Object
+    Set combo = wsInfo.OLEObjects(CELL_DROPDOWN_COMBO_NAME).Object
     selectedValue = ReadComboSelectedText(combo)
     If Len(selectedValue) = 0 Then Exit Function
 
-    Dim anchor As Range
-    Set anchor = wsInfo.Range(mCellDropdownTargetAddress)
-
-    ' 実際に値が変わる場合のみ書込み(不要な Worksheet_Change の連鎖を避ける)
-    If StrComp(selectedValue, CStr(anchor.value), vbBinaryCompare) <> 0 Then
+    mod_DebugLog.Log LOG_TAG & " TryCommit write value=[" & selectedValue & "] to " & anchor.Address(False, False)
+    If StrComp(selectedValue, Trim$(CStr(anchor.value)), vbBinaryCompare) <> 0 Then
         anchor.value = selectedValue
     End If
 
@@ -266,7 +303,18 @@ Private Function TryCommitCellDropdownSelection(ByVal wsInfo As Worksheet) As Bo
     Exit Function
 
 CleanFail:
+    mod_DebugLog.Log LOG_TAG & " TryCommit failed Err=" & Err.Number & " " & Err.Description
     TryCommitCellDropdownSelection = False
+End Function
+
+Private Function HasAnchorValueChanged(ByVal wsInfo As Worksheet) As Boolean
+    Dim anchor As Range
+    Set anchor = GetCellDropdownAnchor(wsInfo)
+    If anchor Is Nothing Then Exit Function
+
+    Dim currentValue As String
+    currentValue = Trim$(CStr(anchor.value))
+    HasAnchorValueChanged = (Len(currentValue) > 0 And StrComp(currentValue, mCellDropdownStartValue, vbBinaryCompare) <> 0)
 End Function
 
 Private Function ReadComboSelectedText(ByVal combo As Object) As String
@@ -297,6 +345,7 @@ Private Sub CloseCellDropdownSession(ByVal wsInfo As Worksheet)
     On Error Resume Next
     If Len(targetAddress) > 0 Then wsInfo.Range(targetAddress).Select
     On Error GoTo 0
+    mod_DebugLog.Log LOG_TAG & " Close session"
 End Sub
 
 Private Sub ResetCellDropdownSession()
@@ -304,6 +353,7 @@ Private Sub ResetCellDropdownSession()
     mInCellDropdownPrompt = False
     mCellDropdownTargetAddress = ""
     mCellDropdownWorksheetName = ""
+    mCellDropdownStartValue = ""
     mLastComboListIndex = -2
 End Sub
 
@@ -322,6 +372,7 @@ End Function
 Private Sub StartCellDropdownPolling()
     mLastComboListIndex = -2
     ScheduleCellDropdownPoll
+    PollCellDropdownSelection
 End Sub
 
 Private Sub ScheduleCellDropdownPoll()
@@ -329,17 +380,53 @@ Private Sub ScheduleCellDropdownPoll()
 
     CancelCellDropdownPoll
     mCellDropdownPollTime = Now + CELL_DROPDOWN_POLL_INTERVAL_DAYS
-    On Error Resume Next
-    Application.OnTime EarliestTime:=mCellDropdownPollTime, Procedure:=CELL_DROPDOWN_POLL_PROC
-    On Error GoTo 0
+    ScheduleQualifiedOnTimeAt CELL_DROPDOWN_POLL_PROC, mCellDropdownPollTime
 End Sub
 
 Private Sub CancelCellDropdownPoll()
     On Error Resume Next
     If mCellDropdownPollTime <> 0 Then
-        Application.OnTime EarliestTime:=mCellDropdownPollTime, Procedure:=CELL_DROPDOWN_POLL_PROC, Schedule:=False
+        Application.OnTime EarliestTime:=mCellDropdownPollTime, _
+                           Procedure:=QualifiedOnTimeProcedure(CELL_DROPDOWN_POLL_PROC), _
+                           Schedule:=False
     End If
     mCellDropdownPollTime = 0
+    On Error GoTo 0
+End Sub
+
+Private Sub ScheduleQualifiedOnTime(ByVal moduleProcedure As String)
+    ScheduleQualifiedOnTimeAt moduleProcedure, Now + TimeValue("00:00:00")
+End Sub
+
+Private Sub ScheduleQualifiedOnTimeAt(ByVal moduleProcedure As String, ByVal runTime As Date)
+    On Error Resume Next
+    Application.OnTime EarliestTime:=runTime, Procedure:=QualifiedOnTimeProcedure(moduleProcedure)
+    If Err.Number <> 0 Then
+        mod_DebugLog.Log LOG_TAG & " OnTime schedule failed proc=[" & moduleProcedure & "] Err=" & Err.Number
+        Err.Clear
+    End If
+    On Error GoTo 0
+End Sub
+
+Private Function QualifiedOnTimeProcedure(ByVal moduleProcedure As String) As String
+    QualifiedOnTimeProcedure = "'" & ThisWorkbook.Name & "'!" & moduleProcedure
+End Function
+
+Private Sub BindCellDropdownLinkedCell(ByVal ole As OLEObject, ByVal anchor As Range)
+    ClearCellDropdownLinkedCell ole
+    On Error Resume Next
+    ole.LinkedCell = anchor.Address(False, False)
+    If Err.Number <> 0 Then
+        mod_DebugLog.Log LOG_TAG & " LinkedCell bind failed Err=" & Err.Number & " " & Err.Description
+        Err.Clear
+    End If
+    On Error GoTo 0
+End Sub
+
+Private Sub ClearCellDropdownLinkedCell(ByVal ole As OLEObject)
+    On Error Resume Next
+    ole.LinkedCell = ""
+    Err.Clear
     On Error GoTo 0
 End Sub
 
@@ -373,13 +460,11 @@ Private Sub FitComboToCell(ByVal anchor As Range, ByVal ole As OLEObject)
         .Top = area.Top
         .Width = area.Width
         .Height = area.Height
-        .Placement = xlMoveAndSize
+        .Placement = xlMove
     End With
     On Error GoTo 0
 End Sub
 
-' セルの入力規則(リスト)からコンボの項目を読み込む。
-' 範囲参照(=...)・定義名・インライン("a,b,c")の三形態に対応。
 Private Sub LoadComboItemsFromValidation(ByVal anchor As Range, ByVal ole As OLEObject)
     On Error Resume Next
 
@@ -393,11 +478,7 @@ Private Sub LoadComboItemsFromValidation(ByVal anchor As Range, ByVal ole As OLE
         If Len(f1) > 0 Then
             If Left$(f1, 1) = "=" Then
                 Dim listRange As Range
-                Set listRange = Nothing
-                Set listRange = anchor.Worksheet.Range(Mid$(f1, 2))
-                If listRange Is Nothing Then
-                    Set listRange = anchor.Worksheet.Parent.Names(Mid$(f1, 2)).RefersToRange
-                End If
+                Set listRange = ResolveListRangeFromValidation(anchor, f1)
                 If Not listRange Is Nothing Then
                     Dim c As Range
                     For Each c In listRange.Cells
@@ -417,17 +498,38 @@ Private Sub LoadComboItemsFromValidation(ByVal anchor As Range, ByVal ole As OLE
         .Style = fmStyleDropDownList
         .ListRows = Application.Max(1, Application.Min(12, .ListCount))
         .MatchRequired = True
-        .value = CStr(anchor.value)
+        .ListIndex = -1
+        If Len(Trim$(CStr(anchor.value))) > 0 Then
+            .value = CStr(anchor.value)
+        End If
     End With
 
     On Error GoTo 0
 End Sub
 
+Private Function ResolveListRangeFromValidation(ByVal anchor As Range, ByVal formula1 As String) As Range
+    Dim formulaBody As String
+    formulaBody = Mid$(formula1, 2)
+
+    On Error Resume Next
+    Set ResolveListRangeFromValidation = anchor.Worksheet.Range(formulaBody)
+    If ResolveListRangeFromValidation Is Nothing Then
+        Set ResolveListRangeFromValidation = Evaluate(formula1)
+    End If
+    If ResolveListRangeFromValidation Is Nothing Then
+        Set ResolveListRangeFromValidation = anchor.Worksheet.Parent.Names(formulaBody).RefersToRange
+    End If
+    On Error GoTo 0
+End Function
+
 Private Sub DeleteCellDropdownComboBox(ByVal wsInfo As Worksheet)
     On Error Resume Next
-    With wsInfo.OLEObjects(CELL_DROPDOWN_COMBO_NAME)
-        .Visible = False
-        .Delete
-    End With
+    Dim ole As OLEObject
+    Set ole = wsInfo.OLEObjects(CELL_DROPDOWN_COMBO_NAME)
+    If Not ole Is Nothing Then
+        ClearCellDropdownLinkedCell ole
+        ole.Visible = False
+        ole.Delete
+    End If
     On Error GoTo 0
 End Sub
