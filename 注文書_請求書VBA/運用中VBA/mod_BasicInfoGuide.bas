@@ -52,8 +52,8 @@ Public Sub InitBasicInfoGuide(ByVal ws As Worksheet)
 
     ' 固定セル
     ApplyGuideCell ws, "C9",  GetC9CommentText(),  IsEmpty_Cell(ws.Range("C9"))
-    ApplyGuideCell ws, "C22", GetC22CommentText(), IsEmpty_Cell(ws.Range("C22"))
-    ApplyGuideCell ws, "C23", GetC23CommentText(), IsEmpty_Cell(ws.Range("C23"))
+    ApplyGuideMergedCell ws, "C22", GetC22CommentText(), IsEmpty_Cell(ws.Range("C22").MergeArea.Cells(1, 1))
+    ApplyGuideMergedCell ws, "C23", GetC23CommentText(), IsEmpty_Cell(ws.Range("C23").MergeArea.Cells(1, 1))
     ApplyGuideMergedCell ws, BASIC_INFO_IMPORTED_LINE_NAMES_CELL, GetC24CommentText(), IsImportedLineNamesEmpty(ws)
 
     ' F9（会社数）
@@ -77,8 +77,8 @@ Public Sub OnCellChanged(ByVal ws As Worksheet, ByVal target As Range)
 
     ' 固定セル判定
     If Not Intersect(target, ws.Range("C9"))  Is Nothing Then ApplyGuideCell ws, "C9",  GetC9CommentText(),  IsEmpty_Cell(ws.Range("C9"))
-    If Not Intersect(target, ws.Range("C22")) Is Nothing Then ApplyGuideCell ws, "C22", GetC22CommentText(), IsEmpty_Cell(ws.Range("C22"))
-    If Not Intersect(target, ws.Range("C23")) Is Nothing Then ApplyGuideCell ws, "C23", GetC23CommentText(), IsEmpty_Cell(ws.Range("C23"))
+    If Not Intersect(target, ws.Range("C22")) Is Nothing Then ApplyGuideMergedCell ws, "C22", GetC22CommentText(), IsEmpty_Cell(ws.Range("C22").MergeArea.Cells(1, 1))
+    If Not Intersect(target, ws.Range("C23")) Is Nothing Then ApplyGuideMergedCell ws, "C23", GetC23CommentText(), IsEmpty_Cell(ws.Range("C23").MergeArea.Cells(1, 1))
     If Not Intersect(target, GetImportedLineNamesMergeArea(ws)) Is Nothing Then _
         ApplyGuideMergedCell ws, BASIC_INFO_IMPORTED_LINE_NAMES_CELL, GetC24CommentText(), IsImportedLineNamesEmpty(ws)
     If Not Intersect(target, ws.Range("F9"))  Is Nothing Then
