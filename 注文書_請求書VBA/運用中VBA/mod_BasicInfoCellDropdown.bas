@@ -142,7 +142,9 @@ Public Sub CompleteCellDropdownFromSheetChange(ByVal wsInfo As Worksheet)
     If Len(currentValue) = 0 Then Exit Sub
 
     mod_DebugLog.Log LOG_TAG & " CompleteFromSheetChange value=[" & currentValue & "]"
-    CloseCellDropdownSession wsInfo
+    If TryCommitCellDropdownSelection(wsInfo) Then
+        CloseCellDropdownSession wsInfo
+    End If
 End Sub
 
 Public Sub CommitCellDropdownSelection(ByVal wsInfo As Worksheet)
@@ -206,7 +208,9 @@ Public Sub PollCellDropdownSelection()
 
     If HasAnchorValueChanged(wsInfo) Then
         mod_DebugLog.Log LOG_TAG & " Poll detected anchor value change"
-        CloseCellDropdownSession wsInfo
+        If TryCommitCellDropdownSelection(wsInfo) Then
+            CloseCellDropdownSession wsInfo
+        End If
         Exit Sub
     End If
 
@@ -285,6 +289,7 @@ Private Function TryCommitCellDropdownSelection(ByVal wsInfo As Worksheet) As Bo
     selectedValue = Trim$(CStr(anchor.value))
     If Len(selectedValue) > 0 And StrComp(selectedValue, mCellDropdownStartValue, vbBinaryCompare) <> 0 Then
         mod_DebugLog.Log LOG_TAG & " TryCommit via anchor value=[" & selectedValue & "]"
+        NotifyCellDropdownValueCommitted wsInfo, anchor
         TryCommitCellDropdownSelection = True
         Exit Function
     End If
@@ -299,6 +304,7 @@ Private Function TryCommitCellDropdownSelection(ByVal wsInfo As Worksheet) As Bo
         anchor.value = selectedValue
     End If
 
+    NotifyCellDropdownValueCommitted wsInfo, anchor
     TryCommitCellDropdownSelection = True
     Exit Function
 
@@ -306,6 +312,20 @@ CleanFail:
     mod_DebugLog.Log LOG_TAG & " TryCommit failed Err=" & Err.Number & " " & Err.Description
     TryCommitCellDropdownSelection = False
 End Function
+
+Private Sub NotifyCellDropdownValueCommitted(ByVal wsInfo As Worksheet, ByVal anchor As Range)
+    If wsInfo Is Nothing Or anchor Is Nothing Then Exit Sub
+
+    mod_DebugLog.Log LOG_TAG & " NotifyCommitted " & anchor.Address(False, False) & "=[" & Trim$(CStr(anchor.value)) & "]"
+    mod_BasicInfoGuide.OnCellChanged wsInfo, anchor
+
+    If Not Intersect(anchor, wsInfo.Range("C22,C23")) Is Nothing Then
+        If Trim$(CStr(wsInfo.Range("C24").MergeArea.Cells(1, 1).value)) <> "" Then
+            mod_MaterialPriceImport.SilentClearUnitPriceForBasicInfo wsInfo
+        End If
+        mod_Construction_Order_Import.RefreshConstructionReferenceUnitPricesOnExistingSheets
+    End If
+End Sub
 
 Private Function HasAnchorValueChanged(ByVal wsInfo As Worksheet) As Boolean
     Dim anchor As Range
