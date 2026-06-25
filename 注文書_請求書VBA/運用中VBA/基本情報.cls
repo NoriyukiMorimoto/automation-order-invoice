@@ -41,7 +41,13 @@ Private Sub Worksheet_Change(ByVal target As Range)
         Exit Sub
     End If
 
-    If mod_VendorMaster.IsSyncVendorBlocksInProgress() Then Exit Sub
+    If mod_VendorMaster.IsSyncVendorBlocksInProgress() Then
+        If Not Intersect(target, Me.Range("F9")) Is Nothing Then
+            mod_VendorMaster.ResetVendorBlockSyncState
+        Else
+            Exit Sub
+        End If
+    End If
 
     Dim prevCalc As XlCalculation, prevScreen As Boolean
     prevScreen = Application.ScreenUpdating
