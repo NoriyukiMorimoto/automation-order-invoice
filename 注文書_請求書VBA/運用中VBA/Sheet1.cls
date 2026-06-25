@@ -26,7 +26,7 @@ ExitHandler:
 End Sub
 
 Private Sub Worksheet_Change(ByVal target As Range)
-    mod_DebugLog.Log "[Sheet1] Worksheet_Change ”­‰Î: " & target.Address & " Value=[" & GetTargetValueText(target) & "] EnableEvents=" & Application.EnableEvents
+    mod_DebugLog.Log "[Sheet1] Worksheet_Change: " & target.Address & " Value=[" & GetTargetValueText(target) & "] EnableEvents=" & Application.EnableEvents
     Dim vendorNameRange As Range
     Set vendorNameRange = mod_VendorMaster.GetVendorNameRange(Me)
 
