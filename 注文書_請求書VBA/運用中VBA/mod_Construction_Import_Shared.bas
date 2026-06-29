@@ -154,6 +154,7 @@ Public mSanpaiFillColorCache As Long
 Public mProjectLineNameAliasMapWelding As Object
 Public mProjectLineNameAliasMapConstruction As Object
 Public mProjectLineNameReverseAliasWelding As Object
+Public mProjectLineNameReverseAliasConstruction As Object
 Public mProjectMasterLineOrderRankMap As Object
 
 Public Sub LogCI(ByVal msg As String)

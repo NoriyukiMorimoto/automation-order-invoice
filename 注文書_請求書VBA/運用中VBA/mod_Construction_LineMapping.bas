@@ -51,8 +51,33 @@ End Function
 Public Sub AddLineSheetAliases(ByVal lineSheetMap As Object, _
                                 ByVal sourceLineName As String, _
                                 ByVal unitPriceSheetName As String)
-    AddLineSheetAlias lineSheetMap, "W|" & NormalizeLineLookupText(sourceLineName, True), unitPriceSheetName
-    AddLineSheetAlias lineSheetMap, "C|" & NormalizeLineLookupText(sourceLineName, False), unitPriceSheetName
+    RegisterLineSheetCandidatesFromName lineSheetMap, sourceLineName, unitPriceSheetName, False
+    RegisterLineSheetCandidatesFromName lineSheetMap, sourceLineName, unitPriceSheetName, True
+End Sub
+
+Public Sub RegisterLineSheetCandidatesFromName(ByVal lineSheetMap As Object, _
+                                                ByVal sourceLineName As String, _
+                                                ByVal unitPriceSheetName As String, _
+                                                ByVal isWeldingSheet As Boolean)
+    If lineSheetMap Is Nothing Or Len(Trim$(sourceLineName)) = 0 Then Exit Sub
+    If Len(Trim$(unitPriceSheetName)) = 0 Then Exit Sub
+
+    Dim candidates As Collection
+    Dim candidateItem As Variant
+    Dim keyPrefix As String
+
+    Set candidates = CollectLineLookupCandidates(sourceLineName, isWeldingSheet)
+    If candidates Is Nothing Or candidates.Count = 0 Then Exit Sub
+
+    If isWeldingSheet Then
+        keyPrefix = "W|"
+    Else
+        keyPrefix = "C|"
+    End If
+
+    For Each candidateItem In candidates
+        AddLineSheetAlias lineSheetMap, keyPrefix & CStr(candidateItem), unitPriceSheetName
+    Next candidateItem
 End Sub
 
 Public Sub AddLineSheetAlias(ByVal lineSheetMap As Object, _
@@ -71,6 +96,7 @@ Public Sub ClearProjectLineNameAliasCache()
     Set mProjectLineNameAliasMapWelding = Nothing
     Set mProjectLineNameAliasMapConstruction = Nothing
     Set mProjectLineNameReverseAliasWelding = Nothing
+    Set mProjectLineNameReverseAliasConstruction = Nothing
     Set mProjectMasterLineOrderRankMap = Nothing
 End Sub
 
@@ -340,6 +366,8 @@ Public Sub EnsureProjectLineNameAliasMapsLoaded()
     mProjectLineNameAliasMapConstruction.CompareMode = vbTextCompare
     Set mProjectLineNameReverseAliasWelding = CreateObject("Scripting.Dictionary")
     mProjectLineNameReverseAliasWelding.CompareMode = vbTextCompare
+    Set mProjectLineNameReverseAliasConstruction = CreateObject("Scripting.Dictionary")
+    mProjectLineNameReverseAliasConstruction.CompareMode = vbTextCompare
 
     Dim lineNamePairs As Collection
     Set lineNamePairs = LoadProjectMasterLineNamePairs()
@@ -376,6 +404,7 @@ Public Sub RegisterProjectLineNameAliasPair(ByVal unitPriceLineName As String, _
     If normalizedSourceC <> "" And normalizedUnitC <> "" Then
         If StrComp(normalizedSourceC, normalizedUnitC, vbTextCompare) <> 0 Then
             AddProjectLineNameAlias mProjectLineNameAliasMapConstruction, normalizedSourceC, normalizedUnitC
+            AddProjectLineNameReverseAlias mProjectLineNameReverseAliasConstruction, normalizedUnitC, normalizedSourceC
         End If
     End If
 
@@ -514,6 +543,13 @@ Public Function CollectLineLookupCandidates(ByVal lineName As String, _
     AddUniqueLineLookupCandidate result, aliased
 
     If Not isWeldingSheet Then
+        AppendReverseConstructionAliasSources result, normalized
+        If StrComp(aliased, normalized, vbTextCompare) <> 0 Then
+            AppendReverseConstructionAliasSources result, aliased
+        End If
+    End If
+
+    If Not isWeldingSheet Then
         Dim synthesized As Collection
         Dim synthesizedItem As Variant
         Set synthesized = SynthesizeConstructionLineNameVariants(lineName)
@@ -526,6 +562,22 @@ Public Function CollectLineLookupCandidates(ByVal lineName As String, _
 
     Set CollectLineLookupCandidates = result
 End Function
+
+Public Sub AppendReverseConstructionAliasSources(ByVal candidates As Collection, _
+                                                  ByVal unitLineName As String)
+    If candidates Is Nothing Or Len(unitLineName) = 0 Then Exit Sub
+
+    EnsureProjectLineNameAliasMapsLoaded
+    If mProjectLineNameReverseAliasConstruction Is Nothing Then Exit Sub
+    If Not mProjectLineNameReverseAliasConstruction.Exists(unitLineName) Then Exit Sub
+
+    Dim sources As Collection
+    Dim sourceItem As Variant
+    Set sources = mProjectLineNameReverseAliasConstruction(unitLineName)
+    For Each sourceItem In sources
+        AddUniqueLineLookupCandidate candidates, CStr(sourceItem)
+    Next sourceItem
+End Sub
 
 Public Sub AddUniqueLineLookupCandidate(ByVal candidates As Collection, ByVal candidateText As String)
     If candidates Is Nothing Then Exit Sub
@@ -556,6 +608,7 @@ Public Sub RegisterSynthesizedConstructionLineAliases(ByVal unitPriceLineName As
         If Len(normalizedVariant) > 0 Then
             If StrComp(normalizedVariant, normalizedUnit, vbTextCompare) <> 0 Then
                 AddProjectLineNameAlias mProjectLineNameAliasMapConstruction, normalizedVariant, normalizedUnit
+                AddProjectLineNameReverseAlias mProjectLineNameReverseAliasConstruction, normalizedUnit, normalizedVariant
             End If
         End If
     Next variantItem
@@ -634,6 +687,19 @@ Public Function NormalizeLineLookupText(ByVal sourceText As String, _
         result = RemoveTrackDesignationMarker(result)
     End If
     NormalizeLineLookupText = CommonRemoveAllSpaces(result)
+End Function
+
+' 単価シート名の重複回避サフィックス(例: 線区名（ファイル名）)を除いた正規化キー
+Public Function NormalizeLineLookupBaseSheetName(ByVal sourceText As String, _
+                                                  Optional ByVal isWeldingSheet As Boolean = False) As String
+    Dim baseText As String
+    Dim parenPos As Long
+
+    baseText = CommonNzText(sourceText)
+    parenPos = InStr(1, baseText, ChrW$(&HFF08), vbBinaryCompare)
+    If parenPos > 1 Then baseText = Left$(baseText, parenPos - 1)
+
+    NormalizeLineLookupBaseSheetName = NormalizeLineLookupText(baseText, isWeldingSheet)
 End Function
 
 Public Function NormalizeLineLookupBracketChars(ByVal sourceText As String) As String
@@ -991,9 +1057,12 @@ Public Function FindImportedUnitPriceSheetName(ByVal expectedSheetName As String
     For Each ws In ThisWorkbook.worksheets
         If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(ws) Then
             Dim normalizedSheetName As String
+            Dim baseSheetName As String
             normalizedSheetName = NormalizeLineLookupText(ws.Name, isWeldingSheet)
+            baseSheetName = NormalizeLineLookupBaseSheetName(ws.Name, isWeldingSheet)
             For Each candidateItem In candidates
-                If StrComp(normalizedSheetName, CStr(candidateItem), vbTextCompare) = 0 Then
+                If StrComp(normalizedSheetName, CStr(candidateItem), vbTextCompare) = 0 Or _
+                   (Len(baseSheetName) > 0 And StrComp(baseSheetName, CStr(candidateItem), vbTextCompare) = 0) Then
                     FindImportedUnitPriceSheetName = ws.Name
                     Exit Function
                 End If

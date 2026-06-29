@@ -410,7 +410,10 @@ Public Function LookupSubcontractorVendorPrice( _
         Dim unitPriceSheetName As String
         unitPriceSheetName = mod_Construction_LineMapping.ResolveUnitPriceSheetName( _
             lineSheetMap, CommonNzText(ws.Cells(rowIndex, lineColumn).value))
-        If unitPriceSheetName = "" Then Exit Function
+        If unitPriceSheetName = "" Then
+            LogCI "é{çHâÔé–íPâø: ê¸ãÊñ¢âåà line=[" & CommonNzText(ws.Cells(rowIndex, lineColumn).value) & "]"
+            Exit Function
+        End If
 
         Dim vendorPriceRows As Object
         Set vendorPriceRows = mod_Construction_BasicTotals.GetVendorUnitPriceRows( _
@@ -696,7 +699,10 @@ Public Function LookupSubcontractorVendorPriceFromArrays( _
         Dim unitPriceSheetName As String
         unitPriceSheetName = mod_Construction_LineMapping.ResolveUnitPriceSheetName( _
             lineSheetMap, CommonNzText(GetArrayCellValue(lineData, rowIndex, 1)))
-        If unitPriceSheetName = "" Then Exit Function
+        If unitPriceSheetName = "" Then
+            LogCI "é{çHâÔé–íPâø: ê¸ãÊñ¢âåà line=[" & CommonNzText(GetArrayCellValue(lineData, rowIndex, 1)) & "]"
+            Exit Function
+        End If
 
         Dim vendorPriceRows As Object
         Set vendorPriceRows = mod_Construction_BasicTotals.GetVendorUnitPriceRows( _
