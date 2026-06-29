@@ -27,7 +27,14 @@
 | `mod_VendorInfoColors.bas` | 業者情報色（基本情報10行目・施工指示書等の施工会社列・将来のシートタブ色） | |
 | `mod_WeldingUnitPrice.bas` | 「○○保線区_レール溶接単価」シートへ施工会社別単価を展開（`ApplyWeldingVendorUnitPricesForBasicInfo`）。 | `[WeldingUP]` |
 | `mod_MaterialPriceImport.bas` | 工事単価インポート。単価表・購入充当単価・レール溶接単価シートの作成（`ImportUnitPriceData`）。 | `[UnitPrice]` |
-| `mod_Construction_Order_Import.bas` | 施工指示書・施工通知書・購入充当通知の取込と単価照合・出力整形。 | `[ConstructionImport]` |
+| `mod_Construction_Order_Import.bas` | 施工指示書取込の公開 API ファサード（外部モジュールからの呼び出し口）。 | `[ConstructionImport]` |
+| `mod_Construction_Import_Shared.bas` | 施工指示書取込の共通定数・モジュール変数・ログ (`LogCI`)。 | `[ConstructionImport]` |
+| `mod_Construction_Import_Load.bas` | 施工指示書・施工通知書・購入充当通知のファイル取込と出力シート作成。 | `[ConstructionImport]` |
+| `mod_Construction_SubconPrice.bas` | 施工会社別単価・金額列の展開と更新 (`RefreshSubcontractorPriceColumns`)。 | `[ConstructionImport]` |
+| `mod_Construction_BasicTotals.bas` | 基本情報の工事合計・業者別合計・税込計算、業者別名マップ。 | `[ConstructionImport]` |
+| `mod_Construction_OutputFormat.bas` | 産廃行制限、合計行描画、参照単価列 (M/N) の再計算。 | `[ConstructionImport]` |
+| `mod_Construction_LineMapping.bas` | 工事件名別マスタ F/G 線区名エイリアスと単価シート名解決。 | `[ConstructionImport]` |
+| `mod_Construction_OutputLayout.bas` | 出力シート列位置・溶接判定・購入充当単価転記などレイアウト補助。 | `[ConstructionImport]` |
 | `mod_subcontractorselector.bas` | 外注業者選択（`frmSubconSelector`）関連の制御。 | |
 | `ModuleExport.bas` | VBA モジュールのエクスポート用。 | |
 
