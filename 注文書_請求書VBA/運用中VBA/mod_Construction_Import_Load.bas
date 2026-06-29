@@ -44,7 +44,7 @@ Public Sub ImportConstructionDocument()
     Next srcPathVar
     mSuppressOverwritePrompt = False
 
-    RefreshBasicInfoConstructionTotals
+    mod_Construction_BasicTotals.RefreshBasicInfoConstructionTotals
 
     NormalizeManagedImportSheetOrder
 
@@ -392,7 +392,7 @@ Public Function BuildConstructionOutputSheet(ByVal sheetName As String, _
         ApplyPriceGuidanceColumnLayout ws
         mod_subcontractorselector.ApplySubcontractorDropdowns ws
     End If
-    ApplySanpaiRowRestrictions ws
+    mod_Construction_OutputFormat.ApplySanpaiRowRestrictions ws
     RefreshOutputSheetVendorColumnColors ws, mod_Construction_LineMapping.GetLastDataRow(ws)
 
     If Not isWelding Then

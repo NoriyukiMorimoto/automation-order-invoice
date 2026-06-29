@@ -91,7 +91,7 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet, _
             WriteOutputTotalRows ws, emptyVendors, 0, 0
             RefreshOutputSheetVendorColumnColors ws, lastRow
         End If
-        RefreshBasicInfoConstructionTotals
+        mod_Construction_BasicTotals.RefreshBasicInfoConstructionTotals
         GoTo RefreshExit
     End If
 
@@ -108,7 +108,7 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet, _
         If Err.Number <> 0 Then GoTo RefreshSetupError
         If lastRow < 2 Then
             On Error GoTo 0
-            RefreshBasicInfoConstructionTotals
+            mod_Construction_BasicTotals.RefreshBasicInfoConstructionTotals
             GoTo RefreshExit
         End If
 
@@ -264,7 +264,7 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet, _
     '  (6) Šî–{î•ñ‡Œv(“à•”‚É“ÆŽ©ƒnƒ“ƒhƒ‰‚ ‚è)ˆÈ~‚ÍÄ“x RefreshError ‚Å•ÛŒì
     On Error GoTo RefreshError
     refreshStep = "BasicInfoTotals"
-    RefreshBasicInfoConstructionTotals
+    mod_Construction_BasicTotals.RefreshBasicInfoConstructionTotals
 
     refreshStep = "Log"
     LogCI "Ž{H‰ïŽÐ•Ê’P‰¿—ñ: ‰ïŽÐ”=" & vendorNames.Count & _

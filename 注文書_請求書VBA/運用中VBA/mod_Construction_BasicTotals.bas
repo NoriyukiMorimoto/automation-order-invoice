@@ -87,7 +87,7 @@ Public Sub RefreshBasicInfoConstructionTotals(Optional ByVal changedVendorIndex 
     If fullRefresh Then
         WriteBasicInfoAmount wsInfo, BASIC_INFO_WORKS_TOTAL_CELL, worksTotal
         WriteBasicInfoAmount wsInfo, BASIC_INFO_PURCHASE_TOTAL_CELL, purchaseTotal
-        UpdateBasicInfoTaxTotals wsInfo
+        mod_Construction_BasicTotals.UpdateBasicInfoTaxTotals wsInfo
     End If
 
     Dim totalCellAddress As String
