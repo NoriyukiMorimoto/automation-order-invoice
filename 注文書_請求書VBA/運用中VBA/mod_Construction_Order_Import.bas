@@ -1242,6 +1242,8 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet, _
     If Not IsConstructionVendorOutputSheet(ws) Then Exit Sub
     If FindHeaderColumn(ws, "êÆóùî‘çÜ") = 0 Then Exit Sub
 
+    ClearProjectLineNameAliasCache
+
     Dim scrn As Boolean
     Dim calcMode As XlCalculation
     Dim evt As Boolean
@@ -3873,6 +3875,8 @@ Private Sub RegisterProjectLineNameAliasPair(ByVal unitPriceLineName As String, 
         End If
     End If
 
+    RegisterSynthesizedConstructionLineAliases unitPriceLineName
+
     ' é{çHéwé¶èëë§ÇÃê≥ãKâªç∑(ó·: (ónê⁄éwé¶èëóp)ïtÇ´)Ç≈Ç‡ónê⁄è∆çáÇ≈Ç´ÇÈÇÊÇ§ÅAçHéñê≥ãKâªÉLÅ[Çónê⁄É}ÉbÉvÇ÷ìoò^
     If normalizedSourceC <> "" And normalizedUnitW <> "" And _
        StrComp(normalizedSourceC, normalizedUnitW, vbTextCompare) <> 0 Then
@@ -3964,43 +3968,161 @@ End Function
 Private Function ResolveUnitPriceSheetName(ByVal lineSheetMap As Object, _
                                            ByVal importedLineName As String, _
                                            Optional ByVal isWeldingSheet As Boolean = False) As String
-    If lineSheetMap Is Nothing Then GoTo DirectLookup
+    Dim candidates As Collection
+    Set candidates = CollectLineLookupCandidates(importedLineName, isWeldingSheet)
+    If candidates Is Nothing Or candidates.Count = 0 Then Exit Function
 
-    Dim keyPrefix As String
-    If isWeldingSheet Then
-        keyPrefix = "W|"
-    Else
-        keyPrefix = "C|"
+    If Not lineSheetMap Is Nothing Then
+        Dim keyPrefix As String
+        If isWeldingSheet Then
+            keyPrefix = "W|"
+        Else
+            keyPrefix = "C|"
+        End If
+
+        Dim candidateItem As Variant
+        For Each candidateItem In candidates
+            Dim mapKey As String
+            mapKey = keyPrefix & CStr(candidateItem)
+            If Len(mapKey) > 2 And lineSheetMap.Exists(mapKey) Then
+                ResolveUnitPriceSheetName = CStr(lineSheetMap(mapKey))
+                Exit Function
+            End If
+        Next candidateItem
     End If
 
-    Dim key As String
-    key = keyPrefix & NormalizeLineLookupText(importedLineName, isWeldingSheet)
-    If Len(key) > 2 And lineSheetMap.Exists(key) Then
-        ResolveUnitPriceSheetName = CStr(lineSheetMap(key))
+    ResolveUnitPriceSheetName = FindImportedUnitPriceSheetName(importedLineName, isWeldingSheet)
+End Function
+
+Private Function CollectLineLookupCandidates(ByVal lineName As String, _
+                                             ByVal isWeldingSheet As Boolean) As Collection
+    Dim result As Collection
+    Set result = New Collection
+
+    Dim normalized As String
+    normalized = NormalizeLineLookupText(lineName, isWeldingSheet)
+    AddUniqueLineLookupCandidate result, normalized
+
+    EnsureProjectLineNameAliasMapsLoaded
+
+    Dim aliased As String
+    aliased = ResolveProjectLineNameAlias(normalized, isWeldingSheet)
+    AddUniqueLineLookupCandidate result, aliased
+
+    If Not isWeldingSheet Then
+        Dim synthesized As Collection
+        Dim synthesizedItem As Variant
+        Set synthesized = SynthesizeConstructionLineNameVariants(lineName)
+        For Each synthesizedItem In synthesized
+            AddUniqueLineLookupCandidate result, NormalizeLineLookupText(CStr(synthesizedItem), False)
+            AddUniqueLineLookupCandidate result, _
+                ResolveProjectLineNameAlias(NormalizeLineLookupText(CStr(synthesizedItem), False), False)
+        Next synthesizedItem
+    End If
+
+    Set CollectLineLookupCandidates = result
+End Function
+
+Private Sub AddUniqueLineLookupCandidate(ByVal candidates As Collection, ByVal candidateText As String)
+    If candidates Is Nothing Then Exit Sub
+    If Len(candidateText) = 0 Then Exit Sub
+
+    Dim item As Variant
+    For Each item In candidates
+        If StrComp(CStr(item), candidateText, vbTextCompare) = 0 Then Exit Sub
+    Next item
+    candidates.Add candidateText
+End Sub
+
+' êœéZê¸ãÊ(FóÒ)Ç©ÇÁÅAGóÒñ¢ãLç⁄Ç≈Ç‡é{çHéwé¶èëÇ…åªÇÍÇ‚Ç∑Ç¢å_ñÒê¸ãÊñºÇÃó™èÃÇçáê¨Ç∑ÇÈ
+Private Sub RegisterSynthesizedConstructionLineAliases(ByVal unitPriceLineName As String)
+    If mProjectLineNameAliasMapConstruction Is Nothing Then Exit Sub
+    If Len(Trim$(unitPriceLineName)) = 0 Then Exit Sub
+
+    Dim normalizedUnit As String
+    normalizedUnit = NormalizeLineLookupText(unitPriceLineName, False)
+    If Len(normalizedUnit) = 0 Then Exit Sub
+
+    Dim variants As Collection
+    Dim variantItem As Variant
+    Set variants = SynthesizeConstructionLineNameVariants(unitPriceLineName)
+    For Each variantItem In variants
+        Dim normalizedVariant As String
+        normalizedVariant = NormalizeLineLookupText(CStr(variantItem), False)
+        If Len(normalizedVariant) > 0 Then
+            If StrComp(normalizedVariant, normalizedUnit, vbTextCompare) <> 0 Then
+                AddProjectLineNameAlias mProjectLineNameAliasMapConstruction, normalizedVariant, normalizedUnit
+            End If
+        End If
+    Next variantItem
+End Sub
+
+Private Function SynthesizeConstructionLineNameVariants(ByVal unitPriceLineName As String) As Collection
+    Dim result As Collection
+    Set result = New Collection
+
+    Dim sourceText As String
+    sourceText = CommonRemoveAllSpaces(CommonNormalizeText(unitPriceLineName))
+    If Len(sourceText) = 0 Then
+        Set SynthesizeConstructionLineNameVariants = result
         Exit Function
     End If
 
-    Dim aliasLineName As String
-    aliasLineName = ResolveProjectLineNameAlias(Mid$(key, 3), isWeldingSheet)
-    If Len(aliasLineName) > 0 Then
-        Dim aliasKey As String
-        aliasKey = keyPrefix & aliasLineName
-        If StrComp(aliasKey, key, vbTextCompare) <> 0 Then
-            If Len(aliasKey) > 2 And lineSheetMap.Exists(aliasKey) Then
-                ResolveUnitPriceSheetName = CStr(lineSheetMap(aliasKey))
-                Exit Function
+    Dim honSenText As String
+    honSenText = ChrW$(&H672C) & ChrW$(&H7DDA)
+    Dim tokaiHonSenText As String
+    tokaiHonSenText = ChrW$(&H6771) & ChrW$(&H6D77) & ChrW$(&H9053) & honSenText
+    Dim tokaiText As String
+    tokaiText = ChrW$(&H6771) & ChrW$(&H6D77) & ChrW$(&H9053)
+
+    Dim honSenVariant As String
+    honSenVariant = Replace$(sourceText, honSenText, ChrW$(&H672C), , , vbTextCompare)
+    If StrComp(honSenVariant, sourceText, vbTextCompare) <> 0 Then result.Add honSenVariant
+
+    Dim tokaiVariant As String
+    tokaiVariant = Replace$(sourceText, tokaiHonSenText, tokaiText, , , vbTextCompare)
+    If StrComp(tokaiVariant, sourceText, vbTextCompare) <> 0 Then result.Add tokaiVariant
+
+    Dim segmentSeparator As String
+    segmentSeparator = ChrW$(&H30FB)
+    Dim segments() As String
+    segments = Split(sourceText, segmentSeparator)
+    If UBound(segments) >= LBound(segments) Then
+        Dim segmentIndex As Long
+        Dim changed As Boolean
+        changed = False
+        For segmentIndex = LBound(segments) To UBound(segments)
+            Dim segmentText As String
+            segmentText = segments(segmentIndex)
+            If segmentIndex < UBound(segments) Then
+                If Len(segmentText) > 1 Then
+                    If Right$(segmentText, 1) = ChrW$(&H7DDA) Then
+                        If InStr(1, segmentText, ChrW$(&H9023) & ChrW$(&H7D61) & ChrW$(&H7DDA), vbTextCompare) = 0 And _
+                           InStr(1, segmentText, ChrW$(&H8CA) & ChrW$(&H7269) & ChrW$(&H7DDA), vbTextCompare) = 0 Then
+                            segments(segmentIndex) = Left$(segmentText, Len(segmentText) - 1)
+                            changed = True
+                        End If
+                    End If
+                End If
+            ElseIf segmentIndex = UBound(segments) And UBound(segments) = LBound(segments) Then
+                If Right$(segmentText, Len(honSenText)) = honSenText Then
+                    segments(segmentIndex) = Left$(segmentText, Len(segmentText) - Len(ChrW$(&H7DDA)))
+                    changed = True
+                End If
             End If
-        End If
+        Next segmentIndex
+        If changed Then result.Add Join$(segments, segmentSeparator)
     End If
 
-DirectLookup:
-    ResolveUnitPriceSheetName = FindImportedUnitPriceSheetName(importedLineName, isWeldingSheet)
+    Set SynthesizeConstructionLineNameVariants = result
 End Function
 
 Private Function NormalizeLineLookupText(ByVal sourceText As String, _
                                          Optional ByVal isWeldingSheet As Boolean = False) As String
     Dim result As String
     result = CommonNormalizeText(sourceText)
+    result = NormalizeLineLookupBracketChars(result)
+    result = NormalizeLineLookupDigitChars(result)
     result = Replace$(result, ChrW$(&HFF65), ChrW$(&H30FB))
     If isWeldingSheet Then
         result = RemoveWeldingInstructionMarker(result)
@@ -4008,6 +4130,45 @@ Private Function NormalizeLineLookupText(ByVal sourceText As String, _
         result = RemoveTrackDesignationMarker(result)
     End If
     NormalizeLineLookupText = CommonRemoveAllSpaces(result)
+End Function
+
+Private Function NormalizeLineLookupBracketChars(ByVal sourceText As String) As String
+    Dim result As String
+    Dim i As Long
+    Dim ch As String
+    Dim codePoint As Long
+
+    result = ""
+    For i = 1 To Len(sourceText)
+        ch = Mid$(sourceText, i, 1)
+        codePoint = AscW(ch)
+        Select Case codePoint
+            Case &HFF08: ch = ChrW$(&H28)
+            Case &HFF09: ch = ChrW$(&H29)
+            Case &HFF3B: ch = ChrW$(&H5B)
+            Case &HFF3D: ch = ChrW$(&H5D)
+        End Select
+        result = result & ch
+    Next i
+    NormalizeLineLookupBracketChars = result
+End Function
+
+Private Function NormalizeLineLookupDigitChars(ByVal sourceText As String) As String
+    Dim result As String
+    Dim i As Long
+    Dim ch As String
+    Dim codePoint As Long
+
+    result = ""
+    For i = 1 To Len(sourceText)
+        ch = Mid$(sourceText, i, 1)
+        codePoint = AscW(ch)
+        If codePoint >= &HFF10 And codePoint <= &HFF19 Then
+            ch = ChrW$(codePoint - &HFF10 + AscW("0"))
+        End If
+        result = result & ch
+    Next i
+    NormalizeLineLookupDigitChars = result
 End Function
 
 Private Function RemoveWeldingInstructionMarker(ByVal sourceText As String) As String
@@ -4317,23 +4478,22 @@ End Sub
 
 Private Function FindImportedUnitPriceSheetName(ByVal expectedSheetName As String, _
                                                 Optional ByVal isWeldingSheet As Boolean = False) As String
-    Dim normalizedExpected As String
-    normalizedExpected = NormalizeLineLookupText(expectedSheetName, isWeldingSheet)
-    If normalizedExpected = "" Then Exit Function
-
-    Dim resolvedName As String
-    resolvedName = ResolveProjectLineNameAlias(normalizedExpected, isWeldingSheet)
+    Dim candidates As Collection
+    Set candidates = CollectLineLookupCandidates(expectedSheetName, isWeldingSheet)
+    If candidates Is Nothing Or candidates.Count = 0 Then Exit Function
 
     Dim ws As Worksheet
+    Dim candidateItem As Variant
     For Each ws In ThisWorkbook.worksheets
         If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(ws) Then
             Dim normalizedSheetName As String
             normalizedSheetName = NormalizeLineLookupText(ws.Name, isWeldingSheet)
-            If StrComp(normalizedSheetName, normalizedExpected, vbTextCompare) = 0 Or _
-               StrComp(normalizedSheetName, resolvedName, vbTextCompare) = 0 Then
-                FindImportedUnitPriceSheetName = ws.Name
-                Exit Function
-            End If
+            For Each candidateItem In candidates
+                If StrComp(normalizedSheetName, CStr(candidateItem), vbTextCompare) = 0 Then
+                    FindImportedUnitPriceSheetName = ws.Name
+                    Exit Function
+                End If
+            Next candidateItem
         End If
     Next ws
 End Function
