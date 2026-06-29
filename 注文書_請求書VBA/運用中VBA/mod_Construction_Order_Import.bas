@@ -1242,8 +1242,6 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet, _
     If Not IsConstructionVendorOutputSheet(ws) Then Exit Sub
     If FindHeaderColumn(ws, "êÆóùî‘çÜ") = 0 Then Exit Sub
 
-    ClearProjectLineNameAliasCache
-
     Dim scrn As Boolean
     Dim calcMode As XlCalculation
     Dim evt As Boolean
@@ -3521,6 +3519,8 @@ Private Function BuildConstructionLineSheetMap() As Object
         Exit Function
     End If
 
+    EnsureProjectLineNameAliasMapsLoaded
+
     Dim pairItem As Variant
     For Each pairItem In lineNamePairs
         Dim unitPriceLineName As String
@@ -3530,9 +3530,9 @@ Private Function BuildConstructionLineSheetMap() As Object
         unitPriceLineName = CStr(pairItem(0))
         sourceLineName = CStr(pairItem(1))
 
-        actualSheetName = FindImportedUnitPriceSheetName(unitPriceLineName, False)
+        actualSheetName = ResolveUnitPriceSheetName(result, unitPriceLineName, False)
         If actualSheetName = "" Then
-            actualSheetName = FindImportedUnitPriceSheetName(sourceLineName, False)
+            actualSheetName = ResolveUnitPriceSheetName(result, sourceLineName, False)
         End If
         If actualSheetName <> "" Then
             AddLineSheetAliases result, sourceLineName, actualSheetName
