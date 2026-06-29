@@ -106,8 +106,8 @@ End Sub
 ' 照合は線区名対応(エイリアス)と同じ正規化 NormalizeLineLookupText(_, False) を用いる。
 ' 該当無しは -1 を返す。
 ' ============================================================
-Public Function GetProjectMasterLineOrderRank(ByVal lineName As String) As Long
-    GetProjectMasterLineOrderRank = -1
+Public Function GetProjectMasterLineOrderRankCore(ByVal lineName As String) As Long
+    GetProjectMasterLineOrderRankCore = -1
     EnsureProjectMasterLineOrderMapLoaded
     If mProjectMasterLineOrderRankMap Is Nothing Then Exit Function
 
@@ -116,12 +116,12 @@ Public Function GetProjectMasterLineOrderRank(ByVal lineName As String) As Long
     If Len(key) = 0 Then Exit Function
 
     If mProjectMasterLineOrderRankMap.Exists(key) Then
-        GetProjectMasterLineOrderRank = CLng(mProjectMasterLineOrderRankMap(key))
+        GetProjectMasterLineOrderRankCore = CLng(mProjectMasterLineOrderRankMap(key))
     End If
 End Function
 
 ' 順位辞書のキャッシュを明示的に破棄する(取込前に呼んで最新化したい場合)。
-Public Sub ClearProjectMasterLineOrderCache()
+Public Sub ClearProjectMasterLineOrderCacheCore()
     Set mProjectMasterLineOrderRankMap = Nothing
 End Sub
 
@@ -1133,9 +1133,9 @@ Public Sub WritePriceComparison(ByVal ws As Worksheet, ByVal rowIndex As Long, _
                                  Optional ByVal includeGuidance As Boolean = True, _
                                  Optional ByVal guidanceDocumentName As String = "")
     WritePriceComparisonAtColumns _
-        ws, rowIndex, unitPriceSheetName, mod_Construction_OutputLayout.OutputSheetCol(ws, COL_AUTO_PRICE), _
-        mod_Construction_OutputLayout.OutputSheetCol(ws, COL_JR_PRICE), mod_Construction_OutputLayout.OutputSheetCol(ws, COL_PRICE_COMPARE), _
-        mod_Construction_OutputLayout.OutputSheetCol(ws, COL_PRICE_GUIDANCE), includeGuidance
+        ws, rowIndex, unitPriceSheetName, mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_AUTO_PRICE), _
+        mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_JR_PRICE), mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_PRICE_COMPARE), _
+        mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_PRICE_GUIDANCE), includeGuidance
 End Sub
 
 Public Sub WritePriceComparisonAtColumns( _
@@ -1179,7 +1179,7 @@ Public Sub WritePriceComparisonAtColumns( _
                         Dim guidanceSheetName As String
                         guidanceSheetName = unitPriceSheetName
                         If guidanceSheetName = "" Then
-                            guidanceSheetName = CommonNzText(ws.Cells(rowIndex, mod_Construction_OutputLayout.OutputSheetCol(ws, COL_LINE)).value)
+                            guidanceSheetName = CommonNzText(ws.Cells(rowIndex, mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_LINE)).value)
                         End If
                         .value = "独自工種の内容を" & guidanceSheetName & "シートに入力してください。"
                         .Font.Color = RGB(255, 0, 0)
@@ -1251,12 +1251,12 @@ Public Sub SortWorksSheet(ByVal ws As Worksheet)
     Dim colKind As Long
     Dim colDayNight As Long
     Dim colSeiri As Long
-    colSide = mod_Construction_OutputLayout.OutputSheetCol(ws, COL_FLAG_SIDE)
-    colWeld = mod_Construction_OutputLayout.OutputSheetCol(ws, COL_FLAG_WELD)
-    colLine = mod_Construction_OutputLayout.OutputSheetCol(ws, COL_LINE)
-    colKind = mod_Construction_OutputLayout.OutputSheetCol(ws, COL_KIND)
-    colDayNight = mod_Construction_OutputLayout.OutputSheetCol(ws, COL_DAYNIGHT)
-    colSeiri = mod_Construction_OutputLayout.OutputSheetSeiriColumn(ws)
+    colSide = mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_FLAG_SIDE)
+    colWeld = mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_FLAG_WELD)
+    colLine = mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_LINE)
+    colKind = mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_KIND)
+    colDayNight = mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_DAYNIGHT)
+    colSeiri = mod_Construction_OutputLayout.OutputSheetSeiriColumnCore(ws)
 
     Dim r As Long, lineName As String, kindName As String
     For r = 2 To lastRow
@@ -1435,7 +1435,7 @@ Public Sub RedrawOutputSheetDataBorders(ByVal ws As Worksheet)
     End With
 
     Dim subconFirstCol As Long
-    subconFirstCol = mod_Construction_OutputLayout.OutputSheetSubconPriceFirstCol(ws)
+    subconFirstCol = mod_Construction_OutputLayout.OutputSheetSubconPriceFirstColCore(ws)
     If kindColumn > subconFirstCol Then
         With ws.Range(ws.Cells(1, subconFirstCol), ws.Cells(lastRow, kindColumn - 1)).Borders
             .LineStyle = xlContinuous
@@ -1562,7 +1562,7 @@ Public Sub ApplyOutputSheetHeaderAutoFilter( _
 
     If ws Is Nothing Then Exit Sub
 
-    If dataKeyColumn = 0 Then dataKeyColumn = mod_Construction_OutputLayout.OutputSheetSeiriColumn(ws)
+    If dataKeyColumn = 0 Then dataKeyColumn = mod_Construction_OutputLayout.OutputSheetSeiriColumnCore(ws)
 
     Dim lastRow As Long
     lastRow = GetLastDataRow(ws, dataKeyColumn)
@@ -1637,7 +1637,7 @@ End Sub
 
 Public Function GetLastDataRow(ByVal ws As Worksheet, _
                                 Optional ByVal dataKeyColumn As Long = 0) As Long
-    If dataKeyColumn = 0 Then dataKeyColumn = mod_Construction_OutputLayout.OutputSheetSeiriColumn(ws)
+    If dataKeyColumn = 0 Then dataKeyColumn = mod_Construction_OutputLayout.OutputSheetSeiriColumnCore(ws)
 
     Dim scanStartRow As Long
     scanStartRow = 2

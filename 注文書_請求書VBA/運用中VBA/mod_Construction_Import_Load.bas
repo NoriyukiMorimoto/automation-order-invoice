@@ -3,7 +3,7 @@ Option Explicit
 ' ????: CHANGELOG.md ??
 ' mod_Construction_Import_Load (split from mod_Construction_Order_Import)
 
-Public Sub ImportConstructionDocument()
+Public Sub ImportConstructionDocumentCore()
     Dim scrn As Boolean, evt As Boolean, alerts As Boolean
 
     scrn = Application.screenUpdating
@@ -44,7 +44,7 @@ Public Sub ImportConstructionDocument()
     Next srcPathVar
     mSuppressOverwritePrompt = False
 
-    mod_Construction_BasicTotals.RefreshBasicInfoConstructionTotals
+    mod_Construction_BasicTotals.RefreshBasicInfoConstructionTotalsCore
 
     NormalizeManagedImportSheetOrder
 
@@ -376,33 +376,33 @@ Public Function BuildConstructionOutputSheet(ByVal sheetName As String, _
     SortWorksSheet ws
     If isWelding Then
         WriteAdditionalHeadersAtColumns _
-            ws, mod_Construction_OutputLayout.OutputSheetCol(ws, COL_AUTO_PRICE), mod_Construction_OutputLayout.OutputSheetCol(ws, COL_AUTO_AMOUNT), _
-            mod_Construction_OutputLayout.OutputSheetCol(ws, COL_PRICE_COMPARE), True
+            ws, mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_AUTO_PRICE), mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_AUTO_AMOUNT), _
+            mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_PRICE_COMPARE), True
     Else
         WriteAdditionalHeaders ws
     End If
     FillReferenceUnitPrices ws, guidanceDocumentName
     If isWelding Then
-        FormatSheet ws, mod_Construction_OutputLayout.OutputSheetCol(ws, COL_SEIRI)
+        FormatSheet ws, mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_SEIRI)
         ApplyPriceGuidanceColumnLayoutAtColumns _
-            ws, mod_Construction_OutputLayout.OutputSheetCol(ws, COL_PRICE_COMPARE), mod_Construction_OutputLayout.OutputSheetCol(ws, COL_PRICE_GUIDANCE)
+            ws, mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_PRICE_COMPARE), mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_PRICE_GUIDANCE)
         mod_subcontractorselector.ApplySubcontractorDropdowns ws
     Else
         FormatSheet ws
         ApplyPriceGuidanceColumnLayout ws
         mod_subcontractorselector.ApplySubcontractorDropdowns ws
     End If
-    mod_Construction_OutputFormat.ApplySanpaiRowRestrictions ws
+    mod_Construction_OutputFormat.ApplySanpaiRowRestrictionsCore ws
     RefreshOutputSheetVendorColumnColors ws, mod_Construction_LineMapping.GetLastDataRow(ws)
 
     If Not isWelding Then
         ws.Columns(COL_VENDOR).HorizontalAlignment = xlCenter
     End If
 
-    If docType = DOC_NOTICE Then ws.Columns(mod_Construction_OutputLayout.OutputSheetCol(ws, COL_MGR)).Hidden = True
+    If docType = DOC_NOTICE Then ws.Columns(mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_MGR)).Hidden = True
 
-    ws.Range(ws.Cells(1, mod_Construction_OutputLayout.OutputSheetCol(ws, COL_OUT_PRICE)), _
-             ws.Cells(1, mod_Construction_OutputLayout.OutputSheetCol(ws, COL_OUT_AMOUNT))).EntireColumn.Delete Shift:=xlToLeft
+    ws.Range(ws.Cells(1, mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_OUT_PRICE)), _
+             ws.Cells(1, mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_OUT_AMOUNT))).EntireColumn.Delete Shift:=xlToLeft
 
     WriteJrTotalRow ws
     RedrawOutputSheetDataBorders ws
@@ -413,9 +413,9 @@ Public Function BuildConstructionOutputSheet(ByVal sheetName As String, _
 
     If isWelding Then
         ApplyOutputSheetHeaderAutoFilter ws, _
-            mod_Construction_OutputLayout.OutputSheetCol(ws, COL_SEIRI), mod_Construction_OutputLayout.OutputSheetCol(ws, COL_KIND), _
-            mod_Construction_OutputLayout.OutputSheetCol(ws, COL_AUTO_AMOUNT), mod_Construction_OutputLayout.OutputSheetCol(ws, COL_PRICE_COMPARE), _
-            mod_Construction_OutputLayout.OutputSheetCol(ws, COL_PRICE_GUIDANCE)
+            mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_SEIRI), mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_KIND), _
+            mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_AUTO_AMOUNT), mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_PRICE_COMPARE), _
+            mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_PRICE_GUIDANCE)
     Else
         ApplyOutputSheetHeaderAutoFilter ws
     End If

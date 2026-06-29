@@ -3,7 +3,7 @@ Option Explicit
 ' ????: CHANGELOG.md ??
 ' mod_Construction_SubconPrice (split from mod_Construction_Order_Import)
 
-Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet, _
+Public Sub RefreshSubcontractorPriceColumnsCore(ByVal ws As Worksheet, _
                                             Optional ByVal changedRows As Collection = Nothing)
     If ws Is Nothing Then Exit Sub
     If Not mod_Construction_OutputLayout.IsConstructionVendorOutputSheet(ws) Then Exit Sub
@@ -61,7 +61,7 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet, _
     Err.Clear
 
     refreshStep = "ResolveSubconFirstCol"
-    subconFirstCol = mod_Construction_OutputLayout.OutputSheetSubconPriceFirstCol(ws)
+    subconFirstCol = mod_Construction_OutputLayout.OutputSheetSubconPriceFirstColCore(ws)
     If Err.Number <> 0 Then GoTo RefreshSetupError
     Err.Clear
 
@@ -91,7 +91,7 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet, _
             WriteOutputTotalRows ws, emptyVendors, 0, 0
             RefreshOutputSheetVendorColumnColors ws, lastRow
         End If
-        mod_Construction_BasicTotals.RefreshBasicInfoConstructionTotals
+        mod_Construction_BasicTotals.RefreshBasicInfoConstructionTotalsCore
         GoTo RefreshExit
     End If
 
@@ -108,7 +108,7 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet, _
         If Err.Number <> 0 Then GoTo RefreshSetupError
         If lastRow < 2 Then
             On Error GoTo 0
-            mod_Construction_BasicTotals.RefreshBasicInfoConstructionTotals
+            mod_Construction_BasicTotals.RefreshBasicInfoConstructionTotalsCore
             GoTo RefreshExit
         End If
 
@@ -151,12 +151,12 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet, _
     vendorPriceCaches.CompareMode = vbTextCompare
 
     refreshStep = "PrepareApply"
-    seiriColumn = mod_Construction_OutputLayout.OutputSheetSeiriColumn(ws)
-    dayNightColumn = mod_Construction_OutputLayout.OutputSheetCol(ws, COL_DAYNIGHT)
-    lineColumn = mod_Construction_OutputLayout.OutputSheetCol(ws, COL_LINE)
-    qtyColumn = mod_Construction_OutputLayout.OutputSheetCol(ws, COL_QTY)
-    isWeldingSheet = mod_Construction_OutputLayout.IsWeldingOutputSheet(ws)
-    Set vendorColumns = mod_Construction_OutputLayout.OutputSheetVendorColumns(ws)
+    seiriColumn = mod_Construction_OutputLayout.OutputSheetSeiriColumnCore(ws)
+    dayNightColumn = mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_DAYNIGHT)
+    lineColumn = mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_LINE)
+    qtyColumn = mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_QTY)
+    isWeldingSheet = mod_Construction_OutputLayout.IsWeldingOutputSheetCore(ws)
+    Set vendorColumns = mod_Construction_OutputLayout.OutputSheetVendorColumnsCore(ws)
     partialUpdate = False
     If Not changedRows Is Nothing Then partialUpdate = (changedRows.Count > 0)
     If Err.Number <> 0 Then GoTo RefreshSetupError
@@ -183,7 +183,7 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet, _
     If Err.Number <> 0 Then
         coreErrNo = Err.Number
         coreErrDesc = Err.Description
-        LogCI "RefreshSubcontractorPriceColumns step=" & refreshStep & " Err " & Err.Number & ": " & Err.Description
+        LogCI "RefreshSubcontractorPriceColumnsCore step=" & refreshStep & " Err " & Err.Number & ": " & Err.Description
         Err.Clear
         matchedCount = 0
         lastRow = mod_Construction_LineMapping.GetLastDataRow(ws)
@@ -195,7 +195,7 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet, _
                 coreErrNo = Err.Number
                 coreErrDesc = Err.Description
             End If
-            LogCI "RefreshSubcontractorPriceColumns step=ApplyPricesRetry Err " & Err.Number & ": " & Err.Description
+            LogCI "RefreshSubcontractorPriceColumnsCore step=ApplyPricesRetry Err " & Err.Number & ": " & Err.Description
             Err.Clear
         End If
     ElseIf partialUpdate And layoutMatches And matchedCount = 0 Then
@@ -212,7 +212,7 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet, _
     lastRow = mod_Construction_LineMapping.GetLastDataRow(ws)
     ApplySubcontractorAmountFormulas ws, lastRow, vendorColumnMap, qtyColumn
     If Err.Number <> 0 Then
-        LogCI "RefreshSubcontractorPriceColumns step=" & refreshStep & " Err " & Err.Number & ": " & Err.Description
+        LogCI "RefreshSubcontractorPriceColumnsCore step=" & refreshStep & " Err " & Err.Number & ": " & Err.Description
         Err.Clear
     End If
     On Error GoTo 0
@@ -222,7 +222,7 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet, _
     On Error Resume Next
     RefreshSubcontractorColumnInteriors ws, lastRow, subconFirstCol, insertedColumnCount
     If Err.Number <> 0 Then
-        LogCI "RefreshSubcontractorPriceColumns step=" & refreshStep & " Err " & Err.Number & ": " & Err.Description
+        LogCI "RefreshSubcontractorPriceColumnsCore step=" & refreshStep & " Err " & Err.Number & ": " & Err.Description
         Err.Clear
     End If
     On Error GoTo 0
@@ -233,7 +233,7 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet, _
     lastRow = mod_Construction_LineMapping.GetLastDataRow(ws)
     RefreshOutputSheetVendorColumnColors ws, lastRow
     If Err.Number <> 0 Then
-        LogCI "RefreshSubcontractorPriceColumns step=" & refreshStep & " Err " & Err.Number & ": " & Err.Description
+        LogCI "RefreshSubcontractorPriceColumnsCore step=" & refreshStep & " Err " & Err.Number & ": " & Err.Description
         Err.Clear
     End If
     On Error GoTo 0
@@ -245,7 +245,7 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet, _
         FormatSubcontractorPriceColumns ws, lastRow, insertedColumnCount, subconFirstCol
         RedrawOutputSheetDataBorders ws
         If Err.Number <> 0 Then
-            LogCI "RefreshSubcontractorPriceColumns step=" & refreshStep & " Err " & Err.Number & ": " & Err.Description
+            LogCI "RefreshSubcontractorPriceColumnsCore step=" & refreshStep & " Err " & Err.Number & ": " & Err.Description
             Err.Clear
         End If
         On Error GoTo 0
@@ -256,7 +256,7 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet, _
     On Error Resume Next
     WriteOutputTotalRows ws, vendorNames, subconFirstCol, insertedColumnCount
     If Err.Number <> 0 Then
-        LogCI "RefreshSubcontractorPriceColumns step=" & refreshStep & " Err " & Err.Number & ": " & Err.Description
+        LogCI "RefreshSubcontractorPriceColumnsCore step=" & refreshStep & " Err " & Err.Number & ": " & Err.Description
         Err.Clear
     End If
     On Error GoTo 0
@@ -264,7 +264,7 @@ Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet, _
     '  (6) 基本情報合計(内部に独自ハンドラあり)以降は再度 RefreshError で保護
     On Error GoTo RefreshError
     refreshStep = "BasicInfoTotals"
-    mod_Construction_BasicTotals.RefreshBasicInfoConstructionTotals
+    mod_Construction_BasicTotals.RefreshBasicInfoConstructionTotalsCore
 
     refreshStep = "Log"
     LogCI "施工会社別単価列: 会社数=" & vendorNames.Count & _
@@ -277,7 +277,7 @@ RefreshSetupError:
     refreshErrDesc = Err.Description
     Err.Clear
     On Error GoTo 0
-    LogCI "RefreshSubcontractorPriceColumns Setup Err " & refreshErrNo & ": " & _
+    LogCI "RefreshSubcontractorPriceColumnsCore Setup Err " & refreshErrNo & ": " & _
           refreshErrDesc & " (step=" & refreshStep & ")"
     GoTo RefreshExit
 
@@ -298,12 +298,12 @@ RefreshExit:
         '  Setup段階や終盤など、致命的なエラー時のみダイアログ表示
         MsgBox "施工会社別の単価・金額列を更新できませんでした。" & vbCrLf & _
                refreshErrDesc, vbExclamation
-        LogCI "RefreshSubcontractorPriceColumns Err " & refreshErrNo & ": " & refreshErrDesc & " (step=" & refreshStep & ")"
+        LogCI "RefreshSubcontractorPriceColumnsCore Err " & refreshErrNo & ": " & refreshErrDesc & " (step=" & refreshStep & ")"
     ElseIf coreErrNo <> 0 And matchedCount = 0 Then
         '  単価適用が一件も成功しなかった場合のみ通知
         MsgBox "施工会社別の単価・金額列を更新できませんでした。" & vbCrLf & _
                coreErrDesc, vbExclamation
-        LogCI "RefreshSubcontractorPriceColumns core Err " & coreErrNo & ": " & coreErrDesc & " (step=ApplyPrices)"
+        LogCI "RefreshSubcontractorPriceColumnsCore core Err " & coreErrNo & ": " & coreErrDesc & " (step=ApplyPrices)"
     ElseIf matchedCount = 0 Then
         If Not vendorNames Is Nothing Then
             LogCI "施工会社別単価: 一致0件 (会社数=" & vendorNames.Count & ")"
@@ -516,7 +516,7 @@ Public Sub ApplySubcontractorPricesBatch( _
     Dim lineData As Variant
     Dim typeData As Variant
     Dim typeColumn As Long
-    typeColumn = mod_Construction_OutputLayout.OutputSheetCol(ws, COL_TYPE)
+    typeColumn = mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_TYPE)
     seiriData = ws.Range(ws.Cells(2, seiriColumn), ws.Cells(lastRow, seiriColumn)).Value2
     dayNightData = ws.Range(ws.Cells(2, dayNightColumn), ws.Cells(lastRow, dayNightColumn)).Value2
     lineData = ws.Range(ws.Cells(2, lineColumn), ws.Cells(lastRow, lineColumn)).Value2
@@ -627,7 +627,7 @@ Public Sub RefreshOutputSheetVendorColumnColors(ByVal ws As Worksheet, ByVal las
     If Not mod_Construction_OutputLayout.IsConstructionVendorOutputSheet(ws) Then Exit Sub
 
     Dim vendorColumns As Collection
-    Set vendorColumns = mod_Construction_OutputLayout.OutputSheetVendorColumns(ws)
+    Set vendorColumns = mod_Construction_OutputLayout.OutputSheetVendorColumnsCore(ws)
 
     Dim r As Long
     Dim vendorCol As Variant
@@ -644,7 +644,7 @@ End Sub
 
 Public Function ResolveVendorColumnWorkTypeKeyword(ByVal ws As Worksheet, _
                                                     ByVal vendorColumn As Long) As String
-    If Not mod_Construction_OutputLayout.IsWeldingOutputSheet(ws) Then Exit Function
+    If Not mod_Construction_OutputLayout.IsWeldingOutputSheetCore(ws) Then Exit Function
 
     If vendorColumn = WELD_COL_WELDING_VENDOR Then
         ResolveVendorColumnWorkTypeKeyword = WELDING_WORK_TYPE_KEYWORD

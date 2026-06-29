@@ -3,7 +3,7 @@ Option Explicit
 ' ????: CHANGELOG.md ??
 ' mod_Construction_OutputFormat (split from mod_Construction_Order_Import)
 
-Public Sub ApplySanpaiRowRestrictions(ByVal ws As Worksheet)
+Public Sub ApplySanpaiRowRestrictionsCore(ByVal ws As Worksheet)
     If ws Is Nothing Then Exit Sub
 
     Dim lastRow As Long
@@ -17,7 +17,7 @@ Public Sub ApplySanpaiRowRestrictions(ByVal ws As Worksheet)
     Dim r As Long
     Dim vendorCol As Variant
     Dim vendorColumns As Collection
-    Set vendorColumns = mod_Construction_OutputLayout.OutputSheetVendorColumns(ws)
+    Set vendorColumns = mod_Construction_OutputLayout.OutputSheetVendorColumnsCore(ws)
     For r = 2 To lastRow
         If mod_Construction_BasicTotals.IsSanpaiRow(ws, r) Then
             For Each vendorCol In vendorColumns
@@ -119,9 +119,9 @@ Public Sub ClearStaleOutputTotalFormatting(ByVal ws As Worksheet, _
         If usedLastRow > scanLastRow Then scanLastRow = usedLastRow
     End If
 
-    If seiriColumn = 0 Then seiriColumn = mod_Construction_OutputLayout.OutputSheetSeiriColumn(ws)
-    If jrLabelColumn = 0 Then jrLabelColumn = mod_Construction_OutputLayout.OutputSheetCol(ws, COL_JR_PRICE)
-    If jrSumColumn = 0 Then jrSumColumn = mod_Construction_OutputLayout.OutputSheetCol(ws, COL_JR_AMOUNT)
+    If seiriColumn = 0 Then seiriColumn = mod_Construction_OutputLayout.OutputSheetSeiriColumnCore(ws)
+    If jrLabelColumn = 0 Then jrLabelColumn = mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_JR_PRICE)
+    If jrSumColumn = 0 Then jrSumColumn = mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_JR_AMOUNT)
 
     Dim rowIndex As Long
     For rowIndex = 2 To scanLastRow
@@ -163,10 +163,10 @@ Public Sub WriteOutputTotalRows( _
     Optional ByVal jrLabelColumn As Long = 0, _
     Optional ByVal jrSumColumn As Long = 0)
 
-    If dataKeyColumn = 0 Then dataKeyColumn = mod_Construction_OutputLayout.OutputSheetSeiriColumn(ws)
-    If jrLabelColumn = 0 Then jrLabelColumn = mod_Construction_OutputLayout.OutputSheetCol(ws, COL_JR_PRICE)
-    If jrSumColumn = 0 Then jrSumColumn = mod_Construction_OutputLayout.OutputSheetCol(ws, COL_JR_AMOUNT)
-    If subconFirstCol = 0 Then subconFirstCol = mod_Construction_OutputLayout.OutputSheetSubconPriceFirstCol(ws)
+    If dataKeyColumn = 0 Then dataKeyColumn = mod_Construction_OutputLayout.OutputSheetSeiriColumnCore(ws)
+    If jrLabelColumn = 0 Then jrLabelColumn = mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_JR_PRICE)
+    If jrSumColumn = 0 Then jrSumColumn = mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_JR_AMOUNT)
+    If subconFirstCol = 0 Then subconFirstCol = mod_Construction_OutputLayout.OutputSheetSubconPriceFirstColCore(ws)
     If subconColumnCount < 0 Then
         If vendorNames Is Nothing Then
             subconColumnCount = 0
@@ -228,19 +228,19 @@ Public Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
     Dim autoPriceColumn As Long
     Dim autoAmountColumn As Long
     Dim compareColumn As Long
-    seiriColumn = mod_Construction_OutputLayout.OutputSheetSeiriColumn(ws)
-    dayNightColumn = mod_Construction_OutputLayout.OutputSheetCol(ws, COL_DAYNIGHT)
-    qtyColumn = mod_Construction_OutputLayout.OutputSheetCol(ws, COL_QTY)
-    autoPriceColumn = mod_Construction_OutputLayout.OutputSheetCol(ws, COL_AUTO_PRICE)
-    autoAmountColumn = mod_Construction_OutputLayout.OutputSheetCol(ws, COL_AUTO_AMOUNT)
-    compareColumn = mod_Construction_OutputLayout.OutputSheetCol(ws, COL_PRICE_COMPARE)
+    seiriColumn = mod_Construction_OutputLayout.OutputSheetSeiriColumnCore(ws)
+    dayNightColumn = mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_DAYNIGHT)
+    qtyColumn = mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_QTY)
+    autoPriceColumn = mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_AUTO_PRICE)
+    autoAmountColumn = mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_AUTO_AMOUNT)
+    compareColumn = mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_PRICE_COMPARE)
 
     Dim typeColumn As Long
     Dim unitColumn As Long
     Dim lineColumn As Long
-    typeColumn = mod_Construction_OutputLayout.OutputSheetCol(ws, COL_TYPE)
-    unitColumn = mod_Construction_OutputLayout.OutputSheetCol(ws, COL_UNIT)
-    lineColumn = mod_Construction_OutputLayout.OutputSheetCol(ws, COL_LINE)
+    typeColumn = mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_TYPE)
+    unitColumn = mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_UNIT)
+    lineColumn = mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_LINE)
 
     ' 整理番号が対象線区(単価)シートに未登録の行を線区シート別に収集する
     Dim pendingByLineSheet As Object
@@ -249,7 +249,7 @@ Public Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
 
     Dim isWeldingSheet As Boolean
     Dim weldingPriceSheetName As String
-    isWeldingSheet = mod_Construction_OutputLayout.IsWeldingOutputSheet(ws)
+    isWeldingSheet = mod_Construction_OutputLayout.IsWeldingOutputSheetCore(ws)
     If isWeldingSheet Then
         weldingPriceSheetName = mod_Construction_OutputLayout.ResolveWeldingPriceSheetName()
         If weldingPriceSheetName = "" Then
@@ -350,7 +350,7 @@ Public Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
           " / 整理番号未一致=" & missingRecordCount
 End Sub
 
-Public Sub RefreshConstructionReferenceUnitPricesOnExistingSheets()
+Public Sub RefreshConstructionReferenceUnitPricesOnExistingSheetsCore()
     Dim prevScreen As Boolean
     Dim prevCalc As XlCalculation
     prevScreen = Application.ScreenUpdating
@@ -368,9 +368,9 @@ Public Sub RefreshConstructionReferenceUnitPricesOnExistingSheets()
             Dim guidanceDocumentName As String
             guidanceDocumentName = mod_Construction_LineMapping.ResolveGuidanceDocumentNameFromOutputSheet(ws)
             FillReferenceUnitPrices ws, guidanceDocumentName
-            If mod_Construction_OutputLayout.IsWeldingOutputSheet(ws) Then
+            If mod_Construction_OutputLayout.IsWeldingOutputSheetCore(ws) Then
                 ApplyPriceGuidanceColumnLayoutAtColumns _
-                    ws, mod_Construction_OutputLayout.OutputSheetCol(ws, COL_PRICE_COMPARE), mod_Construction_OutputLayout.OutputSheetCol(ws, COL_PRICE_GUIDANCE)
+                    ws, mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_PRICE_COMPARE), mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_PRICE_GUIDANCE)
             Else
                 ApplyPriceGuidanceColumnLayout ws
             End If
@@ -385,7 +385,7 @@ Cleanup:
     Application.ScreenUpdating = prevScreen
 End Sub
 
-Public Sub RefreshConstructionReferencePricesForUnitPriceChange( _
+Public Sub RefreshConstructionReferencePricesForUnitPriceChangeCore( _
     ByVal wsUnitPrice As Worksheet, ByVal changedRange As Range)
 
     If wsUnitPrice Is Nothing Or changedRange Is Nothing Then Exit Sub
@@ -443,7 +443,7 @@ Public Sub RefreshConstructionReferencePricesOnSheet( _
     ByVal lineSheetMap As Object)
 
     ' 溶接シートの参照単価はレール溶接単価シート由来のため、工事単価シート変更では再計算しない。
-    If mod_Construction_OutputLayout.IsWeldingOutputSheet(ws) Then Exit Sub
+    If mod_Construction_OutputLayout.IsWeldingOutputSheetCore(ws) Then Exit Sub
 
     Dim seiriColumn As Long
     Dim dayNightColumn As Long
@@ -471,7 +471,7 @@ Public Sub RefreshConstructionReferencePricesOnSheet( _
     If lastRow < 2 Then Exit Sub
 
     Dim isWeldingSheet As Boolean
-    isWeldingSheet = mod_Construction_OutputLayout.IsWeldingOutputSheet(ws)
+    isWeldingSheet = mod_Construction_OutputLayout.IsWeldingOutputSheetCore(ws)
 
     Dim normalizedSourceSheet As String
     normalizedSourceSheet = mod_Construction_LineMapping.NormalizeLineLookupText(unitPriceSheetName, isWeldingSheet)

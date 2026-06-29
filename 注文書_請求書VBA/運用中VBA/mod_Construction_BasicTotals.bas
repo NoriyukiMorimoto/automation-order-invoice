@@ -3,7 +3,7 @@ Option Explicit
 ' ????: CHANGELOG.md ??
 ' mod_Construction_BasicTotals (split from mod_Construction_Order_Import)
 
-Public Sub RefreshBasicInfoConstructionTotals(Optional ByVal changedVendorIndex As Long = 0)
+Public Sub RefreshBasicInfoConstructionTotalsCore(Optional ByVal changedVendorIndex As Long = 0)
     On Error GoTo ErrorHandler
 
     Dim wsInfo As Worksheet
@@ -87,7 +87,7 @@ Public Sub RefreshBasicInfoConstructionTotals(Optional ByVal changedVendorIndex 
     If fullRefresh Then
         WriteBasicInfoAmount wsInfo, BASIC_INFO_WORKS_TOTAL_CELL, worksTotal
         WriteBasicInfoAmount wsInfo, BASIC_INFO_PURCHASE_TOTAL_CELL, purchaseTotal
-        mod_Construction_BasicTotals.UpdateBasicInfoTaxTotals wsInfo
+        mod_Construction_BasicTotals.UpdateBasicInfoTaxTotalsCore wsInfo
     End If
 
     Dim totalCellAddress As String
@@ -122,7 +122,7 @@ ErrorHandler:
     Err.Clear
 End Sub
 
-Public Sub ClearVendorAliasMapCache()
+Public Sub ClearVendorAliasMapCacheCore()
     Set mVendorAliasMapCache = Nothing
 End Sub
 
@@ -165,13 +165,13 @@ Public Function BuildSheetVendorAmountColumnMap(ByVal ws As Worksheet, _
 
     Dim kindColumn As Long
     kindColumn = FindHeaderColumn(ws, "çHéÌï™óﬁ")
-    If kindColumn <= mod_Construction_OutputLayout.OutputSheetSubconPriceFirstCol(ws) Then
+    If kindColumn <= mod_Construction_OutputLayout.OutputSheetSubconPriceFirstColCore(ws) Then
         Set BuildSheetVendorAmountColumnMap = result
         Exit Function
     End If
 
     Dim subconFirstCol As Long
-    subconFirstCol = mod_Construction_OutputLayout.OutputSheetSubconPriceFirstCol(ws)
+    subconFirstCol = mod_Construction_OutputLayout.OutputSheetSubconPriceFirstColCore(ws)
 
     Dim c As Long
     For c = subconFirstCol To kindColumn - 1
@@ -233,7 +233,7 @@ Public Function IsConstructionOutputSheet(ByVal ws As Worksheet) As Boolean
     If IsPurchaseOutputSheet(ws) Then Exit Function
 
     IsConstructionOutputSheet = _
-        ((FindHeaderColumn(ws, "é{çHã∆é“") > 0) Or mod_Construction_OutputLayout.IsWeldingOutputSheet(ws)) And _
+        ((FindHeaderColumn(ws, "é{çHã∆é“") > 0) Or mod_Construction_OutputLayout.IsWeldingOutputSheetCore(ws)) And _
         (FindHeaderColumn(ws, "êÆóùî‘çÜ") > 0) And _
         (FindHeaderColumn(ws, "JRã‡äz") > 0) And _
         (FindHeaderColumn(ws, "çHéÌï™óﬁ") > 0)
@@ -317,7 +317,7 @@ End Sub
 '  C33 = C31 + C32
 '  C34 = C33 Å~ ê≈ó¶(B34ÇÃï\ãLÇ©ÇÁéÊìæÅBéÊìæÇ≈Ç´Ç»Ç¢èÍçáÇÕ10%) Å¶è¨êîì_à»â∫êÿÇËéÃÇƒ
 '  C35 = C33 + C34
-Public Sub UpdateBasicInfoTaxTotals(Optional ByVal wsInfo As Worksheet)
+Public Sub UpdateBasicInfoTaxTotalsCore(Optional ByVal wsInfo As Worksheet)
     On Error GoTo ErrorHandler
 
     If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet(ThisWorkbook)
@@ -440,7 +440,7 @@ Public Function CollectSelectedSubcontractors(ByVal ws As Worksheet, _
     Dim sheetOrderKeys As New Collection
 
     Dim vendorColumns As Collection
-    Set vendorColumns = mod_Construction_OutputLayout.OutputSheetVendorColumns(ws)
+    Set vendorColumns = mod_Construction_OutputLayout.OutputSheetVendorColumnsCore(ws)
 
     Dim r As Long
     Dim vendorCol As Variant
@@ -472,7 +472,7 @@ NextVendorCol:
     usedCanonical.CompareMode = vbTextCompare
 
     If Not wsInfo Is Nothing Then
-        If mod_Construction_OutputLayout.IsWeldingOutputSheet(ws) Then
+        If mod_Construction_OutputLayout.IsWeldingOutputSheetCore(ws) Then
             AppendOrderedBasicInfoVendorsByWorkType wsInfo, aliasMap, sheetByCanonical, usedCanonical, result, WELDING_WORK_TYPE_KEYWORD
             AppendOrderedBasicInfoVendorsByWorkType wsInfo, aliasMap, sheetByCanonical, usedCanonical, result, TRACK_WORK_TYPE_KEYWORD
         Else
@@ -774,9 +774,9 @@ Public Function ResolveVendorCanonicalKey(ByVal vendorName As String, _
     ResolveVendorCanonicalKey = normalizedKey
 End Function
 
-Public Function ResolveBasicInfoVendorInfoIndex(ByVal vendorDisplayName As String, _
+Public Function ResolveBasicInfoVendorInfoIndexCore(ByVal vendorDisplayName As String, _
                                                 Optional ByVal workTypeKeyword As String = "") As Long
-    ResolveBasicInfoVendorInfoIndex = 0
+    ResolveBasicInfoVendorInfoIndexCore = 0
 
     Dim normalizedDisplay As String
     normalizedDisplay = NormalizeVendorPriceName(vendorDisplayName)
@@ -814,12 +814,12 @@ Public Function ResolveBasicInfoVendorInfoIndex(ByVal vendorDisplayName As Strin
         Dim basicInfoKey As String
         basicInfoKey = ResolveVendorCanonicalKey(basicInfoName, aliasMap)
         If canonicalKey <> "" And basicInfoKey = canonicalKey Then
-            ResolveBasicInfoVendorInfoIndex = vendorIndex
+            ResolveBasicInfoVendorInfoIndexCore = vendorIndex
             Exit Function
         End If
 
         If NormalizeVendorPriceName(basicInfoName) = normalizedDisplay Then
-            ResolveBasicInfoVendorInfoIndex = vendorIndex
+            ResolveBasicInfoVendorInfoIndexCore = vendorIndex
             Exit Function
         End If
 
@@ -830,7 +830,7 @@ Public Function ResolveBasicInfoVendorInfoIndex(ByVal vendorDisplayName As Strin
                 Dim mappedDisplayName As String
                 mappedDisplayName = Trim$(CommonNzText(vendorNameMap(nameKey)))
                 If NormalizeVendorPriceName(mappedDisplayName) = normalizedDisplay Then
-                    ResolveBasicInfoVendorInfoIndex = vendorIndex
+                    ResolveBasicInfoVendorInfoIndexCore = vendorIndex
                     Exit Function
                 End If
             End If
@@ -964,7 +964,7 @@ End Function
 
 Public Sub ApplyWeldingOutputSheetColumnAlignment(ByVal ws As Worksheet)
     If ws Is Nothing Then Exit Sub
-    If Not mod_Construction_OutputLayout.IsWeldingOutputSheet(ws) Then Exit Sub
+    If Not mod_Construction_OutputLayout.IsWeldingOutputSheetCore(ws) Then Exit Sub
 
     Dim lastRow As Long
     lastRow = mod_Construction_LineMapping.GetLastDataRow(ws)
@@ -982,7 +982,7 @@ Public Sub FormatSubcontractorPriceColumns(ByVal ws As Worksheet, _
                                             ByVal columnCount As Long, _
                                             Optional ByVal firstColumn As Long = 0)
     Dim lastColumn As Long
-    If firstColumn = 0 Then firstColumn = mod_Construction_OutputLayout.OutputSheetSubconPriceFirstCol(ws)
+    If firstColumn = 0 Then firstColumn = mod_Construction_OutputLayout.OutputSheetSubconPriceFirstColCore(ws)
     lastColumn = firstColumn + columnCount - 1
 
     With ws.Range(ws.Cells(1, firstColumn), ws.Cells(1, lastColumn))
@@ -1010,7 +1010,7 @@ End Sub
 
 Public Function IsSanpaiRow(ByVal ws As Worksheet, ByVal rowIndex As Long) As Boolean
     IsSanpaiRow = IsSanpaiTypeText( _
-        CommonNzText(ws.Cells(rowIndex, mod_Construction_OutputLayout.OutputSheetCol(ws, COL_TYPE)).value))
+        CommonNzText(ws.Cells(rowIndex, mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_TYPE)).value))
 End Function
 
 Public Function GetSanpaiFillColor() As Long

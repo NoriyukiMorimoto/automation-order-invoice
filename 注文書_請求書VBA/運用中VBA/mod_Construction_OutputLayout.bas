@@ -3,53 +3,53 @@ Option Explicit
 ' ????: CHANGELOG.md ??
 ' mod_Construction_OutputLayout (split from mod_Construction_Order_Import)
 
-Public Function IsManagedConstructionImportOutputSheet(ByVal ws As Worksheet) As Boolean
-    IsManagedConstructionImportOutputSheet = mod_Construction_Import_Load.IsManagedImportOutputSheet(ws)
+Public Function IsManagedConstructionImportOutputSheetCore(ByVal ws As Worksheet) As Boolean
+    IsManagedConstructionImportOutputSheetCore = mod_Construction_Import_Load.IsManagedImportOutputSheet(ws)
 End Function
 
-Public Function IsWeldingOutputSheet(ByVal ws As Worksheet) As Boolean
+Public Function IsWeldingOutputSheetCore(ByVal ws As Worksheet) As Boolean
     If ws Is Nothing Then Exit Function
-    IsWeldingOutputSheet = (mod_Construction_BasicTotals.FindHeaderColumn(ws, WELDING_VENDOR_HEADER) > 0)
+    IsWeldingOutputSheetCore = (mod_Construction_BasicTotals.FindHeaderColumn(ws, WELDING_VENDOR_HEADER) > 0)
 End Function
 
-Public Function OutputSheetCol(ByVal ws As Worksheet, ByVal baseCol As Long) As Long
+Public Function OutputSheetColCore(ByVal ws As Worksheet, ByVal baseCol As Long) As Long
     If ws Is Nothing Then
-        OutputSheetCol = baseCol + WELDING_OUTPUT_COL_OFFSET
-    ElseIf IsWeldingOutputSheet(ws) Then
-        OutputSheetCol = baseCol + WELDING_OUTPUT_COL_OFFSET
+        OutputSheetColCore = baseCol + WELDING_OUTPUT_COL_OFFSET
+    ElseIf IsWeldingOutputSheetCore(ws) Then
+        OutputSheetColCore = baseCol + WELDING_OUTPUT_COL_OFFSET
     Else
-        OutputSheetCol = baseCol
+        OutputSheetColCore = baseCol
     End If
 End Function
 
-Public Function OutputSheetSeiriColumn(ByVal ws As Worksheet) As Long
-    OutputSheetSeiriColumn = OutputSheetCol(ws, COL_SEIRI)
+Public Function OutputSheetSeiriColumnCore(ByVal ws As Worksheet) As Long
+    OutputSheetSeiriColumnCore = OutputSheetColCore(ws, COL_SEIRI)
 End Function
 
-Public Function OutputSheetSubconPriceFirstCol(ByVal ws As Worksheet) As Long
+Public Function OutputSheetSubconPriceFirstColCore(ByVal ws As Worksheet) As Long
     Dim jrAmountCol As Long
     jrAmountCol = mod_Construction_BasicTotals.FindHeaderColumn(ws, "JR‹àŠz")
     If jrAmountCol > 0 Then
-        OutputSheetSubconPriceFirstCol = jrAmountCol + 1
+        OutputSheetSubconPriceFirstColCore = jrAmountCol + 1
         Exit Function
     End If
 
-    If IsWeldingOutputSheet(ws) Then
-        OutputSheetSubconPriceFirstCol = WELDING_SUBCON_PRICE_FIRST_COL
+    If IsWeldingOutputSheetCore(ws) Then
+        OutputSheetSubconPriceFirstColCore = WELDING_SUBCON_PRICE_FIRST_COL
     Else
-        OutputSheetSubconPriceFirstCol = SUBCON_PRICE_FIRST_COL
+        OutputSheetSubconPriceFirstColCore = SUBCON_PRICE_FIRST_COL
     End If
 End Function
 
-Public Function OutputSheetVendorColumns(ByVal ws As Worksheet) As Collection
+Public Function OutputSheetVendorColumnsCore(ByVal ws As Worksheet) As Collection
     Dim result As New Collection
-    If IsWeldingOutputSheet(ws) Then
+    If IsWeldingOutputSheetCore(ws) Then
         result.Add WELD_COL_WELDING_VENDOR
         result.Add WELD_COL_TRACK_VENDOR
     Else
         result.Add COL_VENDOR
     End If
-    Set OutputSheetVendorColumns = result
+    Set OutputSheetVendorColumnsCore = result
 End Function
 
 Public Function WeldingRowArrayIndex(ByVal baseCol As Long) As Long
@@ -66,7 +66,7 @@ Public Function IsConstructionVendorOutputSheet(ByVal ws As Worksheet) As Boolea
         IsConstructionVendorOutputSheet = True
         Exit Function
     End If
-    IsConstructionVendorOutputSheet = IsWeldingOutputSheet(ws)
+    IsConstructionVendorOutputSheet = IsWeldingOutputSheetCore(ws)
 End Function
 
 Public Function JoinKeys(ByVal d As Object) As String
