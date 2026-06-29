@@ -14,7 +14,7 @@ Private mVisibleCompanyCount As Long
 Private Sub UserForm_Initialize()
     confirmed = False
     SelectedCompany = ""
-    Me.Caption = "施工会社選択"
+    Me.Caption = ChrW$(&H65BD) & ChrW$(&H5DE5) & ChrW$(&H4F1A) & ChrW$(&H793E) & ChrW$(&H9078) & ChrW$(&H629E)
 
     ConfigureStaticControls
     HideCompanyOptions
@@ -78,7 +78,7 @@ Private Sub ConfirmSelection()
     Dim chosen As String
     chosen = GetSelectedCompanyName()
     If chosen = "" Then
-        MsgBox "施工会社を選択してください。", vbExclamation
+        MsgBox ChrW$(&H65BD) & ChrW$(&H5DE5) & ChrW$(&H4F1A) & ChrW$(&H793E) & ChrW$(&H3092) & ChrW$(&H9078) & ChrW$(&H629E) & ChrW$(&H3057) & ChrW$(&H3066) & ChrW$(&H304F) & ChrW$(&H3060) & ChrW$(&H3055) & ChrW$(&H3044) & ChrW$(&H3002), vbExclamation
         Exit Sub
     End If
 
@@ -178,8 +178,8 @@ End Function
 
 Private Sub ConfigureStaticControls()
     On Error Resume Next
-    Me.Controls("cmdOK").Caption = "適用"
-    Me.Controls("cmdCancel").Caption = "キャンセル"
+    Me.Controls("cmdOK").Caption = ChrW$(&H9069) & ChrW$(&H7528)
+    Me.Controls("cmdCancel").Caption = ChrW$(&H30AD) & ChrW$(&H30E3) & ChrW$(&H30F3) & ChrW$(&H30BB) & ChrW$(&H30EB)
     On Error GoTo 0
 
     ApplyControlFont Me, False

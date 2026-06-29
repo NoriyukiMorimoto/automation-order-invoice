@@ -1,9 +1,6 @@
 Option Explicit
 
-Private Const SUBCON_HEADER_VENDOR  As String = "Ž{H‹ÆŽÒ"
-Private Const SUBCON_HEADER_SEIRI   As String = "®—”Ô†"
 Private Const SUBCON_DATA_START_ROW As Long = 2
-Private Const SUBCON_MENU_CAPTION   As String = "Ž{H‰ïŽÐ‚ð‘I‘ð‚·‚é"
 
 Private mSubconSavedSel As Range
 
@@ -23,8 +20,8 @@ Private Function IsSubconSheet(ByVal Sh As Object) As Boolean
         IsSubconSheet = True
         Exit Function
     End If
-    If Trim$(CStr(Sh.Cells(1, 1).Value)) = SUBCON_HEADER_VENDOR And _
-       Trim$(CStr(Sh.Cells(1, 2).Value)) = SUBCON_HEADER_SEIRI Then
+    If Trim$(CStr(Sh.Cells(1, 1).Value)) = SubconHeaderVendorText() And _
+       Trim$(CStr(Sh.Cells(1, 2).Value)) = SubconHeaderSeiriText() Then
         IsSubconSheet = True
     End If
     On Error GoTo 0
@@ -52,7 +49,7 @@ Private Sub Workbook_SheetSelectionChange(ByVal Sh As Object, ByVal Target As Ra
         Exit Sub
     End If
 
-    If Target.Cells.Count > 1 Then
+    If Target.CountLarge > 1 Then
         Set mSubconSavedSel = Target
     Else
         If Not mSubconSavedSel Is Nothing Then
@@ -76,7 +73,7 @@ Private Sub Workbook_SheetBeforeDoubleClick(ByVal Sh As Object, ByVal Target As 
     If Not mSubconSavedSel Is Nothing Then
         If mSubconSavedSel.Worksheet Is Sh Then
             If Not Application.Intersect(mSubconSavedSel, Target) Is Nothing Then
-                If mSubconSavedSel.Cells.Count > 1 Then mSubconSavedSel.Select
+                If mSubconSavedSel.CountLarge > 1 Then mSubconSavedSel.Select
             End If
         End If
     End If
@@ -94,7 +91,7 @@ Private Sub Workbook_SheetBeforeRightClick(ByVal Sh As Object, ByVal Target As R
 
     Dim ctrl As Object
     For Each ctrl In cbMenu.Controls
-        If ctrl.Caption = SUBCON_MENU_CAPTION Then
+        If ctrl.Caption = SubconMenuCaptionText() Then
             ctrl.Delete
             Exit For
         End If
@@ -102,7 +99,7 @@ Private Sub Workbook_SheetBeforeRightClick(ByVal Sh As Object, ByVal Target As R
 
     Dim btn As Object
     Set btn = cbMenu.Controls.Add(Type:=msoControlButton, Before:=1, Temporary:=True)
-    btn.Caption = SUBCON_MENU_CAPTION
+    btn.Caption = SubconMenuCaptionText()
     btn.OnAction = "SelectSubcontractorForSelection"
     On Error Resume Next
     btn.FaceId = 626
@@ -142,3 +139,16 @@ UnitPriceCleanup:
 Cleanup:
     Application.EnableEvents = prevEE
 End Sub
+Private Function SubconHeaderVendorText() As String
+    SubconHeaderVendorText = ChrW$(&H65BD) & ChrW$(&H5DE5) & ChrW$(&H696D) & ChrW$(&H8005)
+End Function
+
+Private Function SubconHeaderSeiriText() As String
+    SubconHeaderSeiriText = ChrW$(&H6574) & ChrW$(&H7406) & ChrW$(&H756A) & ChrW$(&H53F7)
+End Function
+
+Private Function SubconMenuCaptionText() As String
+    SubconMenuCaptionText = ChrW$(&H65BD) & ChrW$(&H5DE5) & ChrW$(&H4F1A) & ChrW$(&H793E) & _
+                            ChrW$(&H3092) & ChrW$(&H9078) & ChrW$(&H629E) & ChrW$(&H3059) & ChrW$(&H308B)
+End Function
+
