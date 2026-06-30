@@ -550,8 +550,7 @@ ErrorHandler:
     Application.EnableEvents = prevEvents
     MsgBox "施工会社別の単価・金額列を更新できませんでした。" & vbCrLf & _
            Err.Description & vbCrLf & vbCrLf & _
-           "詳細は DebugLog シートまたは次のファイルを確認してください。" & vbCrLf & _
-           mod_DebugLog.GetPersistedLogFilePath(), vbExclamation
+           ChrW$(&H8A73) & ChrW$(&H7D30) & ChrW$(&H306F) & " " & mod_DebugLog.GetPersistedLogFilePath() & ChrW$(&H3092) & ChrW$(&H78BA) & ChrW$(&H8A8D) & ChrW$(&H3057) & ChrW$(&H3066) & ChrW$(&H304F) & ChrW$(&H3060) & ChrW$(&H3055) & ChrW$(&H3044) & ChrW$(&H3002), vbExclamation
     Exit Sub
 
 CleanExit:
