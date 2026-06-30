@@ -1699,6 +1699,7 @@ Public Function CaptureWorksheetAutoFilter(ByVal ws As Worksheet) As Object
     Set result = CreateObject("Scripting.Dictionary")
     result.CompareMode = vbTextCompare
     result("HadFilterMode") = ws.FilterMode
+    result("FilterRange") = ws.AutoFilter.Range.Address(True, True, xlA1, True)
 
     Dim fields As Object
     Set fields = CreateObject("Scripting.Dictionary")
@@ -1711,7 +1712,7 @@ Public Function CaptureWorksheetAutoFilter(ByVal ws As Worksheet) As Object
             Dim fieldInfo As Object
             Set fieldInfo = CreateObject("Scripting.Dictionary")
             fieldInfo.CompareMode = vbTextCompare
-            fieldInfo("Criteria1") = ws.AutoFilter.Filters(fieldIndex).Criteria1
+            fieldInfo("Criteria1") = CloneFilterCriteriaValue(ws.AutoFilter.Filters(fieldIndex).Criteria1)
             fieldInfo("Operator") = ws.AutoFilter.Filters(fieldIndex).Operator
             fieldInfo("Criteria2") = ws.AutoFilter.Filters(fieldIndex).Criteria2
             fields.Add CStr(fieldIndex), fieldInfo
@@ -1735,38 +1736,75 @@ Public Sub RestoreWorksheetAutoFilter(ByVal ws As Worksheet, ByVal saved As Obje
     If ws Is Nothing Then Exit Sub
     If saved Is Nothing Then Exit Sub
     If Not ws.AutoFilterMode Then Exit Sub
+    If Not CBool(saved("HadFilterMode")) Then Exit Sub
 
     Dim fields As Object
     Set fields = saved("Fields")
     If fields Is Nothing Then Exit Sub
     If fields.Count = 0 Then Exit Sub
 
+    Dim filterRange As Range
+    On Error Resume Next
+    Set filterRange = ws.Range(CStr(saved("FilterRange")))
+    If filterRange Is Nothing Then Set filterRange = ws.AutoFilter.Range
+    On Error GoTo 0
+    If filterRange Is Nothing Then Exit Sub
+
     On Error Resume Next
     If ws.FilterMode Then ws.ShowAllData
 
     Dim key As Variant
     For Each key In fields.Keys
-        Dim fieldInfo As Object
-        Set fieldInfo = fields(key)
-        Dim fieldNum As Long
-        fieldNum = CLng(key)
-        Dim op As XlAutoFilterOperator
-        op = fieldInfo("Operator")
-
-        Select Case op
-            Case xlFilterValues
-                ws.AutoFilter.Filters(fieldNum).AutoFilter Field:=fieldNum, _
-                    Criteria1:=fieldInfo("Criteria1"), Operator:=xlFilterValues
-            Case xlAnd, xlOr
-                ws.AutoFilter.Filters(fieldNum).AutoFilter Field:=fieldNum, _
-                    Criteria1:=fieldInfo("Criteria1"), Operator:=op, _
-                    Criteria2:=fieldInfo("Criteria2")
-            Case Else
-                ws.AutoFilter.Filters(fieldNum).AutoFilter Field:=fieldNum, _
-                    Criteria1:=fieldInfo("Criteria1")
-        End Select
+        ApplyCapturedAutoFilterField filterRange, CLng(key), fields(key)
     Next key
     Err.Clear
+    On Error GoTo 0
+End Sub
+
+Private Function CloneFilterCriteriaValue(ByVal source As Variant) As Variant
+    If Not IsArray(source) Then
+        CloneFilterCriteriaValue = source
+        Exit Function
+    End If
+
+    Dim lb As Long
+    Dim ub As Long
+    Dim i As Long
+    Dim cloned() As Variant
+    lb = LBound(source)
+    ub = UBound(source)
+    ReDim cloned(lb To ub)
+    For i = lb To ub
+        cloned(i) = source(i)
+    Next i
+    CloneFilterCriteriaValue = cloned
+End Function
+
+Private Sub ApplyCapturedAutoFilterField(ByVal filterRange As Range, _
+                                         ByVal fieldNum As Long, _
+                                         ByVal fieldInfo As Object)
+    If filterRange Is Nothing Then Exit Sub
+    If fieldInfo Is Nothing Then Exit Sub
+
+    Dim crit1 As Variant
+    Dim op As XlAutoFilterOperator
+    crit1 = fieldInfo("Criteria1")
+    op = fieldInfo("Operator")
+
+    On Error Resume Next
+    Select Case op
+        Case xlFilterValues
+            filterRange.AutoFilter Field:=fieldNum, Criteria1:=crit1, Operator:=xlFilterValues
+        Case xlAnd, xlOr
+            filterRange.AutoFilter Field:=fieldNum, Criteria1:=crit1, Operator:=op, _
+                Criteria2:=fieldInfo("Criteria2")
+        Case Else
+            If IsArray(crit1) Then
+                filterRange.AutoFilter Field:=fieldNum, Criteria1:=crit1, Operator:=xlFilterValues
+            Else
+                filterRange.AutoFilter Field:=fieldNum, Criteria1:=crit1, Operator:=op
+            End If
+    End Select
     On Error GoTo 0
 End Sub
 
