@@ -37,10 +37,13 @@ Public Sub RequestSubcontractorSelection()
                        Schedule:=True
     If Err.Number <> 0 Then
         Err.Clear
-        On Error GoTo 0
-        mSelectionScheduled = False
-        RunScheduledSubcontractorSelection
-        Exit Sub
+        Application.OnTime EarliestTime:=Now + TimeSerial(0, 0, 1), _
+                           Procedure:="mod_subcontractorselector.RunScheduledSubcontractorSelection", _
+                           Schedule:=True
+        If Err.Number <> 0 Then
+            Err.Clear
+            mSelectionScheduled = False
+        End If
     End If
     On Error GoTo 0
 End Sub
@@ -130,7 +133,7 @@ Public Sub ApplySubcontractorDropdowns(ByVal ws As Worksheet)
     If ws Is Nothing Then Exit Sub
 
     Dim lastRow As Long
-    lastRow = ws.Cells(ws.rows.Count, SeiriColumn(ws)).End(xlUp).Row
+    lastRow = GetSheetDataLastRow(ws)
     If lastRow < DATA_START_ROW Then Exit Sub
 
     Dim prevEvents As Boolean
@@ -240,7 +243,7 @@ Public Sub SelectSubcontractorForSelection()
     seiriCol = SeiriColumn(ws)
 
     Dim lastRow As Long
-    lastRow = ws.Cells(ws.rows.Count, seiriCol).End(xlUp).Row
+    lastRow = GetSheetDataLastRow(ws)
     If lastRow < DATA_START_ROW Then
         MsgBox "対象データがありません。", vbExclamation
         Exit Sub
@@ -327,7 +330,7 @@ Public Sub SelectSubcontractorForSelection()
         ws.Cells(CLng(rIdx), targetColumn).value = chosen
     Next rIdx
 
-    mod_Construction_Order_Import.RefreshSubcontractorPriceColumns ws
+    mod_Construction_Order_Import.RefreshSubcontractorPriceColumns ws, targetRows
 
     ws.Columns(targetColumn).AutoFit
 
@@ -376,6 +379,10 @@ Private Function ResolveTargetVendorColumn(ByVal ws As Worksheet, _
     End If
 
     ResolveTargetVendorColumn = COL_VENDOR
+End Function
+
+Private Function GetSheetDataLastRow(ByVal ws As Worksheet) As Long
+    GetSheetDataLastRow = mod_Construction_LineMapping.GetLastDataRow(ws, SeiriColumn(ws))
 End Function
 
 Private Function SeiriColumn(ByVal ws As Worksheet) As Long
