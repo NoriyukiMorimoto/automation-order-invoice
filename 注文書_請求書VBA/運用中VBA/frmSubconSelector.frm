@@ -1,15 +1,19 @@
 Option Explicit
 
 ' frmSubconSelector: 施工会社選択フォーム
-' 改修: 動的 OptionButton 生成を廃止し、既存の lstCompanies(ListBox)へ
-'       AddItem する方式へ統一。動的コントロール生成によるハングを回避。
+' OptionButton を Frame 内に配置し、COMPANY_ITEM_HEIGHT で行間を調整する。
 
 Public confirmed As Boolean
 Public SelectedCompany As String
 
 Private Const FORM_FONT_SIZE As Single = 14
+Private Const COMPANY_ITEM_HEIGHT As Single = 38
+Private Const COMPANY_OPTION_LEFT As Single = 8
+Private Const COMPANY_OPTION_TOP_MARGIN As Single = 8
 
 Private mAll As Variant
+Private mCompanyFrame As Object
+Private mVisibleCompanyCount As Long
 
 Private Sub UserForm_Initialize()
     confirmed = False
@@ -17,7 +21,7 @@ Private Sub UserForm_Initialize()
     Me.Caption = CaptionText()
 
     ConfigureStaticControls
-    InitCompanyListBox
+    HideCompanyOptions
 End Sub
 
 Public Sub SetCompanies(ByVal names As Variant)
@@ -25,26 +29,13 @@ Public Sub SetCompanies(ByVal names As Variant)
     RefreshList ""
 End Sub
 
-Private Sub InitCompanyListBox()
-    Dim lst As Object
-    Set lst = CompanyListBox()
-    If lst Is Nothing Then Exit Sub
-
-    On Error Resume Next
-    lst.Visible = True
-    lst.ColumnCount = 1
-    lst.MultiSelect = fmMultiSelectSingle
-    lst.Clear
-    ApplyControlFont lst, False
-    On Error GoTo 0
-End Sub
-
 Private Sub RefreshList(ByVal keyword As String)
-    Dim lst As Object
-    Set lst = CompanyListBox()
-    If lst Is Nothing Then Exit Sub
+    Dim frame As Object
+    Set frame = CompanyFrame()
+    If frame Is Nothing Then Exit Sub
 
-    lst.Clear
+    HideCompanyOptions
+
     If Not IsArray(mAll) Then Exit Sub
 
     Dim kw As String
@@ -52,14 +43,26 @@ Private Sub RefreshList(ByVal keyword As String)
 
     Dim i As Long
     Dim nm As String
+    Dim itemIndex As Long
+    itemIndex = 0
+
     For i = LBound(mAll) To UBound(mAll)
         nm = CStr(mAll(i))
         If kw = "" Or InStr(1, nm, kw, vbTextCompare) > 0 Then
-            lst.AddItem nm
+            itemIndex = itemIndex + 1
+            ShowCompanyOption frame, itemIndex, nm
         End If
     Next i
 
-    If lst.ListCount > 0 Then lst.ListIndex = 0
+    mVisibleCompanyCount = itemIndex
+
+    If itemIndex > 0 Then SelectFirstVisibleCompanyOption frame
+
+    On Error Resume Next
+    frame.ScrollBars = fmScrollBarsVertical
+    frame.ScrollHeight = Application.Max(frame.Height, _
+        COMPANY_OPTION_TOP_MARGIN + itemIndex * COMPANY_ITEM_HEIGHT)
+    On Error GoTo 0
 End Sub
 
 Private Sub txtSearch_Change()
@@ -67,10 +70,6 @@ Private Sub txtSearch_Change()
     Set t = FindCtl("txtSearch")
     If t Is Nothing Then Exit Sub
     RefreshList CStr(t.Text)
-End Sub
-
-Private Sub lstCompanies_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
-    ConfirmSelection
 End Sub
 
 Private Sub cmdOK_Click()
@@ -96,20 +95,104 @@ Private Sub ConfirmSelection()
 End Sub
 
 Private Function GetSelectedCompanyName() As String
-    Dim lst As Object
-    Set lst = CompanyListBox()
-    If lst Is Nothing Then Exit Function
-    If lst.ListIndex < 0 Then Exit Function
-    GetSelectedCompanyName = CStr(lst.List(lst.ListIndex))
+    Dim frame As Object
+    Set frame = CompanyFrame()
+    If frame Is Nothing Then Exit Function
+
+    Dim ctrl As Control
+    For Each ctrl In frame.Controls
+        If TypeName(ctrl) = "OptionButton" Then
+            If ctrl.Visible And ctrl.Value = True Then
+                GetSelectedCompanyName = CStr(ctrl.Caption)
+                Exit Function
+            End If
+        End If
+    Next ctrl
 End Function
 
-Private Function CompanyListBox() As Object
-    Dim ctrl As Object
+Private Sub ShowCompanyOption(ByVal frame As Object, ByVal itemIndex As Long, ByVal companyName As String)
+    Dim opt As MSForms.OptionButton
+    Set opt = GetOrCreateCompanyOption(frame, itemIndex)
+
+    With opt
+        .Caption = companyName
+        .Left = COMPANY_OPTION_LEFT
+        .Top = COMPANY_OPTION_TOP_MARGIN + (itemIndex - 1) * COMPANY_ITEM_HEIGHT
+        .Width = Application.Max(120, frame.Width - (COMPANY_OPTION_LEFT * 2))
+        .Height = COMPANY_ITEM_HEIGHT - 8
+        .Value = False
+        .Visible = True
+        ApplyControlFont opt, True
+    End With
+End Sub
+
+Private Sub SelectFirstVisibleCompanyOption(ByVal frame As Object)
+    Dim ctrl As Control
+    For Each ctrl In frame.Controls
+        If TypeName(ctrl) = "OptionButton" Then
+            If ctrl.Visible Then
+                ctrl.Value = True
+                Exit Sub
+            End If
+        End If
+    Next ctrl
+End Sub
+
+Private Sub HideCompanyOptions()
+    Dim frame As Object
+    Set frame = CompanyFrame()
+    If frame Is Nothing Then Exit Sub
+
+    Dim ctrl As Control
+    For Each ctrl In frame.Controls
+        If TypeName(ctrl) = "OptionButton" Then
+            ctrl.Visible = False
+            ctrl.Value = False
+        End If
+    Next ctrl
+
+    mVisibleCompanyCount = 0
+End Sub
+
+Private Function CompanyFrame() As Object
+    Dim lst As Object
+    Set lst = FindCtl("lstCompanies")
+    If lst Is Nothing Then Exit Function
+
+    If mCompanyFrame Is Nothing Then
+        On Error Resume Next
+        Set mCompanyFrame = Me.Controls("fraCompanies")
+        On Error GoTo 0
+
+        If mCompanyFrame Is Nothing Then
+            Set mCompanyFrame = Me.Controls.Add("Forms.Frame.1", "fraCompanies", True)
+            With mCompanyFrame
+                .Left = lst.Left
+                .Top = lst.Top
+                .Width = lst.Width
+                .Height = lst.Height
+                .Caption = ""
+                .BorderStyle = fmBorderStyleSingle
+            End With
+        End If
+
+        lst.Visible = False
+    End If
+
+    Set CompanyFrame = mCompanyFrame
+End Function
+
+Private Function GetOrCreateCompanyOption(ByVal frame As Object, ByVal index As Long) As MSForms.OptionButton
+    Dim controlName As String
+    controlName = "optCompany" & CStr(index)
+
     On Error Resume Next
-    Set ctrl = Me.Controls("lstCompanies")
+    Set GetOrCreateCompanyOption = frame.Controls(controlName)
     On Error GoTo 0
-    If ctrl Is Nothing Then Exit Function
-    If TypeName(ctrl) = "ListBox" Then Set CompanyListBox = ctrl
+
+    If GetOrCreateCompanyOption Is Nothing Then
+        Set GetOrCreateCompanyOption = frame.Controls.Add("Forms.OptionButton.1", controlName, True)
+    End If
 End Function
 
 Private Sub ConfigureStaticControls()
@@ -123,7 +206,7 @@ Private Sub ConfigureStaticControls()
     Dim ctrl As Control
     For Each ctrl In Me.Controls
         Select Case TypeName(ctrl)
-            Case "TextBox", "CommandButton", "ListBox", "Label"
+            Case "TextBox", "CommandButton"
                 ApplyControlFont ctrl, False
         End Select
     Next ctrl
@@ -175,4 +258,3 @@ Private Function SelectPromptText() As String
                        ChrW$(&H3066) & ChrW$(&H304F) & ChrW$(&H3060) & ChrW$(&H3055) & _
                        ChrW$(&H3044) & ChrW$(&H3002)
 End Function
-
