@@ -51,9 +51,9 @@ Private Sub LoadMasterDataToMemory()
     On Error GoTo ErrorHandler
 
     Dim folderPath As String: folderPath = mod_common.CommonGetProjectStatusDataFolderPath()
-    If Len(folderPath) = 0 Or Len(Dir(folderPath, vbDirectory)) = 0 Then
+    If Len(folderPath) = 0 Or Not mod_common.CommonProjectStatusFolderExists(folderPath) Then
         MsgBox UiMsgProjectStatusLoadFailedText() & vbCrLf & vbCrLf & _
-               ProjectStatusDetailFileLabelText() & ProjectStatusDetailFolderNotFoundText(), vbExclamation
+               ProjectStatusDetailFileLabelText() & folderPath, vbExclamation
         Exit Sub
     End If
     Dim targetYear As Long
@@ -142,11 +142,11 @@ Private Function GetProjectStatusSourceArray(ByVal folderPath As String, ByVal t
     Dim sourcePath As String
     sourcePath = folderPath & targetYear & "_" & GetProjectSelectionBranchNameForFile(targetBranch) & mod_common.CommonProjectStatusFileSuffixText()
 
-    If Len(Dir(sourcePath, vbNormal)) = 0 Then Exit Function
+    If Not mod_common.CommonProjectStatusFileExists(sourcePath) Then Exit Function
     GetProjectStatusSourceArray = ReadProjectStatusFileToArray(sourcePath, "Sheet1")
 End Function
 Private Function ReadProjectStatusFileToArray(ByVal sourcePath As String, ByVal sheetName As String) As Variant
-    If Len(Dir(sourcePath, vbNormal)) = 0 Then Exit Function
+    If Not mod_common.CommonProjectStatusFileExists(sourcePath) Then Exit Function
 
     Dim cn As Object
     Set cn = mod_common.CommonOpenExcelAdoConnection(sourcePath)
