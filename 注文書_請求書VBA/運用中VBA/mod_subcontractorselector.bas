@@ -21,13 +21,69 @@ Private Const WELDING_WORK_TYPE_KEYWORD As String = "溶接工事"
 Private Const TRACK_WORK_TYPE_KEYWORD As String = "軌道工事"
 
 Private Const HELPER_COL As Long = 100
+Private Const LOG_TAG As String = "[SubconSelector]"
 
 Private mSelectionScheduled As Boolean
+Private mLastTrigger As String
+Private mCurrentStep As String
+Private mLogSessionStarted As Boolean
 
 Private mPendingWs As Worksheet
 Private mPendingVendorCol As Long
 Private mPendingRows As Collection
 Private mPendingContextReady As Boolean
+
+Public Sub SetSubcontractorTrigger(ByVal triggerName As String)
+    mLastTrigger = Trim$(triggerName)
+End Sub
+
+Public Sub ShowSubcontractorSelectionDebugLog()
+    mod_DebugLog.FlushToSheet
+End Sub
+
+Public Sub OpenSubcontractorSelectionLogFile()
+    SubconLog "OpenSubcontractorSelectionLogFile"
+    On Error Resume Next
+    Shell "notepad.exe " & Chr$(34) & mod_DebugLog.GetPersistedLogFilePath() & Chr$(34), vbNormalFocus
+    On Error GoTo 0
+End Sub
+
+Private Sub SubconLog(ByVal msg As String)
+    If Not mLogSessionStarted Then
+        mLogSessionStarted = True
+        mod_DebugLog.LogPersist LOG_TAG & " logFile=" & mod_DebugLog.GetPersistedLogFilePath()
+        mod_DebugLog.LogPersist LOG_TAG & " workbook=" & ThisWorkbook.Name
+    End If
+    mod_DebugLog.LogPersist LOG_TAG & " " & msg
+End Sub
+
+Private Sub SubconLogErr(Optional ByVal stepName As String = "")
+    Dim stepText As String
+    If Len(stepName) > 0 Then
+        stepText = stepName
+    Else
+        stepText = mCurrentStep
+    End If
+    SubconLog "ERR step=" & stepText & " Err=" & Err.Number & " " & Err.Description
+End Sub
+
+Private Function DescribeRowCollection(ByVal rows As Collection) As String
+    If rows Is Nothing Then
+        DescribeRowCollection = "(nothing)"
+        Exit Function
+    End If
+    If rows.Count = 0 Then
+        DescribeRowCollection = "(empty)"
+        Exit Function
+    End If
+
+    Dim parts As String
+    Dim rowRef As Variant
+    For Each rowRef In rows
+        parts = parts & IIf(parts = "", "", ",") & CStr(rowRef)
+    Next rowRef
+    DescribeRowCollection = parts
+End Function
 
 Public Sub ClearSubcontractorSelectionContext()
     Set mPendingWs = Nothing
@@ -40,18 +96,33 @@ End Sub
 Public Sub PrepareSubcontractorSelection(ByVal ws As Worksheet, _
                                          ByVal Target As Range, _
                                          Optional ByVal multiSel As Range = Nothing)
+    mCurrentStep = "Prepare"
+    SubconLog "Prepare start trigger=[" & mLastTrigger & "] sheet=" & ws.Name & _
+              " target=" & Target.Address(False, False) & _
+              " filter=" & CStr(ws.AutoFilterMode)
+
     ClearSubcontractorSelectionContext
-    If ws Is Nothing Or Target Is Nothing Then Exit Sub
+    If ws Is Nothing Or Target Is Nothing Then
+        SubconLog "Prepare abort: ws or Target is Nothing"
+        Exit Sub
+    End If
 
     Dim seiriCol As Long
     seiriCol = SeiriColumn(ws)
 
     Dim lastRow As Long
     lastRow = GetSheetDataLastRow(ws)
-    If lastRow < DATA_START_ROW Then Exit Sub
+    SubconLog "Prepare lastRow=" & lastRow & " seiriCol=" & seiriCol
+    If lastRow < DATA_START_ROW Then
+        SubconLog "Prepare abort: no data rows"
+        Exit Sub
+    End If
 
     mPendingVendorCol = ResolveTargetVendorColumnFromCell(ws, Target)
-    If mPendingVendorCol = 0 Then Exit Sub
+    If mPendingVendorCol = 0 Then
+        SubconLog "Prepare abort: vendor column unresolved col=" & Target.Column
+        Exit Sub
+    End If
 
     Set mPendingWs = ws
     Set mPendingRows = New Collection
@@ -68,6 +139,7 @@ Public Sub PrepareSubcontractorSelection(ByVal ws As Worksheet, _
             If Not multiHit Is Nothing Then
                 AddEligibleVendorRowsFromRange ws, multiHit, seiriCol, mPendingRows
             End If
+            SubconLog "Prepare multiSel rows=" & DescribeRowCollection(mPendingRows)
         End If
     End If
 
@@ -76,37 +148,59 @@ Public Sub PrepareSubcontractorSelection(ByVal ws As Worksheet, _
     End If
 
     mPendingContextReady = (mPendingRows.Count > 0)
+    SubconLog "Prepare done vendorCol=" & mPendingVendorCol & _
+              " rows=" & DescribeRowCollection(mPendingRows) & _
+              " ready=" & CStr(mPendingContextReady)
 End Sub
 
 '  ダブルクリック・右クリックメニューからの呼び出し用エントリーポイント。
 '  イベント/メニューの最中にモーダルフォームを同期表示するとハングするため、
 '  Application.OnTime で UI 解放後に起動を遅延させる。
 Public Sub RequestSubcontractorSelection()
-    If mSelectionScheduled Then Exit Sub
+    mCurrentStep = "Request"
+    If mSelectionScheduled Then
+        SubconLog "Request skip: already scheduled trigger=[" & mLastTrigger & "]"
+        Exit Sub
+    End If
     mSelectionScheduled = True
+
+    Dim procPrimary As String
+    Dim procFallback As String
+    procPrimary = "'" & ThisWorkbook.Name & "'!RunScheduledSubcontractorSelection"
+    procFallback = "mod_subcontractorselector.RunScheduledSubcontractorSelection"
+    SubconLog "Request schedule trigger=[" & mLastTrigger & "] proc=" & procPrimary
 
     On Error Resume Next
     Application.OnTime EarliestTime:=Now + TimeValue("00:00:01"), _
-                       Procedure:="'" & ThisWorkbook.Name & "'!RunScheduledSubcontractorSelection", _
+                       Procedure:=procPrimary, _
                        Schedule:=True
     If Err.Number <> 0 Then
+        SubconLog "Request OnTime primary failed Err=" & Err.Number & " " & Err.Description
         Err.Clear
+        SubconLog "Request schedule fallback proc=" & procFallback
         Application.OnTime EarliestTime:=Now + TimeValue("00:00:01"), _
-                           Procedure:="mod_subcontractorselector.RunScheduledSubcontractorSelection", _
+                           Procedure:=procFallback, _
                            Schedule:=True
         If Err.Number <> 0 Then
+            SubconLog "Request OnTime fallback failed Err=" & Err.Number & " " & Err.Description
             Err.Clear
             mSelectionScheduled = False
             ClearSubcontractorSelectionContext
         End If
+    Else
+        SubconLog "Request OnTime primary scheduled"
     End If
     On Error GoTo 0
 End Sub
 
 Public Sub RunScheduledSubcontractorSelection()
+    mCurrentStep = "RunScheduled"
+    SubconLog "RunScheduled start trigger=[" & mLastTrigger & "]"
     mSelectionScheduled = False
     DoEvents
+    SubconLog "RunScheduled after DoEvents"
     SelectSubcontractorForSelection
+    SubconLog "RunScheduled end"
 End Sub
 
 Public Function GetSubcontractorList() As Variant
@@ -292,6 +386,9 @@ Public Sub SelectSubcontractorForSelection()
     prevEvents = Application.EnableEvents
     On Error GoTo ErrorHandler
 
+    mCurrentStep = "SelectStart"
+    SubconLog "Select start trigger=[" & mLastTrigger & "] pending=" & CStr(mPendingContextReady)
+
     Dim ws As Worksheet
     Dim seiriCol As Long
     Dim lastRow As Long
@@ -307,29 +404,35 @@ Public Sub SelectSubcontractorForSelection()
         seiriCol = SeiriColumn(ws)
         lastRow = GetSheetDataLastRow(ws)
         ClearSubcontractorSelectionContext
+        SubconLog "Select use pending sheet=" & ws.Name & " rows=" & DescribeRowCollection(targetRows)
     Else
         Set ws = ActiveSheet
         seiriCol = SeiriColumn(ws)
         lastRow = GetSheetDataLastRow(ws)
         Set targetRows = New Collection
+        SubconLog "Select use active sheet=" & ws.Name & " lastRow=" & lastRow
     End If
 
     If lastRow < DATA_START_ROW Then
+        SubconLog "Select abort: no data"
         MsgBox "対象データがありません。", vbExclamation
-        Exit Sub
+        GoTo CleanExit
     End If
 
     If Not usePendingContext Then
+        mCurrentStep = "ResolveTargetColumn"
         targetColumn = ResolveTargetVendorColumn(ws, seiriCol, lastRow)
         If targetColumn = 0 Then
+            SubconLog "Select abort: target column unresolved"
             If mod_Construction_Order_Import.IsWeldingOutputSheet(ws) Then
                 MsgBox "溶接会社(A列)または軌道手元会社(B列)を選択した状態で実行してください。", vbExclamation
             Else
                 MsgBox "施工会社を設定する行を選択してください(B列に整理番号がある行)。", vbExclamation
             End If
-            Exit Sub
+            GoTo CleanExit
         End If
 
+        mCurrentStep = "CollectTargetRows"
         If TypeName(Selection) = "Range" Then
             Dim usedRange As Range
             Set usedRange = ws.Range(ws.Cells(DATA_START_ROW, seiriCol), ws.Cells(lastRow, seiriCol))
@@ -353,20 +456,24 @@ Public Sub SelectSubcontractorForSelection()
                 End If
             End If
         End If
+        SubconLog "Select collected rows=" & DescribeRowCollection(targetRows)
     ElseIf targetColumn = 0 Then
+        SubconLog "Select abort: pending vendor column missing"
         MsgBox "施工会社を設定する行を選択してください(B列に整理番号がある行)。", vbExclamation
-        Exit Sub
+        GoTo CleanExit
     End If
 
     If targetRows.Count = 0 Then
+        SubconLog "Select abort: no target rows"
         If mod_Construction_Order_Import.IsWeldingOutputSheet(ws) Then
             MsgBox "会社を設定する行を選択してください(C列に整理番号がある行)。", vbExclamation
         Else
             MsgBox "施工会社を設定する行を選択してください(B列に整理番号がある行)。", vbExclamation
         End If
-        Exit Sub
+        GoTo CleanExit
     End If
 
+    mCurrentStep = "GetSubcontractorList"
     Dim names As Variant
     If mod_Construction_Order_Import.IsWeldingOutputSheet(ws) Then
         If targetColumn = WELD_COL_WELDING_VENDOR Then
@@ -379,47 +486,69 @@ Public Sub SelectSubcontractorForSelection()
     End If
 
     If Not IsArray(names) Then
+        SubconLog "Select abort: subcontractor list empty"
         MsgBox "基本情報の施工会社に対応する業者マスタA列の候補が見つかりません。", vbExclamation
-        Exit Sub
+        GoTo CleanExit
     End If
+    SubconLog "Select companyCount=" & (UBound(names) - LBound(names) + 1)
 
+    mCurrentStep = "ShowForm"
     Dim f As frmSubconSelector
     Set f = New frmSubconSelector
     f.SetCompanies names
+    SubconLog "Select before ShowForm"
     f.Show vbModal
+    SubconLog "Select after ShowForm"
 
     Dim confirmed As Boolean, chosen As String
     confirmed = f.confirmed
     chosen = f.SelectedCompany
     Unload f
-    If Not confirmed Or chosen = "" Then Exit Sub
+    If Not confirmed Or chosen = "" Then
+        SubconLog "Select cancelled confirmed=" & CStr(confirmed)
+        GoTo CleanExit
+    End If
+    SubconLog "Select chosen=[" & chosen & "]"
 
     Application.EnableEvents = False
 
+    mCurrentStep = "WriteVendor"
     Dim rIdx As Variant
     For Each rIdx In targetRows
         ws.Cells(CLng(rIdx), targetColumn).value = chosen
     Next rIdx
+    SubconLog "Select vendor written rows=" & DescribeRowCollection(targetRows)
 
+    mCurrentStep = "RefreshPrices"
     If ws.AutoFilterMode Then
         mod_Construction_Order_Import.RefreshSubcontractorPriceColumns ws
     Else
         mod_Construction_Order_Import.RefreshSubcontractorPriceColumns ws, targetRows
     End If
+    SubconLog "Select refresh done filter=" & CStr(ws.AutoFilterMode)
 
     ws.Columns(targetColumn).AutoFit
 
     Application.EnableEvents = prevEvents
 
+    SubconLog "Select complete rows=" & targetRows.Count & " company=[" & chosen & "]"
     MsgBox "選択された" & targetRows.Count & "行に「" & chosen & "」の施工単価を設定しました。", _
            vbInformation
-    Exit Sub
+    GoTo CleanExit
 
 ErrorHandler:
+    SubconLogErr mCurrentStep
     ClearSubcontractorSelectionContext
     Application.EnableEvents = prevEvents
     MsgBox "施工会社別の単価・金額列を更新できませんでした。" & vbCrLf & _
-           Err.Description, vbExclamation
+           Err.Description & vbCrLf & vbCrLf & _
+           "詳細は DebugLog シートまたは次のファイルを確認してください。" & vbCrLf & _
+           mod_DebugLog.GetPersistedLogFilePath(), vbExclamation
+    Exit Sub
+
+CleanExit:
+    Application.EnableEvents = prevEvents
+    Exit Sub
 End Sub
 
 Private Function ResolveTargetVendorColumnFromCell(ByVal ws As Worksheet, ByVal Target As Range) As Long
