@@ -89,6 +89,9 @@ End Type
 '   mSeiriRowMap : 整理番号 -> 当該シートの行番号。シート毎に設定。
 Private mPackMap As Object
 Private mSeiriRowMap As Object
+Private mTemotoRatioMap As Object
+Private mTemotoRatioMapPath As String
+Private mTemotoRatioMapTime As Date
 
 ' =====================================================================
 ' Public エントリポイント
@@ -229,6 +232,84 @@ Public Sub UpdateWeldingVendorDisplayNamesForBasicInfo(Optional ByVal wsInfo As 
 
 Cleanup:
     Application.ScreenUpdating = previousScreenUpdating
+End Sub
+
+' F9(施工会社数)減少時: 旧レイアウトとの差分だけ処理し、全列×全行の二重クリア/再展開を避ける。
+' oldWelding/oldRail は ClearUnusedVendorBlocks 前に GetVendorBlockLayoutCountsForLimit で取得すること。
+Public Sub RefreshWeldingAfterVendorCountDecrease(ByVal wsInfo As Worksheet, _
+                                                  ByVal currentVendorCount As Long, _
+                                                  ByVal oldWeldingBlockCount As Long, _
+                                                  ByVal oldRailBlockCount As Long, _
+                                                  Optional ByVal deferCalculation As Boolean = False)
+    If wsInfo Is Nothing Then Exit Sub
+    If currentVendorCount < 1 Then Exit Sub
+
+    Dim newWeldingBlockCount As Long
+    Dim newRailBlockCount As Long
+    GetVendorBlockLayoutCountsForLimit wsInfo, currentVendorCount, _
+        newWeldingBlockCount, newRailBlockCount
+
+    Dim layoutShifted As Boolean
+    layoutShifted = (oldWeldingBlockCount <> newWeldingBlockCount)
+
+    Dim targetBook As Workbook
+    Set targetBook = wsInfo.Parent
+
+    Dim weldingSheets As Collection
+    Set weldingSheets = CollectWeldingUnitPriceSheets(targetBook)
+    If weldingSheets.Count = 0 Then Exit Sub
+
+    Dim previousScreenUpdating As Boolean
+    Dim previousCalculation As XlCalculation
+    previousScreenUpdating = Application.ScreenUpdating
+    previousCalculation = Application.Calculation
+    Application.ScreenUpdating = False
+    Application.Calculation = xlCalculationManual
+
+    On Error GoTo RefreshDecreaseCleanup
+
+    Dim oldRightmostNightCol As Long
+    Dim newRightmostNightCol As Long
+    oldRightmostNightCol = GetWeldingSheetRightmostVendorNightCol(oldWeldingBlockCount, oldRailBlockCount)
+    newRightmostNightCol = GetWeldingSheetRightmostVendorNightCol(newWeldingBlockCount, newRailBlockCount)
+
+    Dim wsWelding As Variant
+    For Each wsWelding In weldingSheets
+        Dim lastRow As Long
+        lastRow = wsWelding.Cells(wsWelding.Rows.Count, WUP_SEIRI_COL).End(xlUp).Row
+        If lastRow < WUP_DATA_START_ROW Then GoTo ContinueDecreaseSheet
+
+        If layoutShifted Then
+            ClearWeldingSheetVendorAreaThrough wsWelding, lastRow, oldRightmostNightCol
+        ElseIf oldRightmostNightCol > newRightmostNightCol Then
+            ClearWeldingVendorColumnsRange wsWelding, lastRow, newRightmostNightCol + 1, oldRightmostNightCol
+        Else
+            ClearWeldingVendorColumnsBeyondLayout wsWelding, lastRow, newRightmostNightCol
+        End If
+ContinueDecreaseSheet:
+    Next wsWelding
+
+    If layoutShifted Then
+        Dim targetValueColumns As Collection
+        Set targetValueColumns = New Collection
+        Dim vendorIndex As Long
+        For vendorIndex = 1 To currentVendorCount
+            targetValueColumns.Add BASIC_INFO_VENDOR_BLOCK_VALUE_COL + _
+                ((vendorIndex - 1) * BASIC_INFO_VENDOR_BLOCK_STEP_COLS)
+        Next vendorIndex
+        ApplyWeldingVendorUnitPricesForBasicInfoColumns wsInfo, targetValueColumns, 0, deferCalculation
+    Else
+        UpdateWeldingVendorDisplayNamesForBasicInfo wsInfo
+    End If
+
+RefreshDecreaseCleanup:
+    Application.Calculation = previousCalculation
+    Application.ScreenUpdating = previousScreenUpdating
+    If Not deferCalculation Then
+        On Error Resume Next
+        Application.Calculate
+        On Error GoTo 0
+    End If
 End Sub
 
 ' F9(施工会社数)を減らしたとき、余剰の軌道列だけをクリアする軽量処理。
@@ -419,7 +500,8 @@ End Sub
 ' 2社目の初回入力など、全シート全列の再展開を避けるために使用する。
 Public Sub ApplyWeldingVendorUnitPricesForBasicInfoColumns(ByVal wsInfo As Worksheet, _
                                                            ByVal targetValueColumns As Collection, _
-                                                           Optional ByVal preferredRatioColumn As Long = 0)
+                                                           Optional ByVal preferredRatioColumn As Long = 0, _
+                                                           Optional ByVal deferCalculation As Boolean = False)
     If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet()
     If wsInfo Is Nothing Then Exit Sub
     If targetValueColumns Is Nothing Then Exit Sub
@@ -473,9 +555,27 @@ Public Sub ApplyWeldingVendorUnitPricesForBasicInfoColumns(ByVal wsInfo As Works
 Cleanup:
     Application.Calculation = previousCalculation
     Application.ScreenUpdating = previousScreenUpdating
-    On Error Resume Next
-    Application.Calculate
-    On Error GoTo 0
+    If Not deferCalculation Then
+        On Error Resume Next
+        Application.Calculate
+        On Error GoTo 0
+    End If
+End Sub
+
+Public Sub ClearTemotoRatioMapCache()
+    Set mTemotoRatioMap = Nothing
+    mTemotoRatioMapPath = vbNullString
+    mTemotoRatioMapTime = 0
+End Sub
+
+Public Sub GetVendorBlockLayoutCountsForLimit(ByVal wsInfo As Worksheet, _
+                                              ByVal vendorCountLimit As Long, _
+                                              ByRef weldingBlockCount As Long, _
+                                              ByRef railBlockCount As Long)
+    Dim weldingBlocks() As WeldingVendorBlock
+    Dim railBlocks() As WeldingVendorBlock
+    ScanVendorBlocks wsInfo, weldingBlocks, weldingBlockCount, railBlocks, railBlockCount, 0, _
+        vendorCountLimit, True
 End Sub
 
 Private Sub ApplyWeldingVendorUnitPricesToSheetColumns(ByVal wsWelding As Worksheet, _
@@ -1437,13 +1537,30 @@ Private Sub ClearWeldingVendorBlock(ByVal wsWelding As Worksheet, _
         .HorizontalAlignment = xlGeneral
     End With
 
+    ClearWeldingVendorColumnsRange wsWelding, lastRow, dayCol, nightCol
+End Sub
+
+Private Sub ClearWeldingSheetVendorAreaThrough(ByVal wsWelding As Worksheet, _
+                                               ByVal lastRow As Long, _
+                                               ByVal rightmostNightCol As Long)
+    If rightmostNightCol < WUP_WELDING_DAY_COL Then Exit Sub
+    ClearWeldingVendorColumnsRange wsWelding, lastRow, WUP_WELDING_DAY_COL, rightmostNightCol
+End Sub
+
+Private Sub ClearWeldingVendorColumnsRange(ByVal wsWelding As Worksheet, _
+                                           ByVal lastRow As Long, _
+                                           ByVal fromDayCol As Long, _
+                                           ByVal toNightCol As Long)
+    If wsWelding Is Nothing Then Exit Sub
+    If fromDayCol > toNightCol Then Exit Sub
+
     Dim clearLastRow As Long
     clearLastRow = lastRow
     If clearLastRow < WUP_DATA_START_ROW Then clearLastRow = WUP_DATA_START_ROW + 200
 
     Dim clearRange As Range
-    Set clearRange = wsWelding.Range(wsWelding.Cells(WUP_HEADER_ROW, dayCol), _
-                                     wsWelding.Cells(clearLastRow, nightCol))
+    Set clearRange = wsWelding.Range(wsWelding.Cells(WUP_RATIO_ROW, fromDayCol), _
+                                     wsWelding.Cells(clearLastRow, toNightCol))
     SafeUnmergeRangeWUP clearRange
     clearRange.ClearContents
     clearRange.NumberFormat = "General"
@@ -1479,14 +1596,21 @@ Private Sub ScanVendorBlocks(ByVal wsInfo As Worksheet, _
                              ByRef weldingBlockCount As Long, _
                              ByRef railBlocks() As WeldingVendorBlock, _
                              ByRef railBlockCount As Long, _
-                             Optional ByVal preferredRatioColumn As Long = 0)
+                             Optional ByVal preferredRatioColumn As Long = 0, _
+                             Optional ByVal vendorCountLimit As Long = 0, _
+                             Optional ByVal suppressLayoutLog As Boolean = False)
     weldingBlockCount = 0
     railBlockCount = 0
     ReDim weldingBlocks(1 To MAX_VENDOR_BLOCK_COUNT)
     ReDim railBlocks(1 To MAX_VENDOR_BLOCK_COUNT)
 
     Dim vendorCount As Long
-    vendorCount = GetVendorBlockCountWUP(wsInfo)
+    If vendorCountLimit > 0 Then
+        vendorCount = vendorCountLimit
+        If vendorCount > MAX_VENDOR_BLOCK_COUNT Then vendorCount = MAX_VENDOR_BLOCK_COUNT
+    Else
+        vendorCount = GetVendorBlockCountWUP(wsInfo)
+    End If
 
     Dim i As Long
     For i = 1 To vendorCount
@@ -1499,20 +1623,24 @@ Private Sub ScanVendorBlocks(ByVal wsInfo As Worksheet, _
         If StrComp(workTypeText, NormalizeMatchTextWUP(WeldingWorkTypeText()), vbTextCompare) = 0 Then
             weldingBlockCount = weldingBlockCount + 1
             weldingBlocks(weldingBlockCount) = BuildVendorBlock(wsInfo, valueColumn, BASIC_INFO_WELDING_RATIO_ROW)
-            LogWUP "溶接工事ブロック#" & CStr(weldingBlockCount) & " col=" & CStr(valueColumn) & _
-                   " 会社=[" & weldingBlocks(weldingBlockCount).vendorName & "] 比率有=" & _
-                   CStr(weldingBlocks(weldingBlockCount).hasRatio)
+            If Not suppressLayoutLog Then
+                LogWUP "溶接工事ブロック#" & CStr(weldingBlockCount) & " col=" & CStr(valueColumn) & _
+                       " 会社=[" & weldingBlocks(weldingBlockCount).vendorName & "] 比率有=" & _
+                       CStr(weldingBlocks(weldingBlockCount).hasRatio)
+            End If
         ElseIf StrComp(workTypeText, NormalizeMatchTextWUP(RailWorkTypeText()), vbTextCompare) = 0 Then
             railBlockCount = railBlockCount + 1
             railBlocks(railBlockCount) = BuildVendorBlock(wsInfo, valueColumn, BASIC_INFO_RAIL_RATIO_ROW)
-            LogWUP "軌道工事ブロック#" & CStr(railBlockCount) & " col=" & CStr(valueColumn) & _
-                   " 会社=[" & railBlocks(railBlockCount).vendorName & _
-                   "] 比率有=" & CStr(railBlocks(railBlockCount).hasRatio)
+            If Not suppressLayoutLog Then
+                LogWUP "軌道工事ブロック#" & CStr(railBlockCount) & " col=" & CStr(valueColumn) & _
+                       " 会社=[" & railBlocks(railBlockCount).vendorName & _
+                       "] 比率有=" & CStr(railBlocks(railBlockCount).hasRatio)
+            End If
         End If
     Next i
 
     ' preferredRatioColumn は部分展開時の互換用(走査結果は変更しない)
-    If preferredRatioColumn > 0 Then
+    If preferredRatioColumn > 0 And Not suppressLayoutLog Then
         LogWUP "ScanVendorBlocks preferredRatioColumn=" & CStr(preferredRatioColumn)
     End If
 End Sub
@@ -1584,6 +1712,21 @@ Private Function LoadTemotoRatioMap(ByRef loadErrorText As String) As Object
         loadErrorText = "ファイルが見つかりません: マスタデータ\" & TemotoMasterFilePatternText()
         Exit Function
     End If
+
+    Dim sourceFileTime As Date
+    On Error Resume Next
+    sourceFileTime = FileDateTime(sourceFilePath)
+    On Error GoTo 0
+
+    If Not mTemotoRatioMap Is Nothing Then
+        If StrComp(mTemotoRatioMapPath, sourceFilePath, vbTextCompare) = 0 Then
+            If sourceFileTime = mTemotoRatioMapTime Then
+                Set LoadTemotoRatioMap = mTemotoRatioMap
+                Exit Function
+            End If
+        End If
+    End If
+
     LogWUP "手元比率マスタ path=[" & sourceFilePath & "]"
 
     Dim cn As Object
@@ -1616,6 +1759,11 @@ Private Function LoadTemotoRatioMap(ByRef loadErrorText As String) As Object
     CommonCloseAdoRecordset rs
 
     Set LoadTemotoRatioMap = BuildTemotoMapFromData(data, loadErrorText)
+    If Not LoadTemotoRatioMap Is Nothing Then
+        Set mTemotoRatioMap = LoadTemotoRatioMap
+        mTemotoRatioMapPath = sourceFilePath
+        mTemotoRatioMapTime = sourceFileTime
+    End If
 
 Cleanup:
     CommonCloseAdoConnection cn
