@@ -132,9 +132,14 @@ Private Sub Worksheet_Change(ByVal target As Range)
         mod_Construction_Order_Import.RefreshConstructionReferenceUnitPricesOnExistingSheets
     End If
 
-    If Not Intersect(target, vendorNameRange) Is Nothing Then
-        Dim changedVendorCell As Range
-        Set changedVendorCell = Intersect(target, vendorNameRange).Cells(1, 1)
+    Dim changedVendorCell As Range
+    Set changedVendorCell = mod_VendorMaster.ResolveVendorNameChangeCell(Me, target)
+    If changedVendorCell Is Nothing And Not vendorNameRange Is Nothing Then
+        If Not Intersect(target, vendorNameRange) Is Nothing Then
+            Set changedVendorCell = Intersect(target, vendorNameRange).Cells(1, 1)
+        End If
+    End If
+    If Not changedVendorCell Is Nothing Then
         mod_VendorMaster.FillVendorInfoToBasicInfo Me, changedVendorCell
         mod_VendorMaster.CancelScheduledVendorListDropdown
         mod_VendorMaster.HideVendorComboBox Me
@@ -189,14 +194,23 @@ Private Sub Worksheet_BeforeDoubleClick(ByVal target As Range, Cancel As Boolean
         Exit Sub
     End If
 
-    Dim vendorNameRange As Range
-    Set vendorNameRange = mod_VendorMaster.GetVendorNameRange(Me)
+    Dim vendorNameCell As Range
+    Set vendorNameCell = mod_VendorMaster.ResolveVendorNameChangeCell(Me, target)
+    If vendorNameCell Is Nothing Then
+        Dim vendorNameRange As Range
+        Set vendorNameRange = mod_VendorMaster.GetVendorNameRange(Me)
+        If Not vendorNameRange Is Nothing Then
+            If Not Intersect(target, vendorNameRange) Is Nothing Then
+                Set vendorNameCell = Intersect(target, vendorNameRange).Cells(1, 1)
+            End If
+        End If
+    End If
 
-    If Not Intersect(target, vendorNameRange) Is Nothing Then
+    If Not vendorNameCell Is Nothing Then
         Cancel = True
         mod_VendorMaster.CancelScheduledVendorListDropdown
         mod_VendorMaster.HideVendorComboBox Me
-        mod_VendorMaster.ShowAllVendorSelection Me, Intersect(target, vendorNameRange).Cells(1, 1)
+        mod_VendorMaster.ShowAllVendorSelection Me, vendorNameCell
         Exit Sub
     End If
 
@@ -246,10 +260,10 @@ Private Sub Worksheet_SelectionChange(ByVal target As Range)
         mod_MaterialPriceImport.RefreshUnitPriceProjectNameValidation Me, True
     End If
 
-    Dim vendorNameRange As Range
-    Set vendorNameRange = mod_VendorMaster.GetVendorNameRange(Me)
+    Dim vendorNameCell As Range
+    Set vendorNameCell = mod_VendorMaster.ResolveVendorNameChangeCell(Me, target)
 
-    If Not Intersect(target, vendorNameRange) Is Nothing Then
+    If Not vendorNameCell Is Nothing Then
         mod_VendorMaster.RefreshVendorListForBasicInfo Me
         mod_VendorMaster.ScheduleVendorListDropdown Me
     Else
