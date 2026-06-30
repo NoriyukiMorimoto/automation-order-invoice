@@ -289,3 +289,118 @@ Public Function CommonTextFromChars(ParamArray charCodes() As Variant) As String
     Next i
     CommonTextFromChars = result
 End Function
+
+' 工事現況表マスタ(【各支店工事番号データ】)のフォルダパスを解決する。
+' 正本: ドキュメント\マスタデータ\【各支店工事番号データ】\
+Public Function CommonGetProjectStatusDataFolderPath() As String
+    Dim fso As Object
+    Set fso = CreateObject("Scripting.FileSystemObject")
+
+    Dim candidates As Collection
+    Set candidates = New Collection
+
+    If Len(ThisWorkbook.Path) > 0 Then
+        CommonAppendProjectStatusFolderCandidate candidates, _
+            CommonBuildProjectStatusDataFolderPath(fso.GetParentFolderName(ThisWorkbook.Path), fso)
+        CommonAppendProjectStatusFolderCandidate candidates, _
+            CommonBuildProjectStatusDataFolderPath(ThisWorkbook.Path, fso)
+    End If
+
+    Dim userProfilePath As String
+    userProfilePath = Environ$("USERPROFILE")
+    If Len(Trim$(userProfilePath)) = 0 Then
+        userProfilePath = Environ$("HOMEDRIVE") & Environ$("HOMEPATH")
+    End If
+
+    If Len(Trim$(userProfilePath)) > 0 Then
+        CommonAppendProjectStatusFolderCandidate candidates, _
+            CommonBuildProjectStatusDataFolderPath(userProfilePath & Chr$(92) & CommonCompanyNameText() & Chr$(92) & _
+                                                   CommonOrderInvoiceDocumentFolderText(), fso)
+    End If
+
+    CommonGetProjectStatusDataFolderPath = CommonFirstExistingProjectStatusFolderPath(candidates)
+End Function
+
+Public Function CommonProjectStatusFileSuffixText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = "_" & ChrW$(&H5DE5) & ChrW$(&H4E8B) & ChrW$(&H73FE) & ChrW$(&H6CC1) & _
+                 ChrW$(&H8868) & ChrW$(&H30C7) & ChrW$(&H30FC) & ChrW$(&H30BF) & ".xlsx"
+    End If
+    CommonProjectStatusFileSuffixText = cached
+End Function
+
+Private Function CommonBuildProjectStatusDataFolderPath(ByVal documentRootPath As String, _
+                                                        ByVal fso As Object) As String
+    If Len(Trim$(documentRootPath)) = 0 Then Exit Function
+    Dim folderPath As String
+    folderPath = fso.BuildPath(documentRootPath, CommonMasterDataFolderText())
+    folderPath = fso.BuildPath(folderPath, CommonProjectStatusDataSubFolderText())
+    CommonBuildProjectStatusDataFolderPath = folderPath & Chr$(92)
+End Function
+
+Private Sub CommonAppendProjectStatusFolderCandidate(ByVal candidates As Collection, _
+                                                     ByVal folderPath As String)
+    If Len(folderPath) = 0 Then Exit Sub
+
+    Dim normalizedPath As String
+    normalizedPath = folderPath
+    If Right$(normalizedPath, 1) <> Chr$(92) Then normalizedPath = normalizedPath & Chr$(92)
+
+    Dim i As Long
+    For i = 1 To candidates.Count
+        If StrComp(CStr(candidates(i)), normalizedPath, vbTextCompare) = 0 Then Exit Sub
+    Next i
+    candidates.Add normalizedPath
+End Sub
+
+Private Function CommonFirstExistingProjectStatusFolderPath(ByVal candidates As Collection) As String
+    Dim candidate As Variant
+    For Each candidate In candidates
+        If Len(CStr(candidate)) > 0 Then
+            If Left$(LCase$(CStr(candidate)), 8) <> "https://" Then
+                On Error Resume Next
+                If Dir(CStr(candidate), vbDirectory) <> "" Then
+                    CommonFirstExistingProjectStatusFolderPath = CStr(candidate)
+                    Exit Function
+                End If
+                On Error GoTo 0
+            End If
+        End If
+    Next candidate
+
+    If candidates.Count > 0 Then
+        CommonFirstExistingProjectStatusFolderPath = CStr(candidates(1))
+    End If
+End Function
+
+Private Function CommonMasterDataFolderText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = ChrW$(&H30DE) & ChrW$(&H30B9) & ChrW$(&H30BF) & ChrW$(&H30C7) & _
+                 ChrW$(&H30FC) & ChrW$(&H30BF)
+    End If
+    CommonMasterDataFolderText = cached
+End Function
+
+Private Function CommonProjectStatusDataSubFolderText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = ChrW$(&H3010) & ChrW$(&H5404) & ChrW$(&H652F) & ChrW$(&H5E97) & _
+                 ChrW$(&H5DE5) & ChrW$(&H4E8B) & ChrW$(&H756A) & ChrW$(&H53F7) & _
+                 ChrW$(&H30C7) & ChrW$(&H30FC) & ChrW$(&H30BF) & ChrW$(&H3011)
+    End If
+    CommonProjectStatusDataSubFolderText = cached
+End Function
+
+Private Function CommonOrderInvoiceDocumentFolderText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = ChrW$(&H7DDA) & ChrW$(&H8DEF) & ChrW$(&H51FA) & ChrW$(&H5F35) & ChrW$(&H6240) & _
+                 ChrW$(&H7528) & ChrW$(&H5F) & ChrW$(&H6CE8) & ChrW$(&H6587) & ChrW$(&H66F8) & ChrW$(&H5F) & _
+                 ChrW$(&H8ACB) & ChrW$(&H6C42) & ChrW$(&H66F8) & ChrW$(&H30A2) & ChrW$(&H30AF) & ChrW$(&H30BB) & _
+                 ChrW$(&H30B9) & ChrW$(&H30A4) & ChrW$(&H30C8) & " - " & _
+                 ChrW$(&H30C9) & ChrW$(&H30AD) & ChrW$(&H30E5) & ChrW$(&H30E1) & ChrW$(&H30F3) & ChrW$(&H30C8)
+    End If
+    CommonOrderInvoiceDocumentFolderText = cached
+End Function
