@@ -50,15 +50,11 @@ Private Sub LoadMasterDataToMemory()
     previousScreenUpdating = Application.screenUpdating
     On Error GoTo ErrorHandler
 
-    Dim folderPath As String: folderPath = mod_common.CommonGetProjectStatusDataFolderPath()
-    If Len(folderPath) = 0 Or Not mod_common.CommonProjectStatusFolderExists(folderPath) Then
-        MsgBox UiMsgProjectStatusLoadFailedText() & vbCrLf & vbCrLf & _
-               ProjectStatusDetailFileLabelText() & folderPath, vbExclamation
-        Exit Sub
-    End If
     Dim targetYear As Long
     Dim targetBranch As String
     Dim targetOffice As String
+    Dim sourceFilePath As String
+    Dim branchForFile As String
 
     targetYear = ProjectSelectionYear
     targetBranch = ProjectSelectionBranchName
@@ -67,16 +63,25 @@ Private Sub LoadMasterDataToMemory()
     Dim targetBranchOffice As String
     targetBranchOffice = GetProjectSelectionBranchOfficeSearchKey(targetBranch, targetOffice)
 
-    Dim sourceFilePath As String
-    sourceFilePath = folderPath & CStr(targetYear) & "_" & _
-        GetProjectSelectionBranchNameForFile(targetBranch) & mod_common.CommonProjectStatusFileSuffixText()
-    LogProjectSelection "folder=[" & folderPath & "] file=[" & sourceFilePath & "] key=[" & targetBranchOffice & "] year=" & CStr(targetYear)
+    branchForFile = GetProjectSelectionBranchNameForFile(targetBranch)
+    sourceFilePath = mod_common.CommonFindProjectStatusSourceFilePath(CStr(targetYear), branchForFile)
+    If Len(sourceFilePath) = 0 And targetYear > 0 And Len(branchForFile) > 0 Then
+        sourceFilePath = mod_common.CommonGetProjectStatusDataFolderPath() & CStr(targetYear) & "_" & _
+            branchForFile & mod_common.CommonProjectStatusFileSuffixText()
+    End If
+    LogProjectSelection "file=[" & sourceFilePath & "] key=[" & targetBranchOffice & "] year=" & CStr(targetYear)
+
+    If Len(sourceFilePath) = 0 Or Not mod_common.CommonProjectStatusFileExists(sourceFilePath) Then
+        MsgBox UiMsgProjectStatusLoadFailedText() & vbCrLf & vbCrLf & _
+               ProjectStatusDetailFileLabelText() & sourceFilePath, vbExclamation
+        Exit Sub
+    End If
 
     Me.Caption = UiMsgProjectStatusLoadingCaptionText(): DoEvents
     Application.screenUpdating = False
 
     Dim sourceArr As Variant
-    sourceArr = GetProjectStatusSourceArray(folderPath, CStr(targetYear), targetBranch)
+    sourceArr = GetProjectStatusSourceArray(sourceFilePath)
 
     Dim i As Long
     Dim hitCount As Long
@@ -138,16 +143,10 @@ FinallyExit:
                ProjectStatusDetailFileLabelText() & sourceFilePath, vbExclamation
     End If
 End Sub
-Private Function GetProjectStatusSourceArray(ByVal folderPath As String, ByVal targetYear As String, ByVal targetBranch As String) As Variant
-    Dim sourcePath As String
-    sourcePath = folderPath & targetYear & "_" & GetProjectSelectionBranchNameForFile(targetBranch) & mod_common.CommonProjectStatusFileSuffixText()
-
-    If Not mod_common.CommonProjectStatusFileExists(sourcePath) Then Exit Function
+Private Function GetProjectStatusSourceArray(ByVal sourcePath As String) As Variant
     GetProjectStatusSourceArray = ReadProjectStatusFileToArray(sourcePath, "Sheet1")
 End Function
 Private Function ReadProjectStatusFileToArray(ByVal sourcePath As String, ByVal sheetName As String) As Variant
-    If Not mod_common.CommonProjectStatusFileExists(sourcePath) Then Exit Function
-
     Dim cn As Object
     Set cn = mod_common.CommonOpenExcelAdoConnection(sourcePath)
     If cn Is Nothing Then Exit Function
