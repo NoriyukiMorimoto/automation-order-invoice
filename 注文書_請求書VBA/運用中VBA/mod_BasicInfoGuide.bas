@@ -52,6 +52,7 @@ Public Sub InitBasicInfoGuide(ByVal ws As Worksheet)
 
     ' 固定セル
     ApplyGuideCell ws, "C9",  GetC9CommentText(),  IsEmpty_Cell(ws.Range("C9"))
+    ApplyGuideMergedCell ws, "C13", GetC13CommentText(), IsEmpty_Cell(ws.Range("C13").MergeArea.Cells(1, 1))
     ApplyGuideMergedCell ws, "C22", GetC22CommentText(), IsEmpty_Cell(ws.Range("C22").MergeArea.Cells(1, 1))
     ApplyGuideMergedCell ws, "C23", GetC23CommentText(), IsEmpty_Cell(ws.Range("C23").MergeArea.Cells(1, 1))
     ApplyGuideMergedCell ws, BASIC_INFO_IMPORTED_LINE_NAMES_CELL, GetC24CommentText(), IsImportedLineNamesEmpty(ws)
@@ -77,6 +78,7 @@ Public Sub OnCellChanged(ByVal ws As Worksheet, ByVal target As Range)
 
     ' 固定セル判定
     If Not Intersect(target, ws.Range("C9"))  Is Nothing Then ApplyGuideCell ws, "C9",  GetC9CommentText(),  IsEmpty_Cell(ws.Range("C9"))
+    If Not Intersect(target, ws.Range("C13").MergeArea) Is Nothing Then ApplyGuideMergedCell ws, "C13", GetC13CommentText(), IsEmpty_Cell(ws.Range("C13").MergeArea.Cells(1, 1))
     If Not Intersect(target, ws.Range("C22")) Is Nothing Then ApplyGuideMergedCell ws, "C22", GetC22CommentText(), IsEmpty_Cell(ws.Range("C22").MergeArea.Cells(1, 1))
     If Not Intersect(target, ws.Range("C23")) Is Nothing Then ApplyGuideMergedCell ws, "C23", GetC23CommentText(), IsEmpty_Cell(ws.Range("C23").MergeArea.Cells(1, 1))
     If Not Intersect(target, GetImportedLineNamesMergeArea(ws)) Is Nothing Then _
@@ -689,6 +691,18 @@ Private Function GetC24CommentText() As String
         ChrW$(&H3057) & ChrW$(&H3066) & ChrW$(&H9078) & ChrW$(&H629E) & ChrW$(&H3057) & _
         ChrW$(&H3066) & ChrW$(&H304F) & ChrW$(&H3060) & ChrW$(&H3055) & ChrW$(&H3044) & _
         ChrW$(&H3002)
+End Function
+
+Private Function GetC13CommentText() As String
+    ' 本工事に適用される都道府県をダブルクリックして選択してください。
+    GetC13CommentText = _
+        ChrW$(&H672C) & ChrW$(&H5DE5) & ChrW$(&H4E8B) & ChrW$(&H306B) & ChrW$(&H9069) & _
+        ChrW$(&H7528) & ChrW$(&H3055) & ChrW$(&H308C) & ChrW$(&H308B) & ChrW$(&H90FD) & _
+        ChrW$(&H9053) & ChrW$(&H5E9C) & ChrW$(&H770C) & ChrW$(&H3092) & ChrW$(&H30C0) & _
+        ChrW$(&H30D6) & ChrW$(&H30EB) & ChrW$(&H30AF) & ChrW$(&H30EA) & ChrW$(&H30C3) & _
+        ChrW$(&H30AF) & ChrW$(&H3057) & ChrW$(&H3066) & ChrW$(&H9078) & ChrW$(&H629E) & _
+        ChrW$(&H3057) & ChrW$(&H3066) & ChrW$(&H304F) & ChrW$(&H3060) & ChrW$(&H3055) & _
+        ChrW$(&H3044) & ChrW$(&H3002)
 End Function
 
 Private Function GetF9CommentText() As String

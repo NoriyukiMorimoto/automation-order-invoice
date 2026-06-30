@@ -40,7 +40,7 @@ Private Sub Worksheet_Change(ByVal target As Range)
     Dim vendorUnitPriceMonitorRange As Range
     Set vendorUnitPriceMonitorRange = mod_VendorMaster.GetVendorUnitPriceMonitorRange(Me)
 
-    If Intersect(target, Me.Range("B4,B6,C6,C10,C15:C16,F9,C20,C22,C23,C24,F2")) Is Nothing And _
+    If Intersect(target, Me.Range("B4,B6,C6,C10,C13,C15:C16,F9,C20,C22,C23,C24,F2")) Is Nothing And _
        Intersect(target, vendorNameRange) Is Nothing And _
        Intersect(target, vendorUnitPriceMonitorRange) Is Nothing And _
        Intersect(target, Me.Range("C9,C22,C23,F9,F10,F11,F27,F29,F31,I10,I11,I27,I29,I31,L10,L11,L27,L29,L31,O10,O11,O27,O29,O31,R10,R11,R27,R29,R31,U10,U11,U27,U29,U31,X10,X11,X27,X29,X31,AA10,AA11,AA27,AA29,AA31,AD10,AD11,AD27,AD29,AD31,AG10,AG11,AG27,AG29,AG31")) Is Nothing Then
@@ -180,6 +180,12 @@ Private Sub Worksheet_BeforeDoubleClick(ByVal target As Range, Cancel As Boolean
     If mod_BasicInfoCellDropdown.IsCellDropdownTarget(Me, target) Then
         Cancel = True
         mod_BasicInfoCellDropdown.ShowCellValidationDropdown Me, target
+        Exit Sub
+    End If
+
+    If Not Intersect(target, Me.Range("C13")) Is Nothing Then
+        Cancel = True
+        mod_PrefectureSelector.RequestPrefectureSelection
         Exit Sub
     End If
 
