@@ -1753,10 +1753,12 @@ Public Sub RestoreWorksheetAutoFilter(ByVal ws As Worksheet, ByVal saved As Obje
     On Error Resume Next
     If ws.FilterMode Then ws.ShowAllData
 
-    Dim key As Variant
-    For Each key In fields.Keys
-        ApplyCapturedAutoFilterField filterRange, CLng(key), fields(key)
-    Next key
+    Dim fieldIndex As Long
+    For fieldIndex = 1 To ws.AutoFilter.Filters.Count
+        If fields.Exists(CStr(fieldIndex)) Then
+            ApplyCapturedAutoFilterField filterRange, fieldIndex, fields(CStr(fieldIndex))
+        End If
+    Next fieldIndex
     Err.Clear
     On Error GoTo 0
 End Sub
@@ -1787,8 +1789,10 @@ Private Sub ApplyCapturedAutoFilterField(ByVal filterRange As Range, _
     If fieldInfo Is Nothing Then Exit Sub
 
     Dim crit1 As Variant
+    Dim crit2 As Variant
     Dim op As XlAutoFilterOperator
     crit1 = fieldInfo("Criteria1")
+    crit2 = fieldInfo("Criteria2")
     op = fieldInfo("Operator")
 
     On Error Resume Next
@@ -1797,11 +1801,17 @@ Private Sub ApplyCapturedAutoFilterField(ByVal filterRange As Range, _
             filterRange.AutoFilter Field:=fieldNum, Criteria1:=crit1, Operator:=xlFilterValues
         Case xlAnd, xlOr
             filterRange.AutoFilter Field:=fieldNum, Criteria1:=crit1, Operator:=op, _
-                Criteria2:=fieldInfo("Criteria2")
+                Criteria2:=crit2
         Case Else
             If IsArray(crit1) Then
                 filterRange.AutoFilter Field:=fieldNum, Criteria1:=crit1, Operator:=xlFilterValues
-            Else
+            ElseIf VarType(crit1) = vbString Then
+                If Left$(CStr(crit1), 1) = "=" Then
+                    filterRange.AutoFilter Field:=fieldNum, Criteria1:=Mid$(CStr(crit1), 2)
+                ElseIf Len(Trim$(CStr(crit1))) > 0 Then
+                    filterRange.AutoFilter Field:=fieldNum, Criteria1:=crit1
+                End If
+            ElseIf Len(Trim$(CStr(crit1))) > 0 Then
                 filterRange.AutoFilter Field:=fieldNum, Criteria1:=crit1, Operator:=op
             End If
     End Select
