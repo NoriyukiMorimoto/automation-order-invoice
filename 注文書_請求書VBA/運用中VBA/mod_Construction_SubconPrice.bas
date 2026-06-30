@@ -43,8 +43,12 @@ Public Sub RefreshSubcontractorPriceColumnsCore(ByVal ws As Worksheet, _
     Dim isWeldingSheet As Boolean
     Dim vendorColumns As Collection
     Dim partialUpdate As Boolean
+    Dim savedAutoFilter As Object
 
     Set vendorNames = New Collection
+
+    Set savedAutoFilter = mod_Construction_LineMapping.CaptureWorksheetAutoFilter(ws)
+    mod_Construction_LineMapping.SuspendWorksheetAutoFilterView ws
 
     refreshStep = "CollectVendors"
     On Error Resume Next
@@ -287,6 +291,8 @@ RefreshError:
     refreshErrDesc = Err.Description
 
 RefreshExit:
+    mod_Construction_LineMapping.RestoreWorksheetAutoFilter ws, savedAutoFilter
+    Set savedAutoFilter = Nothing
     Application.screenUpdating = scrn
     Application.Calculation = calcMode
     If calcMode = xlCalculationAutomatic Then
