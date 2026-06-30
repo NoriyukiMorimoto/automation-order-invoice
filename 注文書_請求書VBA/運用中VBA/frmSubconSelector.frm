@@ -7,7 +7,7 @@ Public confirmed As Boolean
 Public SelectedCompany As String
 
 Private Const FORM_FONT_SIZE As Single = 14
-Private Const COMPANY_ITEM_HEIGHT As Single = 38
+Private Const COMPANY_ITEM_HEIGHT As Single = 28
 Private Const COMPANY_OPTION_LEFT As Single = 8
 Private Const COMPANY_OPTION_TOP_MARGIN As Single = 8
 
