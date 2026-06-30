@@ -352,7 +352,7 @@ End Function
 
 Public Function UiMsgDebugLogFlushSuffixText() As String
     Static cached As String
-    If cached = "" Then cached = CommonTextFromChars(&H0020,&H4EF6,&H306E,&H30ED,&H30B0,&H3092,&H30B7,&H30FC,&H30C8,&H306B,&H51FA,&H529B,&H3057,&H307E,&H3057,&H305F,&H3002)
+    If cached = "" Then cached = CommonTextFromChars(&H0020,&H4EF6,&H306E,&H30ED,&H30B0,&H3092,&H30C6,&H30AD,&H30B9,&H30C8,&H30D5,&H30A1,&H30A4,&H30EB,&H306B,&H51FA,&H529B,&H3057,&H307E,&H3057,&H305F,&H3002)
     UiMsgDebugLogFlushSuffixText = cached
 End Function
 
