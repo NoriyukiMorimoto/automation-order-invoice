@@ -1639,40 +1639,53 @@ Public Function GetLastDataRow(ByVal ws As Worksheet, _
                                 Optional ByVal dataKeyColumn As Long = 0) As Long
     If dataKeyColumn = 0 Then dataKeyColumn = mod_Construction_OutputLayout.OutputSheetSeiriColumnCore(ws)
 
-    '  AutoFilter 適用時は UsedRange / End(xlUp) が表示行のみを参照する。
-    '  Find は隠し行も含めて検索するため、最終データ行の起点に使う。
-    Dim scanStartRow As Long
-    scanStartRow = 0
-
-    Dim found As Range
-    On Error Resume Next
-    Set found = ws.Columns(dataKeyColumn).Find( _
-        What:="*", LookIn:=xlValues, LookAt:=xlPart, _
-        SearchOrder:=xlByRows, SearchDirection:=xlPrevious, _
-        MatchCase:=False)
-    On Error GoTo 0
-    If Not found Is Nothing Then scanStartRow = found.Row
-
-    If scanStartRow < 2 Then
-        If Not ws.UsedRange Is Nothing Then
-            Dim usedLastRow As Long
-            usedLastRow = ws.UsedRange.Row + ws.UsedRange.Rows.Count - 1
-            If usedLastRow > scanStartRow Then scanStartRow = usedLastRow
+    If Not ws.AutoFilterMode Then
+        Dim fastLastRow As Long
+        fastLastRow = ws.Cells(ws.Rows.Count, dataKeyColumn).End(xlUp).Row
+        If fastLastRow >= 2 Then
+            GetLastDataRow = fastLastRow
+            Exit Function
         End If
-    End If
-
-    If scanStartRow < 2 Then
         GetLastDataRow = 1
         Exit Function
     End If
 
+    '  AutoFilter 適用時: Range.Value2 は隠し行も含むため配列走査で最終行を求める。
+    Dim scanHigh As Long
+    scanHigh = 2
+    If Not ws.UsedRange Is Nothing Then
+        scanHigh = ws.UsedRange.Row + ws.UsedRange.Rows.Count - 1 + 50000
+    End If
+    If scanHigh > ws.Rows.Count Then scanHigh = ws.Rows.Count
+    If scanHigh < 2 Then
+        GetLastDataRow = 1
+        Exit Function
+    End If
+
+    Dim colData As Variant
+    colData = ws.Range(ws.Cells(2, dataKeyColumn), ws.Cells(scanHigh, dataKeyColumn)).Value2
+
     Dim rowIndex As Long
-    For rowIndex = scanStartRow To 2 Step -1
-        If Trim$(CommonNzText(ws.Cells(rowIndex, dataKeyColumn).value)) <> "" Then
-            GetLastDataRow = rowIndex
-            Exit Function
-        End If
-    Next rowIndex
+    If IsArray(colData) Then
+        For rowIndex = UBound(colData, 1) To LBound(colData, 1) Step -1
+            If Trim$(CommonNzText(colData(rowIndex, 1))) <> "" Then
+                GetLastDataRow = rowIndex + 1
+                Exit Function
+            End If
+        Next rowIndex
+    ElseIf Trim$(CommonNzText(colData)) <> "" Then
+        GetLastDataRow = 2
+        Exit Function
+    End If
+
+    If scanHigh < ws.Rows.Count Then
+        For rowIndex = ws.Rows.Count To scanHigh + 1 Step -1
+            If Trim$(CommonNzText(ws.Cells(rowIndex, dataKeyColumn).value)) <> "" Then
+                GetLastDataRow = rowIndex
+                Exit Function
+            End If
+        Next rowIndex
+    End If
 
     GetLastDataRow = 1
 End Function
