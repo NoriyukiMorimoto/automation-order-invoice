@@ -33,8 +33,8 @@ Private Sub SetupListView()
         .MultiSelect = False
         .ColumnHeaders.Clear
         .ColumnHeaders.Add , , "", 0
-        .ColumnHeaders.Add , , "????", 100, lvwColumnCenter
-        .ColumnHeaders.Add , , "????", 500
+        .ColumnHeaders.Add , , ProjectStatusColumnProjectNoText(), 100, lvwColumnCenter
+        .ColumnHeaders.Add , , ProjectStatusColumnProjectNameText(), 500
         .ColumnHeaders.Add , , "", 0
         .ColumnHeaders.Add , , "", 0
         .ColumnHeaders.Add , , "", 0
@@ -126,12 +126,61 @@ FinallyExit:
     End If
 End Sub
 Private Function GetProjectStatusDataFolderPath() As String
-    GetProjectStatusDataFolderPath = Environ$("USERPROFILE") & _
-        "\????????\??7_????????? - ??7_?????????\????????????" & Chr$(92)
+    Dim candidates As Collection
+    Set candidates = New Collection
+
+    Dim defaultFolder As String
+    defaultFolder = BuildProjectStatusDataFolderPath(Environ$("USERPROFILE"))
+    AppendProjectStatusFolderCandidate candidates, defaultFolder
+
+    On Error Resume Next
+    Dim wbPath As String
+    wbPath = ThisWorkbook.Path
+    If Len(wbPath) > 0 Then
+        If Left$(LCase$(wbPath), 8) <> "https://" Then
+            AppendProjectStatusFolderCandidate candidates, BuildProjectStatusDataFolderPath(wbPath)
+            AppendProjectStatusFolderCandidate candidates, _
+                BuildProjectStatusDataFolderPath(Left$(wbPath, InStrRev(wbPath, Chr$(92)) - 1))
+        End If
+    End If
+    On Error GoTo 0
+
+    Dim i As Long
+    For i = 1 To candidates.Count
+        Dim folderPath As String
+        folderPath = CStr(candidates(i))
+        If Len(Dir(folderPath, vbDirectory)) > 0 Then
+            GetProjectStatusDataFolderPath = folderPath
+            Exit Function
+        End If
+    Next i
+
+    GetProjectStatusDataFolderPath = defaultFolder
 End Function
+
+Private Sub AppendProjectStatusFolderCandidate(ByVal candidates As Collection, ByVal folderPath As String)
+    If Len(folderPath) = 0 Then Exit Sub
+
+    Dim normalizedPath As String
+    normalizedPath = folderPath
+    If Right$(normalizedPath, 1) <> Chr$(92) Then normalizedPath = normalizedPath & Chr$(92)
+
+    Dim i As Long
+    For i = 1 To candidates.Count
+        If StrComp(CStr(candidates(i)), normalizedPath, vbTextCompare) = 0 Then Exit Sub
+    Next i
+    candidates.Add normalizedPath
+End Sub
+
+Private Function BuildProjectStatusDataFolderPath(ByVal rootPath As String) As String
+    If Len(rootPath) = 0 Then Exit Function
+    BuildProjectStatusDataFolderPath = rootPath & Chr$(92) & mod_common.CommonCompanyNameText() & Chr$(92) & _
+        ProjectStatusParentFolderText() & Chr$(92) & ProjectStatusDataSubFolderText() & Chr$(92)
+End Function
+
 Private Function GetProjectStatusSourceArray(ByVal folderPath As String, ByVal targetYear As String, ByVal targetBranch As String) As Variant
     Dim sourcePath As String
-    sourcePath = folderPath & targetYear & "_" & GetProjectSelectionBranchNameForFile(targetBranch) & "_????????.xlsx"
+    sourcePath = folderPath & targetYear & "_" & GetProjectSelectionBranchNameForFile(targetBranch) & ProjectStatusFileSuffixText()
 
     If Len(Dir(sourcePath, vbNormal)) = 0 Then Exit Function
     GetProjectStatusSourceArray = ReadProjectStatusFileToArray(sourcePath, "Sheet1")
@@ -140,6 +189,8 @@ Private Function ReadProjectStatusFileToArray(ByVal sourcePath As String, ByVal 
     Dim sourceBook As Workbook
     Dim sourceSheet As Worksheet
     Dim lastRow As Long
+
+    If Len(Dir(sourcePath, vbNormal)) = 0 Then Exit Function
 
     On Error GoTo Cleanup
     Set sourceBook = Workbooks.Open(fileName:=sourcePath, ReadOnly:=True, UpdateLinks:=False)
@@ -335,10 +386,10 @@ Private Sub SetBasicInfoContractDateValue(ByVal targetCell As Range, ByVal contr
 
     If TryParseProjectContractDate(contractDate, parsedDate) Then
         targetCell.value = parsedDate
-        displayRange.NumberFormatLocal = "yyyy?m?d?"
+        displayRange.NumberFormatLocal = ProjectStatusDateNumberFormatText()
     Else
         targetCell.value = RemoveProjectContractWeekday(contractDate)
-        displayRange.NumberFormatLocal = "yyyy?m?d?"
+        displayRange.NumberFormatLocal = ProjectStatusDateNumberFormatText()
     End If
 End Sub
 
@@ -397,9 +448,9 @@ Private Function TryParseProjectContractDate(ByVal sourceText As String, ByRef p
 
     sourceText = Replace$(sourceText, ".", "/")
     sourceText = Replace$(sourceText, "-", "/")
-    sourceText = Replace$(sourceText, "?", "/")
-    sourceText = Replace$(sourceText, "?", "/")
-    sourceText = Replace$(sourceText, "?", "")
+    sourceText = Replace$(sourceText, ProjectStatusYearSuffixText(), "/")
+    sourceText = Replace$(sourceText, ProjectStatusMonthSuffixText(), "/")
+    sourceText = Replace$(sourceText, ProjectStatusDaySuffixText(), "")
     If IsDate(sourceText) Then
         parsedDate = CDate(sourceText)
         TryParseProjectContractDate = True
@@ -417,12 +468,11 @@ Private Function RemoveProjectContractWeekday(ByVal sourceText As String) As Str
     p = InStr(sourceText, "(")
     If p > 0 Then sourceText = Left$(sourceText, p - 1)
 
-    p = InStr(sourceText, "?")
+    p = InStr(sourceText, ProjectStatusFullWidthOpenParenText())
     If p > 0 Then sourceText = Left$(sourceText, p - 1)
 
     Dim weekdayNames As Variant
-    weekdayNames = Array("???", "???", "???", "???", "???", "???", "???", _
-                         "??", "??", "??", "??", "??", "??", "??")
+    weekdayNames = ProjectStatusWeekdayNamesLongArray()
     Dim j As Long
     For j = 0 To UBound(weekdayNames)
         Dim suffixH As String
@@ -433,7 +483,7 @@ Private Function RemoveProjectContractWeekday(ByVal sourceText As String) As Str
             Exit For
         End If
         Dim suffixZ As String
-        suffixZ = "?" & weekdayNames(j)
+        suffixZ = ProjectStatusFullWidthSpaceText() & weekdayNames(j)
         If Right$(sourceText, Len(suffixZ)) = suffixZ Then
             sourceText = Left$(sourceText, Len(sourceText) - Len(suffixZ))
             sourceText = Trim$(sourceText)
@@ -442,7 +492,7 @@ Private Function RemoveProjectContractWeekday(ByVal sourceText As String) As Str
     Next j
 
     Dim weekdays As Variant
-    weekdays = Array("?", "?", "?", "?", "?", "?", "?")
+    weekdays = ProjectStatusWeekdayNamesShortArray()
     Dim i As Long
     For i = 0 To UBound(weekdays)
         Dim sLen As Long
@@ -497,3 +547,129 @@ Private Sub SetSelectedValue()
                                  Me.ListView1.SelectedItem.SubItems(5), _
                                  Me.ListView1.SelectedItem.SubItems(6)
 End Sub
+
+Private Function ProjectStatusParentFolderText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = ChrW$(&H5E33) & ChrW$(&H7968) & "7_" & _
+                 ChrW$(&H652F) & ChrW$(&H6255) & ChrW$(&H91D1) & ChrW$(&H984D) & _
+                 ChrW$(&H8A08) & ChrW$(&H7B97) & ChrW$(&H30B7) & ChrW$(&H30FC) & ChrW$(&H30C8) & _
+                 " - " & ChrW$(&H5E33) & ChrW$(&H7968) & "7_" & _
+                 ChrW$(&H652F) & ChrW$(&H6255) & ChrW$(&H91D1) & ChrW$(&H984D) & _
+                 ChrW$(&H8A08) & ChrW$(&H7B97) & ChrW$(&H30B7) & ChrW$(&H30FC) & ChrW$(&H30C8)
+    End If
+    ProjectStatusParentFolderText = cached
+End Function
+
+Private Function ProjectStatusDataSubFolderText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = ChrW$(&H3010) & ChrW$(&H5404) & ChrW$(&H652F) & ChrW$(&H5E97) & _
+                 ChrW$(&H5DE5) & ChrW$(&H4E8B) & ChrW$(&H756A) & ChrW$(&H53F7) & _
+                 ChrW$(&H6570) & ChrW$(&H30C7) & ChrW$(&H30FC) & ChrW$(&H30BF) & ChrW$(&H3011)
+    End If
+    ProjectStatusDataSubFolderText = cached
+End Function
+
+Private Function ProjectStatusFileSuffixText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = "_" & ChrW$(&H5DE5) & ChrW$(&H4E8B) & ChrW$(&H73FE) & ChrW$(&H6CC1) & _
+                 ChrW$(&H8868) & ChrW$(&H30C7) & ChrW$(&H30FC) & ChrW$(&H30BF) & ".xlsx"
+    End If
+    ProjectStatusFileSuffixText = cached
+End Function
+
+Private Function ProjectStatusColumnProjectNoText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = ChrW$(&H5DE5) & ChrW$(&H4E8B) & ChrW$(&H756A) & ChrW$(&H53F7)
+    End If
+    ProjectStatusColumnProjectNoText = cached
+End Function
+
+Private Function ProjectStatusColumnProjectNameText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = ChrW$(&H5DE5) & ChrW$(&H4E8B) & ChrW$(&H4EF6) & ChrW$(&H540D)
+    End If
+    ProjectStatusColumnProjectNameText = cached
+End Function
+
+Private Function ProjectStatusDateNumberFormatText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = "yyyy" & ChrW$(&H5E74) & "m" & ChrW$(&H6708) & "d" & ChrW$(&H65E5)
+    End If
+    ProjectStatusDateNumberFormatText = cached
+End Function
+
+Private Function ProjectStatusYearSuffixText() As String
+    Static cached As String
+    If cached = "" Then cached = ChrW$(&H5E74)
+    ProjectStatusYearSuffixText = cached
+End Function
+
+Private Function ProjectStatusMonthSuffixText() As String
+    Static cached As String
+    If cached = "" Then cached = ChrW$(&H6708)
+    ProjectStatusMonthSuffixText = cached
+End Function
+
+Private Function ProjectStatusDaySuffixText() As String
+    Static cached As String
+    If cached = "" Then cached = ChrW$(&H65E5)
+    ProjectStatusDaySuffixText = cached
+End Function
+
+Private Function ProjectStatusFullWidthOpenParenText() As String
+    Static cached As String
+    If cached = "" Then cached = ChrW$(&HFF08)
+    ProjectStatusFullWidthOpenParenText = cached
+End Function
+
+Private Function ProjectStatusFullWidthSpaceText() As String
+    Static cached As String
+    If cached = "" Then cached = ChrW$(&H3000)
+    ProjectStatusFullWidthSpaceText = cached
+End Function
+
+Private Function ProjectStatusWeekdayNamesLongArray() As Variant
+    ProjectStatusWeekdayNamesLongArray = Array( _
+        ProjectStatusWeekdayLongText(1), ProjectStatusWeekdayLongText(2), _
+        ProjectStatusWeekdayLongText(3), ProjectStatusWeekdayLongText(4), _
+        ProjectStatusWeekdayLongText(5), ProjectStatusWeekdayLongText(6), _
+        ProjectStatusWeekdayLongText(7), ProjectStatusWeekdayMediumText(1), _
+        ProjectStatusWeekdayMediumText(2), ProjectStatusWeekdayMediumText(3), _
+        ProjectStatusWeekdayMediumText(4), ProjectStatusWeekdayMediumText(5), _
+        ProjectStatusWeekdayMediumText(6), ProjectStatusWeekdayMediumText(7))
+End Function
+
+Private Function ProjectStatusWeekdayNamesShortArray() As Variant
+    ProjectStatusWeekdayNamesShortArray = Array( _
+        ProjectStatusWeekdayShortText(1), ProjectStatusWeekdayShortText(2), _
+        ProjectStatusWeekdayShortText(3), ProjectStatusWeekdayShortText(4), _
+        ProjectStatusWeekdayShortText(5), ProjectStatusWeekdayShortText(6), _
+        ProjectStatusWeekdayShortText(7))
+End Function
+
+Private Function ProjectStatusWeekdayLongText(ByVal weekdayIndex As Long) As String
+    ProjectStatusWeekdayLongText = ProjectStatusWeekdayShortText(weekdayIndex) & _
+                                   ChrW$(&H66DC) & ChrW$(&H65E5)
+End Function
+
+Private Function ProjectStatusWeekdayMediumText(ByVal weekdayIndex As Long) As String
+    ProjectStatusWeekdayMediumText = ProjectStatusWeekdayShortText(weekdayIndex) & ChrW$(&H66DC)
+End Function
+
+Private Function ProjectStatusWeekdayShortText(ByVal weekdayIndex As Long) As String
+    Select Case weekdayIndex
+        Case 1: ProjectStatusWeekdayShortText = ChrW$(&H6708)
+        Case 2: ProjectStatusWeekdayShortText = ChrW$(&H706B)
+        Case 3: ProjectStatusWeekdayShortText = ChrW$(&H6C34)
+        Case 4: ProjectStatusWeekdayShortText = ChrW$(&H6728)
+        Case 5: ProjectStatusWeekdayShortText = ChrW$(&H91D1)
+        Case 6: ProjectStatusWeekdayShortText = ChrW$(&H571F)
+        Case 7: ProjectStatusWeekdayShortText = ChrW$(&H65E5)
+    End Select
+End Function
