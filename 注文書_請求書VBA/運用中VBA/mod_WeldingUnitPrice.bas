@@ -187,8 +187,8 @@ Cleanup:
     End If
 End Sub
 
-' 工事種別(10行目)が変わらない会社名変更時は、5行目の会社名表示だけを更新する。
-' 全行展開(ApplyWeldingVendorUnitPricesForBasicInfo)は数十秒かかるため、名称変更では呼ばない。
+' 工事種別(10行目)が変わらない施工会社変更時は、レール溶接単価シートの列レイアウトを基本情報と同期する。
+' 基本情報に無い施工会社列はクリアし、有効ブロックは5行目の会社名のみ更新する(数式の全行再展開は行わない)。
 Public Sub UpdateWeldingVendorDisplayNamesForBasicInfo(Optional ByVal wsInfo As Worksheet, _
                                                        Optional ByVal preferredRatioColumn As Long = 0)
     If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet()
@@ -218,10 +218,10 @@ Public Sub UpdateWeldingVendorDisplayNamesForBasicInfo(Optional ByVal wsInfo As 
     Dim wsWelding As Variant
     For Each wsWelding In weldingSheets
         On Error Resume Next
-        UpdateWeldingVendorDisplayNamesOnSheet wsWelding, weldingBlocks, weldingBlockCount, _
+        SyncWeldingVendorBlocksLayoutOnSheet wsWelding, wsInfo, weldingBlocks, weldingBlockCount, _
             railBlocks, railBlockCount, vendorUnitPriceNameMap
         If Err.Number <> 0 Then
-            LogWUP "表示名更新スキップ sheet=[" & wsWelding.Name & "] Err=" & CStr(Err.Number)
+            LogWUP "レイアウト同期スキップ sheet=[" & wsWelding.Name & "] Err=" & CStr(Err.Number)
             Err.Clear
         End If
         On Error GoTo Cleanup
@@ -277,6 +277,9 @@ Public Sub ClearSurplusWeldingVendorBlocksForBasicInfo(Optional ByVal wsInfo As 
             ClearRailPatternBlock wsWelding, surplusRailDayCol
             ClearWeldingVendorBlock wsWelding, lastRow, surplusRailDayCol
         Next railIndex
+
+        ClearWeldingVendorColumnsBeyondLayout wsWelding, lastRow, _
+            GetWeldingSheetRightmostVendorNightCol(weldingBlockCount, railBlockCount)
 ContinueNextSheet:
     Next wsWelding
 
@@ -320,29 +323,90 @@ ContinueNextRemoved:
     Next i
 End Function
 
-Private Sub UpdateWeldingVendorDisplayNamesOnSheet(ByVal wsWelding As Worksheet, _
-                                                  ByRef weldingBlocks() As WeldingVendorBlock, _
-                                                  ByVal weldingBlockCount As Long, _
-                                                  ByRef railBlocks() As WeldingVendorBlock, _
-                                                  ByVal railBlockCount As Long, _
-                                                  ByVal vendorUnitPriceNameMap As Object)
+Private Sub SyncWeldingVendorBlocksLayoutOnSheet(ByVal wsWelding As Worksheet, _
+                                                 ByVal wsInfo As Worksheet, _
+                                                 ByRef weldingBlocks() As WeldingVendorBlock, _
+                                                 ByVal weldingBlockCount As Long, _
+                                                 ByRef railBlocks() As WeldingVendorBlock, _
+                                                 ByVal railBlockCount As Long, _
+                                                 ByVal vendorUnitPriceNameMap As Object)
+    Dim lastRow As Long
+    lastRow = wsWelding.Cells(wsWelding.Rows.Count, WUP_SEIRI_COL).End(xlUp).Row
+    If lastRow < WUP_DATA_START_ROW Then lastRow = WUP_DATA_START_ROW + 200
+
+    ClearLegacyOutsourcePatternSelector wsWelding
+
     Dim wIdx As Long
     For wIdx = 1 To weldingBlockCount
-        If weldingBlocks(wIdx).hasRatio Then
-            UpdateWeldingVendorDisplayNameOnly wsWelding, GetWeldingDayColByIndex(wIdx), _
+        Dim weldingDayCol As Long
+        weldingDayCol = GetWeldingDayColByIndex(wIdx)
+        If ShouldShowWeldingVendorBlock(weldingBlocks(wIdx)) Then
+            UpdateWeldingVendorDisplayNameOnly wsWelding, weldingDayCol, _
                 ResolveVendorUnitPriceNameWUP(vendorUnitPriceNameMap, weldingBlocks(wIdx).vendorName)
+        Else
+            ClearWeldingVendorBlock wsWelding, lastRow, weldingDayCol
         End If
     Next wIdx
 
+    For wIdx = weldingBlockCount + 1 To MAX_VENDOR_BLOCK_COUNT
+        ClearWeldingVendorBlock wsWelding, lastRow, GetWeldingDayColByIndex(wIdx)
+    Next wIdx
+
     Dim railIndex As Long
+    Dim railDayCol As Long
     For railIndex = 1 To railBlockCount
-        Dim railDayCol As Long
         railDayCol = GetRailDayColByIndex(weldingBlockCount, railIndex)
-        If railBlocks(railIndex).hasRatio Then
+        If ShouldShowWeldingVendorBlock(railBlocks(railIndex)) Then
+            ApplyRailPatternRow wsWelding, wsInfo, railDayCol, railBlocks(railIndex).valueColumn
             UpdateWeldingVendorDisplayNameOnly wsWelding, railDayCol, _
                 ResolveVendorUnitPriceNameWUP(vendorUnitPriceNameMap, railBlocks(railIndex).vendorName)
+        Else
+            ClearRailPatternBlock wsWelding, railDayCol
+            ClearWeldingVendorBlock wsWelding, lastRow, railDayCol
         End If
     Next railIndex
+
+    For railIndex = railBlockCount + 1 To MAX_VENDOR_BLOCK_COUNT
+        railDayCol = GetRailDayColByIndex(weldingBlockCount, railIndex)
+        ClearRailPatternBlock wsWelding, railDayCol
+        ClearWeldingVendorBlock wsWelding, lastRow, railDayCol
+    Next railIndex
+
+    ClearWeldingVendorColumnsBeyondLayout wsWelding, lastRow, _
+        GetWeldingSheetRightmostVendorNightCol(weldingBlockCount, railBlockCount)
+End Sub
+
+Private Function ShouldShowWeldingVendorBlock(ByRef block As WeldingVendorBlock) As Boolean
+    ShouldShowWeldingVendorBlock = (Len(Trim$(block.vendorName)) > 0) And block.hasRatio
+End Function
+
+Private Function GetWeldingSheetRightmostVendorNightCol(ByVal weldingBlockCount As Long, _
+                                                        ByVal railBlockCount As Long) As Long
+    If railBlockCount > 0 Then
+        GetWeldingSheetRightmostVendorNightCol = GetRailDayColByIndex(weldingBlockCount, railBlockCount) + 1
+    ElseIf weldingBlockCount > 0 Then
+        GetWeldingSheetRightmostVendorNightCol = GetWeldingDayColByIndex(weldingBlockCount) + 1
+    Else
+        GetWeldingSheetRightmostVendorNightCol = WUP_WELDING_DAY_COL - 1
+    End If
+End Function
+
+Private Sub ClearWeldingVendorColumnsBeyondLayout(ByVal wsWelding As Worksheet, _
+                                                  ByVal lastRow As Long, _
+                                                  ByVal rightmostNightCol As Long)
+    Dim sheetLastCol As Long
+    On Error Resume Next
+    sheetLastCol = wsWelding.Cells(WUP_NAME_ROW, wsWelding.Columns.Count).End(xlToLeft).Column
+    On Error GoTo 0
+    If sheetLastCol <= rightmostNightCol Then Exit Sub
+    If sheetLastCol < WUP_WELDING_DAY_COL Then Exit Sub
+
+    Dim dayCol As Long
+    dayCol = rightmostNightCol + 1
+    Do While dayCol <= sheetLastCol
+        ClearWeldingVendorBlock wsWelding, lastRow, dayCol
+        dayCol = dayCol + 2
+    Loop
 End Sub
 
 Private Sub UpdateWeldingVendorDisplayNameOnly(ByVal wsWelding As Worksheet, _
