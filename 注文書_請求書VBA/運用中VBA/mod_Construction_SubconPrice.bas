@@ -49,6 +49,12 @@ Public Sub RefreshSubcontractorPriceColumnsCore(ByVal ws As Worksheet, _
     Set vendorNames = New Collection
     Set savedAutoFilter = mod_Construction_LineMapping.CaptureWorksheetAutoFilter(ws)
     filterNeedsRestore = False
+    If Not savedAutoFilter Is Nothing Then
+        If CBool(savedAutoFilter("HadFilterMode")) Then
+            mod_Construction_LineMapping.SuspendWorksheetAutoFilterView ws
+            filterNeedsRestore = True
+        End If
+    End If
 
     refreshStep = "CollectVendors"
     On Error Resume Next
@@ -75,10 +81,6 @@ Public Sub RefreshSubcontractorPriceColumnsCore(ByVal ws As Worksheet, _
     Err.Clear
 
     If Not layoutMatches Then
-        If ws.FilterMode Then
-            mod_Construction_LineMapping.SuspendWorksheetAutoFilterView ws
-            filterNeedsRestore = True
-        End If
         refreshStep = "LayoutDelete"
         If kindColumn > subconFirstCol Then
             ws.Range(ws.Columns(subconFirstCol), _
