@@ -70,12 +70,21 @@ Private Sub Workbook_SheetBeforeDoubleClick(ByVal Sh As Object, ByVal Target As 
     Cancel = True
     Application.EnableEvents = True
 
-    If Not mSubconSavedSel Is Nothing Then
-        If mSubconSavedSel.Worksheet Is Sh Then
-            If Not Application.Intersect(mSubconSavedSel, Target) Is Nothing Then
-                If mSubconSavedSel.CountLarge > 1 Then mSubconSavedSel.Select
-            End If
+    '  複数選択時は保存範囲を、単独セル時は対象セルを
+    '  明示的に選択し直して UI 状態を確定させる。
+    '  これが無いとダブルクリック直後の未確定状態で
+    '  Application.OnTime が発火せず、フォームが起動しない。
+    If Not mSubconSavedSel Is Nothing _
+       And TypeName(mSubconSavedSel) = "Range" Then
+        If mSubconSavedSel.Worksheet Is Sh _
+           And mSubconSavedSel.CountLarge > 1 _
+           And (Not Application.Intersect(mSubconSavedSel, Target) Is Nothing) Then
+            mSubconSavedSel.Select
+        Else
+            Target.Cells(1, 1).Select
         End If
+    Else
+        Target.Cells(1, 1).Select
     End If
 
     mod_subcontractorselector.RequestSubcontractorSelection

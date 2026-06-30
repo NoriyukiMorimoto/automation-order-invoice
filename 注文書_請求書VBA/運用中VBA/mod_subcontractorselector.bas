@@ -32,7 +32,7 @@ Public Sub RequestSubcontractorSelection()
     mSelectionScheduled = True
 
     On Error Resume Next
-    Application.OnTime EarliestTime:=Now, _
+    Application.OnTime EarliestTime:=Now + TimeSerial(0, 0, 1), _
                        Procedure:="'" & ThisWorkbook.Name & "'!RunScheduledSubcontractorSelection", _
                        Schedule:=True
     If Err.Number <> 0 Then
