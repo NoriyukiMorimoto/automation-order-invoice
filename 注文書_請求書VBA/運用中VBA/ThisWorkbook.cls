@@ -78,7 +78,7 @@ Private Sub Workbook_SheetBeforeDoubleClick(ByVal Sh As Object, ByVal Target As 
         End If
     End If
 
-    mod_subcontractorselector.SelectSubcontractorForSelection
+    mod_subcontractorselector.RequestSubcontractorSelection
 End Sub
 
 Private Sub Workbook_SheetBeforeRightClick(ByVal Sh As Object, ByVal Target As Range, Cancel As Boolean)
@@ -100,7 +100,7 @@ Private Sub Workbook_SheetBeforeRightClick(ByVal Sh As Object, ByVal Target As R
     Dim btn As Object
     Set btn = cbMenu.Controls.Add(Type:=msoControlButton, Before:=1, Temporary:=True)
     btn.Caption = SubconMenuCaptionText()
-    btn.OnAction = "SelectSubcontractorForSelection"
+    btn.OnAction = "RequestSubcontractorSelection"
     On Error Resume Next
     btn.FaceId = 626
     On Error GoTo 0

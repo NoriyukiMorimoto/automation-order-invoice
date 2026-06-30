@@ -22,6 +22,34 @@ Private Const TRACK_WORK_TYPE_KEYWORD As String = "軌道工事"
 
 Private Const HELPER_COL As Long = 100
 
+Private mSelectionScheduled As Boolean
+
+'  ダブルクリック・右クリックメニューからの呼び出し用エントリーポイント。
+'  イベント/メニューの最中にモーダルフォームを同期表示するとハングするため、
+'  Application.OnTime で UI 解放後に起動を遅延させる。
+Public Sub RequestSubcontractorSelection()
+    If mSelectionScheduled Then Exit Sub
+    mSelectionScheduled = True
+
+    On Error Resume Next
+    Application.OnTime EarliestTime:=Now, _
+                       Procedure:="'" & ThisWorkbook.Name & "'!RunScheduledSubcontractorSelection", _
+                       Schedule:=True
+    If Err.Number <> 0 Then
+        Err.Clear
+        On Error GoTo 0
+        mSelectionScheduled = False
+        RunScheduledSubcontractorSelection
+        Exit Sub
+    End If
+    On Error GoTo 0
+End Sub
+
+Public Sub RunScheduledSubcontractorSelection()
+    mSelectionScheduled = False
+    SelectSubcontractorForSelection
+End Sub
+
 Public Function GetSubcontractorList() As Variant
     GetSubcontractorList = GetSubcontractorListByWorkType("")
 End Function
