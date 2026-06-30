@@ -24,6 +24,60 @@ Private Const HELPER_COL As Long = 100
 
 Private mSelectionScheduled As Boolean
 
+Private mPendingWs As Worksheet
+Private mPendingVendorCol As Long
+Private mPendingRows As Collection
+Private mPendingContextReady As Boolean
+
+Public Sub ClearSubcontractorSelectionContext()
+    Set mPendingWs = Nothing
+    Set mPendingRows = Nothing
+    mPendingVendorCol = 0
+    mPendingContextReady = False
+End Sub
+
+'  イベント発火中に Target / Selection を確定させ、OnTime 後も同じ行を使う。
+Public Sub PrepareSubcontractorSelection(ByVal ws As Worksheet, _
+                                         ByVal Target As Range, _
+                                         Optional ByVal multiSel As Range = Nothing)
+    ClearSubcontractorSelectionContext
+    If ws Is Nothing Or Target Is Nothing Then Exit Sub
+
+    Dim seiriCol As Long
+    seiriCol = SeiriColumn(ws)
+
+    Dim lastRow As Long
+    lastRow = GetSheetDataLastRow(ws)
+    If lastRow < DATA_START_ROW Then Exit Sub
+
+    mPendingVendorCol = ResolveTargetVendorColumnFromCell(ws, Target)
+    If mPendingVendorCol = 0 Then Exit Sub
+
+    Set mPendingWs = ws
+    Set mPendingRows = New Collection
+
+    If Not multiSel Is Nothing Then
+        If multiSel.Worksheet Is ws And multiSel.CountLarge > 1 Then
+            Dim usedRange As Range
+            Set usedRange = ws.Range(ws.Cells(DATA_START_ROW, seiriCol), ws.Cells(lastRow, seiriCol))
+
+            Dim multiHit As Range
+            On Error Resume Next
+            Set multiHit = Application.Intersect(multiSel.EntireRow, usedRange)
+            On Error GoTo 0
+            If Not multiHit Is Nothing Then
+                AddEligibleVendorRowsFromRange ws, multiHit, seiriCol, mPendingRows
+            End If
+        End If
+    End If
+
+    If mPendingRows.Count = 0 Then
+        BuildPendingRowsFromTarget ws, Target, seiriCol, lastRow
+    End If
+
+    mPendingContextReady = (mPendingRows.Count > 0)
+End Sub
+
 '  ダブルクリック・右クリックメニューからの呼び出し用エントリーポイント。
 '  イベント/メニューの最中にモーダルフォームを同期表示するとハングするため、
 '  Application.OnTime で UI 解放後に起動を遅延させる。
@@ -32,17 +86,18 @@ Public Sub RequestSubcontractorSelection()
     mSelectionScheduled = True
 
     On Error Resume Next
-    Application.OnTime EarliestTime:=Now + TimeSerial(0, 0, 1), _
+    Application.OnTime EarliestTime:=Now + TimeValue("00:00:01"), _
                        Procedure:="'" & ThisWorkbook.Name & "'!RunScheduledSubcontractorSelection", _
                        Schedule:=True
     If Err.Number <> 0 Then
         Err.Clear
-        Application.OnTime EarliestTime:=Now + TimeSerial(0, 0, 1), _
+        Application.OnTime EarliestTime:=Now + TimeValue("00:00:01"), _
                            Procedure:="mod_subcontractorselector.RunScheduledSubcontractorSelection", _
                            Schedule:=True
         If Err.Number <> 0 Then
             Err.Clear
             mSelectionScheduled = False
+            ClearSubcontractorSelectionContext
         End If
     End If
     On Error GoTo 0
@@ -50,6 +105,7 @@ End Sub
 
 Public Sub RunScheduledSubcontractorSelection()
     mSelectionScheduled = False
+    DoEvents
     SelectSubcontractorForSelection
 End Sub
 
@@ -193,7 +249,7 @@ Private Sub ApplyVendorColumnDropdownWithNames(ByVal ws As Worksheet, _
                     .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, _
                          Operator:=xlBetween, Formula1:=listFormula
                     .IgnoreBlank = True
-                    .InCellDropdown = True
+                    .InCellDropdown = False
                     .ShowError = False
                 End With
             End If
@@ -237,54 +293,69 @@ Public Sub SelectSubcontractorForSelection()
     On Error GoTo ErrorHandler
 
     Dim ws As Worksheet
-    Set ws = ActiveSheet
-
     Dim seiriCol As Long
-    seiriCol = SeiriColumn(ws)
-
     Dim lastRow As Long
-    lastRow = GetSheetDataLastRow(ws)
+    Dim targetColumn As Long
+    Dim targetRows As Collection
+    Dim usePendingContext As Boolean
+
+    usePendingContext = mPendingContextReady And Not mPendingWs Is Nothing
+    If usePendingContext Then
+        Set ws = mPendingWs
+        Set targetRows = mPendingRows
+        targetColumn = mPendingVendorCol
+        seiriCol = SeiriColumn(ws)
+        lastRow = GetSheetDataLastRow(ws)
+        ClearSubcontractorSelectionContext
+    Else
+        Set ws = ActiveSheet
+        seiriCol = SeiriColumn(ws)
+        lastRow = GetSheetDataLastRow(ws)
+        Set targetRows = New Collection
+    End If
+
     If lastRow < DATA_START_ROW Then
         MsgBox "対象データがありません。", vbExclamation
         Exit Sub
     End If
 
-    Dim targetColumn As Long
-    targetColumn = ResolveTargetVendorColumn(ws, seiriCol, lastRow)
-    If targetColumn = 0 Then
-        If mod_Construction_Order_Import.IsWeldingOutputSheet(ws) Then
-            MsgBox "溶接会社(A列)または軌道手元会社(B列)を選択した状態で実行してください。", vbExclamation
-        Else
-            MsgBox "施工会社を設定する行を選択してください(B列に整理番号がある行)。", vbExclamation
+    If Not usePendingContext Then
+        targetColumn = ResolveTargetVendorColumn(ws, seiriCol, lastRow)
+        If targetColumn = 0 Then
+            If mod_Construction_Order_Import.IsWeldingOutputSheet(ws) Then
+                MsgBox "溶接会社(A列)または軌道手元会社(B列)を選択した状態で実行してください。", vbExclamation
+            Else
+                MsgBox "施工会社を設定する行を選択してください(B列に整理番号がある行)。", vbExclamation
+            End If
+            Exit Sub
         End If
-        Exit Sub
-    End If
 
-    Dim targetRows As Collection
-    Set targetRows = New Collection
+        If TypeName(Selection) = "Range" Then
+            Dim usedRange As Range
+            Set usedRange = ws.Range(ws.Cells(DATA_START_ROW, seiriCol), ws.Cells(lastRow, seiriCol))
 
-    If TypeName(Selection) = "Range" Then
-        Dim usedRange As Range
-        Set usedRange = ws.Range(ws.Cells(DATA_START_ROW, seiriCol), ws.Cells(lastRow, seiriCol))
+            Dim hit As Range
+            On Error Resume Next
+            Set hit = Application.Intersect(Selection.EntireRow, usedRange)
+            On Error GoTo ErrorHandler
 
-        Dim hit As Range
-        On Error Resume Next
-        Set hit = Application.Intersect(Selection.EntireRow, usedRange)
-        On Error GoTo ErrorHandler
-
-        If Not hit Is Nothing Then
-            AddEligibleVendorRowsFromRange ws, hit, seiriCol, targetRows
+            If Not hit Is Nothing Then
+                AddEligibleVendorRowsFromRange ws, hit, seiriCol, targetRows
+            End If
         End If
-    End If
 
-    If targetRows.Count = 0 Then
-        If ActiveCell.Row >= DATA_START_ROW And ActiveCell.Row <= lastRow Then
-            If IsRowVisibleInRange(ws.Cells(ActiveCell.Row, seiriCol)) Then
-                If Trim$(CommonNzText(ws.Cells(ActiveCell.Row, seiriCol).value)) <> "" Then
-                    If Not IsSanpaiRow(ws, ActiveCell.Row) Then targetRows.Add ActiveCell.Row
+        If targetRows.Count = 0 Then
+            If ActiveCell.Row >= DATA_START_ROW And ActiveCell.Row <= lastRow Then
+                If IsRowVisibleInRange(ws.Cells(ActiveCell.Row, seiriCol)) Then
+                    If Trim$(CommonNzText(ws.Cells(ActiveCell.Row, seiriCol).value)) <> "" Then
+                        If Not IsSanpaiRow(ws, ActiveCell.Row) Then targetRows.Add ActiveCell.Row
+                    End If
                 End If
             End If
         End If
+    ElseIf targetColumn = 0 Then
+        MsgBox "施工会社を設定する行を選択してください(B列に整理番号がある行)。", vbExclamation
+        Exit Sub
     End If
 
     If targetRows.Count = 0 Then
@@ -315,7 +386,7 @@ Public Sub SelectSubcontractorForSelection()
     Dim f As frmSubconSelector
     Set f = New frmSubconSelector
     f.SetCompanies names
-    f.Show
+    f.Show vbModal
 
     Dim confirmed As Boolean, chosen As String
     confirmed = f.confirmed
@@ -330,7 +401,11 @@ Public Sub SelectSubcontractorForSelection()
         ws.Cells(CLng(rIdx), targetColumn).value = chosen
     Next rIdx
 
-    mod_Construction_Order_Import.RefreshSubcontractorPriceColumns ws, targetRows
+    If ws.AutoFilterMode Then
+        mod_Construction_Order_Import.RefreshSubcontractorPriceColumns ws
+    Else
+        mod_Construction_Order_Import.RefreshSubcontractorPriceColumns ws, targetRows
+    End If
 
     ws.Columns(targetColumn).AutoFit
 
@@ -341,9 +416,56 @@ Public Sub SelectSubcontractorForSelection()
     Exit Sub
 
 ErrorHandler:
+    ClearSubcontractorSelectionContext
     Application.EnableEvents = prevEvents
     MsgBox "施工会社別の単価・金額列を更新できませんでした。" & vbCrLf & _
            Err.Description, vbExclamation
+End Sub
+
+Private Function ResolveTargetVendorColumnFromCell(ByVal ws As Worksheet, ByVal Target As Range) As Long
+    If Target Is Nothing Then Exit Function
+
+    If mod_Construction_Order_Import.IsWeldingOutputSheet(ws) Then
+        If Target.Column = WELD_COL_WELDING_VENDOR Then
+            ResolveTargetVendorColumnFromCell = WELD_COL_WELDING_VENDOR
+            Exit Function
+        End If
+        If Target.Column = WELD_COL_TRACK_VENDOR Then
+            ResolveTargetVendorColumnFromCell = WELD_COL_TRACK_VENDOR
+            Exit Function
+        End If
+        Exit Function
+    End If
+
+    If IsVendorSelectionColumn(ws, Target.Column) Then
+        ResolveTargetVendorColumnFromCell = COL_VENDOR
+    End If
+End Function
+
+Private Function IsVendorSelectionColumn(ByVal ws As Worksheet, ByVal columnIndex As Long) As Boolean
+    If mod_Construction_Order_Import.IsWeldingOutputSheet(ws) Then
+        IsVendorSelectionColumn = (columnIndex = WELD_COL_WELDING_VENDOR Or columnIndex = WELD_COL_TRACK_VENDOR)
+    Else
+        IsVendorSelectionColumn = (columnIndex = COL_VENDOR)
+    End If
+End Function
+
+Private Sub BuildPendingRowsFromTarget(ByVal ws As Worksheet, _
+                                       ByVal Target As Range, _
+                                       ByVal seiriCol As Long, _
+                                       ByVal lastRow As Long)
+    If Not IsVendorSelectionColumn(ws, Target.Column) Then Exit Sub
+
+    Dim usedRange As Range
+    Set usedRange = ws.Range(ws.Cells(DATA_START_ROW, seiriCol), ws.Cells(lastRow, seiriCol))
+
+    Dim hit As Range
+    On Error Resume Next
+    Set hit = Application.Intersect(Target.EntireRow, usedRange)
+    On Error GoTo 0
+    If Not hit Is Nothing Then
+        AddEligibleVendorRowsFromRange ws, hit, seiriCol, mPendingRows
+    End If
 End Sub
 
 Private Function ResolveTargetVendorColumn(ByVal ws As Worksheet, _
