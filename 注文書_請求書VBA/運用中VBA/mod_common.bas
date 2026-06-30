@@ -290,14 +290,20 @@ Public Function CommonTextFromChars(ParamArray charCodes() As Variant) As String
     CommonTextFromChars = result
 End Function
 
-' HŽ–Œ»‹µ•\ƒ}ƒXƒ^(yŠeŽx“XHŽ–”Ô†ƒf[ƒ^z)‚ÌƒtƒHƒ‹ƒ_ƒpƒX‚ð‰ðŒˆ‚·‚éB
-' ³–{: ƒhƒLƒ…ƒƒ“ƒg\ƒ}ƒXƒ^ƒf[ƒ^\yŠeŽx“XHŽ–”Ô†ƒf[ƒ^z\
+' HŽ–Œ»‹µ•\ƒ}ƒXƒ^(yŠeŽx“XHŽ–”Ô†ƒf[ƒ^z)‚ÌƒtƒHƒ‹ƒ_ƒpƒX‚ð‰ðŒˆ‚·‚éB
+' ³–{: ƒhƒLƒ…ƒƒ“ƒg\ƒ}ƒXƒ^ƒf[ƒ^\yŠeŽx“XHŽ–”Ô†ƒf[ƒ^z\
 Public Function CommonGetProjectStatusDataFolderPath() As String
     Dim fso As Object
     Set fso = CreateObject("Scripting.FileSystemObject")
 
     Dim candidates As Collection
     Set candidates = New Collection
+
+    Dim walkedPath As String
+    walkedPath = CommonFindProjectStatusFolderFromWorkbookPath(fso)
+    If Len(walkedPath) > 0 Then
+        CommonAppendProjectStatusFolderCandidate candidates, walkedPath
+    End If
 
     If Len(ThisWorkbook.Path) > 0 Then
         CommonAppendProjectStatusFolderCandidate candidates, _
@@ -368,10 +374,31 @@ Private Function CommonFirstExistingProjectStatusFolderPath(ByVal candidates As 
             End If
         End If
     Next candidate
+End Function
 
-    If candidates.Count > 0 Then
-        CommonFirstExistingProjectStatusFolderPath = CStr(candidates(1))
-    End If
+Private Function CommonFindProjectStatusFolderFromWorkbookPath(ByVal fso As Object) As String
+    On Error GoTo Cleanup
+
+    Dim currentPath As String
+    currentPath = ThisWorkbook.Path
+    If Len(currentPath) = 0 Then Exit Function
+    If Left$(LCase$(currentPath), 8) = "https://" Then Exit Function
+
+    Dim depth As Long
+    For depth = 1 To 8
+        If Len(currentPath) = 0 Then Exit For
+        Dim testPath As String
+        testPath = CommonBuildProjectStatusDataFolderPath(currentPath, fso)
+        If Len(testPath) > 0 Then
+            If Dir(testPath, vbDirectory) <> "" Then
+                CommonFindProjectStatusFolderFromWorkbookPath = testPath
+                Exit Function
+            End If
+        End If
+        currentPath = fso.GetParentFolderName(currentPath)
+    Next depth
+
+Cleanup:
 End Function
 
 Private Function CommonMasterDataFolderText() As String
