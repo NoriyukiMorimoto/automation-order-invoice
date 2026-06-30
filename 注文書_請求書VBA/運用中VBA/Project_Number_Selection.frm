@@ -573,7 +573,7 @@ Private Function ProjectStatusDataSubFolderText() As String
     If cached = "" Then
         cached = ChrW$(&H3010) & ChrW$(&H5404) & ChrW$(&H652F) & ChrW$(&H5E97) & _
                  ChrW$(&H5DE5) & ChrW$(&H4E8B) & ChrW$(&H756A) & ChrW$(&H53F7) & _
-                 ChrW$(&H6570) & ChrW$(&H30C7) & ChrW$(&H30FC) & ChrW$(&H30BF) & ChrW$(&H3011)
+                 ChrW$(&H30C7) & ChrW$(&H30FC) & ChrW$(&H30BF) & ChrW$(&H3011)
     End If
     ProjectStatusDataSubFolderText = cached
 End Function
