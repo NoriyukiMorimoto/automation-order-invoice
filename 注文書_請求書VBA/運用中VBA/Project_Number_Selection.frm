@@ -62,6 +62,11 @@ Private Sub LoadMasterDataToMemory()
     Dim targetBranchOffice As String
     targetBranchOffice = GetProjectSelectionBranchOfficeSearchKey(targetBranch, targetOffice)
 
+    Dim sourceFilePath As String
+    sourceFilePath = folderPath & CStr(targetYear) & "_" & _
+        GetProjectSelectionBranchNameForFile(targetBranch) & ProjectStatusFileSuffixText()
+    LogProjectSelection "folder=[" & folderPath & "] file=[" & sourceFilePath & "] key=[" & targetBranchOffice & "] year=" & CStr(targetYear)
+
     Me.Caption = UiMsgProjectStatusLoadingCaptionText(): DoEvents
     Application.screenUpdating = False
 
@@ -108,8 +113,10 @@ Private Sub LoadMasterDataToMemory()
     End If
 
     RefreshList ""
+    LogProjectSelection "loaded=" & CStr(Not IsEmpty(sourceArr)) & " hits=" & CStr(hitCount)
     If hitCount = 0 Then
-        MsgBox UiMsgProjectDataNotFoundText(), vbInformation
+        MsgBox UiMsgProjectDataNotFoundText() & vbCrLf & vbCrLf & _
+               BuildProjectStatusNotFoundDetailText(sourceFilePath, targetBranchOffice, targetYear), vbInformation
     End If
     Me.Caption = targetBranch & " " & targetOffice & UiMsgProjectSelectionCaptionSuffixText()
     GoTo FinallyExit
@@ -672,4 +679,49 @@ Private Function ProjectStatusWeekdayShortText(ByVal weekdayIndex As Long) As St
         Case 6: ProjectStatusWeekdayShortText = ChrW$(&H571F)
         Case 7: ProjectStatusWeekdayShortText = ChrW$(&H65E5)
     End Select
+End Function
+
+Private Sub LogProjectSelection(ByVal msg As String)
+    mod_DebugLog.Log "[ProjSel] " & msg
+End Sub
+
+Private Function BuildProjectStatusNotFoundDetailText(ByVal sourceFilePath As String, _
+                                                      ByVal targetBranchOffice As String, _
+                                                      ByVal targetYear As Long) As String
+    BuildProjectStatusNotFoundDetailText = ProjectStatusDetailFileLabelText() & sourceFilePath & vbCrLf & _
+        ProjectStatusDetailSearchKeyLabelText() & targetBranchOffice & vbCrLf & _
+        ProjectStatusDetailYearLabelText() & CStr(targetYear)
+    If targetYear <= 0 Then
+        BuildProjectStatusNotFoundDetailText = BuildProjectStatusNotFoundDetailText & vbCrLf & _
+            ProjectStatusDetailYearHintText()
+    End If
+End Function
+
+Private Function ProjectStatusDetailFileLabelText() As String
+    Static cached As String
+    If cached = "" Then cached = ChrW$(&H53C2) & ChrW$(&H7167) & ChrW$(&H30D5) & ChrW$(&H30A1) & ChrW$(&H30A4) & ChrW$(&H30EB) & ": "
+    ProjectStatusDetailFileLabelText = cached
+End Function
+
+Private Function ProjectStatusDetailSearchKeyLabelText() As String
+    Static cached As String
+    If cached = "" Then cached = ChrW$(&H691C) & ChrW$(&H7D22) & ChrW$(&H30AD) & ChrW$(&H30FC) & "(G" & ChrW$(&H5217) & "): "
+    ProjectStatusDetailSearchKeyLabelText = cached
+End Function
+
+Private Function ProjectStatusDetailYearLabelText() As String
+    Static cached As String
+    If cached = "" Then cached = "B4" & ChrW$(&H5E74) & ChrW$(&H5EA6) & ": "
+    ProjectStatusDetailYearLabelText = cached
+End Function
+
+Private Function ProjectStatusDetailYearHintText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = ChrW$(&H203B) & "B4" & ChrW$(&H306B) & "4" & ChrW$(&H6841) & ChrW$(&H306E) & _
+                 ChrW$(&H897F) & ChrW$(&H66A6) & ChrW$(&H5E74) & "(2026" & ChrW$(&H306A) & ChrW$(&H3069) & ")" & _
+                 ChrW$(&H3092) & ChrW$(&H5165) & ChrW$(&H529B) & ChrW$(&H3057) & ChrW$(&H3066) & ChrW$(&H304F) & _
+                 ChrW$(&H3060) & ChrW$(&H3055) & ChrW$(&H3044)
+    End If
+    ProjectStatusDetailYearHintText = cached
 End Function
