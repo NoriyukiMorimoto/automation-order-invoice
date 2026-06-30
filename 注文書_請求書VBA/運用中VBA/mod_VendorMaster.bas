@@ -211,6 +211,28 @@ Public Function GetVendorIndexFromValueColumnPublic(ByVal valueColumn As Long) A
     GetVendorIndexFromValueColumnPublic = GetVendorIndexFromValueColumn(valueColumn)
 End Function
 
+' F9 件数内の施工会社名セル（F11/I11/L11...）を target から特定する。
+' Union レンジとの Intersect が不安定な場合でも列位置で判定する。
+Public Function ResolveVendorNameChangeCell(ByVal wsInfo As Worksheet, ByVal target As Range) As Range
+    If wsInfo Is Nothing Then Exit Function
+    If target Is Nothing Then Exit Function
+
+    Dim vendorCount As Long
+    vendorCount = GetVendorBlockCount(wsInfo)
+
+    Dim hitCell As Range
+    For Each hitCell In target.Cells
+        If hitCell.Row = BASIC_INFO_VENDOR_NAME_ROW Then
+            Dim vendorIndex As Long
+            vendorIndex = GetVendorIndexFromValueColumn(hitCell.Column)
+            If vendorIndex >= 1 And vendorIndex <= vendorCount Then
+                Set ResolveVendorNameChangeCell = wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, hitCell.Column)
+                Exit Function
+            End If
+        End If
+    Next hitCell
+End Function
+
 Private Sub ApplyVendorRowSelection(ByVal wsInfo As Worksheet, ByVal BranchName As String, ByVal rowData As Variant, ByVal targetCell As Range)
     Dim previousEnableEvents As Boolean
     previousEnableEvents = Application.EnableEvents
@@ -261,7 +283,7 @@ End Function
 Public Sub ScheduleVendorListDropdown(Optional ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet()
     If wsInfo Is Nothing Then Exit Sub
-    If Intersect(ActiveCell, GetVendorNameRange(wsInfo)) Is Nothing Then Exit Sub
+    If ResolveVendorNameChangeCell(wsInfo, ActiveCell) Is Nothing Then Exit Sub
     mVendorTargetAddress = ActiveCell.Address(False, False)
 
     CancelScheduledVendorListDropdown
@@ -302,7 +324,7 @@ Public Sub PromptVendorListDropdown(Optional ByVal wsInfo As Worksheet)
 
     If ActiveSheet Is Nothing Then Exit Sub
     If Not ActiveSheet Is wsInfo Then Exit Sub
-    If Intersect(ActiveCell, GetVendorNameRange(wsInfo)) Is Nothing Then Exit Sub
+    If ResolveVendorNameChangeCell(wsInfo, ActiveCell) Is Nothing Then Exit Sub
     mVendorTargetAddress = ActiveCell.Address(False, False)
 
     ShowVendorComboBox wsInfo
@@ -506,9 +528,11 @@ End Sub
 Private Sub ApplyVendorRowToBasicInfo(ByVal targetCell As Range, ByVal rowData As Variant)
     mod_DebugLog.Log "[VendorMaster] ApplyVendorRow F10=[" & CStr(rowData(14)) & "] vendor=[" & CStr(rowData(0)) & "]"
     With targetCell.Worksheet
+        Dim workTypeCell As Range
+        Set workTypeCell = VendorWritableValueCell(targetCell.Worksheet, BASIC_INFO_VENDOR_BLOCK_TOP_ROW, targetCell.Column)
         ApplyVendorRow10ValueCellFormat .Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, targetCell.Column)
-        .Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, targetCell.Column).value = rowData(14)
-        .Cells(11, targetCell.Column).value = rowData(0)
+        workTypeCell.value = rowData(14)
+        VendorWritableValueCell(targetCell.Worksheet, 11, targetCell.Column).value = rowData(0)
         .Cells(12, targetCell.Column).value = rowData(3)
         .Cells(13, targetCell.Column).value = rowData(11)
         .Cells(14, targetCell.Column).value = rowData(2)
@@ -1951,9 +1975,12 @@ Private Function VendorWasteDisposalKeywordText() As String
 End Function
 
 Private Function GetVendorTargetCell(ByVal wsInfo As Worksheet, Optional ByVal targetCell As Range) As Range
+    Dim resolvedCell As Range
+
     If Not targetCell Is Nothing Then
-        If Not Intersect(targetCell, GetVendorNameRange(wsInfo)) Is Nothing Then
-            Set GetVendorTargetCell = targetCell.Cells(1, 1)
+        Set resolvedCell = ResolveVendorNameChangeCell(wsInfo, targetCell)
+        If Not resolvedCell Is Nothing Then
+            Set GetVendorTargetCell = resolvedCell
             mVendorTargetAddress = GetVendorTargetCell.Address(False, False)
             Exit Function
         End If
@@ -1964,22 +1991,37 @@ Private Function GetVendorTargetCell(ByVal wsInfo As Worksheet, Optional ByVal t
         Set GetVendorTargetCell = wsInfo.Range(mVendorTargetAddress)
         On Error GoTo 0
         If Not GetVendorTargetCell Is Nothing Then
-            If Intersect(GetVendorTargetCell, GetVendorNameRange(wsInfo)) Is Nothing Then Set GetVendorTargetCell = Nothing
+            Set resolvedCell = ResolveVendorNameChangeCell(wsInfo, GetVendorTargetCell)
+            If resolvedCell Is Nothing Then Set GetVendorTargetCell = Nothing
         End If
     End If
 
     If GetVendorTargetCell Is Nothing Then
         If Not ActiveCell Is Nothing Then
             If ActiveCell.Worksheet Is wsInfo Then
-                If Not Intersect(ActiveCell, GetVendorNameRange(wsInfo)) Is Nothing Then
-                    Set GetVendorTargetCell = ActiveCell
-                End If
+                Set resolvedCell = ResolveVendorNameChangeCell(wsInfo, ActiveCell)
+                If Not resolvedCell Is Nothing Then Set GetVendorTargetCell = resolvedCell
             End If
         End If
     End If
 
     If GetVendorTargetCell Is Nothing Then Set GetVendorTargetCell = wsInfo.Range(BASIC_INFO_VENDOR_NAME_CELL)
     mVendorTargetAddress = GetVendorTargetCell.Address(False, False)
+End Function
+
+Private Function VendorWritableValueCell(ByVal wsInfo As Worksheet, ByVal rowIndex As Long, ByVal valueColumn As Long) As Range
+    Dim targetCell As Range
+    Set targetCell = wsInfo.Cells(rowIndex, valueColumn)
+    If targetCell.MergeCells Then
+        Dim mergeArea As Range
+        Set mergeArea = targetCell.MergeArea
+        If valueColumn >= mergeArea.Column And _
+           valueColumn <= mergeArea.Column + mergeArea.Columns.Count - 1 Then
+            Set VendorWritableValueCell = mergeArea.Cells(1, 1)
+            Exit Function
+        End If
+    End If
+    Set VendorWritableValueCell = targetCell
 End Function
 
 Private Function CountExistingVendorBlocks(ByVal wsInfo As Worksheet) As Long
@@ -2280,7 +2322,7 @@ Private Sub ClearVendorWorkTypeWhenCompanyEmpty(ByVal wsInfo As Worksheet, Optio
         Dim valueCol As Long
         valueCol = VendorValueColumnByIndex(vendorIndex)
         If Len(Trim$(CStr(wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, valueCol).value))) = 0 Then
-            wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, valueCol).ClearContents
+            VendorWritableValueCell(wsInfo, BASIC_INFO_VENDOR_BLOCK_TOP_ROW, valueCol).ClearContents
         End If
     Next vendorIndex
 End Sub
@@ -2296,7 +2338,7 @@ End Sub
 
 Private Sub ClearVendorInfoBlock(ByVal targetCell As Range)
     With targetCell.Worksheet
-        .Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, targetCell.Column).ClearContents
+        VendorWritableValueCell(targetCell.Worksheet, BASIC_INFO_VENDOR_BLOCK_TOP_ROW, targetCell.Column).ClearContents
         .Range(.Cells(11, targetCell.Column), .Cells(16, targetCell.Column)).ClearContents
         .Range(.Cells(18, targetCell.Column), .Cells(23, targetCell.Column)).ClearContents
         .Range(.Cells(BASIC_INFO_VENDOR_PERCENT_ROW, targetCell.Column), _
@@ -2524,6 +2566,7 @@ Private Function GetVendorMasterColumnOValue(ByVal recordset As Object, _
 
     On Error Resume Next
     valueText = CommonNzText(recordset.Fields(VENDOR_MASTER_ADO_COLUMN_O_NAME).value)
+    If valueText = "" Then valueText = CommonNzText(CommonGetAdoFieldValue(recordset, VENDOR_MASTER_EXCEL_COLUMN_O - 1))
     If valueText = "" Then valueText = CommonNzText(recordset.Fields(VENDOR_MASTER_EXCEL_COLUMN_O - 1).value)
     If valueText = "" Then valueText = CommonNzText(recordset.Fields(VENDOR_MASTER_EXCEL_COLUMN_O).value)
     On Error GoTo 0
