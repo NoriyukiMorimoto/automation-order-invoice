@@ -299,6 +299,20 @@ Public Function CommonGetProjectStatusDataFolderPath() As String
     Dim candidates As Collection
     Set candidates = New Collection
 
+    Dim userProfilePath As String
+    userProfilePath = Environ$("USERPROFILE")
+    If Len(Trim$(userProfilePath)) = 0 Then
+        userProfilePath = Environ$("HOMEDRIVE") & Environ$("HOMEPATH")
+    End If
+
+    Dim defaultFolder As String
+    defaultFolder = ""
+    If Len(Trim$(userProfilePath)) > 0 Then
+        defaultFolder = CommonBuildProjectStatusDataFolderPath(userProfilePath & Chr$(92) & CommonCompanyNameText() & Chr$(92) & _
+                                                                 CommonOrderInvoiceDocumentFolderText(), fso)
+        CommonAppendProjectStatusFolderCandidate candidates, defaultFolder
+    End If
+
     Dim walkedPath As String
     walkedPath = CommonFindProjectStatusFolderFromWorkbookPath(fso)
     If Len(walkedPath) > 0 Then
@@ -312,19 +326,41 @@ Public Function CommonGetProjectStatusDataFolderPath() As String
             CommonBuildProjectStatusDataFolderPath(ThisWorkbook.Path, fso)
     End If
 
-    Dim userProfilePath As String
-    userProfilePath = Environ$("USERPROFILE")
-    If Len(Trim$(userProfilePath)) = 0 Then
-        userProfilePath = Environ$("HOMEDRIVE") & Environ$("HOMEPATH")
+    CommonGetProjectStatusDataFolderPath = CommonFirstExistingProjectStatusFolderPath(candidates, fso)
+    If Len(CommonGetProjectStatusDataFolderPath) = 0 And Len(defaultFolder) > 0 Then
+        CommonGetProjectStatusDataFolderPath = defaultFolder
     End If
+End Function
 
-    If Len(Trim$(userProfilePath)) > 0 Then
-        CommonAppendProjectStatusFolderCandidate candidates, _
-            CommonBuildProjectStatusDataFolderPath(userProfilePath & Chr$(92) & CommonCompanyNameText() & Chr$(92) & _
-                                                   CommonOrderInvoiceDocumentFolderText(), fso)
-    End If
+Public Function CommonProjectStatusFolderExists(ByVal folderPath As String) As Boolean
+    On Error GoTo Cleanup
+    If Len(folderPath) = 0 Then Exit Function
 
-    CommonGetProjectStatusDataFolderPath = CommonFirstExistingProjectStatusFolderPath(candidates)
+    Dim fso As Object
+    Set fso = CreateObject("Scripting.FileSystemObject")
+
+    Dim checkPath As String
+    checkPath = folderPath
+    If Right$(checkPath, 1) = Chr$(92) Then checkPath = Left$(checkPath, Len(checkPath) - 1)
+
+    CommonProjectStatusFolderExists = fso.FolderExists(checkPath)
+    Exit Function
+
+Cleanup:
+    CommonProjectStatusFolderExists = False
+End Function
+
+Public Function CommonProjectStatusFileExists(ByVal filePath As String) As Boolean
+    On Error GoTo Cleanup
+    If Len(filePath) = 0 Then Exit Function
+
+    Dim fso As Object
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    CommonProjectStatusFileExists = fso.FileExists(filePath)
+    Exit Function
+
+Cleanup:
+    CommonProjectStatusFileExists = False
 End Function
 
 Public Function CommonProjectStatusFileSuffixText() As String
@@ -360,17 +396,16 @@ Private Sub CommonAppendProjectStatusFolderCandidate(ByVal candidates As Collect
     candidates.Add normalizedPath
 End Sub
 
-Private Function CommonFirstExistingProjectStatusFolderPath(ByVal candidates As Collection) As String
+Private Function CommonFirstExistingProjectStatusFolderPath(ByVal candidates As Collection, _
+                                                           ByVal fso As Object) As String
     Dim candidate As Variant
     For Each candidate In candidates
         If Len(CStr(candidate)) > 0 Then
             If Left$(LCase$(CStr(candidate)), 8) <> "https://" Then
-                On Error Resume Next
-                If Dir(CStr(candidate), vbDirectory) <> "" Then
+                If CommonProjectStatusFolderExists(CStr(candidate)) Then
                     CommonFirstExistingProjectStatusFolderPath = CStr(candidate)
                     Exit Function
                 End If
-                On Error GoTo 0
             End If
         End If
     Next candidate
@@ -390,7 +425,7 @@ Private Function CommonFindProjectStatusFolderFromWorkbookPath(ByVal fso As Obje
         Dim testPath As String
         testPath = CommonBuildProjectStatusDataFolderPath(currentPath, fso)
         If Len(testPath) > 0 Then
-            If Dir(testPath, vbDirectory) <> "" Then
+            If CommonProjectStatusFolderExists(testPath) Then
                 CommonFindProjectStatusFolderFromWorkbookPath = testPath
                 Exit Function
             End If
