@@ -109,7 +109,7 @@ Private Sub Workbook_SheetBeforeRightClick(ByVal Sh As Object, ByVal Target As R
     Dim btn As Object
     Set btn = cbMenu.Controls.Add(Type:=msoControlButton, Before:=1, Temporary:=True)
     btn.Caption = SubconMenuCaptionText()
-    btn.OnAction = "RequestSubcontractorSelection"
+    btn.OnAction = "mod_subcontractorselector.RequestSubcontractorSelection"
     On Error Resume Next
     btn.FaceId = 626
     On Error GoTo 0
@@ -142,12 +142,44 @@ UnitPriceCleanup:
     On Error GoTo Cleanup
     Application.EnableEvents = False
 
-    mod_Construction_Order_Import.RefreshSubcontractorPriceColumns Sh
+    mod_Construction_Order_Import.RefreshSubcontractorPriceColumns Sh, CollectVendorChangeRows(Sh, Target)
     GetVendorSelectionColumns(Sh).AutoFit
 
 Cleanup:
     Application.EnableEvents = prevEE
 End Sub
+Public Sub RunScheduledSubcontractorSelection()
+    mod_subcontractorselector.RunScheduledSubcontractorSelection
+End Sub
+
+Private Function CollectVendorChangeRows(ByVal ws As Worksheet, ByVal Target As Range) As Collection
+    Dim result As New Collection
+    Dim vendorHit As Range
+    Set vendorHit = Application.Intersect(Target, GetVendorSelectionColumns(ws))
+    If vendorHit Is Nothing Then
+        Set CollectVendorChangeRows = result
+        Exit Function
+    End If
+
+    Dim seen As Object
+    Set seen = CreateObject("Scripting.Dictionary")
+    seen.CompareMode = vbTextCompare
+
+    Dim c As Range
+    For Each c In vendorHit.Cells
+        If c.Row >= SUBCON_DATA_START_ROW Then
+            Dim rowKey As String
+            rowKey = CStr(c.Row)
+            If Not seen.Exists(rowKey) Then
+                seen.Add rowKey, True
+                result.Add c.Row
+            End If
+        End If
+    Next c
+
+    Set CollectVendorChangeRows = result
+End Function
+
 Private Function SubconHeaderVendorText() As String
     SubconHeaderVendorText = ChrW$(&H65BD) & ChrW$(&H5DE5) & ChrW$(&H696D) & ChrW$(&H8005)
 End Function
