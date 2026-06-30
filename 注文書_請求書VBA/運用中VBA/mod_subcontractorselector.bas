@@ -209,7 +209,8 @@ Public Function GetSubcontractorList() As Variant
     GetSubcontractorList = GetSubcontractorListByWorkType("")
 End Function
 
-Public Function GetSubcontractorListByWorkType(ByVal workTypeKeyword As String) As Variant
+Public Function GetSubcontractorListByWorkType(ByVal workTypeKeyword As String, _
+                                               Optional ByVal excludeWorkTypeKeyword As String = "") As Variant
     Dim wsInfo As Worksheet
     Set wsInfo = CommonGetBasicInfoWorksheet(ThisWorkbook)
     If wsInfo Is Nothing Then Exit Function
@@ -238,6 +239,9 @@ Public Function GetSubcontractorListByWorkType(ByVal workTypeKeyword As String) 
             If vendorCount < 1 Then vendorCount = 1
             If vendorCount > VENDOR_MAX_BLOCKS Then vendorCount = VENDOR_MAX_BLOCKS
             If blockIndex > vendorCount Then Exit For
+            If excludeWorkTypeKeyword <> "" Then
+                If VendorBlockMatchesWorkType(wsInfo, col, excludeWorkTypeKeyword) Then GoTo NextVendorBlock
+            End If
         End If
 
         Dim nm As String
@@ -265,6 +269,15 @@ NextVendorBlock:
         arr(i) = CStr(names(i))
     Next i
     GetSubcontractorListByWorkType = arr
+End Function
+
+Private Function GetSubcontractorListForVendorSheet(ByVal ws As Worksheet) As Variant
+    If mod_Construction_Order_Import.IsConstructionOrderWorksOutputSheet(ws) Then
+        GetSubcontractorListForVendorSheet = GetSubcontractorListByWorkType( _
+            "", WELDING_WORK_TYPE_KEYWORD)
+    Else
+        GetSubcontractorListForVendorSheet = GetSubcontractorList()
+    End If
 End Function
 
 Private Function VendorBlockMatchesWorkType(ByVal wsInfo As Worksheet, _
@@ -299,7 +312,7 @@ Public Sub ApplySubcontractorDropdowns(ByVal ws As Worksheet)
         ApplyVendorColumnDropdown ws, WELD_COL_TRACK_VENDOR, TRACK_WORK_TYPE_KEYWORD, lastRow
     Else
         Dim names As Variant
-        names = GetSubcontractorList()
+        names = GetSubcontractorListForVendorSheet(ws)
         If IsArray(names) Then
             ApplyVendorColumnDropdownWithNames ws, COL_VENDOR, names, lastRow
         End If
@@ -477,7 +490,7 @@ Public Sub SelectSubcontractorForSelection()
             names = GetSubcontractorListByWorkType(TRACK_WORK_TYPE_KEYWORD)
         End If
     Else
-        names = GetSubcontractorList()
+        names = GetSubcontractorListForVendorSheet(ws)
     End If
 
     If Not IsArray(names) Then
@@ -700,5 +713,3 @@ Private Function IsSanpaiRow(ByVal ws As Worksheet, ByVal rowIndex As Long) As B
     IsSanpaiRow = (InStr(1, CommonRemoveAllSpaces(CommonNzText(ws.Cells(rowIndex, TypeColumn(ws)).value)), _
                          SANPAI_KEYWORD, vbTextCompare) > 0)
 End Function
-
-Private Function ResolveTargetVendorColumn(ByVal ws As Worksheet, _
