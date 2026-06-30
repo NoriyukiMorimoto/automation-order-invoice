@@ -620,7 +620,13 @@ Public Sub SyncVendorBlocksFromCount(ByVal wsInfo As Worksheet)
 
     Dim needWeldingRefresh As Boolean
     needWeldingRefresh = False
+    Dim oldWeldingBlockCount As Long
+    Dim oldRailBlockCount As Long
+    oldWeldingBlockCount = 0
+    oldRailBlockCount = 0
     If vendorCount < previousCount Then
+        mod_WeldingUnitPrice.GetVendorBlockLayoutCountsForLimit wsInfo, previousCount, _
+            oldWeldingBlockCount, oldRailBlockCount
         needWeldingRefresh = mod_WeldingUnitPrice.RemovedVendorIndicesRequireWeldingRefresh( _
             wsInfo, vendorCount + 1, previousCount)
     End If
@@ -641,12 +647,8 @@ Public Sub SyncVendorBlocksFromCount(ByVal wsInfo As Worksheet)
     If vendorCount > previousCount Then
         ' 追加ブロックは空のため溶接単価の再展開は不要
     ElseIf vendorCount < previousCount Then
-        mod_WeldingUnitPrice.ClearSurplusWeldingVendorBlocksForBasicInfo wsInfo
-        If needWeldingRefresh Then
-            mod_WeldingUnitPrice.ApplyWeldingVendorUnitPricesForBasicInfo wsInfo, False, 0, True
-        Else
-            mod_WeldingUnitPrice.UpdateWeldingVendorDisplayNamesForBasicInfo wsInfo
-        End If
+        mod_WeldingUnitPrice.RefreshWeldingAfterVendorCountDecrease wsInfo, vendorCount, _
+            oldWeldingBlockCount, oldRailBlockCount, True
     ElseIf vendorBlocksEnsured Then
         mod_WeldingUnitPrice.ApplyWeldingVendorUnitPricesForBasicInfo wsInfo, False, 0, True
     End If
@@ -1018,7 +1020,10 @@ Private Sub SyncVendorUnitPriceBlocksAfterCountChange(ByVal wsInfo As Worksheet,
 
     For Each wsUnitPrice In targetBook.worksheets
         If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) Then
-            For blockIndex = vendorCount + 1 To MAX_VENDOR_BLOCK_COUNT
+            Dim clearLastIndex As Long
+            clearLastIndex = previousCount
+            If clearLastIndex > MAX_VENDOR_BLOCK_COUNT Then clearLastIndex = MAX_VENDOR_BLOCK_COUNT
+            For blockIndex = vendorCount + 1 To clearLastIndex
                 dayCol = VendorUnitPriceDayColumnByValueColumn(VendorValueColumnByIndex(blockIndex))
                 nightCol = dayCol + 1
                 ClearVendorUnitPriceBlockOnSheet wsUnitPrice, dayCol, nightCol
