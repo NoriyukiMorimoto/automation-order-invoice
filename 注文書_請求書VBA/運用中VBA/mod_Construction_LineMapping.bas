@@ -1639,12 +1639,31 @@ Public Function GetLastDataRow(ByVal ws As Worksheet, _
                                 Optional ByVal dataKeyColumn As Long = 0) As Long
     If dataKeyColumn = 0 Then dataKeyColumn = mod_Construction_OutputLayout.OutputSheetSeiriColumnCore(ws)
 
+    '  AutoFilter 適用時は UsedRange / End(xlUp) が表示行のみを参照する。
+    '  Find は隠し行も含めて検索するため、最終データ行の起点に使う。
     Dim scanStartRow As Long
-    scanStartRow = 2
-    If Not ws.UsedRange Is Nothing Then
-        Dim usedLastRow As Long
-        usedLastRow = ws.UsedRange.Row + ws.UsedRange.Rows.Count - 1
-        If usedLastRow > scanStartRow Then scanStartRow = usedLastRow
+    scanStartRow = 0
+
+    Dim found As Range
+    On Error Resume Next
+    Set found = ws.Columns(dataKeyColumn).Find( _
+        What:="*", LookIn:=xlValues, LookAt:=xlPart, _
+        SearchOrder:=xlByRows, SearchDirection:=xlPrevious, _
+        MatchCase:=False)
+    On Error GoTo 0
+    If Not found Is Nothing Then scanStartRow = found.Row
+
+    If scanStartRow < 2 Then
+        If Not ws.UsedRange Is Nothing Then
+            Dim usedLastRow As Long
+            usedLastRow = ws.UsedRange.Row + ws.UsedRange.Rows.Count - 1
+            If usedLastRow > scanStartRow Then scanStartRow = usedLastRow
+        End If
+    End If
+
+    If scanStartRow < 2 Then
+        GetLastDataRow = 1
+        Exit Function
     End If
 
     Dim rowIndex As Long
