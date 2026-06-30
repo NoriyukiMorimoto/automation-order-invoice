@@ -69,6 +69,7 @@ Private Sub Workbook_SheetBeforeDoubleClick(ByVal Sh As Object, ByVal Target As 
 
     Cancel = True
 
+    mod_subcontractorselector.SetSubcontractorTrigger "dblclick"
     mod_subcontractorselector.PrepareSubcontractorSelection Sh, Target, mSubconSavedSel
     mod_subcontractorselector.RequestSubcontractorSelection
 End Sub
@@ -78,6 +79,7 @@ Private Sub Workbook_SheetBeforeRightClick(ByVal Sh As Object, ByVal Target As R
     If Not IsVendorSelectionTargetColumn(Sh, Target.Column) Then Exit Sub
     If Target.Row < SUBCON_DATA_START_ROW Then Exit Sub
 
+    mod_subcontractorselector.SetSubcontractorTrigger "rightclick-menu"
     mod_subcontractorselector.PrepareSubcontractorSelection Sh, Target
 
     Dim cbMenu As Object
