@@ -159,6 +159,7 @@ Public Sub RefreshSubcontractorPriceColumnsCore(ByVal ws As Worksheet, _
     Set vendorColumns = mod_Construction_OutputLayout.OutputSheetVendorColumnsCore(ws)
     partialUpdate = False
     If Not changedRows Is Nothing Then partialUpdate = (changedRows.Count > 0)
+    If ws.AutoFilterMode Then partialUpdate = False
     If Err.Number <> 0 Then GoTo RefreshSetupError
     Err.Clear
     On Error GoTo 0
