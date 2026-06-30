@@ -69,6 +69,22 @@ Public Function IsConstructionVendorOutputSheet(ByVal ws As Worksheet) As Boolea
     IsConstructionVendorOutputSheet = IsWeldingOutputSheetCore(ws)
 End Function
 
+' 施工指示書(工事): 非溶接・(工事)サフィックス・管理室列表示（通知書は非表示）
+Public Function IsConstructionOrderWorksOutputSheetCore(ByVal ws As Worksheet) As Boolean
+    If ws Is Nothing Then Exit Function
+    If IsWeldingOutputSheetCore(ws) Then Exit Function
+    If mod_Construction_BasicTotals.IsPurchaseOutputSheet(ws) Then Exit Function
+    If mod_Construction_BasicTotals.FindHeaderColumn(ws, "施工業者") = 0 Then Exit Function
+    If Not mod_Construction_Import_Load.SheetNameEndsWithSuffixText( _
+            ws.Name, CONSTRUCTION_SHEET_SUFFIX_WORKS) Then Exit Function
+
+    Dim mgrCol As Long
+    mgrCol = OutputSheetColCore(ws, COL_MGR)
+    If mgrCol < 1 Then Exit Function
+
+    IsConstructionOrderWorksOutputSheetCore = Not ws.Columns(mgrCol).Hidden
+End Function
+
 Public Function JoinKeys(ByVal d As Object) As String
     Dim s As String
     If Not d Is Nothing Then
