@@ -44,11 +44,11 @@ Public Sub RefreshSubcontractorPriceColumnsCore(ByVal ws As Worksheet, _
     Dim vendorColumns As Collection
     Dim partialUpdate As Boolean
     Dim savedAutoFilter As Object
+    Dim filterNeedsRestore As Boolean
 
     Set vendorNames = New Collection
-
     Set savedAutoFilter = mod_Construction_LineMapping.CaptureWorksheetAutoFilter(ws)
-    mod_Construction_LineMapping.SuspendWorksheetAutoFilterView ws
+    filterNeedsRestore = False
 
     refreshStep = "CollectVendors"
     On Error Resume Next
@@ -75,6 +75,10 @@ Public Sub RefreshSubcontractorPriceColumnsCore(ByVal ws As Worksheet, _
     Err.Clear
 
     If Not layoutMatches Then
+        If ws.FilterMode Then
+            mod_Construction_LineMapping.SuspendWorksheetAutoFilterView ws
+            filterNeedsRestore = True
+        End If
         refreshStep = "LayoutDelete"
         If kindColumn > subconFirstCol Then
             ws.Range(ws.Columns(subconFirstCol), _
@@ -291,8 +295,12 @@ RefreshError:
     refreshErrDesc = Err.Description
 
 RefreshExit:
-    mod_Construction_LineMapping.RestoreWorksheetAutoFilter ws, savedAutoFilter
+    On Error Resume Next
+    If filterNeedsRestore Then
+        mod_Construction_LineMapping.RestoreWorksheetAutoFilter ws, savedAutoFilter
+    End If
     Set savedAutoFilter = Nothing
+    On Error GoTo 0
     Application.screenUpdating = scrn
     Application.Calculation = calcMode
     If calcMode = xlCalculationAutomatic Then
