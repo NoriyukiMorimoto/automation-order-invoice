@@ -1690,3 +1690,83 @@ Public Function GetLastDataRow(ByVal ws As Worksheet, _
     GetLastDataRow = 1
 End Function
 
+Public Function CaptureWorksheetAutoFilter(ByVal ws As Worksheet) As Object
+    Set CaptureWorksheetAutoFilter = Nothing
+    If ws Is Nothing Then Exit Function
+    If Not ws.AutoFilterMode Then Exit Function
+
+    Dim result As Object
+    Set result = CreateObject("Scripting.Dictionary")
+    result.CompareMode = vbTextCompare
+    result("HadFilterMode") = ws.FilterMode
+
+    Dim fields As Object
+    Set fields = CreateObject("Scripting.Dictionary")
+    fields.CompareMode = vbTextCompare
+
+    Dim fieldIndex As Long
+    For fieldIndex = 1 To ws.AutoFilter.Filters.Count
+        On Error Resume Next
+        If ws.AutoFilter.Filters(fieldIndex).On Then
+            Dim fieldInfo As Object
+            Set fieldInfo = CreateObject("Scripting.Dictionary")
+            fieldInfo.CompareMode = vbTextCompare
+            fieldInfo("Criteria1") = ws.AutoFilter.Filters(fieldIndex).Criteria1
+            fieldInfo("Operator") = ws.AutoFilter.Filters(fieldIndex).Operator
+            fieldInfo("Criteria2") = ws.AutoFilter.Filters(fieldIndex).Criteria2
+            fields.Add CStr(fieldIndex), fieldInfo
+        End If
+        Err.Clear
+        On Error GoTo 0
+    Next fieldIndex
+
+    Set result("Fields") = fields
+    Set CaptureWorksheetAutoFilter = result
+End Function
+
+Public Sub SuspendWorksheetAutoFilterView(ByVal ws As Worksheet)
+    If ws Is Nothing Then Exit Sub
+    On Error Resume Next
+    If ws.FilterMode Then ws.ShowAllData
+    On Error GoTo 0
+End Sub
+
+Public Sub RestoreWorksheetAutoFilter(ByVal ws As Worksheet, ByVal saved As Object)
+    If ws Is Nothing Then Exit Sub
+    If saved Is Nothing Then Exit Sub
+    If Not ws.AutoFilterMode Then Exit Sub
+
+    Dim fields As Object
+    Set fields = saved("Fields")
+    If fields Is Nothing Then Exit Sub
+    If fields.Count = 0 Then Exit Sub
+
+    On Error Resume Next
+    If ws.FilterMode Then ws.ShowAllData
+
+    Dim key As Variant
+    For Each key In fields.Keys
+        Dim fieldInfo As Object
+        Set fieldInfo = fields(key)
+        Dim fieldNum As Long
+        fieldNum = CLng(key)
+        Dim op As XlAutoFilterOperator
+        op = fieldInfo("Operator")
+
+        Select Case op
+            Case xlFilterValues
+                ws.AutoFilter.Filters(fieldNum).AutoFilter Field:=fieldNum, _
+                    Criteria1:=fieldInfo("Criteria1"), Operator:=xlFilterValues
+            Case xlAnd, xlOr
+                ws.AutoFilter.Filters(fieldNum).AutoFilter Field:=fieldNum, _
+                    Criteria1:=fieldInfo("Criteria1"), Operator:=op, _
+                    Criteria2:=fieldInfo("Criteria2")
+            Case Else
+                ws.AutoFilter.Filters(fieldNum).AutoFilter Field:=fieldNum, _
+                    Criteria1:=fieldInfo("Criteria1")
+        End Select
+    Next key
+    Err.Clear
+    On Error GoTo 0
+End Sub
+
