@@ -50,7 +50,7 @@ Private Sub LoadMasterDataToMemory()
     previousScreenUpdating = Application.screenUpdating
     On Error GoTo ErrorHandler
 
-    Dim folderPath As String: folderPath = GetProjectStatusDataFolderPath()
+    Dim folderPath As String: folderPath = mod_common.CommonGetProjectStatusDataFolderPath()
     Dim targetYear As Long
     Dim targetBranch As String
     Dim targetOffice As String
@@ -64,7 +64,7 @@ Private Sub LoadMasterDataToMemory()
 
     Dim sourceFilePath As String
     sourceFilePath = folderPath & CStr(targetYear) & "_" & _
-        GetProjectSelectionBranchNameForFile(targetBranch) & ProjectStatusFileSuffixText()
+        GetProjectSelectionBranchNameForFile(targetBranch) & mod_common.CommonProjectStatusFileSuffixText()
     LogProjectSelection "folder=[" & folderPath & "] file=[" & sourceFilePath & "] key=[" & targetBranchOffice & "] year=" & CStr(targetYear)
 
     Me.Caption = UiMsgProjectStatusLoadingCaptionText(): DoEvents
@@ -132,62 +132,9 @@ FinallyExit:
         MsgBox UiMsgProjectStatusLoadFailedText() & vbCrLf & savedErrDescription, vbExclamation
     End If
 End Sub
-Private Function GetProjectStatusDataFolderPath() As String
-    Dim candidates As Collection
-    Set candidates = New Collection
-
-    Dim defaultFolder As String
-    defaultFolder = BuildProjectStatusDataFolderPath(Environ$("USERPROFILE"))
-    AppendProjectStatusFolderCandidate candidates, defaultFolder
-
-    On Error Resume Next
-    Dim wbPath As String
-    wbPath = ThisWorkbook.Path
-    If Len(wbPath) > 0 Then
-        If Left$(LCase$(wbPath), 8) <> "https://" Then
-            AppendProjectStatusFolderCandidate candidates, BuildProjectStatusDataFolderPath(wbPath)
-            AppendProjectStatusFolderCandidate candidates, _
-                BuildProjectStatusDataFolderPath(Left$(wbPath, InStrRev(wbPath, Chr$(92)) - 1))
-        End If
-    End If
-    On Error GoTo 0
-
-    Dim i As Long
-    For i = 1 To candidates.Count
-        Dim folderPath As String
-        folderPath = CStr(candidates(i))
-        If Len(Dir(folderPath, vbDirectory)) > 0 Then
-            GetProjectStatusDataFolderPath = folderPath
-            Exit Function
-        End If
-    Next i
-
-    GetProjectStatusDataFolderPath = defaultFolder
-End Function
-
-Private Sub AppendProjectStatusFolderCandidate(ByVal candidates As Collection, ByVal folderPath As String)
-    If Len(folderPath) = 0 Then Exit Sub
-
-    Dim normalizedPath As String
-    normalizedPath = folderPath
-    If Right$(normalizedPath, 1) <> Chr$(92) Then normalizedPath = normalizedPath & Chr$(92)
-
-    Dim i As Long
-    For i = 1 To candidates.Count
-        If StrComp(CStr(candidates(i)), normalizedPath, vbTextCompare) = 0 Then Exit Sub
-    Next i
-    candidates.Add normalizedPath
-End Sub
-
-Private Function BuildProjectStatusDataFolderPath(ByVal rootPath As String) As String
-    If Len(rootPath) = 0 Then Exit Function
-    BuildProjectStatusDataFolderPath = rootPath & Chr$(92) & mod_common.CommonCompanyNameText() & Chr$(92) & _
-        ProjectStatusParentFolderText() & Chr$(92) & ProjectStatusDataSubFolderText() & Chr$(92)
-End Function
-
 Private Function GetProjectStatusSourceArray(ByVal folderPath As String, ByVal targetYear As String, ByVal targetBranch As String) As Variant
     Dim sourcePath As String
-    sourcePath = folderPath & targetYear & "_" & GetProjectSelectionBranchNameForFile(targetBranch) & ProjectStatusFileSuffixText()
+    sourcePath = folderPath & targetYear & "_" & GetProjectSelectionBranchNameForFile(targetBranch) & mod_common.CommonProjectStatusFileSuffixText()
 
     If Len(Dir(sourcePath, vbNormal)) = 0 Then Exit Function
     GetProjectStatusSourceArray = ReadProjectStatusFileToArray(sourcePath, "Sheet1")
@@ -554,38 +501,6 @@ Private Sub SetSelectedValue()
                                  Me.ListView1.SelectedItem.SubItems(5), _
                                  Me.ListView1.SelectedItem.SubItems(6)
 End Sub
-
-Private Function ProjectStatusParentFolderText() As String
-    Static cached As String
-    If cached = "" Then
-        cached = ChrW$(&H5E33) & ChrW$(&H7968) & "7_" & _
-                 ChrW$(&H652F) & ChrW$(&H6255) & ChrW$(&H91D1) & ChrW$(&H984D) & _
-                 ChrW$(&H8A08) & ChrW$(&H7B97) & ChrW$(&H30B7) & ChrW$(&H30FC) & ChrW$(&H30C8) & _
-                 " - " & ChrW$(&H5E33) & ChrW$(&H7968) & "7_" & _
-                 ChrW$(&H652F) & ChrW$(&H6255) & ChrW$(&H91D1) & ChrW$(&H984D) & _
-                 ChrW$(&H8A08) & ChrW$(&H7B97) & ChrW$(&H30B7) & ChrW$(&H30FC) & ChrW$(&H30C8)
-    End If
-    ProjectStatusParentFolderText = cached
-End Function
-
-Private Function ProjectStatusDataSubFolderText() As String
-    Static cached As String
-    If cached = "" Then
-        cached = ChrW$(&H3010) & ChrW$(&H5404) & ChrW$(&H652F) & ChrW$(&H5E97) & _
-                 ChrW$(&H5DE5) & ChrW$(&H4E8B) & ChrW$(&H756A) & ChrW$(&H53F7) & _
-                 ChrW$(&H30C7) & ChrW$(&H30FC) & ChrW$(&H30BF) & ChrW$(&H3011)
-    End If
-    ProjectStatusDataSubFolderText = cached
-End Function
-
-Private Function ProjectStatusFileSuffixText() As String
-    Static cached As String
-    If cached = "" Then
-        cached = "_" & ChrW$(&H5DE5) & ChrW$(&H4E8B) & ChrW$(&H73FE) & ChrW$(&H6CC1) & _
-                 ChrW$(&H8868) & ChrW$(&H30C7) & ChrW$(&H30FC) & ChrW$(&H30BF) & ".xlsx"
-    End If
-    ProjectStatusFileSuffixText = cached
-End Function
 
 Private Function ProjectStatusColumnProjectNoText() As String
     Static cached As String
