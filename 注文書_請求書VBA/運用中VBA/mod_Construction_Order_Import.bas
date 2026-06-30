@@ -58,6 +58,10 @@ Public Function IsWeldingOutputSheet(ByVal ws As Worksheet) As Boolean
     IsWeldingOutputSheet = mod_Construction_OutputLayout.IsWeldingOutputSheetCore(ws)
 End Function
 
+Public Function IsConstructionOrderWorksOutputSheet(ByVal ws As Worksheet) As Boolean
+    IsConstructionOrderWorksOutputSheet = mod_Construction_OutputLayout.IsConstructionOrderWorksOutputSheetCore(ws)
+End Function
+
 Public Function OutputSheetCol(ByVal ws As Worksheet, ByVal baseCol As Long) As Long
     OutputSheetCol = mod_Construction_OutputLayout.OutputSheetColCore(ws, baseCol)
 End Function
