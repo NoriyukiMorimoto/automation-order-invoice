@@ -129,22 +129,24 @@ Public Sub PrepareSubcontractorSelection(ByVal ws As Worksheet, _
 
     If Not multiSel Is Nothing Then
         If multiSel.Worksheet Is ws And multiSel.CountLarge > 1 Then
-            Dim usedRange As Range
-            Set usedRange = ws.Range(ws.Cells(DATA_START_ROW, seiriCol), ws.Cells(lastRow, seiriCol))
-
             Dim multiHit As Range
             On Error Resume Next
-            Set multiHit = Application.Intersect(multiSel.EntireRow, usedRange)
+            Set multiHit = Application.Intersect(multiSel, VendorSelectionColumnsRange(ws))
             On Error GoTo 0
             If Not multiHit Is Nothing Then
-                AddEligibleVendorRowsFromRange ws, multiHit, seiriCol, mPendingRows
+                AddEligibleVendorRowsFromRange ws, multiHit, seiriCol, lastRow, mPendingRows
             End If
             SubconLog "Prepare multiSel rows=" & DescribeRowCollection(mPendingRows)
         End If
     End If
 
     If mPendingRows.Count = 0 Then
-        BuildPendingRowsFromTarget ws, Target, seiriCol, lastRow
+        If Target.CountLarge = 1 And IsVendorSelectionColumn(ws, Target.Column) Then
+            SubconLog "Prepare singleCell row=" & Target.Row
+            AddEligibleVendorRowDirect ws, Target.Row, seiriCol, lastRow, mPendingRows, True
+        Else
+            BuildPendingRowsFromTarget ws, Target, seiriCol, lastRow
+        End If
     End If
 
     mPendingContextReady = (mPendingRows.Count > 0)
@@ -434,26 +436,19 @@ Public Sub SelectSubcontractorForSelection()
 
         mCurrentStep = "CollectTargetRows"
         If TypeName(Selection) = "Range" Then
-            Dim usedRange As Range
-            Set usedRange = ws.Range(ws.Cells(DATA_START_ROW, seiriCol), ws.Cells(lastRow, seiriCol))
-
-            Dim hit As Range
+            Dim vendorHit As Range
             On Error Resume Next
-            Set hit = Application.Intersect(Selection.EntireRow, usedRange)
+            Set vendorHit = Application.Intersect(Selection, VendorSelectionColumnsRange(ws))
             On Error GoTo ErrorHandler
 
-            If Not hit Is Nothing Then
-                AddEligibleVendorRowsFromRange ws, hit, seiriCol, targetRows
+            If Not vendorHit Is Nothing Then
+                AddEligibleVendorRowsFromRange ws, vendorHit, seiriCol, lastRow, targetRows
             End If
         End If
 
         If targetRows.Count = 0 Then
             If ActiveCell.Row >= DATA_START_ROW And ActiveCell.Row <= lastRow Then
-                If IsRowVisibleInRange(ws.Cells(ActiveCell.Row, seiriCol)) Then
-                    If Trim$(CommonNzText(ws.Cells(ActiveCell.Row, seiriCol).value)) <> "" Then
-                        If Not IsSanpaiRow(ws, ActiveCell.Row) Then targetRows.Add ActiveCell.Row
-                    End If
-                End If
+                AddEligibleVendorRowDirect ws, ActiveCell.Row, seiriCol, lastRow, targetRows, True
             End If
         End If
         SubconLog "Select collected rows=" & DescribeRowCollection(targetRows)
@@ -585,16 +580,73 @@ Private Sub BuildPendingRowsFromTarget(ByVal ws As Worksheet, _
                                        ByVal lastRow As Long)
     If Not IsVendorSelectionColumn(ws, Target.Column) Then Exit Sub
 
-    Dim usedRange As Range
-    Set usedRange = ws.Range(ws.Cells(DATA_START_ROW, seiriCol), ws.Cells(lastRow, seiriCol))
+    Dim c As Range
+    For Each c In Target.Cells
+        AddEligibleVendorRowDirect ws, c.Row, seiriCol, lastRow, mPendingRows, False
+    Next c
+End Sub
 
-    Dim hit As Range
-    On Error Resume Next
-    Set hit = Application.Intersect(Target.EntireRow, usedRange)
-    On Error GoTo 0
-    If Not hit Is Nothing Then
-        AddEligibleVendorRowsFromRange ws, hit, seiriCol, mPendingRows
+Private Function VendorSelectionColumnsRange(ByVal ws As Worksheet) As Range
+    If mod_Construction_Order_Import.IsWeldingOutputSheet(ws) Then
+        Set VendorSelectionColumnsRange = ws.Columns("A:B")
+    Else
+        Set VendorSelectionColumnsRange = ws.Columns(COL_VENDOR)
     End If
+End Function
+
+Private Function IsDataRowVisible(ByVal ws As Worksheet, ByVal rowIndex As Long) As Boolean
+    On Error GoTo NotVisible
+
+    If ws.Rows(rowIndex).Hidden Then GoTo NotVisible
+
+    If ws.AutoFilterMode Then
+        If ws.Rows(rowIndex).RowHeight <= 0# Then GoTo NotVisible
+    End If
+
+    IsDataRowVisible = True
+    Exit Function
+
+NotVisible:
+    IsDataRowVisible = False
+End Function
+
+Private Sub AddEligibleVendorRowDirect(ByVal ws As Worksheet, _
+                                       ByVal rowIndex As Long, _
+                                       ByVal seiriCol As Long, _
+                                       ByVal lastRow As Long, _
+                                       ByVal targetRows As Collection, _
+                                       ByVal assumeVisible As Boolean)
+    If rowIndex < DATA_START_ROW Or rowIndex > lastRow Then Exit Sub
+    If Not assumeVisible Then
+        If Not IsDataRowVisible(ws, rowIndex) Then Exit Sub
+    End If
+
+    Dim i As Long
+    For i = 1 To targetRows.Count
+        If CLng(targetRows(i)) = rowIndex Then Exit Sub
+    Next i
+
+    If Trim$(CommonNzText(ws.Cells(rowIndex, seiriCol).value)) = "" Then Exit Sub
+    If IsSanpaiRow(ws, rowIndex) Then Exit Sub
+    targetRows.Add rowIndex
+End Sub
+
+Private Sub AddEligibleVendorRowsFromRange(ByVal ws As Worksheet, _
+                                           ByVal rng As Range, _
+                                           ByVal seiriCol As Long, _
+                                           ByVal lastRow As Long, _
+                                           ByVal targetRows As Collection)
+    If rng Is Nothing Then Exit Sub
+
+    Dim startRow As Long
+    Dim endRow As Long
+    startRow = rng.Row
+    endRow = rng.Row + rng.Rows.Count - 1
+
+    Dim rowIndex As Long
+    For rowIndex = startRow To endRow
+        AddEligibleVendorRowDirect ws, rowIndex, seiriCol, lastRow, targetRows, False
+    Next rowIndex
 End Sub
 
 Private Function ResolveTargetVendorColumn(ByVal ws As Worksheet, _
@@ -649,39 +701,4 @@ Private Function IsSanpaiRow(ByVal ws As Worksheet, ByVal rowIndex As Long) As B
                          SANPAI_KEYWORD, vbTextCompare) > 0)
 End Function
 
-Private Function GetVisibleCellsInRange(ByVal rng As Range) As Range
-    If rng Is Nothing Then Exit Function
-    On Error Resume Next
-    Set GetVisibleCellsInRange = rng.SpecialCells(xlCellTypeVisible)
-    On Error GoTo 0
-End Function
-
-Private Function IsRowVisibleInRange(ByVal rng As Range) As Boolean
-    IsRowVisibleInRange = Not GetVisibleCellsInRange(rng) Is Nothing
-End Function
-
-Private Sub AddEligibleVendorRowsFromRange(ByVal ws As Worksheet, _
-                                           ByVal rng As Range, _
-                                           ByVal seiriCol As Long, _
-                                           ByVal targetRows As Collection)
-    Dim visibleRng As Range
-    Set visibleRng = GetVisibleCellsInRange(rng)
-    If visibleRng Is Nothing Then Exit Sub
-
-    Dim seenRows As Object
-    Set seenRows = CreateObject("Scripting.Dictionary")
-
-    Dim c As Range
-    For Each c In visibleRng.Cells
-        Dim rowIndex As Long
-        rowIndex = c.Row
-        If Not seenRows.Exists(CStr(rowIndex)) Then
-            If Trim$(CommonNzText(ws.Cells(rowIndex, seiriCol).value)) <> "" Then
-                If Not IsSanpaiRow(ws, rowIndex) Then
-                    seenRows.Add CStr(rowIndex), True
-                    targetRows.Add rowIndex
-                End If
-            End If
-        End If
-    Next c
-End Sub
+Private Function ResolveTargetVendorColumn(ByVal ws As Worksheet, _
