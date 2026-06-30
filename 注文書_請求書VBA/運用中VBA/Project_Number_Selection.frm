@@ -4,7 +4,10 @@ Public SelectionConfirmed As Boolean
 Private SharedMasterData As Variant
 
 Public Sub ClearSharedMasterData()
-    Erase SharedMasterData
+    If IsArray(SharedMasterData) Then
+        Erase SharedMasterData
+    End If
+    SharedMasterData = Empty
 End Sub
 
 Private Sub UserForm_Initialize()
