@@ -51,6 +51,11 @@ Private Sub LoadMasterDataToMemory()
     On Error GoTo ErrorHandler
 
     Dim folderPath As String: folderPath = mod_common.CommonGetProjectStatusDataFolderPath()
+    If Len(folderPath) = 0 Or Len(Dir(folderPath, vbDirectory)) = 0 Then
+        MsgBox UiMsgProjectStatusLoadFailedText() & vbCrLf & vbCrLf & _
+               ProjectStatusDetailFileLabelText() & ProjectStatusDetailFolderNotFoundText(), vbExclamation
+        Exit Sub
+    End If
     Dim targetYear As Long
     Dim targetBranch As String
     Dim targetOffice As String
@@ -129,7 +134,8 @@ FinallyExit:
     Application.screenUpdating = previousScreenUpdating
     If savedErrNumber <> 0 Then
         Me.Caption = UiMsgProjectNumberSelectionCaptionText()
-        MsgBox UiMsgProjectStatusLoadFailedText() & vbCrLf & savedErrDescription, vbExclamation
+        MsgBox UiMsgProjectStatusLoadFailedText() & vbCrLf & savedErrDescription & vbCrLf & vbCrLf & _
+               ProjectStatusDetailFileLabelText() & sourceFilePath, vbExclamation
     End If
 End Sub
 Private Function GetProjectStatusSourceArray(ByVal folderPath As String, ByVal targetYear As String, ByVal targetBranch As String) As Variant
@@ -140,31 +146,71 @@ Private Function GetProjectStatusSourceArray(ByVal folderPath As String, ByVal t
     GetProjectStatusSourceArray = ReadProjectStatusFileToArray(sourcePath, "Sheet1")
 End Function
 Private Function ReadProjectStatusFileToArray(ByVal sourcePath As String, ByVal sheetName As String) As Variant
-    Dim sourceBook As Workbook
-    Dim sourceSheet As Worksheet
-    Dim lastRow As Long
-
     If Len(Dir(sourcePath, vbNormal)) = 0 Then Exit Function
 
+    Dim cn As Object
+    Set cn = mod_common.CommonOpenExcelAdoConnection(sourcePath)
+    If cn Is Nothing Then Exit Function
+
     On Error GoTo Cleanup
-    Set sourceBook = Workbooks.Open(fileName:=sourcePath, ReadOnly:=True, UpdateLinks:=False)
 
-    On Error Resume Next
-    Set sourceSheet = sourceBook.worksheets(sheetName)
-    On Error GoTo Cleanup
-    If sourceSheet Is Nothing Then Set sourceSheet = sourceBook.worksheets(1)
+    Dim adoSheetName As String
+    adoSheetName = ResolveProjectStatusAdoSheetName(cn, sheetName)
+    If adoSheetName = "" Then GoTo Cleanup
 
-    lastRow = sourceSheet.Cells(sourceSheet.rows.Count, "G").End(xlUp).Row
-    If lastRow < sourceSheet.Cells(sourceSheet.rows.Count, "J").End(xlUp).Row Then lastRow = sourceSheet.Cells(sourceSheet.rows.Count, "J").End(xlUp).Row
-    If lastRow < 1 Then GoTo Cleanup
+    Dim rs As Object
+    Set rs = CreateObject("ADODB.Recordset")
+    rs.Open "SELECT * FROM [" & adoSheetName & "$]", cn, 0, 1
+    If rs.EOF Then GoTo Cleanup
 
-    ReadProjectStatusFileToArray = sourceSheet.Range("A1:BQ" & lastRow).value
+    ReadProjectStatusFileToArray = ConvertAdoRecordsetToRowMajorArray(rs)
 
 Cleanup:
-    On Error Resume Next
-    If Not sourceBook Is Nothing Then sourceBook.Close SaveChanges:=False
-    On Error GoTo 0
+    mod_common.CommonCloseAdoRecordset rs
+    mod_common.CommonCloseAdoConnection cn
 End Function
+
+Private Function ResolveProjectStatusAdoSheetName(ByVal cn As Object, ByVal preferredSheetName As String) As String
+    Dim sheetNames As Collection
+    Set sheetNames = mod_common.CommonGetAdoWorksheetNames(cn)
+    If sheetNames Is Nothing Then Exit Function
+    If sheetNames.Count = 0 Then Exit Function
+
+    Dim i As Long
+    For i = 1 To sheetNames.Count
+        If StrComp(CStr(sheetNames(i)), preferredSheetName, vbTextCompare) = 0 Then
+            ResolveProjectStatusAdoSheetName = CStr(sheetNames(i))
+            Exit Function
+        End If
+    Next i
+
+    ResolveProjectStatusAdoSheetName = CStr(sheetNames(1))
+End Function
+
+Private Function ConvertAdoRecordsetToRowMajorArray(ByVal rs As Object) As Variant
+    Dim data As Variant
+    data = rs.GetRows
+
+    Dim fieldCount As Long
+    Dim recordCount As Long
+    fieldCount = UBound(data, 1) + 1
+    recordCount = UBound(data, 2) + 1
+    If fieldCount <= 0 Or recordCount <= 0 Then Exit Function
+
+    Dim result() As Variant
+    ReDim result(1 To recordCount, 1 To fieldCount)
+
+    Dim rowIndex As Long
+    Dim colIndex As Long
+    For rowIndex = 1 To recordCount
+        For colIndex = 1 To fieldCount
+            result(rowIndex, colIndex) = data(colIndex - 1, rowIndex - 1)
+        Next colIndex
+    Next rowIndex
+
+    ConvertAdoRecordsetToRowMajorArray = result
+End Function
+
 Private Function GetProjectSourceValue(ByVal sourceArr As Variant, ByVal rowIndex As Long, ByVal colIndex As Long) As String
     On Error GoTo ErrorHandler
     If colIndex <= UBound(sourceArr, 2) Then GetProjectSourceValue = CStr(sourceArr(rowIndex, colIndex))
@@ -639,4 +685,14 @@ Private Function ProjectStatusDetailYearHintText() As String
                  ChrW$(&H3060) & ChrW$(&H3055) & ChrW$(&H3044)
     End If
     ProjectStatusDetailYearHintText = cached
+End Function
+
+Private Function ProjectStatusDetailFolderNotFoundText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = ChrW$(&H30DE) & ChrW$(&H30B9) & ChrW$(&H30BF) & ChrW$(&H30C7) & ChrW$(&H30FC) & ChrW$(&H30BF) & _
+                 "\" & ChrW$(&H3010) & ChrW$(&H5404) & ChrW$(&H652F) & ChrW$(&H5E97) & ChrW$(&H5DE5) & ChrW$(&H4E8B) & _
+                 ChrW$(&H756A) & ChrW$(&H53F7) & ChrW$(&H30C7) & ChrW$(&H30FC) & ChrW$(&H30BF) & ChrW$(&H3011)
+    End If
+    ProjectStatusDetailFolderNotFoundText = cached
 End Function
