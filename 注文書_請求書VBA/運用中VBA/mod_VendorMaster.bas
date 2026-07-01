@@ -771,17 +771,30 @@ Public Sub HandleVendorUnitPriceMonitorChange(ByVal wsInfo As Worksheet, ByVal c
     On Error GoTo ExitHandler
     Application.EnableEvents = False
 
-    Dim unitPriceCols As Collection
+    ' 工事種別(10行目)・業者名(11行目)が変わった列はヘッダー/結合/罫線/数式を含めた全展開が必要
+    Dim structuralCols As Collection
+    Set structuralCols = CollectMonitorChangedValueColumns(wsInfo, changedRange, False, False)
+
+    ' 外注比率(29行目)のみが変わった列は、単価数式が比率セルを直接参照しているため
+    ' 表示欄(ラベル・値)だけ更新すれば良く、全展開は不要(速度改善)
+    Dim ratioOnlyCols As Collection
+    Set ratioOnlyCols = CollectOutsourceRatioOnlyChangedValueColumns(wsInfo, changedRange, structuralCols)
+
     Dim weldingCols As Collection
-    Set unitPriceCols = CollectMonitorChangedValueColumns(wsInfo, changedRange, True, False)
     Set weldingCols = CollectMonitorChangedValueColumns(wsInfo, changedRange, False, True)
 
     Dim preferredRatioColumn As Long
     preferredRatioColumn = GetPreferredWeldingRatioColumnFromChange(wsInfo, changedRange)
 
     Dim col As Variant
-    For Each col In unitPriceCols
+    For Each col In structuralCols
+        mod_DebugLog.Log "[VendorMaster] HandleVendorUnitPriceMonitorChange: full refresh col=" & CLng(col)
         RefreshVendorUnitPriceForValueColumn wsInfo, CLng(col)
+    Next col
+
+    For Each col In ratioOnlyCols
+        mod_DebugLog.Log "[VendorMaster] HandleVendorUnitPriceMonitorChange: ratio-only refresh col=" & CLng(col)
+        RefreshVendorUnitPriceOutsourceRatioOnlyForValueColumn wsInfo, CLng(col)
     Next col
 
     If weldingCols.Count > 0 Then
@@ -894,6 +907,55 @@ Private Sub AddUniqueLongToCollection(ByVal target As Collection, ByVal value As
     Next existing
     target.Add value
 End Sub
+
+Private Function IsLongInCollection(ByVal target As Collection, ByVal value As Long) As Boolean
+    If target Is Nothing Then Exit Function
+
+    Dim existing As Variant
+    For Each existing In target
+        If CLng(existing) = value Then
+            IsLongInCollection = True
+            Exit Function
+        End If
+    Next existing
+End Function
+
+' 外注比率(29行目)のみが変わった業者列を集める。工事種別/業者名が変わった列(excludeColumns)は
+' 全展開側(RefreshVendorUnitPriceForValueColumn)が比率表示も含めて処理するため、ここでは除外する。
+Private Function CollectOutsourceRatioOnlyChangedValueColumns(ByVal wsInfo As Worksheet, _
+                                                              ByVal changedRange As Range, _
+                                                              ByVal excludeColumns As Collection) As Collection
+    Dim result As Collection
+    Set result = New Collection
+
+    If wsInfo Is Nothing Then
+        Set CollectOutsourceRatioOnlyChangedValueColumns = result
+        Exit Function
+    End If
+    If changedRange Is Nothing Then
+        Set CollectOutsourceRatioOnlyChangedValueColumns = result
+        Exit Function
+    End If
+
+    Dim vendorCount As Long
+    vendorCount = GetVendorBlockCount(wsInfo)
+
+    Dim i As Long
+    For i = 1 To vendorCount
+        Dim valueCol As Long
+        valueCol = VendorValueColumnByIndex(i)
+
+        If Not IsLongInCollection(excludeColumns, valueCol) Then
+            Dim monitorCell As Range
+            Set monitorCell = wsInfo.Cells(BASIC_INFO_VENDOR_OUTSOURCE_RATIO_ROW, valueCol)
+            If Not Intersect(changedRange, monitorCell) Is Nothing Then
+                AddUniqueLongToCollection result, valueCol
+            End If
+        End If
+    Next i
+
+    Set CollectOutsourceRatioOnlyChangedValueColumns = result
+End Function
 
 Private Function GetPreferredWeldingRatioColumnFromChange(ByVal wsInfo As Worksheet, _
                                                           ByVal changedRange As Range) As Long
@@ -1084,6 +1146,70 @@ Private Sub RefreshVendorUnitPriceForValueColumn(ByVal wsInfo As Worksheet, ByVa
         End If
     Next wsUnitPrice
 End Sub
+
+' 外注比率(29行目)のみが変わった場合の軽量更新。
+' 単価行の数式(day/night列)は基本情報シートの比率セルを直接参照(絶対参照)しているため、
+' 比率の値が変わっても数式自体を書き直す必要はなく、Excelの再計算で自動的に反映される。
+' そのため、ブロックが構築済みの単価シートに対しては比率表示欄(ラベル・値の2セル)だけを
+' 更新し、見出し結合・罫線・フォント・数式の全再構築(ApplyVendorUnitPriceBlockToSheet)は行わない。
+' 業者名は入力済みだが比率が今回初めて入力された(ブロック未構築)単価シートに対しては、
+' 従来通り全展開(ApplyVendorUnitPriceBlockToSheet)にフォールバックする。
+Private Sub RefreshVendorUnitPriceOutsourceRatioOnlyForValueColumn(ByVal wsInfo As Worksheet, ByVal valueColumn As Long)
+    If wsInfo Is Nothing Then Exit Sub
+
+    Dim targetBook As Workbook
+    Set targetBook = wsInfo.Parent
+
+    Dim dayCol As Long
+    Dim nightCol As Long
+    dayCol = VendorUnitPriceDayColumnByValueColumn(valueColumn)
+    nightCol = dayCol + 1
+
+    Dim vendorUnitPriceNameMap As Object
+    Dim nameMapLoaded As Boolean
+    nameMapLoaded = False
+
+    Dim wsUnitPrice As Worksheet
+    For Each wsUnitPrice In targetBook.worksheets
+        If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) Then
+            If ShouldApplyVendorUnitPriceBlock(wsInfo, valueColumn) Then
+                If IsVendorUnitPriceBlockAlreadyBuilt(wsUnitPrice, dayCol, nightCol) Then
+                    ApplyVendorUnitPriceOutsourceRatioRow wsUnitPrice, wsInfo, valueColumn, dayCol, nightCol
+                Else
+                    If Not nameMapLoaded Then
+                        Set vendorUnitPriceNameMap = BuildVendorUnitPriceNameMap(wsInfo)
+                        nameMapLoaded = True
+                    End If
+                    ApplyVendorUnitPriceBlockToSheet wsUnitPrice, wsInfo, valueColumn, vendorUnitPriceNameMap
+                End If
+            ElseIf IsRailConstructionVendorBlock(wsInfo, valueColumn) And _
+                   HasVendorName(wsInfo, valueColumn) Then
+                ' 11行目のみ入力済み。29行目入力待ちの間は既存列を消さない
+            Else
+                ClearVendorUnitPriceBlockOnSheet wsUnitPrice, dayCol, nightCol
+            End If
+        End If
+    Next wsUnitPrice
+End Sub
+
+' 単価シート側に指定列の業者ブロック(見出し結合セル)が既に構築済みかどうかを判定する。
+' 未構築(初回)の場合は全展開が必要なため、呼び出し元でフォールバックする。
+Private Function IsVendorUnitPriceBlockAlreadyBuilt(ByVal wsUnitPrice As Worksheet, _
+                                                    ByVal dayCol As Long, _
+                                                    ByVal nightCol As Long) As Boolean
+    On Error GoTo ExitHandler
+
+    Dim headerCell As Range
+    Set headerCell = wsUnitPrice.Cells(VENDOR_UNIT_PRICE_HEADER_ROW, dayCol)
+
+    IsVendorUnitPriceBlockAlreadyBuilt = _
+        headerCell.MergeCells And _
+        (Len(Trim$(CStr(headerCell.MergeArea.Cells(1, 1).value))) > 0)
+    Exit Function
+
+ExitHandler:
+    IsVendorUnitPriceBlockAlreadyBuilt = False
+End Function
 
 Private Sub RefreshVendorUnitPriceBlocksOnSheet(ByVal wsUnitPrice As Worksheet, _
                                                  ByVal wsInfo As Worksheet, _
