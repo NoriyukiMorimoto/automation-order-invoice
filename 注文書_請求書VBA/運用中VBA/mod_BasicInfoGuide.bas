@@ -604,13 +604,13 @@ End Function
 ' ----------------------------------------------------------------
 Private Function GetVendorCount(ByVal ws As Worksheet) As Long
     On Error Resume Next
+    ' IsNumeric()だとF9が"4社"のような接尾辞付き文字列の場合にFalse判定となり
+    ' 常に0を返してしまう(mod_VendorMaster.GetVendorBlockCountと不整合になる)ため、
+    ' 同じくVal()による先頭数値抽出に統一する。
     Dim v As Variant
     v = ws.Range("F9").value
-    If IsNumeric(v) Then
-        GetVendorCount = CLng(v)
-    Else
-        GetVendorCount = 0
-    End If
+    GetVendorCount = CLng(Val(StrConv(CStr(v), vbNarrow)))
+    If GetVendorCount < 0 Then GetVendorCount = 0
     On Error GoTo 0
 End Function
 
