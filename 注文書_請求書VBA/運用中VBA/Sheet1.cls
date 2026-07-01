@@ -13,6 +13,7 @@ Private Sub Worksheet_Activate()
     mod_VendorMaster.ClearVendorRowsCache
     mod_FillManagerName.HideOfficeComboBox Me
     mod_FillManagerName.RefreshBranchOfficeValidation True
+    mod_VendorMaster.EnsureVendorCountInputValidation Me
     mod_VendorMaster.InitVendorBlockCountFromSheet Me
     mod_VendorMaster.RefreshVendorListForBasicInfo Me
     mod_MaterialPriceImport.RefreshUnitPriceProjectNameValidation Me

@@ -1,6 +1,6 @@
 Option Explicit
 
-Private Const VENDOR_LIST_COL As String = "AD"
+Private Const VENDOR_LIST_COL As String = "AJ"
 Private Const VENDOR_LIST_START_ROW As Long = 2
 Private Const BASIC_INFO_VENDOR_NAME_CELL As String = "F11"
 Private Const BASIC_INFO_VENDOR_NAME_ROW As Long = 11
@@ -43,7 +43,7 @@ Private Const VENDOR_UNIT_PRICE_FILL_COLOR_G As Long = 128
 Private Const VENDOR_UNIT_PRICE_FILL_COLOR_B As Long = 128
 Private Const VENDOR_UNIT_PRICE_NUMBER_FORMAT As String = "#,##0"
 
-Private Const MAX_VENDOR_BLOCK_COUNT As Long = 20
+Private Const MAX_VENDOR_BLOCK_COUNT As Long = 10
 Private Const VENDOR_SOURCE_START_ROW As Long = 2
 Private Const VENDOR_SOURCE_END_ROW As Long = 500
 Private Const VENDOR_ROW_NAME_INDEX As Long = 0
@@ -680,6 +680,14 @@ Public Sub SyncVendorBlocksFromCount(ByVal wsInfo As Worksheet)
         mod_WeldingUnitPrice.ApplyWeldingVendorUnitPricesForBasicInfo wsInfo, False, 0, True
     End If
     mLastVendorBlockCount = vendorCount
+
+    ' 会社数が変わったブロックは32/33行目(契約金額合計)がテンプレート由来の空欄のまま
+    ' 残るため、ここで明示的に合計を再計算・書込みする(新規追加ブロックの0円初期化を含む)。
+    If vendorCount <> previousCount Then
+        On Error Resume Next
+        mod_Construction_Order_Import.RefreshBasicInfoConstructionTotals
+        On Error GoTo 0
+    End If
 
     If vendorBlocksEnsured Or vendorCount > previousCount Then
         Dim restoreIndex As Long
@@ -2170,6 +2178,48 @@ Private Function GetVendorBlockCount(ByVal wsInfo As Worksheet) As Long
     If countValue < 1 Then countValue = 1
     If countValue > MAX_VENDOR_BLOCK_COUNT Then countValue = MAX_VENDOR_BLOCK_COUNT
     GetVendorBlockCount = countValue
+End Function
+
+' F9(施工会社数)に想定外の値(65など)が入力されるとSyncVendorBlocksFromCountが
+' 大量ブロックの一括生成を試みて長時間応答なしになるため、1～MAX_VENDOR_BLOCK_COUNTの
+' 整数のみ許可する入力規則をあらかじめ設定しておく。Worksheet_Activateから呼び出す想定。
+Public Sub EnsureVendorCountInputValidation(Optional ByVal wsInfo As Worksheet)
+    If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet()
+    If wsInfo Is Nothing Then Exit Sub
+
+    On Error Resume Next
+    With wsInfo.Range(BASIC_INFO_VENDOR_COUNT_CELL).Validation
+        .Delete
+        .Add Type:=xlValidateWholeNumber, AlertStyle:=xlValidAlertStop, _
+             Operator:=xlBetween, Formula1:="1", Formula2:=CStr(MAX_VENDOR_BLOCK_COUNT)
+        .IgnoreBlank = True
+        .InCellDropdown = False
+        .InputTitle = VendorCountValidationTitleText()
+        .InputMessage = VendorCountValidationInputText()
+        .ErrorTitle = VendorCountValidationTitleText()
+        .ErrorMessage = VendorCountValidationErrorText()
+        .ShowInput = True
+        .ShowError = True
+    End With
+    On Error GoTo 0
+End Sub
+
+Private Function VendorCountValidationTitleText() As String
+    VendorCountValidationTitleText = ChrW$(&H65BD) & ChrW$(&H5DE5) & ChrW$(&H4F1A) & ChrW$(&H793E) & ChrW$(&H6570)
+End Function
+
+Private Function VendorCountValidationInputText() As String
+    VendorCountValidationInputText = "1" & ChrW$(&H301C) & CStr(MAX_VENDOR_BLOCK_COUNT) & _
+                                     ChrW$(&H306E) & ChrW$(&H6574) & ChrW$(&H6570) & ChrW$(&H3092) & _
+                                     ChrW$(&H5165) & ChrW$(&H529B) & ChrW$(&H3057) & ChrW$(&H3066) & _
+                                     ChrW$(&H304F) & ChrW$(&H3060) & ChrW$(&H3055) & ChrW$(&H3044) & "."
+End Function
+
+Private Function VendorCountValidationErrorText() As String
+    VendorCountValidationErrorText = "1" & ChrW$(&H301C) & CStr(MAX_VENDOR_BLOCK_COUNT) & _
+                                     ChrW$(&H306E) & ChrW$(&H6574) & ChrW$(&H6570) & ChrW$(&H3092) & _
+                                     ChrW$(&H5165) & ChrW$(&H529B) & ChrW$(&H3057) & ChrW$(&H3066) & _
+                                     ChrW$(&H304F) & ChrW$(&H3060) & ChrW$(&H3055) & ChrW$(&H3044) & "."
 End Function
 
 Private Function VendorNameCellByIndex(ByVal wsInfo As Worksheet, ByVal vendorIndex As Long) As Range

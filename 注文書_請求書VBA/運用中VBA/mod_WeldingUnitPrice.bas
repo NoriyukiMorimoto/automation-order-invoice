@@ -41,7 +41,7 @@ Private Const BASIC_INFO_VENDOR_BLOCK_STEP_COLS As Long = 3
 Private Const BASIC_INFO_VENDOR_COUNT_CELL As String = "F9"
 Private Const BASIC_INFO_YEAR_CELL As String = "B4"
 Private Const BASIC_INFO_BILLING_COUNT_CELL As String = "F4"
-Private Const MAX_VENDOR_BLOCK_COUNT As Long = 20
+Private Const MAX_VENDOR_BLOCK_COUNT As Long = 10
 
 ' --- レール溶接単価シート レイアウト ---
 Private Const WUP_RATIO_ROW As Long = 1           ' 外注比率表示行
