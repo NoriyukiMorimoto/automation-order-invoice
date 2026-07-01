@@ -1,7 +1,5 @@
 Option Explicit
 
-' =====================================================================
-' mod_WeldingUnitPrice
 ' 「○○保線区_レール溶接単価」シートへ施工会社別単価を展開するモジュール
 '
 ' ・溶接会社 : G列(昼)/H列(夜)から1社2列ずつ右へ追加(10行目=「溶接工事」のブロックのみ)
@@ -26,9 +24,7 @@ Option Explicit
 '   ApplyWeldingVendorUnitPricesForBasicInfo
 '     - mod_MaterialPriceImport.ImportUnitPriceData の溶接単価シート作成直後に呼び出す
 '     - Alt+F8 から手動実行も可能
-' =====================================================================
 
-' --- 基本情報シート 業者ブロック ---
 Private Const BASIC_INFO_VENDOR_BLOCK_TOP_ROW As Long = 10    ' 工事種別(軌道工事/溶接工事)
 Private Const BASIC_INFO_VENDOR_NAME_ROW As Long = 11         ' 会社名
 Private Const BASIC_INFO_RAIL_RATIO_ROW As Long = 29          ' 軌道工事外注比率
@@ -43,7 +39,6 @@ Private Const BASIC_INFO_YEAR_CELL As String = "B4"
 Private Const BASIC_INFO_BILLING_COUNT_CELL As String = "F4"
 Private Const MAX_VENDOR_BLOCK_COUNT As Long = 10
 
-' --- レール溶接単価シート レイアウト ---
 Private Const WUP_RATIO_ROW As Long = 1           ' 外注比率表示行
 Private Const WUP_HEADER_ROW As Long = 4          ' 「(回数)(年度)外注単価」結合ヘッダー行
 Private Const WUP_NAME_ROW As Long = 5            ' 会社名結合行
@@ -93,9 +88,6 @@ Private mTemotoRatioMap As Object
 Private mTemotoRatioMapPath As String
 Private mTemotoRatioMapTime As Date
 
-' =====================================================================
-' Public エントリポイント
-' =====================================================================
 
 ' ブック内の全「_レール溶接単価」シートへ施工会社別単価を展開する
 '   preferredRatioColumn: 互換用(部分展開 API)。走査結果自体は変更しない。
@@ -669,7 +661,6 @@ Private Function CollectionContainsLongWUP(ByVal values As Collection, ByVal tar
     Next item
 End Function
 
-' シート名が「_レール溶接単価」を含むかどうか
 Public Function IsWeldingUnitPriceSheet(ByVal targetSheet As Worksheet) As Boolean
     If targetSheet Is Nothing Then Exit Function
     IsWeldingUnitPriceSheet = _
@@ -677,9 +668,7 @@ Public Function IsWeldingUnitPriceSheet(ByVal targetSheet As Worksheet) As Boole
                NormalizeMatchTextWUP(WeldingSheetSuffixText()), vbTextCompare) > 0)
 End Function
 
-' =====================================================================
 ' シート単位の展開処理
-' =====================================================================
 
 Private Sub ApplyWeldingVendorUnitPricesToSheet(ByVal wsWelding As Worksheet, _
                                                 ByVal wsInfo As Worksheet, _
@@ -770,7 +759,6 @@ Private Sub ApplyWeldingVendorBlock(ByVal wsWelding As Worksheet, _
     ' 再実行に備えて一旦初期化
     ClearWeldingVendorBlock wsWelding, lastRow, dayCol
 
-    ' 列幅 = E/F列に合わせる(既存ロジック同様)
     wsWelding.Columns(dayCol).ColumnWidth = wsWelding.Columns(WUP_JR_DAY_COL).ColumnWidth
     wsWelding.Columns(nightCol).ColumnWidth = wsWelding.Columns(WUP_JR_NIGHT_COL).ColumnWidth
 
@@ -827,7 +815,6 @@ Private Sub ApplyWeldingVendorDataRowsBatch(ByVal wsWelding As Worksheet, _
     Dim rowCount As Long
     rowCount = lastRow - firstRow + 1
 
-    ' B(整理番号)～F(JR夜) を一括読込し、セル単位の値読取を排除
     Const COL_SEIRI As Long = 1      ' B
     Const COL_WORK As Long = 2       ' C
     Const COL_JR_DAY As Long = 4     ' E
@@ -923,7 +910,6 @@ Private Sub ApplyWeldingVendorDataRowsBatch(ByVal wsWelding As Worksheet, _
         End If
     Next r
 
-    ' 数式は列ごとに1回で一括書き込み
     wsWelding.Range(wsWelding.Cells(firstRow, dayCol), wsWelding.Cells(lastRow, dayCol)).Formula = dayArr
     wsWelding.Range(wsWelding.Cells(firstRow, nightCol), wsWelding.Cells(lastRow, nightCol)).Formula = nightArr
 
@@ -993,7 +979,6 @@ Private Sub ApplyWeldingVendorRow(ByVal wsWelding As Worksheet, _
     Dim seiriNumber As Long
     seiriNumber = CLng(Val(StrConv(seiriText, vbNarrow)))
 
-    ' パック工種(5000番台): 構成工種の同列セル×数量の合計を算出
     '   溶接(G/H)=3工種(J/K,L/M,N/O) / 軌道(I/J等)=1工種(J/K)のみ
     If seiriNumber >= WUP_PACK_SEIRI_MIN Then
         ApplyPackRowForBlock wsWelding, rowIndex, dayCol, nightCol, CStr(seiriNumber), isWeldingVendor
@@ -1009,7 +994,6 @@ Private Sub ApplyWeldingVendorRow(ByVal wsWelding As Worksheet, _
         Exit Sub
     End If
 
-    ' 手元割合を整理番号で参照
     ' (溶接単価シートB列の整理番号 = マスタ溶接手元割合シートA列の整理番号 で照合)
     Dim seiriKey As String
     seiriKey = CStr(seiriNumber)
@@ -1049,7 +1033,6 @@ Private Sub ApplyWeldingVendorCell(ByVal targetCell As Range, _
         .Interior.ColorIndex = xlColorIndexNone
     End With
 
-    ' JR単価が空欄 or 手元比率未設定 -> グレー塗り
     If Len(Trim$(CStr(wsWelding.Cells(rowIndex, sourceCol).Value))) = 0 Then
         ApplyGreyFill targetCell
         Exit Sub
@@ -1100,9 +1083,7 @@ Private Function RatioLiteralText(ByVal value As Double) As String
     RatioLiteralText = s
 End Function
 
-' =====================================================================
 ' 軌道会社列(markup方式)の数式・セル書き込み
-' =====================================================================
 
 ' 軌道会社セルへ新単価数式を書き込む(溶接会社セルと同様にグレー塗り判定を行う)。
 '   sourceCol  : JR単価列(昼=E/夜=F)
@@ -1120,7 +1101,6 @@ Private Sub ApplyRailMarkupCell(ByVal targetCell As Range, _
         .Interior.ColorIndex = xlColorIndexNone
     End With
 
-    ' JR単価が空欄 or 手元割合未設定 -> グレー塗り
     If Len(Trim$(CStr(wsWelding.Cells(rowIndex, sourceCol).Value))) = 0 Then
         ApplyGreyFill targetCell
         Exit Sub
@@ -1181,16 +1161,13 @@ Private Function BuildRailMarkupFormula(ByVal wsWelding As Worksheet, _
                 "IF(LEN(" & txGaibu & ")<=3," & prodGaibu & "," & _
                 "ROUND(VALUE(LEFT(" & txGaibu & ",4)),-1)*10^VALUE(LEN(" & txGaibu & ")-4)))"
 
-    ' --- 溶接単価シート3行目(パターン右列)で分岐(前年度単価適用は未定義のため空欄) ---
     BuildRailMarkupFormula = _
         "=IF(" & patternRef & "=" & q & PatternOutsourceRatioText() & q & "," & exprGaibu & "," & _
         "IF(" & patternRef & "=" & q & PatternPriceIndexText() & q & "," & exprBukka & "," & _
         q & q & "))"
 End Function
 
-' =====================================================================
 ' パック工種(5000番台)の計算
-' =====================================================================
 
 ' 当該シートの 整理番号 -> 行番号 マップ(パック構成工種の行参照用)
 Private Function BuildSeiriRowMapWUP(ByVal wsWelding As Worksheet, ByVal lastRow As Long) As Object
@@ -1278,9 +1255,7 @@ Private Sub ApplyPackCell(ByVal targetCell As Range, ByVal formulaText As String
     End If
 End Sub
 
-' =====================================================================
 ' 書式・罫線・クリア(mod_VendorMaster の単価シート作成ロジックと同一仕様)
-' =====================================================================
 
 Private Sub ApplyOutsourceRatioRow(ByVal wsWelding As Worksheet, _
                                    ByVal dayCol As Long, _
@@ -1597,7 +1572,6 @@ Private Sub ClearWeldingVendorColumnsRange(ByVal wsWelding As Worksheet, _
     ' 3行目(単価ﾊﾟﾀｰﾝ行)は単価データ列とは別の刻み幅(4列刻み)で配置されており、
     ' 他社の単価データ列(2列刻み)と物理的に重なることがある。このクリア処理で
     ' 巻き込んで消してしまわないよう、3行目だけは対象から除外する。
-    ' (3行目の内容は ApplyRailPatternRow / ClearRailPatternBlock が個別に管理する)
     If WUP_RATIO_ROW < WUP_PATTERN_ROW And WUP_PATTERN_ROW <= clearLastRow Then
         ClearWeldingVendorColumnsRangeCore wsWelding.Range( _
             wsWelding.Cells(WUP_RATIO_ROW, fromDayCol), _
@@ -1638,9 +1612,7 @@ Private Sub SafeUnmergeRangeWUP(ByVal targetRange As Range)
     On Error GoTo 0
 End Sub
 
-' =====================================================================
 ' 基本情報シートの業者ブロック走査
-' =====================================================================
 
 ' F10から3列おきに工事種別(10行目)を確認し、溶接工事ブロックと軌道工事ブロックへ分類する
 '
@@ -1753,9 +1725,7 @@ Private Function NormalizePercentScale(ByVal value As Double) As Double
     End If
 End Function
 
-' =====================================================================
 ' 手元比率マスタ(レール溶接_軌道会社外注費率一覧 / 溶接手元割合シート)
-' =====================================================================
 
 ' Dictionary: key=整理番号(文字列) -> Array(手元比率昼, 手元比率夜) ※未設定はEmpty
 Private Function LoadTemotoRatioMap(ByRef loadErrorText As String) As Object
@@ -1872,7 +1842,6 @@ Private Function BuildTemotoMapFromData(ByVal data As Variant, _
         End If
     Next f
 
-    ' フォールバック: 整理番号列の右隣を昼、その右を夜とみなす
     If dayField < 0 Then dayField = seiriField + 1
     If nightField < 0 Then nightField = dayField + 1
     If dayField > fieldCount - 1 Then
@@ -1909,7 +1878,6 @@ Private Function BuildTemotoMapFromData(ByVal data As Variant, _
                 result.Add seiriKey, Array(dayRatio, nightRatio)
             End If
 
-            ' パック工種(5000番台): J/K, L/M, N/O から構成(整理番号, 数量)を読む
             If CLng(Val(seiriText)) >= WUP_PACK_SEIRI_MIN And Not mPackMap.Exists(seiriKey) Then
                 Dim comps As Collection
                 Set comps = New Collection
@@ -2009,9 +1977,7 @@ Private Function FindAdoSheetNameWUP(ByVal cn As Object, ByVal targetSheetName A
     Next sheetName
 End Function
 
-' =====================================================================
 ' ヘルパー
-' =====================================================================
 
 Private Function CollectWeldingUnitPriceSheets(ByVal targetBook As Workbook) As Collection
     Dim result As Collection
@@ -2106,11 +2072,7 @@ Private Sub LogWUP(ByVal msg As String)
     On Error GoTo 0
 End Sub
 
-' =====================================================================
-' 文字列定数(CP932互換のためChrW$で定義 / 既存モジュールの方式に準拠)
-' =====================================================================
 
-' "_レール溶接単価"
 Private Function WeldingSheetSuffixText() As String
     Static cached As String
     If cached = "" Then
@@ -2120,7 +2082,6 @@ Private Function WeldingSheetSuffixText() As String
     WeldingSheetSuffixText = cached
 End Function
 
-' "溶接工事"
 Private Function WeldingWorkTypeText() As String
     Static cached As String
     If cached = "" Then
@@ -2138,7 +2099,6 @@ Private Function WeldingWorkPresentKeywordText() As String
     WeldingWorkPresentKeywordText = cached
 End Function
 
-' "軌道工事"
 Private Function RailWorkTypeText() As String
     Static cached As String
     If cached = "" Then
@@ -2147,7 +2107,6 @@ Private Function RailWorkTypeText() As String
     RailWorkTypeText = cached
 End Function
 
-' "溶接手元割合"
 Private Function TemotoMasterSheetNameText() As String
     Static cached As String
     If cached = "" Then
@@ -2157,7 +2116,6 @@ Private Function TemotoMasterSheetNameText() As String
     TemotoMasterSheetNameText = cached
 End Function
 
-' "レール溶接_軌道会社外注費率一覧*.xlsx"
 Private Function TemotoMasterFilePatternText() As String
     Static cached As String
     If cached = "" Then
@@ -2170,7 +2128,6 @@ Private Function TemotoMasterFilePatternText() As String
     TemotoMasterFilePatternText = cached
 End Function
 
-' "マスタデータ"
 Private Function MasterDataFolderText() As String
     Static cached As String
     If cached = "" Then
@@ -2180,7 +2137,6 @@ Private Function MasterDataFolderText() As String
     MasterDataFolderText = cached
 End Function
 
-' "線路出張所用_注文書_請求書アクセスサイト - ドキュメント"
 Private Function OrderInvoiceDocumentFolderTextWUP() As String
     Static cached As String
     If cached = "" Then
@@ -2194,7 +2150,6 @@ Private Function OrderInvoiceDocumentFolderTextWUP() As String
     OrderInvoiceDocumentFolderTextWUP = cached
 End Function
 
-' "外注単価"
 Private Function OutsourceUnitPriceLabelText() As String
     Static cached As String
     If cached = "" Then
@@ -2203,7 +2158,6 @@ Private Function OutsourceUnitPriceLabelText() As String
     OutsourceUnitPriceLabelText = cached
 End Function
 
-' "溶接手元単価"
 Private Function WeldingTemotoUnitPriceLabelText() As String
     Static cached As String
     If cached = "" Then
@@ -2213,7 +2167,6 @@ Private Function WeldingTemotoUnitPriceLabelText() As String
     WeldingTemotoUnitPriceLabelText = cached
 End Function
 
-' "外注比率＝"
 Private Function OutsourceRatioLabelText() As String
     Static cached As String
     If cached = "" Then
@@ -2222,28 +2175,24 @@ Private Function OutsourceRatioLabelText() As String
     OutsourceRatioLabelText = cached
 End Function
 
-' "・" (複数会社名の結合用)
 Private Function MiddleDotText() As String
     Static cached As String
     If cached = "" Then cached = ChrW$(&H30FB)
     MiddleDotText = cached
 End Function
 
-' "昼間"
 Private Function DayLabelText() As String
     Static cached As String
     If cached = "" Then cached = ChrW$(&H663C) & ChrW$(&H9593)
     DayLabelText = cached
 End Function
 
-' "夜間"
 Private Function NightLabelText() As String
     Static cached As String
     If cached = "" Then cached = ChrW$(&H591C) & ChrW$(&H9593)
     NightLabelText = cached
 End Function
 
-' "産廃処理"
 Private Function WasteDisposalKeywordText() As String
     Static cached As String
     If cached = "" Then
@@ -2252,7 +2201,6 @@ Private Function WasteDisposalKeywordText() As String
     WasteDisposalKeywordText = cached
 End Function
 
-' "整理番号"
 Private Function SeiriHeaderKeywordText() As String
     Static cached As String
     If cached = "" Then
@@ -2261,21 +2209,18 @@ Private Function SeiriHeaderKeywordText() As String
     SeiriHeaderKeywordText = cached
 End Function
 
-' "昼"
 Private Function DayKeywordText() As String
     Static cached As String
     If cached = "" Then cached = ChrW$(&H663C)
     DayKeywordText = cached
 End Function
 
-' "夜"
 Private Function NightKeywordText() As String
     Static cached As String
     If cached = "" Then cached = ChrW$(&H591C)
     NightKeywordText = cached
 End Function
 
-' "BIZ UDゴシック"
 Private Function WeldingUnitPriceFontNameText() As String
     Static cached As String
     If cached = "" Then

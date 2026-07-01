@@ -1,7 +1,6 @@
 Option Explicit
 
 ' ========================================================
-' mod_BasicInfoGuide
 ' Šî–{î•ñƒV[ƒg‚Ì“ü—ÍƒKƒCƒhi“hF & ƒRƒƒ“ƒgjŠÇ—
 '
 ' ƒ‹[ƒ‹:
@@ -29,7 +28,6 @@ Private Const COLOR_FILLED_FONT         As Long = &HFFFFFF&  ' ”’
 Private Const COMMENT_FONT_NAME As String = "BIZ UDGothic"
 Private Const COMMENT_FONT_SIZE As Long = 12
 
-' --- ƒxƒ“ƒ_[—ñ: F=6n‚Ü‚èA3—ñ‚¨‚«AÅ‘å10Ğ ---
 Private Const VENDOR_COL_START  As Long = 6
 Private Const VENDOR_COL_STEP   As Long = 3
 Private Const VENDOR_MAX_COUNT  As Long = 10
@@ -41,9 +39,6 @@ Private Const ROW_RAIL_PATTERN As Long = 30        ' ‹O“¹H–: —nÚèŒ³’P‰¿ƒpƒ^
 ' --- ü‹æ–¼iŒ‹‡ƒZƒ‹ C24:C28Aæ“ªƒZƒ‹ C24 ‚Å MergeArea ‚ğæ“¾j---
 Private Const BASIC_INFO_IMPORTED_LINE_NAMES_CELL As String = "C24"
 
-' ----------------------------------------------------------------
-' ŒöŠJAPI: ƒV[ƒg‘S‘Ì‚ÌƒKƒCƒhó‘Ô‚ğ‰Šú‰»iActivate‚È‚Ç‚ÉŒÄ‚Ôj
-' ----------------------------------------------------------------
 Public Sub InitBasicInfoGuide(ByVal ws As Worksheet)
     If ws Is Nothing Then Exit Sub
 
@@ -67,9 +62,6 @@ Public Sub InitBasicInfoGuide(ByVal ws As Worksheet)
     On Error GoTo 0
 End Sub
 
-' ----------------------------------------------------------------
-' ŒöŠJAPI: “Á’èƒZƒ‹•ÏX‚ÉŒÄ‚ÔiWorksheet_Change‚©‚çj
-' ----------------------------------------------------------------
 Public Sub OnCellChanged(ByVal ws As Worksheet, ByVal target As Range)
     If ws Is Nothing Or target Is Nothing Then Exit Sub
 
@@ -101,9 +93,6 @@ Public Sub OnCellChanged(ByVal ws As Worksheet, ByVal target As Range)
     On Error GoTo 0
 End Sub
 
-' ----------------------------------------------------------------
-' ŒöŠJAPI: ClearBasicInfo‚É‘SÎüEƒKƒCƒh‚ğƒŠƒZƒbƒg
-' ----------------------------------------------------------------
 Public Sub ClearAllGuides(ByVal ws As Worksheet)
     If ws Is Nothing Then Exit Sub
 
@@ -123,9 +112,6 @@ Public Sub ClearAllGuides(ByVal ws As Worksheet)
     On Error GoTo 0
 End Sub
 
-' ----------------------------------------------------------------
-' ƒxƒ“ƒ_[sƒKƒCƒh‚ğ‰ïĞ”EH–í•Ê‚É‰‚¶‚ÄƒŠƒtƒŒƒbƒVƒ…iÅ‘å10Ğj
-' ----------------------------------------------------------------
 Private Sub RefreshVendorRowGuides(ByVal ws As Worksheet)
     Dim vendorCount As Long
     vendorCount = GetVendorCount(ws)
@@ -170,9 +156,6 @@ Public Sub RefreshSingleVendorRowGuidePublic(ByVal ws As Worksheet, ByVal compan
     On Error GoTo 0
 End Sub
 
-' ----------------------------------------------------------------
-' s29E31 ‚ÌH–í•Ê•Êˆ—
-' ----------------------------------------------------------------
 Private Function NormalizeConstructionTypeText(ByVal value As Variant) As String
     NormalizeConstructionTypeText = Trim$(CStr(value))
 End Function
@@ -268,9 +251,6 @@ Private Function IsOutsourceRatioPattern(ByVal value As String) As Boolean
     IsOutsourceRatioPattern = (StrComp(NormalizeConstructionTypeText(value), GetPatternOutsourceRatioText(), vbTextCompare) = 0)
 End Function
 
-' ----------------------------------------------------------------
-' s29E31 ‚ğŒ³‚ÌF‚É–ß‚·i‰ïĞ”ŠOEƒNƒŠƒAj
-' ----------------------------------------------------------------
 Private Sub ClearRow29And31(ByVal ws As Worksheet, ByVal colNum As Long)
     Dim labelCol As Long
     labelCol = colNum - 1
@@ -418,7 +398,6 @@ Private Function GetRailPatternRow30LabelText() As String
         ChrW$(&HFF8A) & ChrW$(&HFF9F) & ChrW$(&HFF80) & ChrW$(&HFF70) & ChrW$(&HFF9D)
 End Function
 
-' F9({H‰ïĞ”)•ÏXŒã‚È‚ÇAƒxƒ“ƒ_[sƒKƒCƒh‚ğˆêŠ‡XV‚·‚éB
 Public Sub RefreshVendorGuidesForBasicInfo(ByVal ws As Worksheet)
     If ws Is Nothing Then Exit Sub
     On Error Resume Next
@@ -428,9 +407,6 @@ Public Sub RefreshVendorGuidesForBasicInfo(ByVal ws As Worksheet)
     On Error GoTo 0
 End Sub
 
-' ----------------------------------------------------------------
-' ŒöŠJAPI: ƒxƒ“ƒ_[s‚ÌŠÄ‹ƒŒƒ“ƒWiSheet1 Worksheet_Change —pj
-' ----------------------------------------------------------------
 Public Function GetVendorGuideMonitorRangePublic(ByVal ws As Worksheet) As Range
     Set GetVendorGuideMonitorRangePublic = GetVendorGuideMonitorRange(ws)
 End Function
@@ -466,9 +442,6 @@ Private Sub ApplyDisabledCell(ByVal cell As Range)
     On Error GoTo 0
 End Sub
 
-' ----------------------------------------------------------------
-' Îü‚ğ‰ğœ‚·‚é
-' ----------------------------------------------------------------
 Private Sub RemoveDiagonalBorders(ByVal cell As Range)
     On Error Resume Next
     cell.Borders(xlDiagonalDown).LineStyle = xlNone
@@ -476,16 +449,10 @@ Private Sub RemoveDiagonalBorders(ByVal cell As Range)
     On Error GoTo 0
 End Sub
 
-' ----------------------------------------------------------------
-' ’PˆêƒZƒ‹‚ÉƒKƒCƒh‚ğ“K—piƒAƒhƒŒƒXw’èj
-' ----------------------------------------------------------------
 Private Sub ApplyGuideCell(ByVal ws As Worksheet, ByVal addr As String, ByVal commentText As String, ByVal isEmpty As Boolean)
     ApplyGuideCellToRange ws.Range(addr), commentText, isEmpty
 End Sub
 
-' ----------------------------------------------------------------
-' Œ‹‡ƒZƒ‹‚ÉƒKƒCƒh‚ğ“K—piæ“ªƒZƒ‹‚©‚ç MergeArea ‚ğæ“¾A“hF‚ÍŒ‹‡”ÍˆÍ‘S‘Ìj
-' ----------------------------------------------------------------
 Private Sub ApplyGuideMergedCell(ByVal ws As Worksheet, ByVal anchorAddr As String, ByVal commentText As String, ByVal isEmpty As Boolean)
     Dim mergeArea As Range
     Dim anchorCell As Range
@@ -523,18 +490,12 @@ Private Function GetImportedLineNamesMergeArea(ByVal ws As Worksheet) As Range
     Set GetImportedLineNamesMergeArea = ws.Range(BASIC_INFO_IMPORTED_LINE_NAMES_CELL).MergeArea
 End Function
 
-' ----------------------------------------------------------------
-' ’PˆêƒZƒ‹‚ÉƒKƒCƒh‚ğ“K—pis—ñ”Ô†w’èj
-' ----------------------------------------------------------------
 Private Sub ApplyGuideCellByRowCol(ByVal ws As Worksheet, ByVal rowNum As Long, ByVal colNum As Long, ByVal commentText As String, ByVal isEmpty As Boolean)
     ' Îü‚ªc‚Á‚Ä‚¢‚ê‚Îæ‚É‰ğœ‚µ‚Ä‚©‚çƒKƒCƒh‚ğ“K—p
     RemoveDiagonalBorders ws.Cells(rowNum, colNum)
     ApplyGuideCellToRange ws.Cells(rowNum, colNum), commentText, isEmpty
 End Sub
 
-' ----------------------------------------------------------------
-' ƒKƒCƒh‚ğ‰ğœ‚µ‚ÄŒ³‚ÌF‚É–ß‚·iÎü‚à‰ğœj
-' ----------------------------------------------------------------
 Private Sub ClearGuideByRowCol(ByVal ws As Worksheet, ByVal rowNum As Long, ByVal colNum As Long)
     On Error Resume Next
     RemoveDiagonalBorders ws.Cells(rowNum, colNum)
@@ -546,9 +507,6 @@ Private Sub ClearGuideByRowCol(ByVal ws As Worksheet, ByVal rowNum As Long, ByVa
     On Error GoTo 0
 End Sub
 
-' ----------------------------------------------------------------
-' ƒRƒAƒƒWƒbƒN: “hF + ƒRƒƒ“ƒg•t‚¯ŠO‚µ
-' ----------------------------------------------------------------
 Private Sub ApplyGuideCellToRange(ByVal cell As Range, ByVal commentText As String, ByVal isEmpty As Boolean)
     On Error Resume Next
     If isEmpty Then
@@ -575,9 +533,6 @@ Private Sub ApplyGuideCellToRange(ByVal cell As Range, ByVal commentText As Stri
     On Error GoTo 0
 End Sub
 
-' ----------------------------------------------------------------
-' ƒRƒƒ“ƒgƒTƒCƒY©“®’²®
-' ----------------------------------------------------------------
 Private Sub AutoSizeComment(ByVal cmt As Comment)
     On Error Resume Next
     With cmt.Shape
@@ -586,9 +541,6 @@ Private Sub AutoSizeComment(ByVal cmt As Comment)
     On Error GoTo 0
 End Sub
 
-' ----------------------------------------------------------------
-' ƒZƒ‹‚ª‹ó‚©‚Ç‚¤‚©iTrimŒã‚Å”»’èj
-' ----------------------------------------------------------------
 Private Function IsEmpty_Cell(ByVal cell As Range) As Boolean
     On Error Resume Next
     IsEmpty_Cell = (Len(Trim$(CStr(cell.value))) = 0)
@@ -599,9 +551,6 @@ Private Function IsImportedLineNamesEmpty(ByVal ws As Worksheet) As Boolean
     IsImportedLineNamesEmpty = IsEmpty_Cell(ws.Range(BASIC_INFO_IMPORTED_LINE_NAMES_CELL).MergeArea.Cells(1, 1))
 End Function
 
-' ----------------------------------------------------------------
-' ‰ïĞ”æ“¾iF9ƒZƒ‹j
-' ----------------------------------------------------------------
 Private Function GetVendorCount(ByVal ws As Worksheet) As Long
     On Error Resume Next
     ' IsNumeric()‚¾‚ÆF9‚ª"4Ğ"‚Ì‚æ‚¤‚ÈÚ”ö«•t‚«•¶š—ñ‚Ìê‡‚ÉFalse”»’è‚Æ‚È‚è
@@ -647,12 +596,8 @@ Private Function GetVendorGuideMonitorRange(ByVal ws As Worksheet) As Range
     Set GetVendorGuideMonitorRange = result
 End Function
 
-' ================================================================
-' ƒRƒƒ“ƒgƒeƒLƒXƒgiChrW$ ‚Å“ú–{Œê\’zj
-' ================================================================
 
 Private Function GetC9CommentText() As String
-    ' H–”Ô†‚ªH–Œ»‹µ•\‚É“o˜^‚³‚ê‚Ä‚¢‚éê‡‚Íƒ_ƒuƒ‹ƒNƒŠƒbƒN‚µ‚Ä‚­‚¾‚³‚¢B
     GetC9CommentText = _
         ChrW$(&H5DE5) & ChrW$(&H4E8B) & ChrW$(&H756A) & ChrW$(&H53F7) & ChrW$(&H304C) & _
         ChrW$(&H5DE5) & ChrW$(&H4E8B) & ChrW$(&H73FE) & ChrW$(&H6CC1) & ChrW$(&H8868) & _
@@ -664,7 +609,6 @@ Private Function GetC9CommentText() As String
 End Function
 
 Private Function GetC22CommentText() As String
-    ' –{H–‚É“K—p‚³‚ê‚é’P‰¿‚ğ‘I‘ğ‚µ‚Ä‰º‚³‚¢B
     GetC22CommentText = _
         ChrW$(&H672C) & ChrW$(&H5DE5) & ChrW$(&H4E8B) & ChrW$(&H306B) & ChrW$(&H9069) & _
         ChrW$(&H7528) & ChrW$(&H3055) & ChrW$(&H308C) & ChrW$(&H308B) & ChrW$(&H5358) & _
@@ -673,7 +617,6 @@ Private Function GetC22CommentText() As String
 End Function
 
 Private Function GetC23CommentText() As String
-    ' –{H–‚Å—nÚH–‚Ì—L–³‚ğ‘I‘ğ‚µ‚Ä‰º‚³‚¢B
     GetC23CommentText = _
         ChrW$(&H672C) & ChrW$(&H5DE5) & ChrW$(&H4E8B) & ChrW$(&H3067) & ChrW$(&H6EB6) & _
         ChrW$(&H63A5) & ChrW$(&H5DE5) & ChrW$(&H4E8B) & ChrW$(&H306E) & ChrW$(&H6709) & _
@@ -682,7 +625,6 @@ Private Function GetC23CommentText() As String
 End Function
 
 Private Function GetC24CommentText() As String
-    ' –{H–‚É“K—p‚³‚ê‚éü‹æ–¼‚ğƒ_ƒuƒ‹ƒNƒŠƒbƒN‚µ‚Ä‘I‘ğ‚µ‚Ä‚­‚¾‚³‚¢B
     GetC24CommentText = _
         ChrW$(&H672C) & ChrW$(&H5DE5) & ChrW$(&H4E8B) & ChrW$(&H306B) & ChrW$(&H9069) & _
         ChrW$(&H7528) & ChrW$(&H3055) & ChrW$(&H308C) & ChrW$(&H308B) & ChrW$(&H7DDA) & _
@@ -694,7 +636,6 @@ Private Function GetC24CommentText() As String
 End Function
 
 Private Function GetC13CommentText() As String
-    ' –{H–‚É“K—p‚³‚ê‚é“s“¹•{Œ§‚ğƒ_ƒuƒ‹ƒNƒŠƒbƒN‚µ‚Ä‘I‘ğ‚µ‚Ä‚­‚¾‚³‚¢B
     GetC13CommentText = _
         ChrW$(&H672C) & ChrW$(&H5DE5) & ChrW$(&H4E8B) & ChrW$(&H306B) & ChrW$(&H9069) & _
         ChrW$(&H7528) & ChrW$(&H3055) & ChrW$(&H308C) & ChrW$(&H308B) & ChrW$(&H90FD) & _
@@ -706,7 +647,6 @@ Private Function GetC13CommentText() As String
 End Function
 
 Private Function GetF9CommentText() As String
-    ' –{H–‚ğ{H‚·‚é{H‰ïĞ”‚ğ“ü—Í‚µ‚Ä‰º‚³‚¢B
     GetF9CommentText = _
         ChrW$(&H672C) & ChrW$(&H5DE5) & ChrW$(&H4E8B) & ChrW$(&H3092) & ChrW$(&H65BD) & _
         ChrW$(&H5DE5) & ChrW$(&H3059) & ChrW$(&H308B) & ChrW$(&H65BD) & ChrW$(&H5DE5) & _
@@ -716,7 +656,6 @@ Private Function GetF9CommentText() As String
 End Function
 
 Private Function GetF11CommentText() As String
-    ' {H‰ïĞ–¼‚ğ‘I‘ğ‚µ‚Ä‰º‚³‚¢B
     GetF11CommentText = _
         ChrW$(&H65BD) & ChrW$(&H5DE5) & ChrW$(&H4F1A) & ChrW$(&H793E) & ChrW$(&H540D) & _
         ChrW$(&H3092) & ChrW$(&H9078) & ChrW$(&H629E) & ChrW$(&H3057) & ChrW$(&H3066) & _
@@ -724,7 +663,6 @@ Private Function GetF11CommentText() As String
 End Function
 
 Private Function GetF27CommentText() As String
-    ' ’•¶”Ô†‚ğ“ü—Í‚µ‚Ä‚­‚¾‚³‚¢B
     GetF27CommentText = _
         ChrW$(&H6CE8) & ChrW$(&H6587) & ChrW$(&H756A) & ChrW$(&H53F7) & ChrW$(&H3092) & _
         ChrW$(&H5165) & ChrW$(&H529B) & ChrW$(&H3057) & ChrW$(&H3066) & ChrW$(&H304F) & _
@@ -732,7 +670,6 @@ Private Function GetF27CommentText() As String
 End Function
 
 Private Function GetF29CommentText() As String
-    ' {H‰ïĞ‚ÌŠO’”ä—¦‚ğ“ü—Í‚µ‚Ä‰º‚³‚¢B
     GetF29CommentText = _
         ChrW$(&H65BD) & ChrW$(&H5DE5) & ChrW$(&H4F1A) & ChrW$(&H793E) & ChrW$(&H306E) & _
         ChrW$(&H5916) & ChrW$(&H6CE8) & ChrW$(&H6BD4) & ChrW$(&H7387) & ChrW$(&H3092) & _
@@ -741,7 +678,6 @@ Private Function GetF29CommentText() As String
 End Function
 
 Private Function GetF29KidoCommentText() As String
-    ' ‹O“¹H–‰ïĞ‚ÌŠO’”ä—¦‚ğ“ü—Í‚µ‚Ä‰º‚³‚¢B
     GetF29KidoCommentText = _
         ChrW$(&H8ECC) & ChrW$(&H9053) & ChrW$(&H5DE5) & ChrW$(&H4E8B) & ChrW$(&H4F1A) & _
         ChrW$(&H793E) & ChrW$(&H306E) & ChrW$(&H5916) & ChrW$(&H6CE8) & ChrW$(&H6BD4) & _
@@ -750,7 +686,6 @@ Private Function GetF29KidoCommentText() As String
 End Function
 
 Private Function GetF31CommentText() As String
-    ' ‹O“¹‰ïĞ‚Ì—nÚèŒ³‚ğŠO’”ä—¦‚Åx•¥‚¤ê‡‚ÍŠO’”ä—¦‚ğ“ü—Í‚µ‚Ä‰º‚³‚¢B
     GetF31CommentText = _
         ChrW$(&H8ECC) & ChrW$(&H9053) & ChrW$(&H4F1A) & ChrW$(&H793E) & ChrW$(&H306E) & _
         ChrW$(&H6EB6) & ChrW$(&H63A5) & ChrW$(&H624B) & ChrW$(&H5143) & ChrW$(&H3092) & _
@@ -762,7 +697,6 @@ Private Function GetF31CommentText() As String
 End Function
 
 Private Function GetF31YosetsuCommentText() As String
-    ' —nÚ‰ïĞ‚ÌŠO’”ä—¦‚ğ“ü—Í‚µ‚Ä‰º‚³‚¢B
     GetF31YosetsuCommentText = _
         ChrW$(&H6EB6) & ChrW$(&H63A5) & ChrW$(&H4F1A) & ChrW$(&H793E) & ChrW$(&H306E) & _
         ChrW$(&H5916) & ChrW$(&H6CE8) & ChrW$(&H6BD4) & ChrW$(&H7387) & ChrW$(&H3092) & _
@@ -771,7 +705,6 @@ Private Function GetF31YosetsuCommentText() As String
 End Function
 
 Private Function GetF31KidoTemotoCommentText() As String
-    ' ‹O“¹H–‰ïĞ‚Ì—nÚèŒ³‚ÌŠO’”ä—¦‚ğ“ü—Í‚µ‚Ä‰º‚³‚¢B
     GetF31KidoTemotoCommentText = _
         ChrW$(&H8ECC) & ChrW$(&H9053) & ChrW$(&H5DE5) & ChrW$(&H4E8B) & ChrW$(&H4F1A) & _
         ChrW$(&H793E) & ChrW$(&H306E) & ChrW$(&H6EB6) & ChrW$(&H63A5) & ChrW$(&H624B) & _
@@ -780,13 +713,11 @@ Private Function GetF31KidoTemotoCommentText() As String
         ChrW$(&H3066) & ChrW$(&H4E0B) & ChrW$(&H3055) & ChrW$(&H3044) & ChrW$(&H3002)
 End Function
 
-' s31¶—ñƒ‰ƒxƒ‹uŠO’”ä—¦(%)v
 Private Function GetOutsourceRatioLabelText() As String
     GetOutsourceRatioLabelText = _
         ChrW$(&H5916) & ChrW$(&H6CE8) & ChrW$(&H6BD4) & ChrW$(&H7387) & "(%)"
 End Function
 
-' s30ƒhƒƒbƒvƒ_ƒEƒ“uŠO’”ä—¦“K—pƒpƒ^[ƒ“v
 ' imod_WeldingUnitPrice.PatternOutsourceRatioText ‚Æ“¯ˆê•¶š—ñ‚ğˆÛ‚·‚é‚±‚Æj
 Private Function GetPatternOutsourceRatioText() As String
     GetPatternOutsourceRatioText = _
@@ -795,7 +726,6 @@ Private Function GetPatternOutsourceRatioText() As String
 End Function
 
 Private Function GetF30RailPatternCommentText() As String
-    ' —nÚèŒ³’P‰¿‚ÌZoƒpƒ^[ƒ“‚ğ‘I‘ğ‚µ‚Ä‰º‚³‚¢B
     GetF30RailPatternCommentText = _
         ChrW$(&H6EB6) & ChrW$(&H63A5) & ChrW$(&H624B) & ChrW$(&H5143) & ChrW$(&H5358) & ChrW$(&H4FA1) & _
         ChrW$(&H306E) & ChrW$(&H7B97) & ChrW$(&H51FA) & ChrW$(&H30D1) & ChrW$(&H30BF) & ChrW$(&H30FC) & _
@@ -803,16 +733,11 @@ Private Function GetF30RailPatternCommentText() As String
         ChrW$(&H4E0B) & ChrW$(&H3055) & ChrW$(&H3044) & ChrW$(&H3002)
 End Function
 
-' ================================================================
-' H–í•Ê’è”•¶š—ñiChrW$ ‚Å\’zj
-' ================================================================
 
 Private Function GetKidoKojiText() As String
-    ' ‹O“¹H–
     GetKidoKojiText = ChrW$(&H8ECC) & ChrW$(&H9053) & ChrW$(&H5DE5) & ChrW$(&H4E8B)
 End Function
 
 Private Function GetYosetsuKojiText() As String
-    ' —nÚH–
     GetYosetsuKojiText = ChrW$(&H6EB6) & ChrW$(&H63A5) & ChrW$(&H5DE5) & ChrW$(&H4E8B)
 End Function

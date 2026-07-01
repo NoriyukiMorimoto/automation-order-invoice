@@ -2,7 +2,6 @@ Attribute VB_Name = "mod_WorkbookOptimize"
 Option Explicit
 
 ' =============================================================
-' mod_WorkbookOptimize
 ' 改修履歴: CHANGELOG.md 参照
 '
 ' Excel の「ブックのパフォーマンス（未使用の書式設定とメタデータ）」警告の

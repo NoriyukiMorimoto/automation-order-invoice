@@ -179,7 +179,6 @@ Public Sub RefreshSubcontractorPriceColumnsCore(ByVal ws As Worksheet, _
     '  中断させず、エラーダイアログも出さない。単価適用が一件も成功しなかった
     '  場合のみ利用者へ通知する。
 
-    '  (1) 単価適用(中核処理)
     refreshStep = "ApplyPrices"
     On Error Resume Next
     If partialUpdate And layoutMatches Then
@@ -217,7 +216,6 @@ Public Sub RefreshSubcontractorPriceColumnsCore(ByVal ws As Worksheet, _
     End If
     On Error GoTo 0
 
-    '  (2) 金額数式
     refreshStep = "AmountFormulas"
     On Error Resume Next
     lastRow = mod_Construction_LineMapping.GetLastDataRow(ws)
@@ -228,7 +226,6 @@ Public Sub RefreshSubcontractorPriceColumnsCore(ByVal ws As Worksheet, _
     End If
     On Error GoTo 0
 
-    '  (3) 列内塗りつぶし(単価有無の背景色)
     refreshStep = "ColumnInteriors"
     On Error Resume Next
     RefreshSubcontractorColumnInteriors ws, lastRow, subconFirstCol, insertedColumnCount
@@ -238,7 +235,6 @@ Public Sub RefreshSubcontractorPriceColumnsCore(ByVal ws As Worksheet, _
     End If
     On Error GoTo 0
 
-    '  (3b) 施工会社列の業者情報色
     refreshStep = "VendorColumnColors"
     On Error Resume Next
     lastRow = mod_Construction_LineMapping.GetLastDataRow(ws)
@@ -249,7 +245,6 @@ Public Sub RefreshSubcontractorPriceColumnsCore(ByVal ws As Worksheet, _
     End If
     On Error GoTo 0
 
-    '  (4) 列書式設定(レイアウト変更時のみ)
     If Not layoutMatches Then
         refreshStep = "FormatColumns"
         On Error Resume Next
@@ -262,7 +257,6 @@ Public Sub RefreshSubcontractorPriceColumnsCore(ByVal ws As Worksheet, _
         On Error GoTo 0
     End If
 
-    '  (5) 合計行
     refreshStep = "WriteTotals"
     On Error Resume Next
     WriteOutputTotalRows ws, vendorNames, subconFirstCol, insertedColumnCount
@@ -272,7 +266,6 @@ Public Sub RefreshSubcontractorPriceColumnsCore(ByVal ws As Worksheet, _
     End If
     On Error GoTo 0
 
-    '  (6) 基本情報合計(内部に独自ハンドラあり)以降は再度 RefreshError で保護
     On Error GoTo RefreshError
     refreshStep = "BasicInfoTotals"
     mod_Construction_BasicTotals.RefreshBasicInfoConstructionTotalsCore

@@ -2,7 +2,6 @@ Attribute VB_Name = "mod_PrefectureSelector"
 Option Explicit
 
 ' ========================================================
-' mod_PrefectureSelector
 ' 基本情報シート C13 の都道府県選択（複数選択）。
 '   ・マスタ: 出張所別_単価適用線区.xlsx の「都道府県」シート A2:A
 '     （パスは mod_MaterialPriceImport.GetMasterFilePath を流用）
@@ -98,7 +97,6 @@ CleanExit:
     Application.EnableEvents = prevEvents
 End Sub
 
-' 「都道府県」シート A2 以降を読み込んで配列で返す。
 Public Function GetPrefectureList() As Variant
     Dim filePath As String
     filePath = mod_MaterialPriceImport.GetMasterFilePath()

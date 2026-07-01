@@ -34,13 +34,11 @@ Private Sub UserForm_Initialize()
     ConfigureControls
 End Sub
 
-' 全候補を設定（mAll の順番を保持して表示・返却に使用）
 Public Sub SetPrefectures(ByVal names As Variant)
     mAll = names
     RefreshList ""
 End Sub
 
-' 既存選択（C13 の現在値）をフォーム表示前に事前選択する
 Public Sub SetSelectedPrefectures(ByVal names As Variant)
     EnsureSelectedSet
     If Not IsArray(names) Then Exit Sub
@@ -55,7 +53,6 @@ Public Sub SetSelectedPrefectures(ByVal names As Variant)
     Next i
 End Sub
 
-' 選択結果を mAll の順番で返す
 Public Function GetSelectedPrefectures() As Collection
     CaptureVisibleSelection
 

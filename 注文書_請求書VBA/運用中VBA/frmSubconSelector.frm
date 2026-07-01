@@ -1,6 +1,5 @@
 Option Explicit
 
-' frmSubconSelector: 施工会社選択フォーム
 ' OptionButton を Frame 内に配置し、COMPANY_ITEM_HEIGHT で行間を調整する。
 
 Public confirmed As Boolean

@@ -1665,7 +1665,6 @@ End Function
 ' 出現順に並べ替える。照合は実シート名(sheetSourceSheetMap)で行う。
 ' マスタF列に該当しない(rank<0)候補は除外する。
 ' 同順位内は元の出現順を保持する(安定ソート)。
-' ============================================================
 Private Function OrderUnitPriceSheetNamesByProjectMasterFColumn( _
         ByVal sheetNames As Collection, _
         ByVal sheetSourceSheetMap As Object) As Collection

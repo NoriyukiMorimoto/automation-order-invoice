@@ -1,18 +1,17 @@
 Option Explicit
 
 ' ========================================================
-' mod_BasicInfoCellDropdown
-' 基本情報シートの C22 / C23 をダブルクリックすると、
-' そのセルの入力規則(リスト)からドロップダウンを表示する。
+' ��{���V�[�g�� C22 / C23 ���_�u���N���b�N����ƁA
+' ���̃Z���̓��͋K��(���X�g)����h���b�v�_�E����\������B
 '
-' 方式: SendKeys は使わず(NumLock保護)、セル上に一時 Forms.ComboBox.1
-'       を重ねて .DropDown で開く(office C6 / 業者名 と同方式)。
-' 選択値は LinkedCell と手動書込みの双方でセルへ反映する。
+' ����: SendKeys �͎g�킸(NumLock�ی�)�A�Z����Ɉꎞ Forms.ComboBox.1
+'       ���d�˂� .DropDown �ŊJ��(office C6 / �ƎҖ� �Ɠ�����)�B
+' �I��l�� LinkedCell �Ǝ蓮�����݂̑o���ŃZ���֔��f����B
 '
-' リスト内容はセルの入力規則(Validation.Formula1)を実行時に読むため、
-' 範囲参照(=$AO$2:$AO$3 等)・インライン("あり,なし" 等)の双方に追従する。
+' ���X�g���e�̓Z���̓��͋K��(Validation.Formula1)�����s���ɓǂނ��߁A
+' �͈͎Q��(=$AO$2:$AO$3 ��)�E�C�����C��("����,�Ȃ�" ��)�̑o���ɒǏ]����B
 '
-' 改修履歴: CHANGELOG.md 参照
+' ���C����: CHANGELOG.md �Q��
 ' ========================================================
 
 Private Const CELL_DROPDOWN_COMBO_NAME As String = "ComboBoxCellDropdown"
