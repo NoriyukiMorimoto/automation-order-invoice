@@ -1003,14 +1003,74 @@ Public Sub ApplyConstructionUnitPriceImportedRowDecorations(ByVal wsUnitPrice As
     Set wsInfo = CommonGetBasicInfoWorksheet(wsUnitPrice.Parent)
     If wsInfo Is Nothing Then Exit Sub
 
-    Dim bColRange As Range
-    Set bColRange = wsUnitPrice.Range( _
-        wsUnitPrice.Cells(firstRow, VENDOR_UNIT_PRICE_LAST_ROW_COL), _
-        wsUnitPrice.Cells(lastRow, VENDOR_UNIT_PRICE_LAST_ROW_COL))
-    ApplyVendorUnitPriceNewRowFill wsUnitPrice, wsInfo, bColRange
-    ApplyVendorUnitPriceBaseRowBorders wsUnitPrice, wsInfo, bColRange
-    ApplyVendorUnitPriceSourceRowsForRange wsUnitPrice, wsInfo, firstRow, lastRow
-    ApplyVendorUnitPriceSourceColumnsNumberFormat wsUnitPrice, firstRow, lastRow
+    ' 全展開(firstRow:lastRowの連続範囲)では、B列(最終行判定用)を1回で一括読み取りし、
+    ' 「B列に値がある行」を連続セグメントにまとめて罫線・塗り・桁区切りを範囲一括適用する。
+    ' 従来のセル単位ループ(数千行×COM往復)を排除する。手動編集時の飛び飛び範囲は
+    ' 従来通り ApplyVendorUnitPriceNewRowFill 等の汎用関数が処理する(そちらは温存)。
+    ApplyConstructionUnitPriceImportedRowDecorationsFast wsUnitPrice, wsInfo, firstRow, lastRow
+End Sub
+
+Private Sub ApplyConstructionUnitPriceImportedRowDecorationsFast(ByVal wsUnitPrice As Worksheet, _
+                                                                ByVal wsInfo As Worksheet, _
+                                                                ByVal firstRow As Long, _
+                                                                ByVal lastRow As Long)
+    Dim rowCount As Long
+    rowCount = lastRow - firstRow + 1
+    If rowCount <= 0 Then Exit Sub
+
+    ' B列(最終行判定列)を一括読み取り
+    Dim bArr As Variant
+    ReadVendorUnitPriceColumnValues wsUnitPrice, firstRow, lastRow, VENDOR_UNIT_PRICE_LAST_ROW_COL, bArr
+
+    Dim lastFillCol As Long
+    lastFillCol = GetVendorUnitPriceInitialFillLastColumn(wsInfo)
+
+    ' 「B列に値がある行」の連続セグメントごとに、罫線(A～F)と塗り(E～lastFillCol)を範囲一括適用。
+    Dim segStart As Long
+    segStart = 0
+
+    Dim r As Long
+    For r = 1 To rowCount + 1
+        Dim rowIndex As Long
+        rowIndex = firstRow + r - 1
+
+        Dim hasValue As Boolean
+        hasValue = False
+        If r <= rowCount Then
+            hasValue = (Len(Trim$(CStr(CommonNzText(bArr(r, 1))))) > 0)
+        End If
+
+        If hasValue Then
+            If segStart = 0 Then segStart = rowIndex
+        Else
+            If segStart > 0 Then
+                ' 罫線: A列～F列
+                With wsUnitPrice.Range(wsUnitPrice.Cells(segStart, 1), _
+                                       wsUnitPrice.Cells(rowIndex - 1, VENDOR_UNIT_PRICE_REF_WIDTH_COL)).Borders
+                    .LineStyle = xlContinuous
+                    .Weight = xlThin
+                    .ColorIndex = xlAutomatic
+                End With
+                ' 塗り: E列～lastFillCol
+                With wsUnitPrice.Range(wsUnitPrice.Cells(segStart, VENDOR_UNIT_PRICE_REF_UNIT_COL), _
+                                       wsUnitPrice.Cells(rowIndex - 1, lastFillCol)).Interior
+                    .Color = RGB(VENDOR_UNIT_PRICE_FILL_COLOR_R, _
+                                 VENDOR_UNIT_PRICE_FILL_COLOR_G, _
+                                 VENDOR_UNIT_PRICE_FILL_COLOR_B)
+                End With
+                segStart = 0
+            End If
+        End If
+    Next r
+
+    ' シート全体の外枠罫線再適用(従来 ApplyVendorUnitPriceBaseRowBorders 内で呼んでいた処理)
+    RefreshVendorUnitPriceBordersForSheet wsUnitPrice, wsInfo
+
+    ' 単価元セル(E/F)の書式(空欄グレー塗り/数値桁区切り)と業者列の再計算
+    ApplyVendorUnitPriceSourceRowsForRangeFast wsUnitPrice, wsInfo, firstRow, lastRow, bArr
+
+    ' 単価元列(E/F)の桁区切り書式をまとめて適用
+    ApplyVendorUnitPriceSourceColumnsNumberFormatFast wsUnitPrice, firstRow, lastRow, bArr
 End Sub
 
 ' 工事単価シートのデータ行(7行目以降)へ罫線・塗りつぶし・桁区切りを一括適用する。
@@ -1115,10 +1175,11 @@ Private Sub SyncVendorUnitPriceBlocksAfterCountChange(ByVal wsInfo As Worksheet,
         For Each wsUnitPrice In targetBook.worksheets
             If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) And mod_MaterialPriceImport.IsCurrentImportBatchUnitPriceSheet(wsUnitPrice) Then
                 RefreshVendorUnitPriceBlocksOnSheet wsUnitPrice, wsInfo, vendorCount, vendorUnitPriceNameMap
+                ' 数式展開と同じループ内で装飾(罫線・塗り・桁区切り)も適用し、
+                ' 全単価シートを二度走査しないようにする(装飾専用の全走査は削除)。
+                RefreshConstructionUnitPriceSheetDataDecorations wsUnitPrice, wsInfo
             End If
         Next wsUnitPrice
-
-        RefreshAllConstructionUnitPriceSheetDataDecorations wsInfo
 
         If Not deferCalculation Then
             On Error Resume Next
@@ -1599,31 +1660,118 @@ Private Sub ApplyVendorUnitPriceDataColumn(ByVal wsUnitPrice As Worksheet, _
                                            ByVal wasteKeyword As String, _
                                            ByVal lastRow As Long, _
                                            ByVal isDayColumn As Boolean)
-    Dim rowIndex As Long
+    ' 行ごとにセルを個別読み取りすると単価シート(数千行)×列×社数でCOM往復が
+    ' 爆発するため、判定に必要な列(単価元 sourceCol / 工種名 C列)を配列で一括読み取りし、
+    ' メモリ上で「数式を入れる行/グレー塗りにする行」を判定する。書き込みは従来通り
+    ' 連続行をまとめてセグメント単位で適用する(結果は行単位処理と完全に同一)。
+    If lastRow < VENDOR_UNIT_PRICE_DATA_START_ROW Then Exit Sub
+
+    Dim firstRow As Long
+    firstRow = VENDOR_UNIT_PRICE_DATA_START_ROW
+    Dim rowCount As Long
+    rowCount = lastRow - firstRow + 1
+
+    Dim srcArr As Variant
+    Dim workArr As Variant
+    ReadVendorUnitPriceColumnValues wsUnitPrice, firstRow, lastRow, sourceCol, srcArr
+    ReadVendorUnitPriceColumnValues wsUnitPrice, firstRow, lastRow, VENDOR_UNIT_PRICE_WORK_TYPE_COL, workArr
+
+    Dim greySegStart As Long
     Dim formulaSegStart As Long
+    greySegStart = 0
     formulaSegStart = 0
 
-    For rowIndex = VENDOR_UNIT_PRICE_DATA_START_ROW To lastRow + 1
+    Dim r As Long
+    For r = 1 To rowCount + 1
+        Dim rowIndex As Long
+        rowIndex = firstRow + r - 1
+
         Dim needsFormula As Boolean
         needsFormula = False
-        If rowIndex <= lastRow Then
-            needsFormula = VendorUnitPriceRowNeedsFormulaForSource( _
-                wsUnitPrice, rowIndex, sourceCol, wasteKeyword)
+        If r <= rowCount Then
+            needsFormula = RowNeedsFormulaFromArrays(srcArr, workArr, r, wasteKeyword)
         End If
 
         If needsFormula Then
+            ' 数式行に切り替わる直前に、溜まっていたグレー塗りセグメントを一括適用
+            If greySegStart > 0 Then
+                ApplyVendorUnitPriceGreyFillRange wsUnitPrice.Range( _
+                    wsUnitPrice.Cells(greySegStart, targetCol), _
+                    wsUnitPrice.Cells(rowIndex - 1, targetCol))
+                greySegStart = 0
+            End If
             If formulaSegStart = 0 Then formulaSegStart = rowIndex
         Else
+            ' グレー塗り行に切り替わる直前に、溜まっていた数式セグメントを一括適用
             If formulaSegStart > 0 Then
                 ApplyVendorUnitPriceFormulaSegment wsUnitPrice, wsInfo, valueColumn, formulaSegStart, rowIndex - 1, _
                     targetCol, formulaR1C1, isDayColumn
                 formulaSegStart = 0
             End If
-            If rowIndex <= lastRow Then
-                ApplyVendorUnitPriceGreyFill wsUnitPrice.Cells(rowIndex, targetCol)
+            If r <= rowCount Then
+                If greySegStart = 0 Then greySegStart = rowIndex
+            Else
+                ' 最終番兵行: 残ったグレー塗りセグメントを適用
+                If greySegStart > 0 Then
+                    ApplyVendorUnitPriceGreyFillRange wsUnitPrice.Range( _
+                        wsUnitPrice.Cells(greySegStart, targetCol), _
+                        wsUnitPrice.Cells(rowIndex - 1, targetCol))
+                    greySegStart = 0
+                End If
             End If
         End If
-    Next rowIndex
+    Next r
+End Sub
+
+' 指定列の firstRow～lastRow を1回のCOM呼び出しで配列取得する。
+' 常に (行数,1) の2次元配列(1始まり)へ正規化し、単一セルでも同じ形で扱えるようにする。
+Private Sub ReadVendorUnitPriceColumnValues(ByVal wsUnitPrice As Worksheet, _
+                                            ByVal firstRow As Long, _
+                                            ByVal lastRow As Long, _
+                                            ByVal targetCol As Long, _
+                                            ByRef outArr As Variant)
+    Dim rowCount As Long
+    rowCount = lastRow - firstRow + 1
+    If rowCount <= 0 Then
+        outArr = Empty
+        Exit Sub
+    End If
+
+    If rowCount = 1 Then
+        ReDim outArr(1 To 1, 1 To 1)
+        outArr(1, 1) = wsUnitPrice.Cells(firstRow, targetCol).Value
+    Else
+        outArr = wsUnitPrice.Range(wsUnitPrice.Cells(firstRow, targetCol), _
+                                   wsUnitPrice.Cells(lastRow, targetCol)).Value
+    End If
+End Sub
+
+' 配列(1始まり)の r 行目について、単価元が空でなく、工種名に産廃キーワードを
+' 含まない場合に True。VendorUnitPriceRowNeedsFormulaForSource と同一判定。
+Private Function RowNeedsFormulaFromArrays(ByVal srcArr As Variant, _
+                                           ByVal workArr As Variant, _
+                                           ByVal r As Long, _
+                                           ByVal wasteKeyword As String) As Boolean
+    If Len(Trim$(CStr(CommonNzText(srcArr(r, 1))))) = 0 Then Exit Function
+
+    Dim workTypeName As String
+    workTypeName = CommonNormalizeText(CStr(CommonNzText(workArr(r, 1))))
+    If workTypeName <> "" Then
+        If InStr(1, workTypeName, wasteKeyword, vbTextCompare) > 0 Then Exit Function
+    End If
+
+    RowNeedsFormulaFromArrays = True
+End Function
+
+' 集約したグレー塗り範囲へ、ApplyVendorUnitPriceGreyFill と同一の書式をまとめて適用する。
+Private Sub ApplyVendorUnitPriceGreyFillRange(ByVal targetRange As Range)
+    With targetRange
+        .ClearContents
+        .NumberFormat = "General"
+        .Interior.Color = RGB(VENDOR_UNIT_PRICE_FILL_COLOR_R, _
+                              VENDOR_UNIT_PRICE_FILL_COLOR_G, _
+                              VENDOR_UNIT_PRICE_FILL_COLOR_B)
+    End With
 End Sub
 
 Private Function VendorUnitPriceRowNeedsFormulaForSource(ByVal wsUnitPrice As Worksheet, _
@@ -1844,6 +1992,108 @@ Private Sub ApplyVendorUnitPriceSourceRowsForRange(ByVal wsUnitPrice As Workshee
             VENDOR_UNIT_PRICE_REF_WIDTH_COL, False
 ContinueRow:
     Next rowIndex
+End Sub
+
+' 全展開経路用の高速版。B列(判定用)/E列/F列を配列で一括読み取りし、行判定をメモリで行う。
+' 各行の書式適用(グレー塗り/桁区切り)と業者列への数式反映は既存関数を呼ぶため結果は同一。
+' bArr は呼び出し元で読み取り済みのB列配列(1始まり, firstRow基準)。
+Private Sub ApplyVendorUnitPriceSourceRowsForRangeFast(ByVal wsUnitPrice As Worksheet, _
+                                                       ByVal wsInfo As Worksheet, _
+                                                       ByVal firstRow As Long, _
+                                                       ByVal lastRow As Long, _
+                                                       ByVal bArr As Variant)
+    Dim rowCount As Long
+    rowCount = lastRow - firstRow + 1
+    If rowCount <= 0 Then Exit Sub
+
+    ' E列(昼単価元)/F列(夜単価元)を一括読み取り
+    Dim eArr As Variant
+    Dim fArr As Variant
+    ReadVendorUnitPriceColumnValues wsUnitPrice, firstRow, lastRow, VENDOR_UNIT_PRICE_REF_UNIT_COL, eArr
+    ReadVendorUnitPriceColumnValues wsUnitPrice, firstRow, lastRow, VENDOR_UNIT_PRICE_REF_WIDTH_COL, fArr
+
+    Dim r As Long
+    For r = 1 To rowCount
+        If Len(Trim$(CStr(CommonNzText(bArr(r, 1))))) = 0 Then GoTo ContinueRow
+
+        Dim rowIndex As Long
+        rowIndex = firstRow + r - 1
+
+        ApplyVendorUnitPriceSourceRowIfNeededFromValue wsUnitPrice, wsInfo, rowIndex, _
+            VENDOR_UNIT_PRICE_REF_UNIT_COL, True, eArr(r, 1)
+        ApplyVendorUnitPriceSourceRowIfNeededFromValue wsUnitPrice, wsInfo, rowIndex, _
+            VENDOR_UNIT_PRICE_REF_WIDTH_COL, False, fArr(r, 1)
+ContinueRow:
+    Next r
+End Sub
+
+' ApplyVendorUnitPriceSourceRowIfNeeded と同一処理だが、単価元セルの値は
+' 事前読み取り済みの srcValue を使い、セル値の再読み取りを避ける。
+Private Sub ApplyVendorUnitPriceSourceRowIfNeededFromValue(ByVal wsUnitPrice As Worksheet, _
+                                                           ByVal wsInfo As Worksheet, _
+                                                           ByVal rowIndex As Long, _
+                                                           ByVal sourceCol As Long, _
+                                                           ByVal isDayColumn As Boolean, _
+                                                           ByVal srcValue As Variant)
+    Dim sourceCell As Range
+    Set sourceCell = wsUnitPrice.Cells(rowIndex, sourceCol)
+
+    If IsNumericSourceValue(srcValue) Then
+        sourceCell.Interior.ColorIndex = xlColorIndexNone
+        sourceCell.NumberFormat = VENDOR_UNIT_PRICE_NUMBER_FORMAT
+        ApplyVendorUnitPriceCellsForSourceRow wsUnitPrice, wsInfo, rowIndex, isDayColumn
+    ElseIf IsBlankSourceValue(srcValue) Then
+        ApplyVendorUnitPriceSourceGreyFill sourceCell
+        ApplyVendorUnitPriceCellsForSourceRow wsUnitPrice, wsInfo, rowIndex, isDayColumn
+    End If
+End Sub
+
+' HasNumericVendorUnitPriceSource(セル版)と同一判定を、読み取り済み値に対して行う。
+Private Function IsNumericSourceValue(ByVal srcValue As Variant) As Boolean
+    If IsError(srcValue) Then Exit Function
+    If Len(Trim$(CStr(CommonNzText(srcValue)))) = 0 Then Exit Function
+    IsNumericSourceValue = IsNumeric(srcValue)
+End Function
+
+' IsVendorUnitPriceSourceCellBlank(セル版)と同一判定を、読み取り済み値に対して行う。
+Private Function IsBlankSourceValue(ByVal srcValue As Variant) As Boolean
+    If IsError(srcValue) Then Exit Function
+    IsBlankSourceValue = (Len(Trim$(CStr(CommonNzText(srcValue)))) = 0)
+End Function
+
+' 全展開経路用の高速版。E列/F列の桁区切り書式を、B列に値のある連続行セグメント単位で
+' 範囲一括適用する(結果は行単位の NumberFormat 設定と同一)。
+Private Sub ApplyVendorUnitPriceSourceColumnsNumberFormatFast(ByVal wsUnitPrice As Worksheet, _
+                                                              ByVal firstRow As Long, _
+                                                              ByVal lastRow As Long, _
+                                                              ByVal bArr As Variant)
+    Dim rowCount As Long
+    rowCount = lastRow - firstRow + 1
+    If rowCount <= 0 Then Exit Sub
+
+    Dim segStart As Long
+    segStart = 0
+
+    Dim r As Long
+    For r = 1 To rowCount + 1
+        Dim rowIndex As Long
+        rowIndex = firstRow + r - 1
+
+        Dim hasValue As Boolean
+        hasValue = False
+        If r <= rowCount Then hasValue = (Len(Trim$(CStr(CommonNzText(bArr(r, 1))))) > 0)
+
+        If hasValue Then
+            If segStart = 0 Then segStart = rowIndex
+        Else
+            If segStart > 0 Then
+                wsUnitPrice.Range(wsUnitPrice.Cells(segStart, VENDOR_UNIT_PRICE_REF_UNIT_COL), _
+                                  wsUnitPrice.Cells(rowIndex - 1, VENDOR_UNIT_PRICE_REF_WIDTH_COL)).NumberFormat = _
+                    VENDOR_UNIT_PRICE_NUMBER_FORMAT
+                segStart = 0
+            End If
+        End If
+    Next r
 End Sub
 
 Private Sub ApplyVendorUnitPriceSourceRowIfNeeded(ByVal wsUnitPrice As Worksheet, _
