@@ -5,14 +5,9 @@ Option Explicit
 ' ・溶接会社 : G列(昼)/H列(夜)から1社2列ずつ右へ追加(10行目=「溶接工事」のブロックのみ)
 '              単価 = JR単価 ×(1－手元比率)× 溶接工事外注比率(基本情報 31行目)
 '              10行目に溶接工事が無い場合は G5:H5 等へ会社名を入力しない
-' ・軌道会社 : 溶接列の右から [単価ﾊﾟﾀｰﾝ2列 + 会社2列] を1社4列ずつ追加
-'              照合キー = 整理番号(溶接単価シートB列 = マスタ溶接手元割合シートA列)
-'              単価 = JR単価 ×(100/100.7) × 手元割合(マスタ昼E/夜F) × 軌道外注比率(基本情報31行)
-'                     軌道外注比率: 1社目F31 / 2社目I31 …(3列ずつ右)
-'                     軌道単価パターン: 会社列2列左の3行目(右列)に基本情報30行目を表示し数式参照
-'                     1行目: 昼列=「外注比率＝」/ 夜列=基本情報の当社列31行目(F31等)参照
-'                     丸め: 整数部4桁以上は上位3桁＋以降0埋め(切り捨て3桁)、3桁以下はROUNDDOWN
-'              4行目ヘッダー=(回数)(年度)溶接手元単価
+' ・軌道会社 : 溶接列の直後から2列刻み(I/J=1社目, K/L=2社目, M/N=3社目…)
+'              3行目: 当社列(昼/夜)に「単価ﾊﾟﾀｰﾝ:」と基本情報30行目の選択内容
+'              5行目: 当社列2列結合で会社名
 ' ・手元比率 : マスタデータ\レール溶接_軌道会社外注費率一覧*.xlsx の
 '              「溶接手元割合」シートから整理番号で参照し、数式へ数値リテラルで埋め込む
 ' ・外注比率 : 基本情報シートのセル参照として数式に残す(既存ロジックと同様)
@@ -49,7 +44,7 @@ Private Const WUP_WORK_NAME_COL As Long = 3       ' C列 工種名
 Private Const WUP_JR_DAY_COL As Long = 5          ' E列 JR単価(昼)
 Private Const WUP_JR_NIGHT_COL As Long = 6        ' F列 JR単価(夜)
 Private Const WUP_WELDING_DAY_COL As Long = 7     ' G列 溶接会社1社目(昼)
-Private Const WUP_RAIL_SLOT_WIDTH As Long = 4   ' 軌道1社 = 単価ﾊﾟﾀｰﾝ2列 + 会社2列
+Private Const WUP_VENDOR_BLOCK_WIDTH As Long = 2  ' 1社あたり2列(昼/夜)
 Private Const WUP_RAIL_JR_FACTOR As String = "(100/100.7)"  ' 軌道会社: JR単価に掛ける係数(AG5)
 Private Const WUP_PATTERN_ROW As Long = 3              ' 軌道会社 単価ﾊﾟﾀｰﾝ行
 Private Const WUP_LEGACY_PATTERN_LABEL_COL_FIRST As Long = 4  ' D列(旧 外注費算出パターン 削除用)
@@ -1358,15 +1353,15 @@ CleanupErr:
     LogWUP "ClearLegacyOutsourcePatternSelector: 失敗 sheet=[" & wsWelding.Name & "] err=" & CStr(Err.Number)
 End Sub
 
-' 軌道会社列2列の左: 3行目左列=「単価ﾊﾟﾀｰﾝ:」(縮小) / 右列=基本情報30行目の選択内容
+' 軌道会社列(昼/夜)の3行目: 左列=「単価ﾊﾟﾀｰﾝ:」/ 右列=基本情報30行目の選択内容(5行目会社名と同じ2列)
 Private Sub ApplyRailPatternRow(ByVal wsWelding As Worksheet, _
                                 ByVal wsInfo As Worksheet, _
                                 ByVal railDayCol As Long, _
                                 ByVal basicInfoValueColumn As Long)
     Dim labelCol As Long
     Dim valueCol As Long
-    labelCol = railDayCol - 2
-    valueCol = railDayCol - 1
+    labelCol = railDayCol
+    valueCol = railDayCol + 1
 
     With wsWelding.Cells(WUP_PATTERN_ROW, labelCol)
         .Formula = ""
@@ -1398,8 +1393,8 @@ End Sub
 Private Sub ClearRailPatternBlock(ByVal wsWelding As Worksheet, ByVal railDayCol As Long)
     Dim labelCol As Long
     Dim valueCol As Long
-    labelCol = railDayCol - 2
-    valueCol = railDayCol - 1
+    labelCol = railDayCol
+    valueCol = railDayCol + 1
 
     With wsWelding.Cells(WUP_PATTERN_ROW, labelCol)
         .ClearContents
@@ -1414,19 +1409,18 @@ Private Sub ClearRailPatternBlock(ByVal wsWelding As Worksheet, ByVal railDayCol
 End Sub
 
 Private Function GetWeldingDayColByIndex(ByVal weldingIndex As Long) As Long
-    GetWeldingDayColByIndex = WUP_WELDING_DAY_COL + ((weldingIndex - 1) * 2)
+    GetWeldingDayColByIndex = WUP_WELDING_DAY_COL + ((weldingIndex - 1) * WUP_VENDOR_BLOCK_WIDTH)
 End Function
 
-' 軌道会社1社 = [単価ﾊﾟﾀｰﾝ2列 + 会社2列] の4列スロット。
-' 3行目: スロット左2列(会社列の2列左)に単価ﾊﾟﾀｰﾝ / 5行目: スロット右2列に会社名。
+' 軌道会社: 溶接会社列の直後から2列刻み。1社目=I/J(9/10), 2社目=K/L(11/12), 3社目=M/N(13/14)…
 Private Function GetRailDayColByIndex(ByVal weldingBlockCount As Long, ByVal railIndex As Long) As Long
-    GetRailDayColByIndex = WUP_WELDING_DAY_COL + (weldingBlockCount * 2) + _
-                           ((railIndex - 1) * WUP_RAIL_SLOT_WIDTH) + 2
+    GetRailDayColByIndex = WUP_WELDING_DAY_COL + (weldingBlockCount * WUP_VENDOR_BLOCK_WIDTH) + _
+                           ((railIndex - 1) * WUP_VENDOR_BLOCK_WIDTH)
 End Function
 
 Private Function BuildRailPatternSheetRef(ByVal wsWelding As Worksheet, ByVal railDayCol As Long) As String
     BuildRailPatternSheetRef = "'" & Replace$(wsWelding.Name, "'", "''") & "'!" & _
-        wsWelding.Cells(WUP_PATTERN_ROW, railDayCol - 1).Address(True, True)
+        wsWelding.Cells(WUP_PATTERN_ROW, railDayCol + 1).Address(True, True)
 End Function
 
 ' 外注費算出パターンの選択肢(基本情報30行目のドロップダウンと数式比較で同一文字列を使用)
@@ -1544,9 +1538,8 @@ Private Sub ClearWeldingVendorColumnsRange(ByVal wsWelding As Worksheet, _
     clearLastRow = lastRow
     If clearLastRow < WUP_DATA_START_ROW Then clearLastRow = WUP_DATA_START_ROW + 200
 
-    ' 3行目(単価ﾊﾟﾀｰﾝ行)は単価データ列とは別の刻み幅(4列刻み)で配置されており、
-    ' 他社の単価データ列(2列刻み)と物理的に重なることがある。このクリア処理で
-    ' 巻き込んで消してしまわないよう、3行目だけは対象から除外する。
+    ' 3行目(単価ﾊﾟﾀｰﾝ)は ClearRailPatternBlock で別途クリアするため、
+    ' データ列クリア時に3行目だけ対象から除外する。
     If WUP_RATIO_ROW < WUP_PATTERN_ROW And WUP_PATTERN_ROW <= clearLastRow Then
         ClearWeldingVendorColumnsRangeCore wsWelding.Range( _
             wsWelding.Cells(WUP_RATIO_ROW, fromDayCol), _
@@ -1592,7 +1585,7 @@ End Sub
 ' F10から3列おきに工事種別(10行目)を確認し、溶接工事ブロックと軌道工事ブロックへ分類する
 '
 ' 溶接会社列: 10行目=「溶接工事」のブロックのみ、出現順に G/H, I/J … へ1社2列ずつ配置
-' 軌道会社列: 溶接列の右から [単価ﾊﾟﾀｰﾝ2列 + 会社2列] を1社4列ずつ配置
+' 軌道会社列: 溶接列の直後から2列刻み(I/J, K/L, M/N …)。3行目に単価ﾊﾟﾀｰﾝ、5行目に会社名
 Private Sub ScanVendorBlocks(ByVal wsInfo As Worksheet, _
                              ByRef weldingBlocks() As WeldingVendorBlock, _
                              ByRef weldingBlockCount As Long, _
