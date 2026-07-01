@@ -530,25 +530,29 @@ End Sub
 
 Private Sub ApplyVendorRowToBasicInfo(ByVal targetCell As Range, ByVal rowData As Variant)
     mod_DebugLog.Log "[VendorMaster] ApplyVendorRow F10=[" & CStr(rowData(14)) & "] vendor=[" & CStr(rowData(0)) & "]"
-    With targetCell.Worksheet
+    Dim wsInfo As Worksheet
+    Set wsInfo = targetCell.Worksheet
+    With wsInfo
         Dim workTypeCell As Range
-        Set workTypeCell = VendorWritableValueCell(targetCell.Worksheet, BASIC_INFO_VENDOR_BLOCK_TOP_ROW, targetCell.Column)
+        Set workTypeCell = VendorWritableValueCell(wsInfo, BASIC_INFO_VENDOR_BLOCK_TOP_ROW, targetCell.Column)
         ApplyVendorRow10ValueCellFormat .Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, targetCell.Column)
         workTypeCell.value = rowData(14)
-        VendorWritableValueCell(targetCell.Worksheet, 11, targetCell.Column).value = rowData(0)
-        .Cells(12, targetCell.Column).value = rowData(3)
-        .Cells(13, targetCell.Column).value = rowData(11)
-        .Cells(14, targetCell.Column).value = rowData(2)
-        .Cells(15, targetCell.Column).value = rowData(4)
-        .Cells(16, targetCell.Column).value = rowData(1)
-        .Cells(18, targetCell.Column).value = rowData(5)
-        .Cells(19, targetCell.Column).value = rowData(6)
-        .Cells(20, targetCell.Column).value = rowData(10)
-        .Cells(21, targetCell.Column).value = rowData(7)
-        .Cells(22, targetCell.Column).value = rowData(8)
-        .Cells(23, targetCell.Column).value = rowData(9)
-        .Cells(BASIC_INFO_VENDOR_PERCENT_ROW, targetCell.Column).NumberFormatLocal = "@"
-        .Cells(BASIC_INFO_VENDOR_PERCENT_ROW, targetCell.Column).value = "100" & ChrW$(&HFF05)
+        VendorWritableValueCell(wsInfo, 11, targetCell.Column).value = rowData(0)
+        VendorWritableValueCell(wsInfo, 12, targetCell.Column).value = rowData(3)
+        VendorWritableValueCell(wsInfo, 13, targetCell.Column).value = rowData(11)
+        VendorWritableValueCell(wsInfo, 14, targetCell.Column).value = rowData(2)
+        VendorWritableValueCell(wsInfo, 15, targetCell.Column).value = rowData(4)
+        VendorWritableValueCell(wsInfo, 16, targetCell.Column).value = rowData(1)
+        VendorWritableValueCell(wsInfo, 18, targetCell.Column).value = rowData(5)
+        VendorWritableValueCell(wsInfo, 19, targetCell.Column).value = rowData(6)
+        VendorWritableValueCell(wsInfo, 20, targetCell.Column).value = rowData(10)
+        VendorWritableValueCell(wsInfo, 21, targetCell.Column).value = rowData(7)
+        VendorWritableValueCell(wsInfo, 22, targetCell.Column).value = rowData(8)
+        VendorWritableValueCell(wsInfo, 23, targetCell.Column).value = rowData(9)
+        With VendorWritableValueCell(wsInfo, BASIC_INFO_VENDOR_PERCENT_ROW, targetCell.Column)
+            .NumberFormatLocal = "@"
+            .value = "100" & ChrW$(&HFF05)
+        End With
     End With
 
     RefreshVendorUnitPriceForValueColumn targetCell.Worksheet, targetCell.Column
@@ -2743,8 +2747,7 @@ End Function
 
 Private Function BuildVendorRowFromAdoRecord(ByVal recordset As Object, ByVal sheetName As String) As Variant
     Dim columnOValue As String
-    columnOValue = GetVendorMasterColumnOValue(recordset, sheetName, _
-                                               CommonNzText(CommonGetAdoFieldValue(recordset, 1)))
+    columnOValue = GetVendorMasterColumnOValue(recordset)
     mod_DebugLog.Log "[VendorMaster] BuildVendorRow Count=" & recordset.Fields.Count & _
                      " O=[" & columnOValue & "] vendor=[" & CommonNzText(CommonGetAdoFieldValue(recordset, 1)) & "]"
 
@@ -2765,84 +2768,16 @@ Private Function BuildVendorRowFromAdoRecord(ByVal recordset As Object, ByVal sh
                                         columnOValue)
 End Function
 
-Private Function GetVendorMasterColumnOValue(ByVal recordset As Object, _
-                                             ByVal sheetName As String, _
-                                             ByVal vendorName As String) As String
+' O列(工事区分)は ADO のみで取得する。Excel ブックを開くフォールバックは行わない。
+Private Function GetVendorMasterColumnOValue(ByVal recordset As Object) As String
     Dim valueText As String
 
     On Error Resume Next
     valueText = CommonNzText(recordset.Fields(VENDOR_MASTER_ADO_COLUMN_O_NAME).value)
-    If valueText = "" Then valueText = CommonNzText(CommonGetAdoFieldValue(recordset, VENDOR_MASTER_EXCEL_COLUMN_O - 1))
-    If valueText = "" Then valueText = CommonNzText(recordset.Fields(VENDOR_MASTER_EXCEL_COLUMN_O - 1).value)
-    If valueText = "" Then valueText = CommonNzText(recordset.Fields(VENDOR_MASTER_EXCEL_COLUMN_O).value)
+    If valueText = "" Then valueText = CommonNzText(CommonGetAdoFieldValue(recordset, VENDOR_MASTER_EXCEL_COLUMN_O))
     On Error GoTo 0
 
-    If valueText <> "" Then
-        GetVendorMasterColumnOValue = valueText
-        Exit Function
-    End If
-
-    GetVendorMasterColumnOValue = GetVendorMasterColumnOValueFromExcel(sheetName, vendorName)
-End Function
-
-Private Function GetVendorMasterColumnOValueFromExcel(ByVal sheetName As String, ByVal vendorName As String) As String
-    Dim sourceFilePath As String
-    Dim wb As Workbook
-    Dim ws As Worksheet
-    Dim rowIndex As Long
-    Dim normalizedVendorName As String
-    Dim wasAlreadyOpen As Boolean
-    Dim screenUpdating As Boolean
-
-    normalizedVendorName = CommonNormalizeText(vendorName)
-    If normalizedVendorName = "" Then Exit Function
-
-    Set wb = Nothing
-    sourceFilePath = GetVendorMasterFilePath()
-    If sourceFilePath = "" Then Exit Function
-
-    wasAlreadyOpen = False
-    screenUpdating = Application.screenUpdating
-    On Error GoTo Cleanup
-
-    Dim openWorkbook As Workbook
-    For Each openWorkbook In Application.Workbooks
-        If StrComp(openWorkbook.FullName, sourceFilePath, vbTextCompare) = 0 Then
-            Set wb = openWorkbook
-            wasAlreadyOpen = True
-            Exit For
-        End If
-    Next openWorkbook
-
-    If wb Is Nothing Then
-        Set wb = Application.Workbooks.Open( _
-            fileName:=sourceFilePath, _
-            UpdateLinks:=0, _
-            ReadOnly:=True, _
-            Notify:=False, _
-            AddToMru:=False)
-    End If
-
-    Set ws = Nothing
-    On Error Resume Next
-    Set ws = wb.worksheets(sheetName)
-    On Error GoTo Cleanup
-    If ws Is Nothing Then GoTo Cleanup
-
-    For rowIndex = VENDOR_SOURCE_START_ROW To VENDOR_SOURCE_END_ROW
-        If StrComp(CommonNormalizeText(CStr(ws.Cells(rowIndex, 1).value)), normalizedVendorName, vbTextCompare) = 0 Then
-            GetVendorMasterColumnOValueFromExcel = CommonNzText(ws.Cells(rowIndex, VENDOR_MASTER_EXCEL_COLUMN_O).value)
-            Exit For
-        End If
-    Next rowIndex
-
-Cleanup:
-    On Error Resume Next
-    If Not wb Is Nothing Then
-        If Not wasAlreadyOpen Then wb.Close SaveChanges:=False
-    End If
-    Application.screenUpdating = screenUpdating
-    On Error GoTo 0
+    GetVendorMasterColumnOValue = valueText
 End Function
 
 Private Function GetAdoWorksheetName(ByVal connection As Object, ByVal targetSheetName As String) As String

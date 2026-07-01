@@ -206,9 +206,7 @@ Public Sub CleanupLegacyBasicInfoValidationListDebris(Optional ByVal wsInfo As W
     If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet()
     If wsInfo Is Nothing Then Exit Sub
 
-    Const LEGACY_LIST_TOP_ROW As Long = 2
-    Const LEGACY_LIST_BOTTOM_ROW As Long = 9
-    Const LEGACY_LIST_RANGE As String = "T" & CStr(LEGACY_LIST_TOP_ROW) & ":AG" & CStr(LEGACY_LIST_BOTTOM_ROW)
+    Const LEGACY_LIST_RANGE As String = "T2:AG9"
 
     On Error Resume Next
     wsInfo.Range(LEGACY_LIST_RANGE).ClearContents
