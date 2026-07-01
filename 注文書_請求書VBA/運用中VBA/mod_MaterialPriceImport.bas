@@ -344,6 +344,14 @@ Public Sub ClearAndImportUnitPriceForBasicInfo(ByVal ws As Worksheet)
     If ws Is Nothing Then Exit Sub
     mImportingUnitPriceData = True
     On Error GoTo FinallyExit
+
+    ' 既存の単価表/購入充当単価/レール溶接単価シートを残したまま新規取込みすると、
+    ' シートが積み上がって書式(セルスタイル)数がExcelの上限に近づき、
+    ' 新しいシートの.Copyが失敗する原因になる。運用上も参照は常に最後に
+    ' 取り込んだ単価シートからのみ行うため、取込み前に必ずクリアする。
+    LogUP "ClearAndImportUnitPriceForBasicInfo: 既存単価シートをクリア"
+    SilentClearUnitPriceForBasicInfo ws
+
     ImportUnitPriceData ws
 FinallyExit:
     mImportingUnitPriceData = False
