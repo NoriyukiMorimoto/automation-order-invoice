@@ -1023,10 +1023,9 @@ Private Sub ApplyConstructionUnitPriceImportedRowDecorationsFast(ByVal wsUnitPri
     Dim bArr As Variant
     ReadVendorUnitPriceColumnValues wsUnitPrice, firstRow, lastRow, VENDOR_UNIT_PRICE_LAST_ROW_COL, bArr
 
-    Dim lastFillCol As Long
-    lastFillCol = GetVendorUnitPriceInitialFillLastColumn(wsInfo)
-
-    ' 「B列に値がある行」の連続セグメントごとに、罫線(A～F)と塗り(E～lastFillCol)を範囲一括適用。
+    ' 「B列に値がある行」の連続セグメントごとに、罫線(A～F)と塗り(E～F)を範囲一括適用。
+    ' 業者列(G列以降)の塗り/数式は ApplyVendorUnitPriceBlockToSheet 側で設定済みのため、
+    ' E～lastFillCol へ塗ると業者列の書式を上書きしてしまう(E～F のみに限定する)。
     Dim segStart As Long
     segStart = 0
 
@@ -1052,9 +1051,9 @@ Private Sub ApplyConstructionUnitPriceImportedRowDecorationsFast(ByVal wsUnitPri
                     .Weight = xlThin
                     .ColorIndex = xlAutomatic
                 End With
-                ' 塗り: E列～lastFillCol
+                ' 塗り: E列～F列(JR単価元)
                 With wsUnitPrice.Range(wsUnitPrice.Cells(segStart, VENDOR_UNIT_PRICE_REF_UNIT_COL), _
-                                       wsUnitPrice.Cells(rowIndex - 1, lastFillCol)).Interior
+                                       wsUnitPrice.Cells(rowIndex - 1, VENDOR_UNIT_PRICE_REF_WIDTH_COL)).Interior
                     .Color = RGB(VENDOR_UNIT_PRICE_FILL_COLOR_R, _
                                  VENDOR_UNIT_PRICE_FILL_COLOR_G, _
                                  VENDOR_UNIT_PRICE_FILL_COLOR_B)
@@ -1065,7 +1064,8 @@ Private Sub ApplyConstructionUnitPriceImportedRowDecorationsFast(ByVal wsUnitPri
     Next r
 
     If skipVendorColumnRefresh Then
-        ApplyVendorUnitPriceSourceColumnsNumberFormatFast wsUnitPrice, firstRow, lastRow, bArr
+        ApplyVendorUnitPriceSourceEfDecorationsFast wsUnitPrice, firstRow, lastRow, bArr
+        RefreshVendorUnitPriceBordersForSheet wsUnitPrice, wsInfo
         Exit Sub
     End If
 
@@ -1342,6 +1342,21 @@ Private Sub RefreshVendorUnitPriceBlocksOnSheet(ByVal wsUnitPrice As Worksheet, 
     Dim sheetLastRow As Long
     sheetLastRow = GetVendorUnitPriceLastDataRow(wsUnitPrice)
 
+    Dim usePreloadedArrays As Boolean
+    Dim preloadedDaySrcArr As Variant
+    Dim preloadedNightSrcArr As Variant
+    Dim preloadedWorkArr As Variant
+    usePreloadedArrays = False
+    If sheetLastRow >= VENDOR_UNIT_PRICE_DATA_START_ROW Then
+        ReadVendorUnitPriceColumnValues wsUnitPrice, VENDOR_UNIT_PRICE_DATA_START_ROW, sheetLastRow, _
+            VENDOR_UNIT_PRICE_REF_UNIT_COL, preloadedDaySrcArr
+        ReadVendorUnitPriceColumnValues wsUnitPrice, VENDOR_UNIT_PRICE_DATA_START_ROW, sheetLastRow, _
+            VENDOR_UNIT_PRICE_REF_WIDTH_COL, preloadedNightSrcArr
+        ReadVendorUnitPriceColumnValues wsUnitPrice, VENDOR_UNIT_PRICE_DATA_START_ROW, sheetLastRow, _
+            VENDOR_UNIT_PRICE_WORK_TYPE_COL, preloadedWorkArr
+        usePreloadedArrays = True
+    End If
+
     Dim i As Long
     For i = 1 To vendorCount
         Dim valueColumn As Long
@@ -1352,7 +1367,8 @@ Private Sub RefreshVendorUnitPriceBlocksOnSheet(ByVal wsUnitPrice As Worksheet, 
         nightCol = dayCol + 1
 
         If ShouldApplyVendorUnitPriceBlock(wsInfo, valueColumn) Then
-            ApplyVendorUnitPriceBlockToSheet wsUnitPrice, wsInfo, valueColumn, vendorUnitPriceNameMap, sheetLastRow
+            ApplyVendorUnitPriceBlockToSheet wsUnitPrice, wsInfo, valueColumn, vendorUnitPriceNameMap, _
+                sheetLastRow, usePreloadedArrays, preloadedDaySrcArr, preloadedNightSrcArr, preloadedWorkArr
         Else
             ClearVendorUnitPriceBlockOnSheet wsUnitPrice, dayCol, nightCol, sheetLastRow
         End If
@@ -1381,7 +1397,11 @@ Private Sub ApplyVendorUnitPriceBlockToSheet(ByVal wsUnitPrice As Worksheet, _
                                               ByVal wsInfo As Worksheet, _
                                               ByVal valueColumn As Long, _
                                               ByVal vendorUnitPriceNameMap As Object, _
-                                              Optional ByVal cachedLastRow As Long = 0)
+                                              Optional ByVal cachedLastRow As Long = 0, _
+                                              Optional ByVal usePreloadedArrays As Boolean = False, _
+                                              Optional ByRef preloadedDaySrcArr As Variant, _
+                                              Optional ByRef preloadedNightSrcArr As Variant, _
+                                              Optional ByRef preloadedWorkArr As Variant)
     Dim dayCol As Long
     Dim nightCol As Long
     Dim lastRow As Long
@@ -1409,7 +1429,8 @@ Private Sub ApplyVendorUnitPriceBlockToSheet(ByVal wsUnitPrice As Worksheet, _
         .Cells(VENDOR_UNIT_PRICE_LABEL_ROW, nightCol).VerticalAlignment = xlCenter
     End With
 
-    ApplyVendorUnitPriceDataRows wsUnitPrice, wsInfo, valueColumn, dayCol, nightCol, lastRow
+    ApplyVendorUnitPriceDataRows wsUnitPrice, wsInfo, valueColumn, dayCol, nightCol, lastRow, _
+        usePreloadedArrays, preloadedDaySrcArr, preloadedNightSrcArr, preloadedWorkArr
     ApplyVendorUnitPriceFont wsUnitPrice, dayCol, nightCol, lastRow
     ApplyVendorUnitPriceBorders wsUnitPrice, dayCol, nightCol, lastRow
 End Sub
@@ -1665,7 +1686,11 @@ Private Sub ApplyVendorUnitPriceDataRows(ByVal wsUnitPrice As Worksheet, _
                                            ByVal valueColumn As Long, _
                                            ByVal dayCol As Long, _
                                            ByVal nightCol As Long, _
-                                           Optional ByVal cachedLastRow As Long = 0)
+                                           Optional ByVal cachedLastRow As Long = 0, _
+                                           Optional ByVal usePreloadedArrays As Boolean = False, _
+                                           Optional ByRef preloadedDaySrcArr As Variant, _
+                                           Optional ByRef preloadedNightSrcArr As Variant, _
+                                           Optional ByRef preloadedWorkArr As Variant)
     Dim lastRow As Long
     If cachedLastRow >= VENDOR_UNIT_PRICE_DATA_START_ROW Then
         lastRow = cachedLastRow
@@ -1686,9 +1711,9 @@ Private Sub ApplyVendorUnitPriceDataRows(ByVal wsUnitPrice As Worksheet, _
     wasteKeyword = VendorWasteDisposalKeywordText()
 
     ApplyVendorUnitPriceDataColumn wsUnitPrice, wsInfo, valueColumn, dayCol, VENDOR_UNIT_PRICE_REF_UNIT_COL, _
-        dayFormulaR1C1, wasteKeyword, lastRow, True
+        dayFormulaR1C1, wasteKeyword, lastRow, True, usePreloadedArrays, preloadedDaySrcArr, preloadedWorkArr
     ApplyVendorUnitPriceDataColumn wsUnitPrice, wsInfo, valueColumn, nightCol, VENDOR_UNIT_PRICE_REF_WIDTH_COL, _
-        nightFormulaR1C1, wasteKeyword, lastRow, False
+        nightFormulaR1C1, wasteKeyword, lastRow, False, usePreloadedArrays, preloadedNightSrcArr, preloadedWorkArr
 End Sub
 
 Private Sub ApplyVendorUnitPriceDataColumn(ByVal wsUnitPrice As Worksheet, _
@@ -1699,7 +1724,10 @@ Private Sub ApplyVendorUnitPriceDataColumn(ByVal wsUnitPrice As Worksheet, _
                                            ByVal formulaR1C1 As String, _
                                            ByVal wasteKeyword As String, _
                                            ByVal lastRow As Long, _
-                                           ByVal isDayColumn As Boolean)
+                                           ByVal isDayColumn As Boolean, _
+                                           Optional ByVal usePreloadedArrays As Boolean = False, _
+                                           Optional ByRef preloadedSrcArr As Variant, _
+                                           Optional ByRef preloadedWorkArr As Variant)
     ' 行ごとにセルを個別読み取りすると単価シート(数千行)×列×社数でCOM往復が
     ' 爆発するため、判定に必要な列(単価元 sourceCol / 工種名 C列)を配列で一括読み取りし、
     ' メモリ上で「数式を入れる行/グレー塗りにする行」を判定する。書き込みは従来通り
@@ -1713,8 +1741,13 @@ Private Sub ApplyVendorUnitPriceDataColumn(ByVal wsUnitPrice As Worksheet, _
 
     Dim srcArr As Variant
     Dim workArr As Variant
-    ReadVendorUnitPriceColumnValues wsUnitPrice, firstRow, lastRow, sourceCol, srcArr
-    ReadVendorUnitPriceColumnValues wsUnitPrice, firstRow, lastRow, VENDOR_UNIT_PRICE_WORK_TYPE_COL, workArr
+    If usePreloadedArrays Then
+        srcArr = preloadedSrcArr
+        workArr = preloadedWorkArr
+    Else
+        ReadVendorUnitPriceColumnValues wsUnitPrice, firstRow, lastRow, sourceCol, srcArr
+        ReadVendorUnitPriceColumnValues wsUnitPrice, firstRow, lastRow, VENDOR_UNIT_PRICE_WORK_TYPE_COL, workArr
+    End If
 
     Dim greySegStart As Long
     Dim formulaSegStart As Long
@@ -2100,6 +2133,41 @@ Private Function IsBlankSourceValue(ByVal srcValue As Variant) As Boolean
     If IsError(srcValue) Then Exit Function
     IsBlankSourceValue = (Len(Trim$(CStr(CommonNzText(srcValue)))) = 0)
 End Function
+
+' E列/F列のみ: 空欄グレー塗りと数値桁区切りを配列読み取りで一括適用(業者列は触らない)。
+Private Sub ApplyVendorUnitPriceSourceEfDecorationsFast(ByVal wsUnitPrice As Worksheet, _
+                                                        ByVal firstRow As Long, _
+                                                        ByVal lastRow As Long, _
+                                                        ByVal bArr As Variant)
+    Dim rowCount As Long
+    rowCount = lastRow - firstRow + 1
+    If rowCount <= 0 Then Exit Sub
+
+    Dim eArr As Variant
+    Dim fArr As Variant
+    ReadVendorUnitPriceColumnValues wsUnitPrice, firstRow, lastRow, VENDOR_UNIT_PRICE_REF_UNIT_COL, eArr
+    ReadVendorUnitPriceColumnValues wsUnitPrice, firstRow, lastRow, VENDOR_UNIT_PRICE_REF_WIDTH_COL, fArr
+
+    Dim r As Long
+    For r = 1 To rowCount
+        If Len(Trim$(CStr(CommonNzText(bArr(r, 1))))) = 0 Then GoTo ContinueRow
+
+        Dim rowIndex As Long
+        rowIndex = firstRow + r - 1
+        ApplyVendorUnitPriceSourceCellDecoration wsUnitPrice.Cells(rowIndex, VENDOR_UNIT_PRICE_REF_UNIT_COL), eArr(r, 1)
+        ApplyVendorUnitPriceSourceCellDecoration wsUnitPrice.Cells(rowIndex, VENDOR_UNIT_PRICE_REF_WIDTH_COL), fArr(r, 1)
+ContinueRow:
+    Next r
+End Sub
+
+Private Sub ApplyVendorUnitPriceSourceCellDecoration(ByVal sourceCell As Range, ByVal srcValue As Variant)
+    If IsNumericSourceValue(srcValue) Then
+        sourceCell.Interior.ColorIndex = xlColorIndexNone
+        sourceCell.NumberFormat = VENDOR_UNIT_PRICE_NUMBER_FORMAT
+    ElseIf IsBlankSourceValue(srcValue) Then
+        ApplyVendorUnitPriceSourceGreyFill sourceCell
+    End If
+End Sub
 
 ' 全展開経路用の高速版。E列/F列の桁区切り書式を、B列に値のある連続行セグメント単位で
 ' 範囲一括適用する(結果は行単位の NumberFormat 設定と同一)。
