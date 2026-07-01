@@ -769,7 +769,7 @@ Public Sub ApplyImportedUnitPriceJrHeadersForBasicInfo(Optional ByVal wsInfo As 
 
     Dim wsUnitPrice As Worksheet
     For Each wsUnitPrice In targetBook.worksheets
-        If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) Then
+        If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) And mod_MaterialPriceImport.IsCurrentImportBatchUnitPriceSheet(wsUnitPrice) Then
             ApplyVendorUnitPriceJrHeader wsUnitPrice, wsInfo
         End If
     Next wsUnitPrice
@@ -1032,7 +1032,7 @@ Public Sub RefreshAllConstructionUnitPriceSheetDataDecorations(Optional ByVal ws
 
     Dim wsUnitPrice As Worksheet
     For Each wsUnitPrice In wsInfo.Parent.worksheets
-        If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) Then
+        If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) And mod_MaterialPriceImport.IsCurrentImportBatchUnitPriceSheet(wsUnitPrice) Then
             RefreshConstructionUnitPriceSheetDataDecorations wsUnitPrice, wsInfo
         End If
     Next wsUnitPrice
@@ -1113,7 +1113,7 @@ Private Sub SyncVendorUnitPriceBlocksAfterCountChange(ByVal wsInfo As Worksheet,
         Set vendorUnitPriceNameMap = BuildVendorUnitPriceNameMap(wsInfo)
 
         For Each wsUnitPrice In targetBook.worksheets
-            If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) Then
+            If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) And mod_MaterialPriceImport.IsCurrentImportBatchUnitPriceSheet(wsUnitPrice) Then
                 RefreshVendorUnitPriceBlocksOnSheet wsUnitPrice, wsInfo, vendorCount, vendorUnitPriceNameMap
             End If
         Next wsUnitPrice
@@ -1131,7 +1131,7 @@ Private Sub SyncVendorUnitPriceBlocksAfterCountChange(ByVal wsInfo As Worksheet,
     If vendorCount > previousCount Then
         Set vendorUnitPriceNameMap = BuildVendorUnitPriceNameMap(wsInfo)
         For Each wsUnitPrice In targetBook.worksheets
-            If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) Then
+            If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) And mod_MaterialPriceImport.IsCurrentImportBatchUnitPriceSheet(wsUnitPrice) Then
                 For i = previousCount + 1 To vendorCount
                     valueColumn = VendorValueColumnByIndex(i)
                     dayCol = VendorUnitPriceDayColumnByValueColumn(valueColumn)
@@ -1148,7 +1148,7 @@ Private Sub SyncVendorUnitPriceBlocksAfterCountChange(ByVal wsInfo As Worksheet,
     End If
 
     For Each wsUnitPrice In targetBook.worksheets
-        If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) Then
+        If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) And mod_MaterialPriceImport.IsCurrentImportBatchUnitPriceSheet(wsUnitPrice) Then
             Dim clearLastIndex As Long
             clearLastIndex = previousCount
             If clearLastIndex > MAX_VENDOR_BLOCK_COUNT Then clearLastIndex = MAX_VENDOR_BLOCK_COUNT
@@ -1177,7 +1177,7 @@ Private Sub RefreshVendorUnitPriceForValueColumn(ByVal wsInfo As Worksheet, ByVa
 
     Dim wsUnitPrice As Worksheet
     For Each wsUnitPrice In targetBook.worksheets
-        If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) Then
+        If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) And mod_MaterialPriceImport.IsCurrentImportBatchUnitPriceSheet(wsUnitPrice) Then
             If ShouldApplyVendorUnitPriceBlock(wsInfo, valueColumn) Then
                 ApplyVendorUnitPriceBlockToSheet wsUnitPrice, wsInfo, valueColumn, vendorUnitPriceNameMap
             ElseIf IsRailConstructionVendorBlock(wsInfo, valueColumn) And _
@@ -1214,7 +1214,7 @@ Private Sub RefreshVendorUnitPriceOutsourceRatioOnlyForValueColumn(ByVal wsInfo 
 
     Dim wsUnitPrice As Worksheet
     For Each wsUnitPrice In targetBook.worksheets
-        If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) Then
+        If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) And mod_MaterialPriceImport.IsCurrentImportBatchUnitPriceSheet(wsUnitPrice) Then
             If ShouldApplyVendorUnitPriceBlock(wsInfo, valueColumn) Then
                 If IsVendorUnitPriceBlockAlreadyBuilt(wsUnitPrice, dayCol, nightCol) Then
                     ApplyVendorUnitPriceOutsourceRatioRow wsUnitPrice, wsInfo, valueColumn, dayCol, nightCol
