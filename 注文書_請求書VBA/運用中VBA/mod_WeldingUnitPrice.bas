@@ -1964,7 +1964,10 @@ Private Function CollectWeldingUnitPriceSheets(ByVal targetBook As Workbook) As 
 
     Dim ws As Worksheet
     For Each ws In targetBook.Worksheets
-        If IsWeldingUnitPriceSheet(ws) Then result.Add ws
+        If IsWeldingUnitPriceSheet(ws) And _
+           mod_MaterialPriceImport.IsCurrentImportBatchUnitPriceSheet(ws) Then
+            result.Add ws
+        End If
     Next ws
 
     Set CollectWeldingUnitPriceSheets = result
