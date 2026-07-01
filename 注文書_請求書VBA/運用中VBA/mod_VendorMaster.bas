@@ -2222,6 +2222,33 @@ Private Function VendorCountValidationErrorText() As String
                                      ChrW$(&H304F) & ChrW$(&H3060) & ChrW$(&H3055) & ChrW$(&H3044) & "."
 End Function
 
+' 旧VENDOR_LIST_COL("AD")に取り残された業者名ドロップダウン一覧の残骸を除去する一時対応。
+' AD列は9社目(業者情報-9)の値列と兼用されていたため、一覧が書き込まれていた
+' VENDOR_LIST_START_ROW～業者ブロック下端(契約金額合計行)までを対象にクリアし、
+' 9社目ブロックを未入力状態(斜線ガイド)へ整え直す。一度実行すれば十分で、
+' 今後は上記のVENDOR_LIST_COL変更(AJ列)によりAD列に一覧が書き込まれることはない。
+Public Sub CleanupLegacyVendorListDebrisInColumnAD(Optional ByVal wsInfo As Worksheet)
+    If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet()
+    If wsInfo Is Nothing Then Exit Sub
+
+    Const LEGACY_LIST_COL As String = "AD"
+
+    On Error Resume Next
+    Dim clearRange As Range
+    Set clearRange = wsInfo.Range(LEGACY_LIST_COL & VENDOR_LIST_START_ROW & ":" & _
+                                  LEGACY_LIST_COL & CStr(BASIC_INFO_VENDOR_TOTAL_ROW))
+    SafeUnmergeRange clearRange
+    clearRange.ClearContents
+    On Error GoTo 0
+
+    ' 9社目ブロック(値列AD=30列目)の見た目を未入力状態へ整え直す
+    Dim vendorIndex9 As Long
+    vendorIndex9 = GetVendorIndexFromValueColumn(30)
+    If vendorIndex9 >= 1 Then
+        mod_BasicInfoGuide.RefreshSingleVendorRowGuidePublic wsInfo, vendorIndex9
+    End If
+End Sub
+
 Private Function VendorNameCellByIndex(ByVal wsInfo As Worksheet, ByVal vendorIndex As Long) As Range
     Set VendorNameCellByIndex = wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, VendorValueColumnByIndex(vendorIndex))
 End Function
