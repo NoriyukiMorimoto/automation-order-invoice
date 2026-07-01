@@ -1007,13 +1007,14 @@ Public Sub ApplyConstructionUnitPriceImportedRowDecorations(ByVal wsUnitPrice As
     ' 「B列に値がある行」を連続セグメントにまとめて罫線・塗り・桁区切りを範囲一括適用する。
     ' 従来のセル単位ループ(数千行×COM往復)を排除する。手動編集時の飛び飛び範囲は
     ' 従来通り ApplyVendorUnitPriceNewRowFill 等の汎用関数が処理する(そちらは温存)。
-    ApplyConstructionUnitPriceImportedRowDecorationsFast wsUnitPrice, wsInfo, firstRow, lastRow
+    ApplyConstructionUnitPriceImportedRowDecorationsFast wsUnitPrice, wsInfo, firstRow, lastRow, False
 End Sub
 
 Private Sub ApplyConstructionUnitPriceImportedRowDecorationsFast(ByVal wsUnitPrice As Worksheet, _
                                                                 ByVal wsInfo As Worksheet, _
                                                                 ByVal firstRow As Long, _
-                                                                ByVal lastRow As Long)
+                                                                ByVal lastRow As Long, _
+                                                                ByVal skipVendorColumnRefresh As Boolean)
     Dim rowCount As Long
     rowCount = lastRow - firstRow + 1
     If rowCount <= 0 Then Exit Sub
@@ -1063,6 +1064,11 @@ Private Sub ApplyConstructionUnitPriceImportedRowDecorationsFast(ByVal wsUnitPri
         End If
     Next r
 
+    If skipVendorColumnRefresh Then
+        ApplyVendorUnitPriceSourceColumnsNumberFormatFast wsUnitPrice, firstRow, lastRow, bArr
+        Exit Sub
+    End If
+
     ' シート全体の外枠罫線再適用(従来 ApplyVendorUnitPriceBaseRowBorders 内で呼んでいた処理)
     RefreshVendorUnitPriceBordersForSheet wsUnitPrice, wsInfo
 
@@ -1075,7 +1081,8 @@ End Sub
 
 ' 工事単価シートのデータ行(7行目以降)へ罫線・塗りつぶし・桁区切りを一括適用する。
 Public Sub RefreshConstructionUnitPriceSheetDataDecorations(ByVal wsUnitPrice As Worksheet, _
-                                                            ByVal wsInfo As Worksheet)
+                                                            ByVal wsInfo As Worksheet, _
+                                                            Optional ByVal skipVendorColumnRefresh As Boolean = False)
     If wsUnitPrice Is Nothing Then Exit Sub
     If wsInfo Is Nothing Then Exit Sub
 
@@ -1083,7 +1090,8 @@ Public Sub RefreshConstructionUnitPriceSheetDataDecorations(ByVal wsUnitPrice As
     lastRow = GetVendorUnitPriceLastDataRow(wsUnitPrice)
     If lastRow < VENDOR_UNIT_PRICE_DATA_START_ROW Then Exit Sub
 
-    ApplyConstructionUnitPriceImportedRowDecorations wsUnitPrice, VENDOR_UNIT_PRICE_DATA_START_ROW, lastRow
+    ApplyConstructionUnitPriceImportedRowDecorationsFast wsUnitPrice, wsInfo, _
+        VENDOR_UNIT_PRICE_DATA_START_ROW, lastRow, skipVendorColumnRefresh
 End Sub
 
 Public Sub RefreshAllConstructionUnitPriceSheetDataDecorations(Optional ByVal wsInfo As Worksheet)
@@ -1166,8 +1174,16 @@ Private Sub SyncVendorUnitPriceBlocksAfterCountChange(ByVal wsInfo As Worksheet,
     Dim valueColumn As Long
     Dim dayCol As Long
     Dim nightCol As Long
+    Dim previousScreenUpdating As Boolean
+    Dim previousCalculation As XlCalculation
 
     Set targetBook = wsInfo.Parent
+    previousScreenUpdating = Application.screenUpdating
+    previousCalculation = Application.Calculation
+    Application.screenUpdating = False
+    Application.Calculation = xlCalculationManual
+
+    On Error GoTo SyncCleanup
 
     If previousCount <= 0 Or vendorCount = previousCount Then
         Set vendorUnitPriceNameMap = BuildVendorUnitPriceNameMap(wsInfo)
@@ -1175,9 +1191,9 @@ Private Sub SyncVendorUnitPriceBlocksAfterCountChange(ByVal wsInfo As Worksheet,
         For Each wsUnitPrice In targetBook.worksheets
             If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) And mod_MaterialPriceImport.IsCurrentImportBatchUnitPriceSheet(wsUnitPrice) Then
                 RefreshVendorUnitPriceBlocksOnSheet wsUnitPrice, wsInfo, vendorCount, vendorUnitPriceNameMap
-                ' 数式展開と同じループ内で装飾(罫線・塗り・桁区切り)も適用し、
-                ' 全単価シートを二度走査しないようにする(装飾専用の全走査は削除)。
-                RefreshConstructionUnitPriceSheetDataDecorations wsUnitPrice, wsInfo
+                ' 業者列は直前の RefreshVendorUnitPriceBlocksOnSheet で展開済みのため、
+                ' JR列(A～F)の装飾とE/F桁区切りだけ適用し業者列の二重走査を避ける。
+                RefreshConstructionUnitPriceSheetDataDecorations wsUnitPrice, wsInfo, True
             End If
         Next wsUnitPrice
 
@@ -1186,7 +1202,7 @@ Private Sub SyncVendorUnitPriceBlocksAfterCountChange(ByVal wsInfo As Worksheet,
             Application.Calculate
             On Error GoTo 0
         End If
-        Exit Sub
+        GoTo SyncCleanup
     End If
 
     If vendorCount > previousCount Then
@@ -1205,7 +1221,7 @@ Private Sub SyncVendorUnitPriceBlocksAfterCountChange(ByVal wsInfo As Worksheet,
                 Next i
             End If
         Next wsUnitPrice
-        Exit Sub
+        GoTo SyncCleanup
     End If
 
     For Each wsUnitPrice In targetBook.worksheets
@@ -1220,6 +1236,10 @@ Private Sub SyncVendorUnitPriceBlocksAfterCountChange(ByVal wsInfo As Worksheet,
             Next blockIndex
         End If
     Next wsUnitPrice
+
+SyncCleanup:
+    Application.screenUpdating = previousScreenUpdating
+    Application.Calculation = previousCalculation
 End Sub
 
 Private Sub RefreshVendorUnitPriceForValueColumn(ByVal wsInfo As Worksheet, ByVal valueColumn As Long)
@@ -1319,6 +1339,9 @@ Private Sub RefreshVendorUnitPriceBlocksOnSheet(ByVal wsUnitPrice As Worksheet, 
                                                  ByVal wsInfo As Worksheet, _
                                                  ByVal vendorCount As Long, _
                                                  ByVal vendorUnitPriceNameMap As Object)
+    Dim sheetLastRow As Long
+    sheetLastRow = GetVendorUnitPriceLastDataRow(wsUnitPrice)
+
     Dim i As Long
     For i = 1 To vendorCount
         Dim valueColumn As Long
@@ -1329,9 +1352,9 @@ Private Sub RefreshVendorUnitPriceBlocksOnSheet(ByVal wsUnitPrice As Worksheet, 
         nightCol = dayCol + 1
 
         If ShouldApplyVendorUnitPriceBlock(wsInfo, valueColumn) Then
-            ApplyVendorUnitPriceBlockToSheet wsUnitPrice, wsInfo, valueColumn, vendorUnitPriceNameMap
+            ApplyVendorUnitPriceBlockToSheet wsUnitPrice, wsInfo, valueColumn, vendorUnitPriceNameMap, sheetLastRow
         Else
-            ClearVendorUnitPriceBlockOnSheet wsUnitPrice, dayCol, nightCol
+            ClearVendorUnitPriceBlockOnSheet wsUnitPrice, dayCol, nightCol, sheetLastRow
         End If
     Next i
 
@@ -1339,7 +1362,7 @@ Private Sub RefreshVendorUnitPriceBlocksOnSheet(ByVal wsUnitPrice As Worksheet, 
         valueColumn = VendorValueColumnByIndex(i)
         dayCol = VendorUnitPriceDayColumnByValueColumn(valueColumn)
         nightCol = dayCol + 1
-        ClearVendorUnitPriceBlockOnSheet wsUnitPrice, dayCol, nightCol
+        ClearVendorUnitPriceBlockOnSheet wsUnitPrice, dayCol, nightCol, sheetLastRow
     Next i
 End Sub
 
@@ -1357,11 +1380,18 @@ End Function
 Private Sub ApplyVendorUnitPriceBlockToSheet(ByVal wsUnitPrice As Worksheet, _
                                               ByVal wsInfo As Worksheet, _
                                               ByVal valueColumn As Long, _
-                                              ByVal vendorUnitPriceNameMap As Object)
+                                              ByVal vendorUnitPriceNameMap As Object, _
+                                              Optional ByVal cachedLastRow As Long = 0)
     Dim dayCol As Long
     Dim nightCol As Long
+    Dim lastRow As Long
     dayCol = VendorUnitPriceDayColumnByValueColumn(valueColumn)
     nightCol = dayCol + 1
+    If cachedLastRow >= VENDOR_UNIT_PRICE_DATA_START_ROW Then
+        lastRow = cachedLastRow
+    Else
+        lastRow = GetVendorUnitPriceLastDataRow(wsUnitPrice)
+    End If
 
     ApplyVendorUnitPriceColumnWidths wsUnitPrice, dayCol, nightCol
     ApplyVendorUnitPriceOutsourceRatioRow wsUnitPrice, wsInfo, valueColumn, dayCol, nightCol
@@ -1379,9 +1409,9 @@ Private Sub ApplyVendorUnitPriceBlockToSheet(ByVal wsUnitPrice As Worksheet, _
         .Cells(VENDOR_UNIT_PRICE_LABEL_ROW, nightCol).VerticalAlignment = xlCenter
     End With
 
-    ApplyVendorUnitPriceDataRows wsUnitPrice, wsInfo, valueColumn, dayCol, nightCol
-    ApplyVendorUnitPriceFont wsUnitPrice, dayCol, nightCol
-    ApplyVendorUnitPriceBorders wsUnitPrice, dayCol, nightCol
+    ApplyVendorUnitPriceDataRows wsUnitPrice, wsInfo, valueColumn, dayCol, nightCol, lastRow
+    ApplyVendorUnitPriceFont wsUnitPrice, dayCol, nightCol, lastRow
+    ApplyVendorUnitPriceBorders wsUnitPrice, dayCol, nightCol, lastRow
 End Sub
 
 Public Function BuildVendorUnitPriceNameMap(ByVal wsInfo As Worksheet) As Object
@@ -1440,13 +1470,18 @@ End Function
 
 Private Sub ClearVendorUnitPriceBlockOnSheet(ByVal wsUnitPrice As Worksheet, _
                                              ByVal dayCol As Long, _
-                                             ByVal nightCol As Long)
+                                             ByVal nightCol As Long, _
+                                             Optional ByVal cachedLastRow As Long = 0)
     If wsUnitPrice Is Nothing Then Exit Sub
 
     ClearVendorUnitPriceOutsourceRatioRow wsUnitPrice, dayCol, nightCol
 
     Dim lastRow As Long
-    lastRow = GetVendorUnitPriceLastDataRow(wsUnitPrice)
+    If cachedLastRow >= VENDOR_UNIT_PRICE_HEADER_ROW Then
+        lastRow = cachedLastRow
+    Else
+        lastRow = GetVendorUnitPriceLastDataRow(wsUnitPrice)
+    End If
     If lastRow < VENDOR_UNIT_PRICE_HEADER_ROW Then lastRow = VENDOR_UNIT_PRICE_DATA_START_ROW + 200
 
     Dim clearRange As Range
@@ -1629,9 +1664,14 @@ Private Sub ApplyVendorUnitPriceDataRows(ByVal wsUnitPrice As Worksheet, _
                                            ByVal wsInfo As Worksheet, _
                                            ByVal valueColumn As Long, _
                                            ByVal dayCol As Long, _
-                                           ByVal nightCol As Long)
+                                           ByVal nightCol As Long, _
+                                           Optional ByVal cachedLastRow As Long = 0)
     Dim lastRow As Long
-    lastRow = GetVendorUnitPriceLastDataRow(wsUnitPrice)
+    If cachedLastRow >= VENDOR_UNIT_PRICE_DATA_START_ROW Then
+        lastRow = cachedLastRow
+    Else
+        lastRow = GetVendorUnitPriceLastDataRow(wsUnitPrice)
+    End If
     If lastRow < VENDOR_UNIT_PRICE_DATA_START_ROW Then Exit Sub
 
     Dim ratioAddress As String
@@ -2220,9 +2260,14 @@ End Sub
 
 Private Sub ApplyVendorUnitPriceFont(ByVal wsUnitPrice As Worksheet, _
                                      ByVal dayCol As Long, _
-                                     ByVal nightCol As Long)
+                                     ByVal nightCol As Long, _
+                                     Optional ByVal cachedLastRow As Long = 0)
     Dim lastRow As Long
-    lastRow = GetVendorUnitPriceLastDataRow(wsUnitPrice)
+    If cachedLastRow >= VENDOR_UNIT_PRICE_HEADER_ROW Then
+        lastRow = cachedLastRow
+    Else
+        lastRow = GetVendorUnitPriceLastDataRow(wsUnitPrice)
+    End If
     If lastRow < VENDOR_UNIT_PRICE_HEADER_ROW Then lastRow = VENDOR_UNIT_PRICE_DATA_START_ROW
 
     Dim fontRange As Range
@@ -2239,9 +2284,14 @@ End Sub
 
 Private Sub ApplyVendorUnitPriceBorders(ByVal wsUnitPrice As Worksheet, _
                                         ByVal dayCol As Long, _
-                                        ByVal nightCol As Long)
+                                        ByVal nightCol As Long, _
+                                        Optional ByVal cachedLastRow As Long = 0)
     Dim lastRow As Long
-    lastRow = GetVendorUnitPriceLastDataRow(wsUnitPrice)
+    If cachedLastRow >= VENDOR_UNIT_PRICE_HEADER_ROW Then
+        lastRow = cachedLastRow
+    Else
+        lastRow = GetVendorUnitPriceLastDataRow(wsUnitPrice)
+    End If
     If lastRow < VENDOR_UNIT_PRICE_HEADER_ROW Then Exit Sub
 
     Dim borderRange As Range
