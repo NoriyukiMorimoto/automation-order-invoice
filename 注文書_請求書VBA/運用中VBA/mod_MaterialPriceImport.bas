@@ -438,9 +438,21 @@ Private Sub ImportUnitPriceData(ByVal wsInfo As Worksheet)
     LogUP "PromptLineNameSelection: 選択件数=" & CStr(selectedSheetNames.Count) & _
           " 選択=[" & JoinCollectionText(selectedSheetNames, "|") & "]"
 
+    Dim previousScreenUpdating As Boolean
+    Dim previousCalculation As XlCalculation
+    Dim previousEnableEvents As Boolean
+    previousScreenUpdating = Application.screenUpdating
+    previousCalculation = Application.Calculation
+    previousEnableEvents = Application.EnableEvents
+    Application.screenUpdating = False
+    Application.Calculation = xlCalculationManual
+    Application.EnableEvents = False
+
+    On Error GoTo ImportHeavyCleanup
+
     If Not ImportSelectedUnitPriceSheets(selectedSheetNames, wsInfo.Parent, sheetSourceFileMap, sheetSourceSheetMap) Then
         LogUP "ImportSelectedUnitPriceSheets -> False 中断"
-        Exit Sub
+        GoTo ImportHeavyCleanup
     End If
     LogUP "ImportSelectedUnitPriceSheets -> True"
 
@@ -457,7 +469,7 @@ Private Sub ImportUnitPriceData(ByVal wsInfo As Worksheet)
     LogUP "ImportWeldingUnitPriceSheetsIfRequired 呼び出し"
     If Not ImportWeldingUnitPriceSheetsIfRequired(wsInfo, masterRow, priceFolderPath, sectionFolderPath, selectedSheetNames, wsInfo.Parent, weldingSheetName) Then
         LogUP "ImportWeldingUnitPriceSheetsIfRequired -> False 中断"
-        Exit Sub
+        GoTo ImportHeavyCleanup
     End If
     LogUP "ImportWeldingUnitPriceSheetsIfRequired -> True createdSheet=[" & weldingSheetName & "]"
 
@@ -467,8 +479,14 @@ Private Sub ImportUnitPriceData(ByVal wsInfo As Worksheet)
     SetCurrentUnitPriceImportBatchId wsInfo.Parent, mCurrentImportBatchId
     LogUP "現行バッチID確定=[" & mCurrentImportBatchId & "]"
 
-    mod_VendorMaster.RefreshAllVendorUnitPricesForBasicInfo wsInfo
-    mod_WeldingUnitPrice.ApplyWeldingVendorUnitPricesForBasicInfo wsInfo
+    LogUP "RefreshAllVendorUnitPricesForBasicInfo 開始"
+    mod_VendorMaster.RefreshAllVendorUnitPricesForBasicInfo wsInfo, True
+    LogUP "RefreshAllVendorUnitPricesForBasicInfo 完了"
+
+    LogUP "ApplyWeldingVendorUnitPricesForBasicInfo 開始"
+    mod_WeldingUnitPrice.ApplyWeldingVendorUnitPricesForBasicInfo wsInfo, False, 0, True
+    LogUP "ApplyWeldingVendorUnitPricesForBasicInfo 完了"
+
     mod_Construction_Order_Import.RefreshConstructionReferenceUnitPricesOnExistingSheets
 
     Application.Calculation = xlCalculationAutomatic
@@ -480,6 +498,11 @@ Private Sub ImportUnitPriceData(ByVal wsInfo As Worksheet)
     LogUP "ImportUnitPriceData 完了"
 
     MsgBox BuildImportCompleteMessage(selectedSheetNames, JoinCollectionText(sourceFilePaths, vbCrLf), purchaseSheetName, weldingSheetName), vbInformation, UiMsgImportCompleteTitleText()
+
+ImportHeavyCleanup:
+    Application.screenUpdating = previousScreenUpdating
+    Application.Calculation = previousCalculation
+    Application.EnableEvents = previousEnableEvents
 End Sub
 
 Private Function TryReadUnitPriceRequest(ByVal wsInfo As Worksheet, ByRef request As UnitPriceRequest) As Boolean
@@ -1126,17 +1149,23 @@ Private Function ImportSelectedUnitPriceSheets(ByVal selectedSheetNames As Colle
     Dim sourceBook As Workbook
     Dim stagedSheets As Collection
     Dim targetSheetNames As Collection
+    Dim openedSourceBooks As Object
     Dim previousDisplayAlerts As Boolean
     Dim previousScreenUpdating As Boolean
+    Dim previousCalculation As XlCalculation
 
     Set stagedSheets = New Collection
     Set targetSheetNames = New Collection
+    Set openedSourceBooks = CreateObject("Scripting.Dictionary")
+    openedSourceBooks.CompareMode = vbTextCompare
 
     On Error GoTo ErrorHandler
     previousDisplayAlerts = Application.DisplayAlerts
     previousScreenUpdating = Application.screenUpdating
+    previousCalculation = Application.Calculation
     Application.DisplayAlerts = False
     Application.screenUpdating = False
+    Application.Calculation = xlCalculationManual
 
     Dim displayName As Variant
     For Each displayName In selectedSheetNames
@@ -1150,7 +1179,13 @@ Private Function ImportSelectedUnitPriceSheets(ByVal selectedSheetNames As Colle
         LogUP "シートコピー displayName=[" & targetSheetName & "] srcSheet=[" & sourceSheetName & _
               "] srcFile=[" & sourceFilePath & "]"
 
-        Set sourceBook = Workbooks.Open(fileName:=sourceFilePath, ReadOnly:=True, UpdateLinks:=False, AddToMru:=False)
+        If openedSourceBooks.Exists(sourceFilePath) Then
+            Set sourceBook = openedSourceBooks(sourceFilePath)
+        Else
+            Set sourceBook = Workbooks.Open(fileName:=sourceFilePath, ReadOnly:=True, UpdateLinks:=False, AddToMru:=False)
+            openedSourceBooks.Add sourceFilePath, sourceBook
+        End If
+
         sourceBook.worksheets(sourceSheetName).Copy After:=targetBook.worksheets(targetBook.worksheets.Count)
         Set stagedSheet = targetBook.worksheets(targetBook.worksheets.Count)
         stagedSheet.Name = MakeUniqueWorksheetName(targetBook, "__UP_NEW_" & CStr(stagedSheets.Count + 1), stagedSheet.Name)
@@ -1163,9 +1198,6 @@ Private Function ImportSelectedUnitPriceSheets(ByVal selectedSheetNames As Colle
         End With
         stagedSheets.Add stagedSheet
         targetSheetNames.Add targetSheetName
-
-        sourceBook.Close SaveChanges:=False
-        Set sourceBook = Nothing
     Next displayName
 
     LogUP "ImportSelectedUnitPriceSheets: 新規シート作成成功、既存シートを入替"
@@ -1182,10 +1214,15 @@ Private Function ImportSelectedUnitPriceSheets(ByVal selectedSheetNames As Colle
 
 Cleanup:
     On Error Resume Next
-    If Not sourceBook Is Nothing Then sourceBook.Close SaveChanges:=False
+    Dim openedKey As Variant
+    For Each openedKey In openedSourceBooks.Keys
+        openedSourceBooks(openedKey).Close SaveChanges:=False
+    Next openedKey
+    Set sourceBook = Nothing
     If Not ImportSelectedUnitPriceSheets Then DeleteStagedWorksheets stagedSheets
     Application.DisplayAlerts = previousDisplayAlerts
     Application.screenUpdating = previousScreenUpdating
+    Application.Calculation = previousCalculation
     CommonGetBasicInfoWorksheet(targetBook).Activate
     On Error GoTo 0
     Exit Function
