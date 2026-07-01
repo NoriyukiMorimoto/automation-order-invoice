@@ -1,7 +1,8 @@
 Option Explicit
 
-Private Const LIST_BRANCH_COL As String = "AA"
-Private Const LIST_OFFICE_COL As String = "AB"
+' ??????????10?(AH???)?????????AJ(????)???????
+Private Const LIST_BRANCH_COL As String = "AK"
+Private Const LIST_OFFICE_COL As String = "AL"
 Private Const LIST_START_ROW As Long = 2
 Private Const OFFICE_COMBO_NAME As String = "ComboBox1"
 Private Const OFFICE_COMBO_WIDTH_POINTS As Double = 310.5
@@ -197,6 +198,21 @@ Private Sub WriteDictionaryKeysToColumn(ByVal wsInfo As Worksheet, _
     Next i
 
     wsInfo.Range(colLetter & LIST_START_ROW).Resize(total, 1).value = outArr
+End Sub
+
+' ?????????????????(T:AG??2?9)??????
+' ????????(10????)??????????????? AK/AL(??????)?
+Public Sub CleanupLegacyBasicInfoValidationListDebris(Optional ByVal wsInfo As Worksheet)
+    If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet()
+    If wsInfo Is Nothing Then Exit Sub
+
+    Const LEGACY_LIST_TOP_ROW As Long = 2
+    Const LEGACY_LIST_BOTTOM_ROW As Long = 9
+    Const LEGACY_LIST_RANGE As String = "T" & CStr(LEGACY_LIST_TOP_ROW) & ":AG" & CStr(LEGACY_LIST_BOTTOM_ROW)
+
+    On Error Resume Next
+    wsInfo.Range(LEGACY_LIST_RANGE).ClearContents
+    On Error GoTo 0
 End Sub
 
 Private Sub ResetListValidation(ByVal targetCell As Range, ByVal listRange As Range)

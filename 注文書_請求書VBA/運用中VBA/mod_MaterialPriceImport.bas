@@ -44,9 +44,10 @@ Private Const BASIC_INFO_PRICE_KIND_FALLBACK_CELL As String = "B22"
 Private Const BASIC_INFO_IMPORTED_LINE_NAMES_CELL As String = "C24"
 Private Const BASIC_INFO_IMPORTED_LINE_NAMES_MONITOR_RANGE As String = "C24:C28"
 Private Const BASIC_INFO_WELDING_FLAG_CELL As String = "C23"
-Private Const PROJECT_NAME_LIST_COL As String = "AE"
-Private Const LINE_TYPE_LIST_COL As String = "AF"
-Private Const PRICE_KIND_LIST_COL As String = "AG"
+' 施工会社ブロック最大10社(AH列まで)と衝突しないよう、AJ(業者一覧)の右隣から配置
+Private Const PROJECT_NAME_LIST_COL As String = "AM"
+Private Const LINE_TYPE_LIST_COL As String = "AN"
+Private Const PRICE_KIND_LIST_COL As String = "AO"
 Private Const LIST_START_ROW As Long = 2
 Private Const PROJECT_NAME_MASTER_START_ROW As Long = 2
 Private Const PROJECT_NAME_MASTER_LAST_ROW As Long = 1048576
@@ -2040,24 +2041,35 @@ Private Sub ApplyImportedUnitPriceSheetFormat(ByVal targetSheet As Worksheet)
     If targetSheet Is Nothing Then Exit Sub
 
     ' 書式設定は装飾処理。失敗しても単価表の取り込み(データ)自体は止めないよう、
-    ' 全処理をエラートラップし、エラーは呼び出し元へ伝播させない。
+    ' 各手順を個別にエラートラップし、エラーは呼び出し元へ伝播させない。
     Dim wasProtected As Boolean
     On Error Resume Next
     wasProtected = targetSheet.ProtectContents
-    ' UserInterfaceOnly保護下では結合がVBAから拒否(1004)されるため、必要なら一時解除
     If wasProtected Then targetSheet.Unprotect
     On Error GoTo 0
 
+    Dim fmtErr As Long
+    fmtErr = 0
+
+    Dim fontRange As Range
+    Set fontRange = targetSheet.UsedRange
+    If fontRange Is Nothing Then Set fontRange = targetSheet.Range("A1")
+
     On Error Resume Next
+    fontRange.Font.Name = ImportedUnitPriceSheetFontNameText()
+    If Err.Number <> 0 Then
+        fmtErr = Err.Number
+        Err.Clear
+    End If
+    On Error GoTo 0
 
-    With targetSheet.Cells.Font
-        .Name = ImportedUnitPriceSheetFontNameText()
-        .NameFarEast = ImportedUnitPriceSheetFontNameText()
-    End With
-
+    On Error Resume Next
     targetSheet.Columns(IMPORTED_UNIT_PRICE_CENTER_COL).HorizontalAlignment = xlCenter
+    If Err.Number <> 0 Then
+        If fmtErr = 0 Then fmtErr = Err.Number
+        Err.Clear
+    End If
 
-    ' 1行目・2行目のA~F列を結合し、中央揃え(既存結合は解除してから)
     targetSheet.Range( _
         targetSheet.Cells(IMPORTED_UNIT_PRICE_MERGE_FIRST_ROW, IMPORTED_UNIT_PRICE_MERGE_FIRST_COL), _
         targetSheet.Cells(IMPORTED_UNIT_PRICE_MERGE_LAST_ROW, IMPORTED_UNIT_PRICE_MERGE_LAST_COL)).UnMerge
@@ -2071,18 +2083,25 @@ Private Sub ApplyImportedUnitPriceSheetFormat(ByVal targetSheet As Worksheet)
             .HorizontalAlignment = xlCenter
             .VerticalAlignment = xlCenter
         End With
+        If Err.Number <> 0 Then
+            If fmtErr = 0 Then fmtErr = Err.Number
+            Err.Clear
+        End If
     Next mergeRowIndex
 
-    ' A列のセル幅
     targetSheet.Columns(IMPORTED_UNIT_PRICE_MERGE_FIRST_COL).ColumnWidth = IMPORTED_UNIT_PRICE_COL_A_WIDTH
+    If Err.Number <> 0 Then
+        If fmtErr = 0 Then fmtErr = Err.Number
+        Err.Clear
+    End If
 
-    ' B3・B4は左詰め(B列全体は中央揃えのため、この2行のみ上書き)
     targetSheet.Range( _
         targetSheet.Cells(IMPORTED_UNIT_PRICE_LEFT_ALIGN_ROW_FIRST, IMPORTED_UNIT_PRICE_CENTER_COL), _
         targetSheet.Cells(IMPORTED_UNIT_PRICE_LEFT_ALIGN_ROW_LAST, IMPORTED_UNIT_PRICE_CENTER_COL)).HorizontalAlignment = xlLeft
-
-    Dim fmtErr As Long
-    fmtErr = Err.Number
+    If Err.Number <> 0 Then
+        If fmtErr = 0 Then fmtErr = Err.Number
+        Err.Clear
+    End If
     On Error GoTo 0
 
     If fmtErr <> 0 Then
@@ -2090,7 +2109,6 @@ Private Sub ApplyImportedUnitPriceSheetFormat(ByVal targetSheet As Worksheet)
               " sheet=[" & targetSheet.Name & "]"
     End If
 
-    ' 解除した保護を元に戻す(パスワードは不明のため無しで再保護)
     If wasProtected Then
         On Error Resume Next
         targetSheet.Protect

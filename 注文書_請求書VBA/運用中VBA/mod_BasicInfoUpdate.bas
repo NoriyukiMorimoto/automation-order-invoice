@@ -133,10 +133,13 @@ Public Sub ClearBasicInfo()
     HideOfficeComboBoxForUpdate wsInfo
     mod_BasicInfoGuide.ClearAllGuides wsInfo
     mod_MaterialPriceImport.ConfirmAndClearUnitPriceForBasicInfo wsInfo
+    DeleteConstructionImportSheets False
     wsInfo.Range(BASIC_INFO_CLEAR_RANGES).ClearContents
     ClearVendorTotalCells wsInfo
+    ClearBasicInfoYenTotalCells wsInfo
     wsInfo.Range(BASIC_INFO_BILLING_SEQUENCE_CELL).value = 1
     mod_VendorMaster.SyncVendorBlocksFromCount wsInfo
+    ClearBasicInfoYenTotalCells wsInfo
 
     GoTo AfterClear
 
@@ -151,7 +154,6 @@ AfterClear:
 
     Application.EnableEvents = prevEnableEvents
     Application.ScreenUpdating = True
-    DeleteConstructionImportSheets False
 
 FinallyExit:
     Application.EnableEvents = prevEnableEvents
@@ -179,10 +181,13 @@ Public Sub SilentClearBasicInfo(ByVal wsInfo As Worksheet)
     HideOfficeComboBoxForUpdate wsInfo
     mod_BasicInfoGuide.ClearAllGuides wsInfo
     mod_MaterialPriceImport.SilentClearUnitPriceForBasicInfo wsInfo
+    DeleteConstructionImportSheets False
     wsInfo.Range(BASIC_INFO_CLEAR_RANGES).ClearContents
     ClearVendorTotalCells wsInfo
+    ClearBasicInfoYenTotalCells wsInfo
     wsInfo.Range(BASIC_INFO_BILLING_SEQUENCE_CELL).value = 1
     mod_VendorMaster.SyncVendorBlocksFromCount wsInfo
+    ClearBasicInfoYenTotalCells wsInfo
 
     GoTo AfterClear
 
@@ -197,7 +202,6 @@ AfterClear:
 
     Application.EnableEvents = prevEnableEvents
     Application.ScreenUpdating = True
-    DeleteConstructionImportSheets False
 
 FinallyExit:
     Application.EnableEvents = prevEnableEvents
@@ -432,4 +436,18 @@ Private Sub ClearVendorTotalCells(ByVal wsInfo As Worksheet)
         If targetCell.MergeCells Then Set targetCell = targetCell.MergeArea.Cells(1, 1)
         targetCell.ClearContents
     Next i
+End Sub
+
+' C31:C35(工事合計?税込合計)を結合セル対応で消去する。
+' SyncVendorBlocksFromCount 内の合計再計算より後にも呼び、0 への再書込みを防ぐ。
+Private Sub ClearBasicInfoYenTotalCells(ByVal wsInfo As Worksheet)
+    If wsInfo Is Nothing Then Exit Sub
+
+    Dim rowIndex As Long
+    For rowIndex = 31 To 35
+        Dim targetCell As Range
+        Set targetCell = wsInfo.Cells(rowIndex, 3)
+        If targetCell.MergeCells Then Set targetCell = targetCell.MergeArea.Cells(1, 1)
+        targetCell.ClearContents
+    Next rowIndex
 End Sub
