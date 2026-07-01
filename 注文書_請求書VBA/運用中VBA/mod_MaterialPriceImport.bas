@@ -3,6 +3,11 @@ Option Explicit
 Public SharedMasterData As Variant
 Private mClearingImportedLineNames As Boolean
 Private mImportingUnitPriceData As Boolean
+' 直近の単価表取込1回分を識別するID。取込開始時に採番し、生成した各シートの
+' XFD2セルへ書き込む。運用上「参照は常に最後に取り込んだ単価シートから」で
+' あるため、以前の取込で作られた古いシートは重い再展開処理の対象から外す
+' (mod_VendorMaster / mod_WeldingUnitPrice 側でこのバッチIDと突き合わせて判定)。
+Private mCurrentImportBatchId As String
 
 Private Type UnitPriceRequest
     Nendo As String
@@ -54,6 +59,8 @@ Private Const PROJECT_NAME_MASTER_LAST_ROW As Long = 1048576
 Private Const IMPORTED_SHEET_MARKER_ADDRESS As String = "XFD1"
 Private Const IMPORTED_SHEET_LEGACY_MARKER_ADDRESS As String = "ZZ1"
 Private Const IMPORTED_SHEET_MARKER_VALUE As String = "UnitPriceImported"
+Private Const IMPORTED_SHEET_BATCH_ADDRESS As String = "XFD2"
+Private Const CURRENT_BATCH_DEFINED_NAME As String = "CurrentUnitPriceImportBatchId"
 
 Private Const UNIT_PRICE_SHEET_TAB_R As Long = 165
 Private Const UNIT_PRICE_SHEET_TAB_G As Long = 171
@@ -348,6 +355,8 @@ End Function
 
 Private Sub ImportUnitPriceData(ByVal wsInfo As Worksheet)
     LogUP "ImportUnitPriceData 開始 wb=[" & wsInfo.Parent.Name & "]"
+    mCurrentImportBatchId = GenerateImportBatchId()
+    LogUP "採番バッチID=[" & mCurrentImportBatchId & "]"
 
     Dim request As UnitPriceRequest
     If Not TryReadUnitPriceRequest(wsInfo, request) Then
@@ -443,6 +452,12 @@ Private Sub ImportUnitPriceData(ByVal wsInfo As Worksheet)
         Exit Sub
     End If
     LogUP "ImportWeldingUnitPriceSheetsIfRequired -> True createdSheet=[" & weldingSheetName & "]"
+
+    ' ここまでの単価表/購入充当単価/レール溶接単価シートがすべて作成できたので、
+    ' このバッチを「現行」として確定する。以降の重い再展開処理はこのバッチの
+    ' シートだけを対象にする。
+    SetCurrentUnitPriceImportBatchId wsInfo.Parent, mCurrentImportBatchId
+    LogUP "現行バッチID確定=[" & mCurrentImportBatchId & "]"
 
     mod_VendorMaster.RefreshAllVendorUnitPricesForBasicInfo wsInfo
     mod_WeldingUnitPrice.ApplyWeldingVendorUnitPricesForBasicInfo wsInfo
@@ -1901,6 +1916,7 @@ Public Sub ClearUnitPriceSheets(Optional ByVal targetBook As Workbook)
     Application.EnableEvents = False
     Application.screenUpdating = False
     DeleteImportedUnitPriceSheets targetBook
+    ClearCurrentUnitPriceImportBatchId targetBook
 Cleanup:
     Application.screenUpdating = previousScreenUpdating
     Application.EnableEvents = previousEnableEvents
@@ -2034,8 +2050,70 @@ Private Sub MarkImportedUnitPriceSheet(ByVal targetSheet As Worksheet)
     If targetSheet Is Nothing Then Exit Sub
     On Error Resume Next
     targetSheet.Range(IMPORTED_SHEET_MARKER_ADDRESS).value = IMPORTED_SHEET_MARKER_VALUE
+    targetSheet.Range(IMPORTED_SHEET_BATCH_ADDRESS).value = mCurrentImportBatchId
     On Error GoTo 0
 End Sub
+
+' 取込1回分を識別するバッチIDを採番する(一意性より「前回と区別できること」を重視)。
+Private Function GenerateImportBatchId() As String
+    GenerateImportBatchId = Format(Now, "yyyymmddhhnnss") & "_" & _
+                            Format(CLng(Timer * 1000) Mod 100000, "00000")
+End Function
+
+' 現行バッチIDをブックに永続化する(セルを使わずDefined Nameに保持し、
+' UsedRange/書式の肥大化に影響しないようにする)。
+Public Sub SetCurrentUnitPriceImportBatchId(ByVal wb As Workbook, ByVal batchId As String)
+    If wb Is Nothing Then Exit Sub
+    On Error Resume Next
+    wb.Names(CURRENT_BATCH_DEFINED_NAME).Delete
+    On Error GoTo 0
+    On Error Resume Next
+    wb.Names.Add Name:=CURRENT_BATCH_DEFINED_NAME, RefersTo:="=""" & batchId & """"
+    On Error GoTo 0
+End Sub
+
+' 現行バッチIDを取得する。未設定(旧仕様のブック・一度も取込していない等)の場合は空文字を返す。
+Public Function GetCurrentUnitPriceImportBatchId(Optional ByVal wb As Workbook) As String
+    If wb Is Nothing Then Set wb = ThisWorkbook
+
+    Dim raw As String
+    On Error Resume Next
+    raw = wb.Names(CURRENT_BATCH_DEFINED_NAME).RefersTo
+    On Error GoTo 0
+    If Len(raw) = 0 Then Exit Function
+
+    ' raw は ="20260701153045_00123" の形式。前後の ="  " を除去する。
+    If Left$(raw, 2) = "=""" Then raw = Mid$(raw, 3)
+    If Len(raw) > 0 And Right$(raw, 1) = """" Then raw = Left$(raw, Len(raw) - 1)
+    GetCurrentUnitPriceImportBatchId = raw
+End Function
+
+' 単価表クリア時は現行バッチも失効させる(参照先が無くなるため)。
+Public Sub ClearCurrentUnitPriceImportBatchId(Optional ByVal wb As Workbook)
+    If wb Is Nothing Then Set wb = ThisWorkbook
+    On Error Resume Next
+    wb.Names(CURRENT_BATCH_DEFINED_NAME).Delete
+    On Error GoTo 0
+End Sub
+
+' 指定シートが「現行バッチ」の単価表/購入充当単価/レール溶接単価シートかどうかを判定する。
+' 現行バッチIDが未設定の場合(旧仕様のブック等)は安全側に倒して True を返す
+' (=以前と同じ「全シート対象」の挙動にフォールバックする)。
+Public Function IsCurrentImportBatchUnitPriceSheet(ByVal targetSheet As Worksheet) As Boolean
+    If targetSheet Is Nothing Then Exit Function
+
+    Dim currentBatchId As String
+    currentBatchId = GetCurrentUnitPriceImportBatchId(targetSheet.Parent)
+    If currentBatchId = "" Then
+        IsCurrentImportBatchUnitPriceSheet = True
+        Exit Function
+    End If
+
+    On Error Resume Next
+    IsCurrentImportBatchUnitPriceSheet = _
+        (CStr(targetSheet.Range(IMPORTED_SHEET_BATCH_ADDRESS).value) = currentBatchId)
+    On Error GoTo 0
+End Function
 
 Private Sub ApplyImportedUnitPriceSheetFormat(ByVal targetSheet As Worksheet)
     If targetSheet Is Nothing Then Exit Sub

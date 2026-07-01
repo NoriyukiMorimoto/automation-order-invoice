@@ -1010,6 +1010,32 @@ Public Sub ApplyConstructionUnitPriceImportedRowDecorations(ByVal wsUnitPrice As
     ApplyVendorUnitPriceNewRowFill wsUnitPrice, wsInfo, bColRange
     ApplyVendorUnitPriceBaseRowBorders wsUnitPrice, wsInfo, bColRange
     ApplyVendorUnitPriceSourceRowsForRange wsUnitPrice, wsInfo, firstRow, lastRow
+    ApplyVendorUnitPriceSourceColumnsNumberFormat wsUnitPrice, firstRow, lastRow
+End Sub
+
+' 工事単価シートのデータ行(7行目以降)へ罫線・塗りつぶし・桁区切りを一括適用する。
+Public Sub RefreshConstructionUnitPriceSheetDataDecorations(ByVal wsUnitPrice As Worksheet, _
+                                                            ByVal wsInfo As Worksheet)
+    If wsUnitPrice Is Nothing Then Exit Sub
+    If wsInfo Is Nothing Then Exit Sub
+
+    Dim lastRow As Long
+    lastRow = GetVendorUnitPriceLastDataRow(wsUnitPrice)
+    If lastRow < VENDOR_UNIT_PRICE_DATA_START_ROW Then Exit Sub
+
+    ApplyConstructionUnitPriceImportedRowDecorations wsUnitPrice, VENDOR_UNIT_PRICE_DATA_START_ROW, lastRow
+End Sub
+
+Public Sub RefreshAllConstructionUnitPriceSheetDataDecorations(Optional ByVal wsInfo As Worksheet)
+    If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet()
+    If wsInfo Is Nothing Then Exit Sub
+
+    Dim wsUnitPrice As Worksheet
+    For Each wsUnitPrice In wsInfo.Parent.worksheets
+        If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) Then
+            RefreshConstructionUnitPriceSheetDataDecorations wsUnitPrice, wsInfo
+        End If
+    Next wsUnitPrice
 End Sub
 
 Public Sub HandleConstructionUnitPriceSheetChange(ByVal wsUnitPrice As Worksheet, _
@@ -1091,6 +1117,8 @@ Private Sub SyncVendorUnitPriceBlocksAfterCountChange(ByVal wsInfo As Worksheet,
                 RefreshVendorUnitPriceBlocksOnSheet wsUnitPrice, wsInfo, vendorCount, vendorUnitPriceNameMap
             End If
         Next wsUnitPrice
+
+        RefreshAllConstructionUnitPriceSheetDataDecorations wsInfo
 
         If Not deferCalculation Then
             On Error Resume Next
@@ -1828,6 +1856,7 @@ Private Sub ApplyVendorUnitPriceSourceRowIfNeeded(ByVal wsUnitPrice As Worksheet
 
     If HasNumericVendorUnitPriceSource(sourceCell) Then
         sourceCell.Interior.ColorIndex = xlColorIndexNone
+        sourceCell.NumberFormat = VENDOR_UNIT_PRICE_NUMBER_FORMAT
         ApplyVendorUnitPriceCellsForSourceRow wsUnitPrice, wsInfo, rowIndex, isDayColumn
     ElseIf IsVendorUnitPriceSourceCellBlank(sourceCell) Then
         ApplyVendorUnitPriceSourceGreyFill sourceCell
@@ -1855,6 +1884,21 @@ Private Sub ApplyVendorUnitPriceSourceGreyFill(ByVal sourceCell As Range)
     sourceCell.Interior.Color = RGB(VENDOR_UNIT_PRICE_FILL_COLOR_R, _
                                     VENDOR_UNIT_PRICE_FILL_COLOR_G, _
                                     VENDOR_UNIT_PRICE_FILL_COLOR_B)
+End Sub
+
+Private Sub ApplyVendorUnitPriceSourceColumnsNumberFormat(ByVal wsUnitPrice As Worksheet, _
+                                                          ByVal firstRow As Long, _
+                                                          ByVal lastRow As Long)
+    If wsUnitPrice Is Nothing Then Exit Sub
+    If lastRow < firstRow Then Exit Sub
+
+    Dim rowIndex As Long
+    For rowIndex = firstRow To lastRow
+        If Len(Trim$(CStr(wsUnitPrice.Cells(rowIndex, VENDOR_UNIT_PRICE_LAST_ROW_COL).value))) > 0 Then
+            wsUnitPrice.Cells(rowIndex, VENDOR_UNIT_PRICE_REF_UNIT_COL).NumberFormat = VENDOR_UNIT_PRICE_NUMBER_FORMAT
+            wsUnitPrice.Cells(rowIndex, VENDOR_UNIT_PRICE_REF_WIDTH_COL).NumberFormat = VENDOR_UNIT_PRICE_NUMBER_FORMAT
+        End If
+    Next rowIndex
 End Sub
 
 Private Sub ApplyVendorUnitPriceCellsForSourceRow(ByVal wsUnitPrice As Worksheet, _
