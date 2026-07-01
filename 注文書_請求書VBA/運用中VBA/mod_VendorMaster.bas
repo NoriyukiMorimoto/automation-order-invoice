@@ -45,7 +45,7 @@ Private Const VENDOR_UNIT_PRICE_NUMBER_FORMAT As String = "#,##0"
 
 Private Const MAX_VENDOR_BLOCK_COUNT As Long = 20
 Private Const VENDOR_SOURCE_START_ROW As Long = 2
-Private Const VENDOR_SOURCE_END_ROW As Long = 36
+Private Const VENDOR_SOURCE_END_ROW As Long = 500
 Private Const VENDOR_ROW_NAME_INDEX As Long = 0
 Private Const VENDOR_ROW_UNIT_PRICE_NAME_INDEX As Long = 12
 Private Const VENDOR_MASTER_ADO_COLUMN_O_NAME As String = "F15"
@@ -165,6 +165,9 @@ Public Sub ApplyVendorSelection(ByVal BranchName As String, ByVal vendorName As 
 
     RefreshVendorUnitPriceForValueColumn wsInfo, targetCell.Column
     NotifyVendorBasicInfoBlockChanged wsInfo, targetCell.Column
+    mod_DebugLog.Log "[VendorMaster] ApplyVendorSelection: no match in vendor master. Branch=[" & _
+                      BranchName & "] Vendor=[" & vendorName & "] Col=" & targetCell.Column & _
+                      " RowCount=" & vendorRows.Count & " -> row12+ left blank"
 End Sub
 
 Public Sub NotifyVendorBasicInfoBlockChanged(ByVal wsInfo As Worksheet, _
