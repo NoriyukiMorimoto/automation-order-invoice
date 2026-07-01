@@ -354,8 +354,10 @@ Public Sub ClearSurplusWeldingVendorBlocksForBasicInfo(Optional ByVal wsInfo As 
         Dim railIndex As Long
         For railIndex = railBlockCount + 1 To MAX_VENDOR_BLOCK_COUNT
             Dim surplusRailDayCol As Long
+            Dim surplusRailPatternCol As Long
             surplusRailDayCol = GetRailDayColByIndex(weldingBlockCount, railIndex)
-            ClearRailPatternBlock wsWelding, surplusRailDayCol
+            surplusRailPatternCol = GetRailPatternAnchorColByIndex(weldingBlockCount, railIndex)
+            ClearRailPatternBlock wsWelding, surplusRailPatternCol
             ClearWeldingVendorBlock wsWelding, lastRow, surplusRailDayCol
         Next railIndex
 
@@ -435,21 +437,24 @@ Private Sub SyncWeldingVendorBlocksLayoutOnSheet(ByVal wsWelding As Worksheet, _
 
     Dim railIndex As Long
     Dim railDayCol As Long
+    Dim railPatternCol As Long
     For railIndex = 1 To railBlockCount
         railDayCol = GetRailDayColByIndex(weldingBlockCount, railIndex)
+        railPatternCol = GetRailPatternAnchorColByIndex(weldingBlockCount, railIndex)
         If ShouldShowWeldingVendorBlock(railBlocks(railIndex)) Then
-            ApplyRailPatternRow wsWelding, wsInfo, railDayCol, railBlocks(railIndex).valueColumn
+            ApplyRailPatternRow wsWelding, wsInfo, railPatternCol, railBlocks(railIndex).valueColumn
             UpdateWeldingVendorDisplayNameOnly wsWelding, railDayCol, _
                 ResolveVendorUnitPriceNameWUP(vendorUnitPriceNameMap, railBlocks(railIndex).vendorName)
         Else
-            ClearRailPatternBlock wsWelding, railDayCol
+            ClearRailPatternBlock wsWelding, railPatternCol
             ClearWeldingVendorBlock wsWelding, lastRow, railDayCol
         End If
     Next railIndex
 
     For railIndex = railBlockCount + 1 To MAX_VENDOR_BLOCK_COUNT
         railDayCol = GetRailDayColByIndex(weldingBlockCount, railIndex)
-        ClearRailPatternBlock wsWelding, railDayCol
+        railPatternCol = GetRailPatternAnchorColByIndex(weldingBlockCount, railIndex)
+        ClearRailPatternBlock wsWelding, railPatternCol
         ClearWeldingVendorBlock wsWelding, lastRow, railDayCol
     Next railIndex
 
@@ -463,13 +468,27 @@ End Function
 
 Private Function GetWeldingSheetRightmostVendorNightCol(ByVal weldingBlockCount As Long, _
                                                         ByVal railBlockCount As Long) As Long
-    If railBlockCount > 0 Then
-        GetWeldingSheetRightmostVendorNightCol = GetRailDayColByIndex(weldingBlockCount, railBlockCount) + 1
-    ElseIf weldingBlockCount > 0 Then
-        GetWeldingSheetRightmostVendorNightCol = GetWeldingDayColByIndex(weldingBlockCount) + 1
-    Else
-        GetWeldingSheetRightmostVendorNightCol = WUP_WELDING_DAY_COL - 1
+    Dim rightmost As Long
+    rightmost = WUP_WELDING_DAY_COL - 1
+
+    If weldingBlockCount > 0 Then
+        If GetWeldingDayColByIndex(weldingBlockCount) + 1 > rightmost Then
+            rightmost = GetWeldingDayColByIndex(weldingBlockCount) + 1
+        End If
     End If
+
+    If railBlockCount > 0 Then
+        ' 単価データ列(2列刻み)と単価ﾊﾟﾀｰﾝ列(4列刻み)は刻み幅が異なり、
+        ' 会社数が多いとﾊﾟﾀｰﾝ列側の方が右に伸びるため、両方の右端を比較する。
+        If GetRailDayColByIndex(weldingBlockCount, railBlockCount) + 1 > rightmost Then
+            rightmost = GetRailDayColByIndex(weldingBlockCount, railBlockCount) + 1
+        End If
+        If GetRailPatternAnchorColByIndex(weldingBlockCount, railBlockCount) + 1 > rightmost Then
+            rightmost = GetRailPatternAnchorColByIndex(weldingBlockCount, railBlockCount) + 1
+        End If
+    End If
+
+    GetWeldingSheetRightmostVendorNightCol = rightmost
 End Function
 
 Private Sub ClearWeldingVendorColumnsBeyondLayout(ByVal wsWelding As Worksheet, _
@@ -621,15 +640,17 @@ Private Sub ApplyWeldingVendorUnitPricesToSheetColumns(ByVal wsWelding As Worksh
     Dim railIndex As Long
     For railIndex = 1 To railBlockCount
         Dim railDayCol As Long
+        Dim railPatternCol As Long
         railDayCol = GetRailDayColByIndex(weldingBlockCount, railIndex)
+        railPatternCol = GetRailPatternAnchorColByIndex(weldingBlockCount, railIndex)
         If CollectionContainsLongWUP(targetValueColumns, railBlocks(railIndex).valueColumn) Then
             If railBlocks(railIndex).hasRatio Then
-                railBlocks(railIndex).patternAddress = BuildRailPatternSheetRef(wsWelding, railDayCol)
-                ApplyRailPatternRow wsWelding, wsInfo, railDayCol, railBlocks(railIndex).valueColumn
+                railBlocks(railIndex).patternAddress = BuildRailPatternSheetRef(wsWelding, railPatternCol)
+                ApplyRailPatternRow wsWelding, wsInfo, railPatternCol, railBlocks(railIndex).valueColumn
                 ApplyWeldingVendorBlock wsWelding, lastRow, railDayCol, railBlocks(railIndex), False, _
                                         railHeaderText, vendorUnitPriceNameMap, temotoMap, missingSeiriMap
             Else
-                ClearRailPatternBlock wsWelding, railDayCol
+                ClearRailPatternBlock wsWelding, railPatternCol
                 ClearWeldingVendorBlock wsWelding, lastRow, railDayCol
             End If
         End If
@@ -708,21 +729,24 @@ Private Sub ApplyWeldingVendorUnitPricesToSheet(ByVal wsWelding As Worksheet, _
     Dim railIndex As Long
     For railIndex = 1 To railBlockCount
         Dim railDayCol As Long
+        Dim railPatternCol As Long
         railDayCol = GetRailDayColByIndex(weldingBlockCount, railIndex)
+        railPatternCol = GetRailPatternAnchorColByIndex(weldingBlockCount, railIndex)
         If railBlocks(railIndex).hasRatio Then
-            railBlocks(railIndex).patternAddress = BuildRailPatternSheetRef(wsWelding, railDayCol)
-            ApplyRailPatternRow wsWelding, wsInfo, railDayCol, railBlocks(railIndex).valueColumn
+            railBlocks(railIndex).patternAddress = BuildRailPatternSheetRef(wsWelding, railPatternCol)
+            ApplyRailPatternRow wsWelding, wsInfo, railPatternCol, railBlocks(railIndex).valueColumn
             ApplyWeldingVendorBlock wsWelding, lastRow, railDayCol, railBlocks(railIndex), False, _
                                     railHeaderText, vendorUnitPriceNameMap, temotoMap, missingSeiriMap
         Else
-            ClearRailPatternBlock wsWelding, railDayCol
+            ClearRailPatternBlock wsWelding, railPatternCol
             ClearWeldingVendorBlock wsWelding, lastRow, railDayCol
         End If
     Next railIndex
 
     For railIndex = railBlockCount + 1 To MAX_VENDOR_BLOCK_COUNT
         railDayCol = GetRailDayColByIndex(weldingBlockCount, railIndex)
-        ClearRailPatternBlock wsWelding, railDayCol
+        railPatternCol = GetRailPatternAnchorColByIndex(weldingBlockCount, railIndex)
+        ClearRailPatternBlock wsWelding, railPatternCol
         ClearWeldingVendorBlock wsWelding, lastRow, railDayCol
     Next railIndex
 
@@ -1433,9 +1457,21 @@ Private Function GetWeldingDayColByIndex(ByVal weldingIndex As Long) As Long
     GetWeldingDayColByIndex = WUP_WELDING_DAY_COL + ((weldingIndex - 1) * 2)
 End Function
 
+' 軌道会社の単価データ(1行目/4行目以降、実際の日給・夜間単価)は、溶接会社ブロックの
+' 直後から2列刻み(会社2列のみ)で詰めて配置する。3行目の単価ﾊﾟﾀｰﾝ欄の幅は加味しない。
+' (以前は単価ﾊﾟﾀｰﾝ欄の分まで2社分の間隔を空けてしまい、施工会社が1列ぶんずつ
+' 右にずれて表示される不具合があったため、データ列とパターン列の刻み幅を分離した)
 Private Function GetRailDayColByIndex(ByVal weldingBlockCount As Long, ByVal railIndex As Long) As Long
     GetRailDayColByIndex = WUP_WELDING_DAY_COL + (weldingBlockCount * 2) + _
-                           ((railIndex - 1) * WUP_RAIL_SLOT_WIDTH) + 2
+                           ((railIndex - 1) * 2)
+End Function
+
+' 軌道会社の3行目(単価ﾊﾟﾀｰﾝ:/外注比率適用パターン)の位置は、単価データ列とは別に
+' 従来通りの4列刻み(WUP_RAIL_SLOT_WIDTH)で計算する。単価データ列の位置修正の影響を
+' 受けないよう、意図的にデータ列とは独立させている。
+Private Function GetRailPatternAnchorColByIndex(ByVal weldingBlockCount As Long, ByVal railIndex As Long) As Long
+    GetRailPatternAnchorColByIndex = WUP_WELDING_DAY_COL + (weldingBlockCount * 2) + _
+                                     ((railIndex - 1) * WUP_RAIL_SLOT_WIDTH) + 2
 End Function
 
 Private Function BuildRailPatternSheetRef(ByVal wsWelding As Worksheet, ByVal railDayCol As Long) As String
@@ -1558,9 +1594,28 @@ Private Sub ClearWeldingVendorColumnsRange(ByVal wsWelding As Worksheet, _
     clearLastRow = lastRow
     If clearLastRow < WUP_DATA_START_ROW Then clearLastRow = WUP_DATA_START_ROW + 200
 
-    Dim clearRange As Range
-    Set clearRange = wsWelding.Range(wsWelding.Cells(WUP_RATIO_ROW, fromDayCol), _
-                                     wsWelding.Cells(clearLastRow, toNightCol))
+    ' 3行目(単価ﾊﾟﾀｰﾝ行)は単価データ列とは別の刻み幅(4列刻み)で配置されており、
+    ' 他社の単価データ列(2列刻み)と物理的に重なることがある。このクリア処理で
+    ' 巻き込んで消してしまわないよう、3行目だけは対象から除外する。
+    ' (3行目の内容は ApplyRailPatternRow / ClearRailPatternBlock が個別に管理する)
+    If WUP_RATIO_ROW < WUP_PATTERN_ROW And WUP_PATTERN_ROW <= clearLastRow Then
+        ClearWeldingVendorColumnsRangeCore wsWelding.Range( _
+            wsWelding.Cells(WUP_RATIO_ROW, fromDayCol), _
+            wsWelding.Cells(WUP_PATTERN_ROW - 1, toNightCol))
+        If WUP_PATTERN_ROW < clearLastRow Then
+            ClearWeldingVendorColumnsRangeCore wsWelding.Range( _
+                wsWelding.Cells(WUP_PATTERN_ROW + 1, fromDayCol), _
+                wsWelding.Cells(clearLastRow, toNightCol))
+        End If
+    Else
+        ClearWeldingVendorColumnsRangeCore wsWelding.Range( _
+            wsWelding.Cells(WUP_RATIO_ROW, fromDayCol), _
+            wsWelding.Cells(clearLastRow, toNightCol))
+    End If
+End Sub
+
+Private Sub ClearWeldingVendorColumnsRangeCore(ByVal clearRange As Range)
+    If clearRange Is Nothing Then Exit Sub
     SafeUnmergeRangeWUP clearRange
     clearRange.ClearContents
     clearRange.NumberFormat = "General"
