@@ -1169,11 +1169,6 @@ Private Sub SyncVendorUnitPriceBlocksAfterCountChange(ByVal wsInfo As Worksheet,
     Dim targetBook As Workbook
     Dim vendorUnitPriceNameMap As Object
     Dim wsUnitPrice As Worksheet
-    Dim i As Long
-    Dim blockIndex As Long
-    Dim valueColumn As Long
-    Dim dayCol As Long
-    Dim nightCol As Long
     Dim previousScreenUpdating As Boolean
     Dim previousCalculation As XlCalculation
 
@@ -1190,10 +1185,7 @@ Private Sub SyncVendorUnitPriceBlocksAfterCountChange(ByVal wsInfo As Worksheet,
 
         For Each wsUnitPrice In targetBook.worksheets
             If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) And mod_MaterialPriceImport.IsCurrentImportBatchUnitPriceSheet(wsUnitPrice) Then
-                RefreshVendorUnitPriceBlocksOnSheet wsUnitPrice, wsInfo, vendorCount, vendorUnitPriceNameMap
-                ' 業者列は直前の RefreshVendorUnitPriceBlocksOnSheet で展開済みのため、
-                ' JR列(A～F)の装飾とE/F桁区切りだけ適用し業者列の二重走査を避ける。
-                RefreshConstructionUnitPriceSheetDataDecorations wsUnitPrice, wsInfo, True
+                RefreshVendorUnitPriceSheetForSyncSafely wsUnitPrice, wsInfo, vendorCount, vendorUnitPriceNameMap
             End If
         Next wsUnitPrice
 
@@ -1209,16 +1201,7 @@ Private Sub SyncVendorUnitPriceBlocksAfterCountChange(ByVal wsInfo As Worksheet,
         Set vendorUnitPriceNameMap = BuildVendorUnitPriceNameMap(wsInfo)
         For Each wsUnitPrice In targetBook.worksheets
             If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) And mod_MaterialPriceImport.IsCurrentImportBatchUnitPriceSheet(wsUnitPrice) Then
-                For i = previousCount + 1 To vendorCount
-                    valueColumn = VendorValueColumnByIndex(i)
-                    dayCol = VendorUnitPriceDayColumnByValueColumn(valueColumn)
-                    nightCol = dayCol + 1
-                    If ShouldApplyVendorUnitPriceBlock(wsInfo, valueColumn) Then
-                        ApplyVendorUnitPriceBlockToSheet wsUnitPrice, wsInfo, valueColumn, vendorUnitPriceNameMap
-                    Else
-                        ClearVendorUnitPriceBlockOnSheet wsUnitPrice, dayCol, nightCol
-                    End If
-                Next i
+                ApplyVendorUnitPriceAddedBlocksToSheetSafely wsUnitPrice, wsInfo, previousCount, vendorCount, vendorUnitPriceNameMap
             End If
         Next wsUnitPrice
         GoTo SyncCleanup
@@ -1226,20 +1209,91 @@ Private Sub SyncVendorUnitPriceBlocksAfterCountChange(ByVal wsInfo As Worksheet,
 
     For Each wsUnitPrice In targetBook.worksheets
         If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) And mod_MaterialPriceImport.IsCurrentImportBatchUnitPriceSheet(wsUnitPrice) Then
-            Dim clearLastIndex As Long
-            clearLastIndex = previousCount
-            If clearLastIndex > MAX_VENDOR_BLOCK_COUNT Then clearLastIndex = MAX_VENDOR_BLOCK_COUNT
-            For blockIndex = vendorCount + 1 To clearLastIndex
-                dayCol = VendorUnitPriceDayColumnByValueColumn(VendorValueColumnByIndex(blockIndex))
-                nightCol = dayCol + 1
-                ClearVendorUnitPriceBlockOnSheet wsUnitPrice, dayCol, nightCol
-            Next blockIndex
+            ClearVendorUnitPriceRemovedBlocksOnSheetSafely wsUnitPrice, previousCount, vendorCount
         End If
     Next wsUnitPrice
 
 SyncCleanup:
+    If Err.Number <> 0 Then
+        mod_DebugLog.Log "[VendorMaster] SyncVendorUnitPriceBlocksAfterCountChange Err " & _
+                         Err.Number & ": " & Err.Description
+        Err.Clear
+    End If
     Application.screenUpdating = previousScreenUpdating
     Application.Calculation = previousCalculation
+End Sub
+
+' 単価シート1枚分の全社ブロック再展開＋装飾(罫線・桁区切り・塗り)。
+' 1シートでエラーが出てもログに記録して続行し、
+' 以降のシートが未装飾のまま取り残されるのを防ぐ。
+Private Sub RefreshVendorUnitPriceSheetForSyncSafely(ByVal wsUnitPrice As Worksheet, _
+                                                     ByVal wsInfo As Worksheet, _
+                                                     ByVal vendorCount As Long, _
+                                                     ByVal vendorUnitPriceNameMap As Object)
+    On Error GoTo ErrorHandler
+    RefreshVendorUnitPriceBlocksOnSheet wsUnitPrice, wsInfo, vendorCount, vendorUnitPriceNameMap
+    ' 業者列は直前の RefreshVendorUnitPriceBlocksOnSheet で展開済みのため、
+    ' JR列(A～F)の装飾とE/F桁区切りだけ適用し業者列の二重走査を避ける。
+    RefreshConstructionUnitPriceSheetDataDecorations wsUnitPrice, wsInfo, True
+    Exit Sub
+
+ErrorHandler:
+    mod_DebugLog.Log "[VendorMaster] RefreshVendorUnitPriceSheetForSyncSafely failed sheet=[" & _
+                     wsUnitPrice.Name & "] Err " & Err.Number & ": " & Err.Description
+End Sub
+
+' F9増加時: 追加分の業者ブロックだけを1シートへ適用する。エラーはログして続行。
+Private Sub ApplyVendorUnitPriceAddedBlocksToSheetSafely(ByVal wsUnitPrice As Worksheet, _
+                                                         ByVal wsInfo As Worksheet, _
+                                                         ByVal previousCount As Long, _
+                                                         ByVal vendorCount As Long, _
+                                                         ByVal vendorUnitPriceNameMap As Object)
+    On Error GoTo ErrorHandler
+
+    Dim i As Long
+    Dim valueColumn As Long
+    Dim dayCol As Long
+    Dim nightCol As Long
+    For i = previousCount + 1 To vendorCount
+        valueColumn = VendorValueColumnByIndex(i)
+        dayCol = VendorUnitPriceDayColumnByValueColumn(valueColumn)
+        nightCol = dayCol + 1
+        If ShouldApplyVendorUnitPriceBlock(wsInfo, valueColumn) Then
+            ApplyVendorUnitPriceBlockToSheet wsUnitPrice, wsInfo, valueColumn, vendorUnitPriceNameMap
+        Else
+            ClearVendorUnitPriceBlockOnSheet wsUnitPrice, dayCol, nightCol
+        End If
+    Next i
+    Exit Sub
+
+ErrorHandler:
+    mod_DebugLog.Log "[VendorMaster] ApplyVendorUnitPriceAddedBlocksToSheetSafely failed sheet=[" & _
+                     wsUnitPrice.Name & "] Err " & Err.Number & ": " & Err.Description
+End Sub
+
+' F9減少時: 不要になった業者ブロックを1シートからクリアする。エラーはログして続行。
+Private Sub ClearVendorUnitPriceRemovedBlocksOnSheetSafely(ByVal wsUnitPrice As Worksheet, _
+                                                           ByVal previousCount As Long, _
+                                                           ByVal vendorCount As Long)
+    On Error GoTo ErrorHandler
+
+    Dim clearLastIndex As Long
+    clearLastIndex = previousCount
+    If clearLastIndex > MAX_VENDOR_BLOCK_COUNT Then clearLastIndex = MAX_VENDOR_BLOCK_COUNT
+
+    Dim blockIndex As Long
+    Dim dayCol As Long
+    Dim nightCol As Long
+    For blockIndex = vendorCount + 1 To clearLastIndex
+        dayCol = VendorUnitPriceDayColumnByValueColumn(VendorValueColumnByIndex(blockIndex))
+        nightCol = dayCol + 1
+        ClearVendorUnitPriceBlockOnSheet wsUnitPrice, dayCol, nightCol
+    Next blockIndex
+    Exit Sub
+
+ErrorHandler:
+    mod_DebugLog.Log "[VendorMaster] ClearVendorUnitPriceRemovedBlocksOnSheetSafely failed sheet=[" & _
+                     wsUnitPrice.Name & "] Err " & Err.Number & ": " & Err.Description
 End Sub
 
 Private Sub RefreshVendorUnitPriceForValueColumn(ByVal wsInfo As Worksheet, ByVal valueColumn As Long)
