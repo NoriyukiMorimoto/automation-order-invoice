@@ -22,15 +22,18 @@
 | `mod_UiMessages.bas` | UI メッセージ文言（`UiMsg*` テキスト）の集約。 | |
 | `mod_BasicInfoCalendar.bas` | 基本情報シートの日付入力（カレンダー）関連。 | |
 | `mod_BasicInfoUpdate.bas` | 基本情報シートの期間／請求回数の更新・クリア。 | |
-| `mod_BasicInfoGuide.bas` | 基本情報シートの入力ガイド（コメント・斜線・業者行ガイド）の制御。 | |
-| `mod_BasicInfoGuideTexts.bas` | 基本情報ガイド用コメント文言（`Get*CommentText` 等の ChrW テキスト）。 | |
+| `mod_BasicInfoGuide.bas` | 基本情報シートの入力ガイド（ハイライト・コメント）。 |  |
+| `mod_BasicInfoGuideTexts.bas` | 入力ガイド文言の集約（mod_BasicInfoGuide から分割）。 |  |
+| `mod_BasicInfoCellDropdown.bas` | 基本情報 C22/C23 のダブルクリックドロップダウン。 | `[CellDropdown]` |
+| `mod_PrefectureSelector.bas` | 基本情報 C13 の都道府県複数選択（`frmPrefectureSelector`）。 |  |
+| `mod_WorkbookOptimize.bas` | 保存前の余剰セル書式クリーンアップ。 | `[WorkbookOptimize]` |
 | `mod_FillManagerName.bas` | 出張所長名の自動入力／支店・出張所バリデーションの再構築。 | `[FillMgr]` |
-| `mod_VendorMaster.bas` | 業者マスタ参照・業者選択 UI。外部 API ファサード（`mod_VendorBlockLayout` / `mod_VendorUnitPrice` へ委譲）。 | `[VendorMaster]` |
-| `mod_VendorBlockLayout.bas` | 基本情報の施工会社ブロック同期（F9 件数・テンプレート複製・列幅）。 | `[VendorMaster]` |
-| `mod_VendorUnitPrice.bas` | 工事単価シートへの業者別単価展開・数式・装飾・Change 監視。 | `[VendorMaster]` |
+| `mod_VendorMaster.bas` | 業者マスタ参照・業者選択。単価展開・ブロック増減は下記2モジュールへ委譲（既存呼び出し互換のスタブを保持）。 | `[VendorMaster]` |
+| `mod_VendorBlockLayout.bas` | 基本情報の業者ブロック増減・レイアウト（`SyncVendorBlocksFromCount` 等、mod_VendorMaster から分割）。 | `[VendorMaster]` |
+| `mod_VendorUnitPrice.bas` | 工事単価シートへの業者別単価展開・装飾（`RefreshAllVendorUnitPricesForBasicInfo` 等、mod_VendorMaster から分割）。 | `[VendorMaster]` |
 | `mod_VendorInfoColors.bas` | 業者情報色（基本情報10行目・施工指示書等の施工会社列・将来のシートタブ色） | |
 | `mod_WeldingUnitPrice.bas` | 「○○保線区_レール溶接単価」シートへ施工会社別単価を展開（`ApplyWeldingVendorUnitPricesForBasicInfo`）。 | `[WeldingUP]` |
-| `mod_WeldingTemotoMaster.bas` | 溶接手元比率マスタ（ファイルパス解決・ADO シート名・ChrW 文言）。 | `[WeldingUP]` |
+| `mod_WeldingTemotoMaster.bas` | レール溶接の手元マスタ（外注費率一覧）のパス解決・シート名照合（mod_WeldingUnitPrice から分割）。 |  |
 | `mod_MaterialPriceImport.bas` | 工事単価インポート。単価表・購入充当単価・レール溶接単価シートの作成（`ImportUnitPriceData`）。 | `[UnitPrice]` |
 | `mod_Construction_Order_Import.bas` | 施工指示書取込の公開 API ファサード（外部モジュールからの呼び出し口）。 | `[ConstructionImport]` |
 | `mod_Construction_Import_Shared.bas` | 施工指示書取込の共通定数・モジュール変数・ログ (`LogCI`)。 | `[ConstructionImport]` |
@@ -51,6 +54,7 @@
 | `SelectLineName.frm` | 適用線区（単価シート）選択フォーム。 |
 | `AllVenderSelection.frm` | 全業者選択フォーム。 |
 | `frmSubconSelector.frm` | 外注業者選択フォーム。 |
+| `frmPrefectureSelector.frm` | 都道府県複数選択フォーム。 |
 
 ## クラスモジュール（`注文書_請求書VBA/運用中VBA/`、`.cls`）
 

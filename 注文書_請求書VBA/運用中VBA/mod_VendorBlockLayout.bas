@@ -402,7 +402,7 @@ Public Sub SafeUnmergeRange(ByVal targetRange As Range)
 End Sub
 
 Public Function IsSyncVendorBlocksInProgressImpl() As Boolean
-    IsSyncVendorBlocksInProgress = mSyncVendorBlocksInProgress
+    IsSyncVendorBlocksInProgressImpl = mSyncVendorBlocksInProgress
 End Function
 
 Public Sub CleanupLegacyVendorListDebrisInColumnAD(Optional ByVal wsInfo As Worksheet)

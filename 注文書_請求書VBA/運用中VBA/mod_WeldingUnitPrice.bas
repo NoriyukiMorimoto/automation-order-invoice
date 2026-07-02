@@ -41,6 +41,21 @@ Private Const WUP_FILL_COLOR_R As Long = 128
 Private Const WUP_FILL_COLOR_G As Long = 128
 Private Const WUP_FILL_COLOR_B As Long = 128
 
+Private Type WeldingVendorBlock
+    valueColumn As Long       ' 基本情報シート上の値列(F/I/L...)
+    vendorName As String
+    ratioAddress As String    ' '基本情報'!$L$31 等(数式参照用)
+    patternAddress As String  ' 溶接単価シート3行目(軌道会社列左のパターン右列)参照用
+    ratioPercent As Variant   ' 0～1 正規化済み(表示用)
+    hasRatio As Boolean
+End Type
+
+Private mPackMap As Object
+Private mSeiriRowMap As Object
+Private mTemotoRatioMap As Object
+Private mTemotoRatioMapPath As String
+Private mTemotoRatioMapTime As Date
+
 Private Function BuildMissingSeiriWarningText(ByVal missingSeiriMap As Object) As String
     Dim keys As Variant
     keys = missingSeiriMap.keys
