@@ -1303,7 +1303,7 @@ Private Sub ApplyWeldingVendorUnitPricesToSheet(ByVal wsWelding As Worksheet, _
     railHeaderText = BuildWeldingUnitPriceHeaderText(wsInfo, False)
 
     Dim vendorUnitPriceNameMap As Object
-    Set vendorUnitPriceNameMap = mod_VendorMaster.mod_VendorUnitPrice.BuildVendorUnitPriceNameMap(wsInfo)
+    Set vendorUnitPriceNameMap = mod_VendorUnitPrice.BuildVendorUnitPriceNameMap(wsInfo)
 
     ' --- ónê⁄é{çHâÔé–ÉuÉçÉbÉN (10çsñ⁄=ónê⁄çHéñÇÃÇ›ÅA1é–2óÒÇ∏Ç¬) ---
     Dim wIdx As Long
@@ -1370,7 +1370,7 @@ Private Sub ApplyWeldingVendorUnitPricesToSheetColumns(ByVal wsWelding As Worksh
     railHeaderText = BuildWeldingUnitPriceHeaderText(wsInfo, False)
 
     Dim vendorUnitPriceNameMap As Object
-    Set vendorUnitPriceNameMap = mod_VendorMaster.mod_VendorUnitPrice.BuildVendorUnitPriceNameMap(wsInfo)
+    Set vendorUnitPriceNameMap = mod_VendorUnitPrice.BuildVendorUnitPriceNameMap(wsInfo)
 
     Dim wIdx As Long
     For wIdx = 1 To weldingBlockCount
@@ -2049,7 +2049,7 @@ Public Sub UpdateWeldingVendorDisplayNamesForBasicInfo(Optional ByVal wsInfo As 
     ScanVendorBlocks wsInfo, weldingBlocks, weldingBlockCount, railBlocks, railBlockCount
 
     Dim vendorUnitPriceNameMap As Object
-    Set vendorUnitPriceNameMap = mod_VendorMaster.mod_VendorUnitPrice.BuildVendorUnitPriceNameMap(wsInfo)
+    Set vendorUnitPriceNameMap = mod_VendorUnitPrice.BuildVendorUnitPriceNameMap(wsInfo)
 
     Dim previousScreenUpdating As Boolean
     previousScreenUpdating = Application.ScreenUpdating

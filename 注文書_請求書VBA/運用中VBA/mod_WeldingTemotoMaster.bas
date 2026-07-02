@@ -15,7 +15,7 @@ Public Function FindAdoSheetNameWUP(ByVal cn As Object, ByVal targetSheetName As
         End If
     Next sheetName
 
-    ' äÆëSàÍívÇ™Ç»ÇØÇÍÇŒïîï™àÍívÇ≈çƒåüçı
+    ' ?????????????????
     For Each sheetName In sheetNames
         If InStr(1, NormalizeMatchTextWUP(CStr(sheetName)), normalizedTarget, vbTextCompare) > 0 Then
             FindAdoSheetNameWUP = CStr(sheetName)
@@ -24,7 +24,14 @@ Public Function FindAdoSheetNameWUP(ByVal cn As Object, ByVal targetSheetName As
     Next sheetName
 End Function
 
-' ÉwÉãÉpÅ[
+' ????
+
+' ????????????mod_WeldingUnitPrice ???????
+' ???????????Private ???????????????
+Private Function NormalizeMatchTextWUP(ByVal value As String) As String
+    NormalizeMatchTextWUP = CommonRemoveAllSpaces(CommonNormalizeText(value))
+End Function
+
 
 Public Function MasterDataFolderText() As String
     Static cached As String
