@@ -1,39 +1,16 @@
 Option Explicit
 
-' ÅuÅõÅõï€ê¸ãÊ_ÉåÅ[Éãónê⁄íPâøÅvÉVÅ[ÉgÇ÷é{çHâÔé–ï íPâøÇìWäJÇ∑ÇÈÉÇÉWÉÖÅ[Éã
-'
-' ÅEónê⁄âÔé– : GóÒ(íã)/HóÒ(ñÈ)Ç©ÇÁ1é–2óÒÇ∏Ç¬âEÇ÷í«â¡(10çsñ⁄=Åuónê⁄çHéñÅvÇÃÉuÉçÉbÉNÇÃÇ›)
-'              íPâø = JRíPâø Å~(1Å|éËå≥î‰ó¶)Å~ ónê⁄çHéñäOíçî‰ó¶(äÓñ{èÓïÒ 31çsñ⁄)
-'              10çsñ⁄Ç…ónê⁄çHéñÇ™ñ≥Ç¢èÍçáÇÕ G5:H5 ìôÇ÷âÔé–ñºÇì¸óÕÇµÇ»Ç¢
-' ÅEãOìπâÔé– : ónê⁄óÒÇÃíºå„Ç©ÇÁ2óÒçèÇ›(I/J=1é–ñ⁄, K/L=2é–ñ⁄, M/N=3é–ñ⁄Åc)
-'              3çsñ⁄: ìñé–óÒ(íã/ñÈ)Ç…ÅuíPâø ﬂ¿∞›:ÅvÇ∆äÓñ{èÓïÒ30çsñ⁄ÇÃëIëì‡óe
-'              5çsñ⁄: ìñé–óÒ2óÒåãçáÇ≈âÔé–ñº
-' ÅEéËå≥î‰ó¶ : É}ÉXÉ^ÉfÅ[É^\ÉåÅ[Éãónê⁄_ãOìπâÔé–äOíçîÔó¶àÍóó*.xlsx ÇÃ
-'              Åuónê⁄éËå≥äÑçáÅvÉVÅ[ÉgÇ©ÇÁêÆóùî‘çÜÇ≈éQè∆ÇµÅAêîéÆÇ÷êîílÉäÉeÉâÉãÇ≈ñÑÇﬂçûÇﬁ
-' ÅEäOíçî‰ó¶ : äÓñ{èÓïÒÉVÅ[ÉgÇÃÉZÉãéQè∆Ç∆ÇµÇƒêîéÆÇ…écÇ∑(ä˘ë∂ÉçÉWÉbÉNÇ∆ìØól)
-' ÅEä€Çﬂ     : óLå¯3åÖ ROUND(x,-INT(LOG10(x))+2) Å¶éééZÉVÅ[ÉgÇÃä€ÇﬂÇ∆ìØìô
-' ÅEÉpÉbÉNçHéÌ(êÆóùî‘çÜ5000î‘ë‰)ÇÕåvéZëŒè€äO(ÉOÉåÅ[ìhÇË)
-' ÅEèëéÆ/årê¸/âÔé–ñºåãçáÇÕ mod_VendorMaster ÇÃíPâøÉVÅ[ÉgçÏê¨ÉçÉWÉbÉNÇ∆ìØàÍédól
-'
-' ëzíËÉGÉìÉgÉäÉ|ÉCÉìÉg:
-'   ApplyWeldingVendorUnitPricesForBasicInfo
-'     - mod_MaterialPriceImport.ImportUnitPriceData ÇÃónê⁄íPâøÉVÅ[ÉgçÏê¨íºå„Ç…åƒÇ—èoÇ∑
-'     - Alt+F8 Ç©ÇÁéËìÆé¿çsÇ‡â¬î\
-
 Private Const BASIC_INFO_VENDOR_BLOCK_TOP_ROW As Long = 10    ' çHéñéÌï (ãOìπçHéñ/ónê⁄çHéñ)
 Private Const BASIC_INFO_VENDOR_NAME_ROW As Long = 11         ' âÔé–ñº
 Private Const BASIC_INFO_RAIL_RATIO_ROW As Long = 29          ' ãOìπçHéñäOíçî‰ó¶
 Private Const BASIC_INFO_WELDING_RATIO_ROW As Long = 31       ' ónê⁄çHéñäOíçî‰ó¶
 Private Const BASIC_INFO_RAIL_PATTERN_ROW As Long = 30        ' ãOìπçHéñ ónê⁄éËå≥íPâøÉpÉ^Å[Éì
-Private Const BASIC_INFO_WELDING_FLAG_ROW As Long = 23        ' ónê⁄çHéñóLñ≥ÉtÉâÉO(C23)
-Private Const BASIC_INFO_WELDING_FLAG_COL As Long = 3         ' CóÒ
 Private Const BASIC_INFO_VENDOR_BLOCK_VALUE_COL As Long = 6   ' FóÒ(1é–ñ⁄)
 Private Const BASIC_INFO_VENDOR_BLOCK_STEP_COLS As Long = 3
 Private Const BASIC_INFO_VENDOR_COUNT_CELL As String = "F9"
 Private Const BASIC_INFO_YEAR_CELL As String = "B4"
 Private Const BASIC_INFO_BILLING_COUNT_CELL As String = "F4"
 Private Const MAX_VENDOR_BLOCK_COUNT As Long = 10
-
 Private Const WUP_RATIO_ROW As Long = 1           ' äOíçî‰ó¶ï\é¶çs
 Private Const WUP_HEADER_ROW As Long = 4          ' Åu(âÒêî)(îNìx)äOíçíPâøÅvåãçáÉwÉbÉ_Å[çs
 Private Const WUP_NAME_ROW As Long = 5            ' âÔé–ñºåãçáçs
@@ -51,7 +28,6 @@ Private Const WUP_LEGACY_PATTERN_LABEL_COL_FIRST As Long = 4  ' DóÒ(ãå äOíçîÔéZè
 Private Const WUP_LEGACY_PATTERN_LABEL_COL_LAST As Long = 5   ' EóÒ(ãå äOíçîÔéZèoÉpÉ^Å[Éì çÌèúóp)
 Private Const WUP_LEGACY_PATTERN_SELECT_COL As Long = 6       ' FóÒ(ãå ÉpÉ^Å[ÉìëIë çÌèúóp)
 Private Const WUP_PACK_SEIRI_MIN As Long = 5000   ' ÉpÉbÉNçHéÌÇÃêÆóùî‘çÜâ∫å¿
-' ÉpÉbÉNç\ê¨(É}ÉXÉ^): 0énÇ‹ÇËÉtÉBÅ[ÉãÉh = ExcelóÒ-1ÅBJ=9,K=10,L=11,M=12,N=13,O=14
 Private Const WUP_MASTER_PACK_COMP1_FIELD As Long = 9   ' JóÒ ç\ê¨1ÇÃêÆóùî‘çÜ
 Private Const WUP_MASTER_PACK_QTY1_FIELD As Long = 10   ' KóÒ ç\ê¨1ÇÃêîó 
 Private Const WUP_MASTER_PACK_COMP2_FIELD As Long = 11  ' LóÒ ç\ê¨2ÇÃêÆóùî‘çÜ
@@ -65,388 +41,375 @@ Private Const WUP_FILL_COLOR_R As Long = 128
 Private Const WUP_FILL_COLOR_G As Long = 128
 Private Const WUP_FILL_COLOR_B As Long = 128
 
-Private Type WeldingVendorBlock
-    valueColumn As Long       ' äÓñ{èÓïÒÉVÅ[Égè„ÇÃílóÒ(F/I/L...)
-    vendorName As String
-    ratioAddress As String    ' 'äÓñ{èÓïÒ'!$L$31 ìô(êîéÆéQè∆óp)
-    patternAddress As String  ' ónê⁄íPâøÉVÅ[Ég3çsñ⁄(ãOìπâÔé–óÒç∂ÇÃÉpÉ^Å[ÉìâEóÒ)éQè∆óp
-    ratioPercent As Variant   ' 0Å`1 ê≥ãKâªçœÇ›(ï\é¶óp)
-    hasRatio As Boolean
-End Type
+Private Function BuildMissingSeiriWarningText(ByVal missingSeiriMap As Object) As String
+    Dim keys As Variant
+    keys = missingSeiriMap.keys
 
-' ÉpÉbÉNçHéÌåvéZópÇÃéQè∆É}ÉbÉv(é¿çsíÜÇÃÇ›égóp)
-'   mPackMap     : êÆóùî‘çÜ(5000+) -> ç\ê¨Collection(äeóvëf Array(ç\ê¨êÆóùî‘çÜAs String, êîó As Double))ÅBé¿çsñàÇ…ê›íËÅB
-'   mSeiriRowMap : êÆóùî‘çÜ -> ìñäYÉVÅ[ÉgÇÃçsî‘çÜÅBÉVÅ[ÉgñàÇ…ê›íËÅB
-Private mPackMap As Object
-Private mSeiriRowMap As Object
-Private mTemotoRatioMap As Object
-Private mTemotoRatioMapPath As String
-Private mTemotoRatioMapTime As Date
-
-
-' ÉuÉbÉNì‡ÇÃëSÅu_ÉåÅ[Éãónê⁄íPâøÅvÉVÅ[ÉgÇ÷é{çHâÔé–ï íPâøÇìWäJÇ∑ÇÈ
-'   preferredRatioColumn: å›ä∑óp(ïîï™ìWäJ API)ÅBëñç∏åãâ é©ëÃÇÕïœçXÇµÇ»Ç¢ÅB
-Public Sub ApplyWeldingVendorUnitPricesForBasicInfo(Optional ByVal wsInfo As Worksheet, _
-                                                    Optional ByVal showWarnings As Boolean = False, _
-                                                    Optional ByVal preferredRatioColumn As Long = 0, _
-                                                    Optional ByVal deferCalculation As Boolean = False)
-    If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet()
-    If wsInfo Is Nothing Then Exit Sub
-
-    Dim targetBook As Workbook
-    Set targetBook = wsInfo.Parent
-
-    Dim weldingSheets As Collection
-    Set weldingSheets = CollectWeldingUnitPriceSheets(targetBook)
-    If weldingSheets.Count = 0 Then
-        LogWUP "ÉåÅ[Éãónê⁄íPâøÉVÅ[ÉgÇ»Çµ -> ÉXÉLÉbÉv"
-        Exit Sub
-    End If
-
-    Dim warningTexts As Collection
-    Set warningTexts = New Collection
-
-    ' --- éËå≥î‰ó¶É}ÉXÉ^ÇÃì«Ç›çûÇ› ---
-    Dim temotoMap As Object
-    Dim loadErrorText As String
-    Set temotoMap = LoadTemotoRatioMap(loadErrorText)
-    If temotoMap Is Nothing Then
-        LogWUP "éËå≥î‰ó¶É}ÉXÉ^ì«çûé∏îs: " & loadErrorText
-        If showWarnings Then MsgBox "éËå≥î‰ó¶É}ÉXÉ^Çì«Ç›çûÇﬂÇ‹ÇπÇÒÇ≈ÇµÇΩÅB" & vbCrLf & loadErrorText, vbExclamation
-        Exit Sub
-    End If
-    LogWUP "éËå≥î‰ó¶É}ÉXÉ^ì«çûäÆóπ åèêî=" & CStr(temotoMap.Count)
-
-    ' --- äÓñ{èÓïÒÇÃã∆é“ÉuÉçÉbÉNï™óﬁ ---
-    Dim weldingBlocks() As WeldingVendorBlock
-    Dim weldingBlockCount As Long
-    Dim railBlocks() As WeldingVendorBlock
-    Dim railBlockCount As Long
-    ScanVendorBlocks wsInfo, weldingBlocks, weldingBlockCount, railBlocks, railBlockCount
-
-    Dim wIdx As Long
-    For wIdx = 1 To weldingBlockCount
-        If Not weldingBlocks(wIdx).hasRatio Then
-            warningTexts.Add WarnWeldingBlockText(weldingBlocks(wIdx))
-        End If
-    Next wIdx
-    If railBlockCount = 0 Then
-        warningTexts.Add "äÓñ{èÓïÒÇ…ÅuãOìπçHéñÅvÇÃã∆é“ÉuÉçÉbÉNÇ™å©Ç¬Ç©ÇËÇ‹ÇπÇÒÅB"
-    End If
-
-    ' ãOìπâÔé–ÉuÉçÉbÉNÇÃî‰ó¶éQè∆(31çsñ⁄)Ççƒç\íz
-    Dim rbIndex As Long
-    For rbIndex = 1 To railBlockCount
-        railBlocks(rbIndex) = BuildVendorBlock(wsInfo, railBlocks(rbIndex).valueColumn, _
-                                               BASIC_INFO_WELDING_RATIO_ROW)
-    Next rbIndex
-
-    Dim missingSeiriMap As Object
-    Set missingSeiriMap = CreateObject("Scripting.Dictionary")
-
-    Dim previousScreenUpdating As Boolean
-    Dim previousCalculation As XlCalculation
-    previousScreenUpdating = Application.ScreenUpdating
-    previousCalculation = Application.Calculation
-    Application.ScreenUpdating = False
-    Application.Calculation = xlCalculationManual
-
-    On Error GoTo Cleanup
-
-    Dim wsWelding As Variant
-    For Each wsWelding In weldingSheets
-        ApplyWeldingVendorUnitPricesToSheet wsWelding, wsInfo, weldingBlocks, weldingBlockCount, _
-                                            railBlocks, railBlockCount, temotoMap, missingSeiriMap
-    Next wsWelding
-
-    If missingSeiriMap.Count > 0 Then
-        warningTexts.Add BuildMissingSeiriWarningText(missingSeiriMap)
-    End If
-
-Cleanup:
-    Application.Calculation = previousCalculation
-    Application.ScreenUpdating = previousScreenUpdating
-    If Not deferCalculation Then
-        On Error Resume Next
-        Application.Calculate
-        On Error GoTo 0
-    End If
-
-    If showWarnings And warningTexts.Count > 0 Then
-        MsgBox JoinCollectionText(warningTexts, vbCrLf & vbCrLf), vbExclamation, "ÉåÅ[Éãónê⁄íPâø"
-    End If
-End Sub
-
-' çHéñéÌï (10çsñ⁄)Ç™ïœÇÌÇÁÇ»Ç¢é{çHâÔé–ïœçXéûÇÕÅAÉåÅ[Éãónê⁄íPâøÉVÅ[ÉgÇÃóÒÉåÉCÉAÉEÉgÇäÓñ{èÓïÒÇ∆ìØä˙Ç∑ÇÈÅB
-' äÓñ{èÓïÒÇ…ñ≥Ç¢é{çHâÔé–óÒÇÕÉNÉäÉAÇµÅAóLå¯ÉuÉçÉbÉNÇÕ5çsñ⁄ÇÃâÔé–ñºÇÃÇ›çXêVÇ∑ÇÈ(êîéÆÇÃëSçsçƒìWäJÇÕçsÇÌÇ»Ç¢)ÅB
-Public Sub UpdateWeldingVendorDisplayNamesForBasicInfo(Optional ByVal wsInfo As Worksheet, _
-                                                       Optional ByVal preferredRatioColumn As Long = 0)
-    If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet()
-    If wsInfo Is Nothing Then Exit Sub
-
-    Dim targetBook As Workbook
-    Set targetBook = wsInfo.Parent
-
-    Dim weldingSheets As Collection
-    Set weldingSheets = CollectWeldingUnitPriceSheets(targetBook)
-    If weldingSheets.Count = 0 Then Exit Sub
-
-    Dim weldingBlocks() As WeldingVendorBlock
-    Dim weldingBlockCount As Long
-    Dim railBlocks() As WeldingVendorBlock
-    Dim railBlockCount As Long
-    ScanVendorBlocks wsInfo, weldingBlocks, weldingBlockCount, railBlocks, railBlockCount
-
-    Dim vendorUnitPriceNameMap As Object
-    Set vendorUnitPriceNameMap = mod_VendorMaster.BuildVendorUnitPriceNameMap(wsInfo)
-
-    Dim previousScreenUpdating As Boolean
-    previousScreenUpdating = Application.ScreenUpdating
-    Application.ScreenUpdating = False
-    On Error GoTo Cleanup
-
-    Dim wsWelding As Variant
-    For Each wsWelding In weldingSheets
-        On Error Resume Next
-        SyncWeldingVendorBlocksLayoutOnSheet wsWelding, wsInfo, weldingBlocks, weldingBlockCount, _
-            railBlocks, railBlockCount, vendorUnitPriceNameMap
-        If Err.Number <> 0 Then
-            LogWUP "ÉåÉCÉAÉEÉgìØä˙ÉXÉLÉbÉv sheet=[" & wsWelding.Name & "] Err=" & CStr(Err.Number)
-            Err.Clear
-        End If
-        On Error GoTo Cleanup
-    Next wsWelding
-
-Cleanup:
-    Application.ScreenUpdating = previousScreenUpdating
-End Sub
-
-' F9(é{çHâÔé–êî)å∏è≠éû: ãåÉåÉCÉAÉEÉgÇ∆ÇÃç∑ï™ÇæÇØèàóùÇµÅAëSóÒÅ~ëSçsÇÃìÒèdÉNÉäÉA/çƒìWäJÇîÇØÇÈÅB
-' oldWelding/oldRail ÇÕ ClearUnusedVendorBlocks ëOÇ… GetVendorBlockLayoutCountsForLimit Ç≈éÊìæÇ∑ÇÈÇ±Ç∆ÅB
-Public Sub RefreshWeldingAfterVendorCountDecrease(ByVal wsInfo As Worksheet, _
-                                                  ByVal currentVendorCount As Long, _
-                                                  ByVal oldWeldingBlockCount As Long, _
-                                                  ByVal oldRailBlockCount As Long, _
-                                                  Optional ByVal deferCalculation As Boolean = False)
-    If wsInfo Is Nothing Then Exit Sub
-    If currentVendorCount < 1 Then Exit Sub
-
-    Dim newWeldingBlockCount As Long
-    Dim newRailBlockCount As Long
-    GetVendorBlockLayoutCountsForLimit wsInfo, currentVendorCount, _
-        newWeldingBlockCount, newRailBlockCount
-
-    Dim layoutShifted As Boolean
-    layoutShifted = (oldWeldingBlockCount <> newWeldingBlockCount)
-
-    Dim targetBook As Workbook
-    Set targetBook = wsInfo.Parent
-
-    Dim weldingSheets As Collection
-    Set weldingSheets = CollectWeldingUnitPriceSheets(targetBook)
-    If weldingSheets.Count = 0 Then Exit Sub
-
-    Dim previousScreenUpdating As Boolean
-    Dim previousCalculation As XlCalculation
-    previousScreenUpdating = Application.ScreenUpdating
-    previousCalculation = Application.Calculation
-    Application.ScreenUpdating = False
-    Application.Calculation = xlCalculationManual
-
-    On Error GoTo RefreshDecreaseCleanup
-
-    Dim oldRightmostNightCol As Long
-    Dim newRightmostNightCol As Long
-    oldRightmostNightCol = GetWeldingSheetRightmostVendorNightCol(oldWeldingBlockCount, oldRailBlockCount)
-    newRightmostNightCol = GetWeldingSheetRightmostVendorNightCol(newWeldingBlockCount, newRailBlockCount)
-
-    Dim wsWelding As Variant
-    For Each wsWelding In weldingSheets
-        Dim lastRow As Long
-        lastRow = wsWelding.Cells(wsWelding.Rows.Count, WUP_SEIRI_COL).End(xlUp).Row
-        If lastRow < WUP_DATA_START_ROW Then GoTo ContinueDecreaseSheet
-
-        If layoutShifted Then
-            ClearWeldingSheetVendorAreaThrough wsWelding, lastRow, oldRightmostNightCol
-        ElseIf oldRightmostNightCol > newRightmostNightCol Then
-            ClearWeldingVendorColumnsRange wsWelding, lastRow, newRightmostNightCol + 1, oldRightmostNightCol
-        Else
-            ClearWeldingVendorColumnsBeyondLayout wsWelding, lastRow, newRightmostNightCol
-        End If
-ContinueDecreaseSheet:
-    Next wsWelding
-
-    If layoutShifted Then
-        Dim targetValueColumns As Collection
-        Set targetValueColumns = New Collection
-        Dim vendorIndex As Long
-        For vendorIndex = 1 To currentVendorCount
-            targetValueColumns.Add BASIC_INFO_VENDOR_BLOCK_VALUE_COL + _
-                ((vendorIndex - 1) * BASIC_INFO_VENDOR_BLOCK_STEP_COLS)
-        Next vendorIndex
-        ApplyWeldingVendorUnitPricesForBasicInfoColumns wsInfo, targetValueColumns, 0, deferCalculation
-    Else
-        UpdateWeldingVendorDisplayNamesForBasicInfo wsInfo
-    End If
-
-RefreshDecreaseCleanup:
-    Application.Calculation = previousCalculation
-    Application.ScreenUpdating = previousScreenUpdating
-    If Not deferCalculation Then
-        On Error Resume Next
-        Application.Calculate
-        On Error GoTo 0
-    End If
-End Sub
-
-' F9(é{çHâÔé–êî)Çå∏ÇÁÇµÇΩÇ∆Ç´ÅAó]èËÇÃãOìπóÒÇæÇØÇÉNÉäÉAÇ∑ÇÈåyó èàóùÅB
-' çÌèúëŒè€Ç…ónê⁄/ãOìπÇÃê›íËÇ™ñ≥Ç¢èÍçáÇÕëSçsçƒìWäJÇÃë„ÇÌÇËÇ…Ç±ÇøÇÁÇégÇ§ÅB
-Public Sub ClearSurplusWeldingVendorBlocksForBasicInfo(Optional ByVal wsInfo As Worksheet)
-    If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet()
-    If wsInfo Is Nothing Then Exit Sub
-
-    Dim targetBook As Workbook
-    Set targetBook = wsInfo.Parent
-
-    Dim weldingSheets As Collection
-    Set weldingSheets = CollectWeldingUnitPriceSheets(targetBook)
-    If weldingSheets.Count = 0 Then Exit Sub
-
-    Dim weldingBlocks() As WeldingVendorBlock
-    Dim weldingBlockCount As Long
-    Dim railBlocks() As WeldingVendorBlock
-    Dim railBlockCount As Long
-    ScanVendorBlocks wsInfo, weldingBlocks, weldingBlockCount, railBlocks, railBlockCount, 0
-
-    Dim previousScreenUpdating As Boolean
-    Dim previousCalculation As XlCalculation
-    previousScreenUpdating = Application.ScreenUpdating
-    previousCalculation = Application.Calculation
-    Application.ScreenUpdating = False
-    Application.Calculation = xlCalculationManual
-
-    On Error GoTo Cleanup
-
-    Dim wsWelding As Variant
-    For Each wsWelding In weldingSheets
-        Dim lastRow As Long
-        lastRow = wsWelding.Cells(wsWelding.Rows.Count, WUP_SEIRI_COL).End(xlUp).Row
-        If lastRow < WUP_DATA_START_ROW Then GoTo ContinueNextSheet
-
-        Dim wIdx As Long
-        For wIdx = weldingBlockCount + 1 To MAX_VENDOR_BLOCK_COUNT
-            ClearWeldingVendorBlock wsWelding, lastRow, GetWeldingDayColByIndex(wIdx)
-        Next wIdx
-
-        Dim railIndex As Long
-        For railIndex = railBlockCount + 1 To MAX_VENDOR_BLOCK_COUNT
-            Dim surplusRailDayCol As Long
-            surplusRailDayCol = GetRailDayColByIndex(weldingBlockCount, railIndex)
-            ClearRailPatternBlock wsWelding, surplusRailDayCol
-            ClearWeldingVendorBlock wsWelding, lastRow, surplusRailDayCol
-        Next railIndex
-
-        ClearWeldingVendorColumnsBeyondLayout wsWelding, lastRow, _
-            GetWeldingSheetRightmostVendorNightCol(weldingBlockCount, railBlockCount)
-ContinueNextSheet:
-    Next wsWelding
-
-Cleanup:
-    Application.Calculation = previousCalculation
-    Application.ScreenUpdating = previousScreenUpdating
-End Sub
-
-' é{çHâÔé–êîå∏è≠Ç≈äOÇÍÇÈÉuÉçÉbÉNÇ…ónê⁄/ãOìπÇÃê›íËÇ™ä‹Ç‹ÇÍÇÈÇ©îªíËÇ∑ÇÈÅB
-' ñ¢ì¸óÕÇÃãÛÉuÉçÉbÉN(âÔé–ñºÅEçHéñéÌï ÅEî‰ó¶Ç∑Ç◊ÇƒãÛ)ÇÕèúäOÇµÅAïsóvÇ»ëSìWäJÇîÇØÇÈÅB
-Public Function RemovedVendorIndicesRequireWeldingRefresh(ByVal wsInfo As Worksheet, _
-                                                          ByVal firstRemovedIndex As Long, _
-                                                          ByVal lastRemovedIndex As Long) As Boolean
-    If wsInfo Is Nothing Then Exit Function
-    If firstRemovedIndex > lastRemovedIndex Then Exit Function
-
+    Dim displayText As String
     Dim i As Long
-    For i = firstRemovedIndex To lastRemovedIndex
-        Dim valueColumn As Long
-        valueColumn = BASIC_INFO_VENDOR_BLOCK_VALUE_COL + ((i - 1) * BASIC_INFO_VENDOR_BLOCK_STEP_COLS)
-
-        Dim vendorName As String
-        Dim workTypeText As String
-        vendorName = Trim$(CStr(wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, valueColumn).Value))
-        workTypeText = NormalizeMatchTextWUP(CStr(wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, valueColumn).Value))
-
-        If Len(vendorName) = 0 And Len(workTypeText) = 0 Then
-            If Len(Trim$(CStr(wsInfo.Cells(BASIC_INFO_WELDING_RATIO_ROW, valueColumn).Value))) = 0 Then
-                GoTo ContinueNextRemoved
-            End If
+    For i = LBound(keys) To UBound(keys)
+        If i > LBound(keys) Then displayText = displayText & ", "
+        If i - LBound(keys) >= 10 Then
+            displayText = displayText & "...(åv" & CStr(missingSeiriMap.Count) & "åè)"
+            Exit For
         End If
-
-        If StrComp(workTypeText, NormalizeMatchTextWUP(WeldingWorkTypeText()), vbTextCompare) = 0 Then
-            If Len(vendorName) > 0 Or _
-               Len(Trim$(CStr(wsInfo.Cells(BASIC_INFO_WELDING_RATIO_ROW, valueColumn).Value))) > 0 Then
-                RemovedVendorIndicesRequireWeldingRefresh = True
-                Exit Function
-            End If
-        End If
-ContinueNextRemoved:
+        displayText = displayText & CStr(keys(i))
     Next i
+
+    BuildMissingSeiriWarningText = "éËå≥î‰ó¶É}ÉXÉ^Ç…à»â∫ÇÃêÆóùî‘çÜÇ™å©Ç¬Ç©ÇÁÇ»Ç¢ÇΩÇﬂÅA" & _
+                                   "äYìñçsÇÕÉOÉåÅ[ìhÇËÇ…ÇµÇ‹ÇµÇΩ:" & vbCrLf & displayText
 End Function
 
-Private Sub SyncWeldingVendorBlocksLayoutOnSheet(ByVal wsWelding As Worksheet, _
-                                                 ByVal wsInfo As Worksheet, _
-                                                 ByRef weldingBlocks() As WeldingVendorBlock, _
-                                                 ByVal weldingBlockCount As Long, _
-                                                 ByRef railBlocks() As WeldingVendorBlock, _
-                                                 ByVal railBlockCount As Long, _
-                                                 ByVal vendorUnitPriceNameMap As Object)
-    Dim lastRow As Long
-    lastRow = wsWelding.Cells(wsWelding.Rows.Count, WUP_SEIRI_COL).End(xlUp).Row
-    If lastRow < WUP_DATA_START_ROW Then lastRow = WUP_DATA_START_ROW + 200
+Private Function BuildPackSumFormula(ByVal wsWelding As Worksheet, _
+                                     ByVal col As Long, _
+                                     ByVal comps As Collection, _
+                                     ByVal isWeldingVendor As Boolean) As String
+    Dim maxComp As Long
+    maxComp = comps.Count
+    If Not isWeldingVendor Then maxComp = 1          ' ãOìπÇÕJóÒ(1çHéÌ)ÇÃÇ›
+    If maxComp > comps.Count Then maxComp = comps.Count
 
-    ClearLegacyOutsourcePatternSelector wsWelding
-
-    Dim wIdx As Long
-    For wIdx = 1 To weldingBlockCount
-        Dim weldingDayCol As Long
-        weldingDayCol = GetWeldingDayColByIndex(wIdx)
-        If ShouldShowWeldingVendorBlock(weldingBlocks(wIdx)) Then
-            UpdateWeldingVendorDisplayNameOnly wsWelding, weldingDayCol, _
-                ResolveVendorUnitPriceNameWUP(vendorUnitPriceNameMap, weldingBlocks(wIdx).vendorName)
-        Else
-            ClearWeldingVendorBlock wsWelding, lastRow, weldingDayCol
+    Dim terms As String
+    Dim i As Long
+    For i = 1 To maxComp
+        Dim comp As Variant
+        comp = comps(i)                              ' Array(ç\ê¨êÆóùî‘çÜ, êîó )
+        Dim compKey As String
+        compKey = CStr(comp(0))
+        If mSeiriRowMap.Exists(compKey) Then
+            Dim compRow As Long
+            compRow = CLng(mSeiriRowMap(compKey))
+            Dim cellRef As String
+            cellRef = wsWelding.Cells(compRow, col).Address(False, False)
+            If Len(terms) > 0 Then terms = terms & "+"
+            terms = terms & cellRef & "*" & RatioLiteralText(CDbl(comp(1)))
         End If
-    Next wIdx
+    Next i
 
-    For wIdx = weldingBlockCount + 1 To MAX_VENDOR_BLOCK_COUNT
-        ClearWeldingVendorBlock wsWelding, lastRow, GetWeldingDayColByIndex(wIdx)
-    Next wIdx
-
-    Dim railIndex As Long
-    Dim railDayCol As Long
-    For railIndex = 1 To railBlockCount
-        railDayCol = GetRailDayColByIndex(weldingBlockCount, railIndex)
-        If ShouldShowWeldingVendorBlock(railBlocks(railIndex)) Then
-            ApplyRailPatternRow wsWelding, wsInfo, railDayCol, railBlocks(railIndex).valueColumn
-            UpdateWeldingVendorDisplayNameOnly wsWelding, railDayCol, _
-                ResolveVendorUnitPriceNameWUP(vendorUnitPriceNameMap, railBlocks(railIndex).vendorName)
-        Else
-            ClearRailPatternBlock wsWelding, railDayCol
-            ClearWeldingVendorBlock wsWelding, lastRow, railDayCol
-        End If
-    Next railIndex
-
-    For railIndex = railBlockCount + 1 To MAX_VENDOR_BLOCK_COUNT
-        railDayCol = GetRailDayColByIndex(weldingBlockCount, railIndex)
-        ClearRailPatternBlock wsWelding, railDayCol
-        ClearWeldingVendorBlock wsWelding, lastRow, railDayCol
-    Next railIndex
-
-    ClearWeldingVendorColumnsBeyondLayout wsWelding, lastRow, _
-        GetWeldingSheetRightmostVendorNightCol(weldingBlockCount, railBlockCount)
-End Sub
-
-Private Function ShouldShowWeldingVendorBlock(ByRef block As WeldingVendorBlock) As Boolean
-    ShouldShowWeldingVendorBlock = (Len(Trim$(block.vendorName)) > 0) And block.hasRatio
+    If Len(terms) = 0 Then
+        BuildPackSumFormula = ""
+    Else
+        BuildPackSumFormula = "=" & terms
+    End If
 End Function
+
+Private Function BuildRailMarkupFormula(ByVal wsWelding As Worksheet, _
+                                        ByVal rowIndex As Long, _
+                                        ByVal sourceCol As Long, _
+                                        ByVal temotoRatio As Double, _
+                                        ByVal ratioAddress As String, _
+                                        ByVal patternAddress As String) As String
+    Dim q As String
+    q = Chr$(34)
+
+    Dim jrRef As String
+    jrRef = wsWelding.Cells(rowIndex, sourceCol).Address(False, False)
+    Dim lit As String
+    lit = RatioLiteralText(temotoRatio)
+
+    Dim patternRef As String
+    patternRef = patternAddress
+
+    ' --- ï®âøéwêîìKóp ---
+    Dim coreBukka As String
+    coreBukka = "(" & jrRef & "*" & WUP_RAIL_JR_FACTOR & "*" & lit & ")*" & ratioAddress
+    Dim txBukka As String
+    txBukka = "TEXT((" & coreBukka & "),0)"
+    Dim exprBukka As String
+    exprBukka = "IF(VALUE(LEN(" & txBukka & "))>3," & _
+                "VALUE(MID(" & txBukka & ",1,3)&REPT(0,LEN(" & txBukka & ")-3))," & _
+                "(ROUNDDOWN(" & coreBukka & ",0)))"
+
+    ' --- äOíçî‰ó¶ìKóp ---  Y=litÅ~R, v=YÅ~jr
+    Dim prodGaibu As String
+    prodGaibu = "(" & lit & "*" & ratioAddress & ")*" & jrRef
+    Dim txGaibu As String
+    txGaibu = "TEXT(" & prodGaibu & "," & q & "#" & q & ")"
+    Dim exprGaibu As String
+    exprGaibu = "IF(" & jrRef & "=" & q & q & "," & q & q & "," & _
+                "IF(LEN(" & txGaibu & ")<=3," & prodGaibu & "," & _
+                "ROUND(VALUE(LEFT(" & txGaibu & ",4)),-1)*10^VALUE(LEN(" & txGaibu & ")-4)))"
+
+    BuildRailMarkupFormula = _
+        "=IF(" & patternRef & "=" & q & PatternOutsourceRatioText() & q & "," & exprGaibu & "," & _
+        "IF(" & patternRef & "=" & q & PatternPriceIndexText() & q & "," & exprBukka & "," & _
+        q & q & "))"
+End Function
+
+' ÉpÉbÉNçHéÌ(5000î‘ë‰)ÇÃåvéZ
+
+' ìñäYÉVÅ[ÉgÇÃ êÆóùî‘çÜ -> çsî‘çÜ É}ÉbÉv(ÉpÉbÉNç\ê¨çHéÌÇÃçséQè∆óp)
+
+Private Function BuildRailPatternSheetRef(ByVal wsWelding As Worksheet, ByVal railDayCol As Long) As String
+    BuildRailPatternSheetRef = "'" & Replace$(wsWelding.Name, "'", "''") & "'!" & _
+        wsWelding.Cells(WUP_PATTERN_ROW, railDayCol + 1).Address(True, True)
+End Function
+
+' äOíçîÔéZèoÉpÉ^Å[ÉìÇÃëIëéà(äÓñ{èÓïÒ30çsñ⁄ÇÃÉhÉçÉbÉvÉ_ÉEÉìÇ∆êîéÆî‰ärÇ≈ìØàÍï∂éöóÒÇégóp)
+
+Private Function BuildSeiriRowMapWUP(ByVal wsWelding As Worksheet, ByVal lastRow As Long) As Object
+    Dim m As Object
+    Set m = CreateObject("Scripting.Dictionary")
+    m.CompareMode = vbTextCompare
+
+    Dim r As Long, t As String
+    For r = WUP_DATA_START_ROW To lastRow
+        t = Trim$(StrConv(CStr(wsWelding.Cells(r, WUP_SEIRI_COL).Value), vbNarrow))
+        If Len(t) > 0 And IsNumeric(t) Then
+            Dim k As String
+            k = CStr(CLng(Val(t)))
+            If Not m.Exists(k) Then m.Add k, r
+        End If
+    Next r
+    Set BuildSeiriRowMapWUP = m
+End Function
+
+' ÉpÉbÉNçs(dayCol/nightCol)Ç÷ç\ê¨çHéÌÇÃçáåvéÆÇèëÇ´çûÇﬁÅB
+' ç\ê¨Ç‚çsÇ™âåàÇ≈Ç´Ç»Ç¢èÍçáÇÕÉOÉåÅ[ìhÇËÅB
+
+Private Function BuildTemotoMapFromData(ByVal data As Variant, _
+                                        ByRef loadErrorText As String) As Object
+    Dim fieldCount As Long
+    Dim recordCount As Long
+    fieldCount = UBound(data, 1) + 1
+    recordCount = UBound(data, 2) + 1
+
+    ' --- ÉwÉbÉ_Å[çsÇÃåüèo(ÅuêÆóùî‘çÜÅvÇä‹ÇﬁÉZÉãÇíTÇ∑) ---
+    Dim headerRecord As Long
+    Dim seiriField As Long
+    headerRecord = -1
+    seiriField = -1
+
+    Dim r As Long, f As Long
+    For r = 0 To Application.WorksheetFunction.Min(recordCount - 1, 19)
+        For f = 0 To fieldCount - 1
+            If InStr(1, NormalizeMatchTextWUP(CommonNzText(data(f, r))), _
+                     SeiriHeaderKeywordText(), vbTextCompare) > 0 Then
+                headerRecord = r
+                seiriField = f
+                Exit For
+            End If
+        Next f
+        If headerRecord >= 0 Then Exit For
+    Next r
+
+    If headerRecord < 0 Then
+        loadErrorText = "ÉwÉbÉ_Å[çs(êÆóùî‘çÜ)ÇåüèoÇ≈Ç´Ç‹ÇπÇÒÇ≈ÇµÇΩÅB"
+        Exit Function
+    End If
+
+    ' --- íã/ñÈÇÃéËå≥î‰ó¶óÒÇÃåüèo ---
+    Dim dayField As Long
+    Dim nightField As Long
+    dayField = -1
+    nightField = -1
+    For f = 0 To fieldCount - 1
+        Dim headerCellText As String
+        headerCellText = NormalizeMatchTextWUP(CommonNzText(data(f, headerRecord)))
+        If f <> seiriField And Len(headerCellText) > 0 Then
+            If dayField < 0 And InStr(1, headerCellText, DayKeywordText(), vbTextCompare) > 0 Then
+                dayField = f
+            ElseIf nightField < 0 And InStr(1, headerCellText, NightKeywordText(), vbTextCompare) > 0 Then
+                nightField = f
+            End If
+        End If
+    Next f
+
+    If dayField < 0 Then dayField = seiriField + 1
+    If nightField < 0 Then nightField = dayField + 1
+    If dayField > fieldCount - 1 Then
+        loadErrorText = "éËå≥î‰ó¶(íã)ÇÃóÒÇåüèoÇ≈Ç´Ç‹ÇπÇÒÇ≈ÇµÇΩÅB"
+        Exit Function
+    End If
+    LogWUP "éËå≥î‰ó¶É}ÉXÉ^ headerRow=" & CStr(headerRecord + 1) & _
+           " êÆóùî‘çÜóÒ=" & CStr(seiriField + 1) & _
+           " íãóÒ=" & CStr(dayField + 1) & " ñÈóÒ=" & CStr(nightField + 1)
+
+    ' --- êÆóùî‘çÜ -> Array(íã, ñÈ) ÇÃé´èëÇç\íz / 5000î‘ë‰ÇÕÉpÉbÉNç\ê¨Ç‡ìoò^ ---
+    Dim result As Object
+    Set result = CreateObject("Scripting.Dictionary")
+    result.CompareMode = vbTextCompare
+
+    Set mPackMap = CreateObject("Scripting.Dictionary")
+    mPackMap.CompareMode = vbTextCompare
+
+    For r = headerRecord + 1 To recordCount - 1
+        Dim seiriText As String
+        seiriText = Trim$(StrConv(CommonNzText(data(seiriField, r)), vbNarrow))
+        If Len(seiriText) > 0 And IsNumeric(seiriText) Then
+            Dim seiriKey As String
+            seiriKey = CStr(CLng(Val(seiriText)))
+
+            Dim dayRatio As Variant
+            Dim nightRatio As Variant
+            dayRatio = NormalizeRatioValue(data(dayField, r))
+            If nightField <= fieldCount - 1 Then
+                nightRatio = NormalizeRatioValue(data(nightField, r))
+            End If
+
+            If Not result.Exists(seiriKey) Then
+                result.Add seiriKey, Array(dayRatio, nightRatio)
+            End If
+
+            If CLng(Val(seiriText)) >= WUP_PACK_SEIRI_MIN And Not mPackMap.Exists(seiriKey) Then
+                Dim comps As Collection
+                Set comps = New Collection
+                AddPackComponent comps, data, fieldCount, r, _
+                                 WUP_MASTER_PACK_COMP1_FIELD, WUP_MASTER_PACK_QTY1_FIELD
+                AddPackComponent comps, data, fieldCount, r, _
+                                 WUP_MASTER_PACK_COMP2_FIELD, WUP_MASTER_PACK_QTY2_FIELD
+                AddPackComponent comps, data, fieldCount, r, _
+                                 WUP_MASTER_PACK_COMP3_FIELD, WUP_MASTER_PACK_QTY3_FIELD
+                If comps.Count > 0 Then mPackMap.Add seiriKey, comps
+            End If
+        End If
+    Next r
+
+    LogWUP "ÉpÉbÉNç\ê¨É}ÉXÉ^ åèêî=" & CStr(mPackMap.Count)
+
+    If result.Count = 0 Then
+        loadErrorText = "éËå≥î‰ó¶ÉfÅ[É^Ç1åèÇ‡ì«Ç›çûÇﬂÇ‹ÇπÇÒÇ≈ÇµÇΩÅB"
+        Exit Function
+    End If
+
+    Set BuildTemotoMapFromData = result
+End Function
+
+' ÉpÉbÉNç\ê¨1åèÇí«â¡(ç\ê¨êÆóùî‘çÜÅEêîó Ç™Ç∆Ç‡Ç…êîílÇÃÇ∆Ç´ÇÃÇ›)
+
+Private Function BuildVendorBlock(ByVal wsInfo As Worksheet, _
+                                  ByVal valueColumn As Long, _
+                                  ByVal ratioRow As Long) As WeldingVendorBlock
+    Dim result As WeldingVendorBlock
+    result.valueColumn = valueColumn
+    result.vendorName = Trim$(CStr(wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, valueColumn).Value))
+    result.ratioAddress = "'" & Replace$(wsInfo.Name, "'", "''") & "'!" & _
+                          wsInfo.Cells(ratioRow, valueColumn).Address(True, True)
+    result.patternAddress = "'" & Replace$(wsInfo.Name, "'", "''") & "'!" & _
+                            wsInfo.Cells(BASIC_INFO_RAIL_PATTERN_ROW, valueColumn).Address(True, True)
+    result.ratioPercent = NormalizeRatioValue(wsInfo.Cells(ratioRow, valueColumn).Value)
+    result.hasRatio = IsNumeric(result.ratioPercent)
+    BuildVendorBlock = result
+End Function
+
+' î‰ó¶Ç0Å`1Ç÷ê≥ãKâª(67.1 Ç‚ "67.1%" -> 0.671)ÅBêîílâªÇ≈Ç´Ç»ÇØÇÍÇŒEmpty
+
+Private Function BuildWeldingDataCellFormula(ByVal wsWelding As Worksheet, _
+                                             ByVal rowIndex As Long, _
+                                             ByVal sourceCol As Long, _
+                                             ByVal jrValue As Variant, _
+                                             ByVal temotoRatio As Variant, _
+                                             ByVal ratioAddress As String, _
+                                             ByVal patternAddress As String, _
+                                             ByVal isWeldingVendor As Boolean) As String
+    If Len(Trim$(CStr(CommonNzText(jrValue)))) = 0 Then Exit Function
+    If Not IsNumeric(temotoRatio) Then Exit Function
+
+    If isWeldingVendor Then
+        BuildWeldingDataCellFormula = BuildWeldingVendorFormula(wsWelding, rowIndex, sourceCol, _
+                                          CDbl(temotoRatio), ratioAddress, isWeldingVendor)
+    Else
+        BuildWeldingDataCellFormula = BuildRailMarkupFormula(wsWelding, rowIndex, sourceCol, _
+                                          CDbl(temotoRatio), ratioAddress, patternAddress)
+    End If
+End Function
+
+Private Function BuildWeldingUnitPriceHeaderText(ByVal wsInfo As Worksheet, _
+                                                 Optional ByVal isWeldingVendor As Boolean = True) As String
+    Dim labelText As String
+    If isWeldingVendor Then
+        labelText = OutsourceUnitPriceLabelText()
+    Else
+        labelText = WeldingTemotoUnitPriceLabelText()
+    End If
+
+    BuildWeldingUnitPriceHeaderText = Trim$(CStr(wsInfo.Range(BASIC_INFO_BILLING_COUNT_CELL).Value)) & _
+                                      CommonExtractYear4Digits(CStr(wsInfo.Range(BASIC_INFO_YEAR_CELL).Value)) & _
+                                      labelText
+End Function
+
+Private Function BuildWeldingVendorFormula(ByVal wsWelding As Worksheet, _
+                                           ByVal rowIndex As Long, _
+                                           ByVal sourceCol As Long, _
+                                           ByVal temotoRatio As Double, _
+                                           ByVal ratioAddress As String, _
+                                           ByVal isWeldingVendor As Boolean) As String
+    Dim unitCellRef As String
+    unitCellRef = wsWelding.Cells(rowIndex, sourceCol).Address(False, False)
+
+    Dim factorText As String
+    If isWeldingVendor Then
+        factorText = "(1-" & RatioLiteralText(temotoRatio) & ")"
+    Else
+        factorText = RatioLiteralText(temotoRatio)
+    End If
+
+    Dim exprText As String
+    exprText = unitCellRef & "*" & factorText & "*(" & ratioAddress & ")"
+
+    BuildWeldingVendorFormula = "=IFERROR(ROUND(" & exprText & _
+                                ",-INT(LOG10(" & exprText & "))+2),0)"
+End Function
+
+' Double Ç Excel êîéÆópÇÃêîílÉäÉeÉâÉãÇ÷(è¨êîì_ÇÕèÌÇ…ÉsÉäÉIÉh)
+
+Private Function CollectWeldingUnitPriceSheets(ByVal targetBook As Workbook) As Collection
+    Dim result As Collection
+    Set result = New Collection
+
+    Dim ws As Worksheet
+    For Each ws In targetBook.Worksheets
+        If IsWeldingUnitPriceSheet(ws) And _
+           mod_MaterialPriceImport.IsCurrentImportBatchUnitPriceSheet(ws) Then
+            result.Add ws
+        End If
+    Next ws
+
+    Set CollectWeldingUnitPriceSheets = result
+End Function
+
+' (âÒêî)(îNìx4åÖ)äOíçíPâø / ãOìπâÔé–óÒÇÕ(âÒêî)(îNìx4åÖ)ónê⁄éËå≥íPâø
+
+Private Function CollectionContainsLongWUP(ByVal values As Collection, ByVal targetValue As Long) As Boolean
+    Dim item As Variant
+    For Each item In values
+        If CLng(item) = targetValue Then
+            CollectionContainsLongWUP = True
+            Exit Function
+        End If
+    Next item
+End Function
+
+Private Function DayKeywordText() As String
+    Static cached As String
+    If cached = "" Then cached = ChrW$(&H663C)
+    DayKeywordText = cached
+End Function
+
+Private Function DayLabelText() As String
+    Static cached As String
+    If cached = "" Then cached = ChrW$(&H663C) & ChrW$(&H9593)
+    DayLabelText = cached
+End Function
+
+Private Function GetRailDayColByIndex(ByVal weldingBlockCount As Long, ByVal railIndex As Long) As Long
+    GetRailDayColByIndex = WUP_WELDING_DAY_COL + (weldingBlockCount * WUP_VENDOR_BLOCK_WIDTH) + _
+                           ((railIndex - 1) * WUP_VENDOR_BLOCK_WIDTH)
+End Function
+
+Private Function GetVendorBlockCountWUP(ByVal wsInfo As Worksheet) As Long
+    Dim countValue As Long
+    countValue = CLng(Val(StrConv(CStr(wsInfo.Range(BASIC_INFO_VENDOR_COUNT_CELL).Value), vbNarrow)))
+    If countValue < 1 Then countValue = 1
+    If countValue > MAX_VENDOR_BLOCK_COUNT Then countValue = MAX_VENDOR_BLOCK_COUNT
+    GetVendorBlockCountWUP = countValue
+End Function
+
+Private Function GetWeldingDayColByIndex(ByVal weldingIndex As Long) As Long
+    GetWeldingDayColByIndex = WUP_WELDING_DAY_COL + ((weldingIndex - 1) * WUP_VENDOR_BLOCK_WIDTH)
+End Function
+
+' ãOìπâÔé–: ónê⁄âÔé–óÒÇÃíºå„Ç©ÇÁ2óÒçèÇ›ÅB1é–ñ⁄=I/J(9/10), 2é–ñ⁄=K/L(11/12), 3é–ñ⁄=M/N(13/14)Åc
 
 Private Function GetWeldingSheetRightmostVendorNightCol(ByVal weldingBlockCount As Long, _
                                                         ByVal railBlockCount As Long) As Long
@@ -468,259 +431,533 @@ Private Function GetWeldingSheetRightmostVendorNightCol(ByVal weldingBlockCount 
     GetWeldingSheetRightmostVendorNightCol = rightmost
 End Function
 
-Private Sub ClearWeldingVendorColumnsBeyondLayout(ByVal wsWelding As Worksheet, _
-                                                  ByVal lastRow As Long, _
-                                                  ByVal rightmostNightCol As Long)
-    Dim sheetLastCol As Long
-    On Error Resume Next
-    sheetLastCol = wsWelding.Cells(WUP_NAME_ROW, wsWelding.Columns.Count).End(xlToLeft).Column
-    On Error GoTo 0
-    If sheetLastCol <= rightmostNightCol Then Exit Sub
-    If sheetLastCol < WUP_WELDING_DAY_COL Then Exit Sub
+Private Function JoinCollectionText(ByVal values As Collection, ByVal delimiter As String) As String
+    Dim itemValue As Variant
+    Dim result As String
+    For Each itemValue In values
+        If Len(result) > 0 Then result = result & delimiter
+        result = result & CStr(itemValue)
+    Next itemValue
+    JoinCollectionText = result
+End Function
 
-    Dim dayCol As Long
-    dayCol = rightmostNightCol + 1
-    Do While dayCol <= sheetLastCol
-        ClearWeldingVendorBlock wsWelding, lastRow, dayCol
-        dayCol = dayCol + 2
-    Loop
-End Sub
+Private Function LoadTemotoRatioMap(ByRef loadErrorText As String) As Object
+    loadErrorText = ""
 
-Private Sub UpdateWeldingVendorDisplayNameOnly(ByVal wsWelding As Worksheet, _
-                                               ByVal dayCol As Long, _
-                                               ByVal displayName As String)
-    ApplyMergedCell wsWelding, WUP_NAME_ROW, dayCol, dayCol + 1, displayName, True
-End Sub
-
-' éwíËÇµÇΩäÓñ{èÓïÒóÒ( F/I/LÅc )Ç…ëŒâûÇ∑ÇÈónê⁄íPâøóÒÇæÇØÇìWäJÇ∑ÇÈÅB
-' 2é–ñ⁄ÇÃèââÒì¸óÕÇ»Ç«ÅAëSÉVÅ[ÉgëSóÒÇÃçƒìWäJÇîÇØÇÈÇΩÇﬂÇ…égópÇ∑ÇÈÅB
-Public Sub ApplyWeldingVendorUnitPricesForBasicInfoColumns(ByVal wsInfo As Worksheet, _
-                                                           ByVal targetValueColumns As Collection, _
-                                                           Optional ByVal preferredRatioColumn As Long = 0, _
-                                                           Optional ByVal deferCalculation As Boolean = False)
-    If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet()
-    If wsInfo Is Nothing Then Exit Sub
-    If targetValueColumns Is Nothing Then Exit Sub
-    If targetValueColumns.Count = 0 Then Exit Sub
-
-    Dim targetBook As Workbook
-    Set targetBook = wsInfo.Parent
-
-    Dim weldingSheets As Collection
-    Set weldingSheets = CollectWeldingUnitPriceSheets(targetBook)
-    If weldingSheets.Count = 0 Then Exit Sub
-
-    Dim temotoMap As Object
-    Dim loadErrorText As String
-    Set temotoMap = LoadTemotoRatioMap(loadErrorText)
-    If temotoMap Is Nothing Then
-        LogWUP "éËå≥î‰ó¶É}ÉXÉ^ì«çûé∏îs: " & loadErrorText
-        Exit Sub
+    Dim sourceFilePath As String
+    sourceFilePath = mod_WeldingTemotoMaster.ResolveTemotoMasterFilePath()
+    If sourceFilePath = "" Then
+        loadErrorText = "ÉtÉ@ÉCÉãÇ™å©Ç¬Ç©ÇËÇ‹ÇπÇÒ: É}ÉXÉ^ÉfÅ[É^\" & mod_WeldingTemotoMaster.TemotoMasterFilePatternText()
+        Exit Function
     End If
 
-    Dim weldingBlocks() As WeldingVendorBlock
-    Dim weldingBlockCount As Long
-    Dim railBlocks() As WeldingVendorBlock
-    Dim railBlockCount As Long
-    ScanVendorBlocks wsInfo, weldingBlocks, weldingBlockCount, railBlocks, railBlockCount, preferredRatioColumn
+    Dim sourceFileTime As Date
+    On Error Resume Next
+    sourceFileTime = FileDateTime(sourceFilePath)
+    On Error GoTo 0
 
-    Dim rbIndex As Long
-    For rbIndex = 1 To railBlockCount
-        railBlocks(rbIndex) = BuildVendorBlock(wsInfo, railBlocks(rbIndex).valueColumn, _
-                                               BASIC_INFO_WELDING_RATIO_ROW)
-    Next rbIndex
+    If Not mTemotoRatioMap Is Nothing Then
+        If StrComp(mTemotoRatioMapPath, sourceFilePath, vbTextCompare) = 0 Then
+            If sourceFileTime = mTemotoRatioMapTime Then
+                Set LoadTemotoRatioMap = mTemotoRatioMap
+                Exit Function
+            End If
+        End If
+    End If
 
-    Dim missingSeiriMap As Object
-    Set missingSeiriMap = CreateObject("Scripting.Dictionary")
+    LogWUP "éËå≥î‰ó¶É}ÉXÉ^ path=[" & sourceFilePath & "]"
 
-    Dim previousScreenUpdating As Boolean
-    Dim previousCalculation As XlCalculation
-    previousScreenUpdating = Application.ScreenUpdating
-    previousCalculation = Application.Calculation
-    Application.ScreenUpdating = False
-    Application.Calculation = xlCalculationManual
+    Dim cn As Object
+    Set cn = CommonOpenExcelAdoConnection(sourceFilePath)
+    If cn Is Nothing Then
+        loadErrorText = "ADOê⁄ë±Ç…é∏îsÇµÇ‹ÇµÇΩ: " & sourceFilePath
+        Exit Function
+    End If
 
     On Error GoTo Cleanup
 
-    Dim wsWelding As Variant
-    For Each wsWelding In weldingSheets
-        ApplyWeldingVendorUnitPricesToSheetColumns wsWelding, wsInfo, weldingBlocks, weldingBlockCount, _
-            railBlocks, railBlockCount, temotoMap, missingSeiriMap, targetValueColumns
-    Next wsWelding
+    Dim adoSheetName As String
+    adoSheetName = mod_WeldingTemotoMaster.FindAdoSheetNameWUP(cn, mod_WeldingTemotoMaster.TemotoMasterSheetNameText())
+    If adoSheetName = "" Then
+        loadErrorText = "ÉVÅ[ÉgÅu" & mod_WeldingTemotoMaster.TemotoMasterSheetNameText() & "ÅvÇ™å©Ç¬Ç©ÇËÇ‹ÇπÇÒ: " & sourceFilePath
+        GoTo Cleanup
+    End If
+
+    Dim rs As Object
+    Set rs = CreateObject("ADODB.Recordset")
+    rs.Open "SELECT * FROM [" & adoSheetName & "$]", cn, 0, 1  ' adOpenForwardOnly, adLockReadOnly
+    If rs.EOF Then
+        loadErrorText = "ÉVÅ[ÉgÅu" & mod_WeldingTemotoMaster.TemotoMasterSheetNameText() & "ÅvÇ…ÉfÅ[É^Ç™Ç†ÇËÇ‹ÇπÇÒÅB"
+        CommonCloseAdoRecordset rs
+        GoTo Cleanup
+    End If
+
+    Dim data As Variant
+    data = rs.GetRows
+    CommonCloseAdoRecordset rs
+
+    Set LoadTemotoRatioMap = BuildTemotoMapFromData(data, loadErrorText)
+    If Not LoadTemotoRatioMap Is Nothing Then
+        Set mTemotoRatioMap = LoadTemotoRatioMap
+        mTemotoRatioMapPath = sourceFilePath
+        mTemotoRatioMapTime = sourceFileTime
+    End If
 
 Cleanup:
-    Application.Calculation = previousCalculation
-    Application.ScreenUpdating = previousScreenUpdating
-    If Not deferCalculation Then
-        On Error Resume Next
-        Application.Calculate
-        On Error GoTo 0
+    CommonCloseAdoConnection cn
+End Function
+
+Private Function MiddleDotText() As String
+    Static cached As String
+    If cached = "" Then cached = ChrW$(&H30FB)
+    MiddleDotText = cached
+End Function
+
+Private Function NightKeywordText() As String
+    Static cached As String
+    If cached = "" Then cached = ChrW$(&H591C)
+    NightKeywordText = cached
+End Function
+
+Private Function NightLabelText() As String
+    Static cached As String
+    If cached = "" Then cached = ChrW$(&H591C) & ChrW$(&H9593)
+    NightLabelText = cached
+End Function
+
+Private Function NormalizeMatchTextWUP(ByVal value As String) As String
+    NormalizeMatchTextWUP = CommonRemoveAllSpaces(CommonNormalizeText(value))
+End Function
+
+Private Function NormalizePercentScale(ByVal value As Double) As Double
+    If value > 1# And value <= 100# Then
+        NormalizePercentScale = value / 100#
+    Else
+        NormalizePercentScale = value
+    End If
+End Function
+
+' éËå≥î‰ó¶É}ÉXÉ^(ÉåÅ[Éãónê⁄_ãOìπâÔé–äOíçîÔó¶àÍóó / ónê⁄éËå≥äÑçáÉVÅ[Ég)
+
+' Dictionary: key=êÆóùî‘çÜ(ï∂éöóÒ) -> Array(éËå≥î‰ó¶íã, éËå≥î‰ó¶ñÈ) Å¶ñ¢ê›íËÇÕEmpty
+
+Private Function NormalizeRatioValue(ByVal sourceValue As Variant) As Variant
+    Dim textValue As String
+
+    If IsError(sourceValue) Then Exit Function
+    If IsNumeric(sourceValue) Then
+        NormalizeRatioValue = NormalizePercentScale(CDbl(sourceValue))
+        Exit Function
+    End If
+
+    textValue = Trim$(StrConv(CStr(CommonNzText(sourceValue)), vbNarrow))
+    If Len(textValue) = 0 Then Exit Function
+
+    If Right$(textValue, 1) = "%" Then
+        textValue = Trim$(Left$(textValue, Len(textValue) - 1))
+        If IsNumeric(textValue) Then NormalizeRatioValue = CDbl(textValue) / 100#
+        Exit Function
+    End If
+
+    If IsNumeric(textValue) Then NormalizeRatioValue = NormalizePercentScale(CDbl(textValue))
+End Function
+
+Private Function OutsourceRatioLabelText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = ChrW$(&H5916) & ChrW$(&H6CE8) & ChrW$(&H6BD4) & ChrW$(&H7387) & ChrW$(&HFF1D)
+    End If
+    OutsourceRatioLabelText = cached
+End Function
+
+Private Function OutsourceUnitPriceLabelText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = ChrW$(&H5916) & ChrW$(&H6CE8) & ChrW$(&H5358) & ChrW$(&H4FA1)
+    End If
+    OutsourceUnitPriceLabelText = cached
+End Function
+
+Private Function PatternOutsourceRatioText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = ChrW$(&H5916) & ChrW$(&H6CE8) & ChrW$(&H6BD4) & ChrW$(&H7387) & ChrW$(&H9069) & ChrW$(&H7528) & _
+                 ChrW$(&H30D1) & ChrW$(&H30BF) & ChrW$(&H30FC) & ChrW$(&H30F3)
+    End If
+    PatternOutsourceRatioText = cached
+End Function
+
+Private Function PatternPrevYearText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = ChrW$(&H524D) & ChrW$(&H5E74) & ChrW$(&H5EA6) & ChrW$(&H5358) & ChrW$(&H4FA1) & _
+                 ChrW$(&H9069) & ChrW$(&H7528) & ChrW$(&H30D1) & ChrW$(&H30BF) & ChrW$(&H30FC) & ChrW$(&H30F3)
+    End If
+    PatternPrevYearText = cached
+End Function
+
+Private Function PatternPriceIndexText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = ChrW$(&H7269) & ChrW$(&H4FA1) & ChrW$(&H6307) & ChrW$(&H6570) & ChrW$(&H9069) & ChrW$(&H7528) & _
+                 ChrW$(&H30D1) & ChrW$(&H30BF) & ChrW$(&H30FC) & ChrW$(&H30F3)
+    End If
+    PatternPriceIndexText = cached
+End Function
+
+Private Function RailWorkTypeText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = ChrW$(&H8ECC) & ChrW$(&H9053) & ChrW$(&H5DE5) & ChrW$(&H4E8B)
+    End If
+    RailWorkTypeText = cached
+End Function
+
+Private Function RatioLiteralText(ByVal value As Double) As String
+    Dim s As String
+    s = Trim$(Str$(value))
+    If Left$(s, 1) = "." Then s = "0" & s
+    If Left$(s, 2) = "-." Then s = "-0" & Mid$(s, 2)
+    RatioLiteralText = s
+End Function
+
+' ãOìπâÔé–óÒ(markupï˚éÆ)ÇÃêîéÆÅEÉZÉãèëÇ´çûÇ›
+
+' ãOìπâÔé–ÉZÉãÇ÷êVíPâøêîéÆÇèëÇ´çûÇﬁ(ónê⁄âÔé–ÉZÉãÇ∆ìØólÇ…ÉOÉåÅ[ìhÇËîªíËÇçsÇ§)ÅB
+'   sourceCol  : JRíPâøóÒ(íã=E/ñÈ=F)
+'   temotoRatio: É}ÉXÉ^ónê⁄éËå≥äÑçáÇÃíl(íãE/ñÈF) Å¶ÉäÉeÉâÉã
+'   ratioAddress: ãOìπäOíçî‰ó¶(äÓñ{èÓïÒ31çs 1é–ñ⁄F31/2é–ñ⁄I31Åc)ÇÃÉZÉãéQè∆
+
+Private Function ResolveVendorUnitPriceNameWUP(ByVal vendorUnitPriceNameMap As Object, _
+                                               ByVal basicInfoVendorName As String) As String
+    Dim vendorNameKey As String
+    vendorNameKey = CommonNormalizeText(basicInfoVendorName)
+
+    If Not vendorUnitPriceNameMap Is Nothing Then
+        If vendorUnitPriceNameMap.Exists(vendorNameKey) Then
+            ResolveVendorUnitPriceNameWUP = CStr(vendorUnitPriceNameMap(vendorNameKey))
+            Exit Function
+        End If
+    End If
+
+    ResolveVendorUnitPriceNameWUP = basicInfoVendorName
+End Function
+
+Private Function SeiriHeaderKeywordText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = ChrW$(&H6574) & ChrW$(&H7406) & ChrW$(&H756A) & ChrW$(&H53F7)
+    End If
+    SeiriHeaderKeywordText = cached
+End Function
+
+Private Function ShouldShowWeldingVendorBlock(ByRef block As WeldingVendorBlock) As Boolean
+    ShouldShowWeldingVendorBlock = (Len(Trim$(block.vendorName)) > 0) And block.hasRatio
+End Function
+
+Private Function UnitPricePatternLabelText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = ChrW$(&H5358) & ChrW$(&H4FA1) & ChrW$(&HFF8A) & ChrW$(&HFF9F) & ChrW$(&HFF80) & _
+                 ChrW$(&HFF70) & ChrW$(&HFF9D) & ":"
+    End If
+    UnitPricePatternLabelText = cached
+End Function
+
+Private Function WarnWeldingBlockText(ByRef weldingBlock As WeldingVendorBlock) As String
+    If weldingBlock.valueColumn = 0 Then
+        WarnWeldingBlockText = "äÓñ{èÓïÒÇ…Åuónê⁄çHéñÅvÇÃã∆é“ÉuÉçÉbÉNÇ™å©Ç¬Ç©ÇËÇ‹ÇπÇÒÅB"
+    Else
+        WarnWeldingBlockText = "äÓñ{èÓïÒÇÃónê⁄äOíçî‰ó¶(31çsñ⁄)Ç™ñ¢ì¸óÕÇ≈Ç∑ÅB" & vbCrLf & _
+                               "âÔé–=[" & weldingBlock.vendorName & "] ÇÃónê⁄íPâøóÒÇÕçÏê¨Ç≥ÇÍÇ‹ÇπÇÒÅB"
+    End If
+End Function
+
+Private Function WasteDisposalKeywordText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = ChrW$(&H7523) & ChrW$(&H5EC3) & ChrW$(&H51E6) & ChrW$(&H7406)
+    End If
+    WasteDisposalKeywordText = cached
+End Function
+
+Private Function WeldingSheetSuffixText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = "_" & ChrW$(&H30EC) & ChrW$(&H30FC) & ChrW$(&H30EB) & _
+                 ChrW$(&H6EB6) & ChrW$(&H63A5) & ChrW$(&H5358) & ChrW$(&H4FA1)
+    End If
+    WeldingSheetSuffixText = cached
+End Function
+
+Private Function WeldingTemotoUnitPriceLabelText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = ChrW$(&H6EB6) & ChrW$(&H63A5) & ChrW$(&H624B) & ChrW$(&H5143) & _
+                 ChrW$(&H5358) & ChrW$(&H4FA1)
+    End If
+    WeldingTemotoUnitPriceLabelText = cached
+End Function
+
+Private Function WeldingUnitPriceFontNameText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = "BIZ UD" & ChrW$(&H30B4) & ChrW$(&H30B7) & ChrW$(&H30C3) & ChrW$(&H30AF)
+    End If
+    WeldingUnitPriceFontNameText = cached
+End Function
+
+Private Function WeldingWorkPresentKeywordText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = WeldingWorkTypeText() & ChrW$(&H3042) & ChrW$(&H308A)   ' ónê⁄çHéñ + Ç†ÇË
+    End If
+    WeldingWorkPresentKeywordText = cached
+End Function
+
+Private Function WeldingWorkTypeText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = ChrW$(&H6EB6) & ChrW$(&H63A5) & ChrW$(&H5DE5) & ChrW$(&H4E8B)
+    End If
+    WeldingWorkTypeText = cached
+End Function
+
+' Åuónê⁄çHéñÇ†ÇËÅv(äÓñ{èÓïÒC23ÇÃîªíËÉLÅ[ÉèÅ[Éh)
+
+Private Sub AddCellToUnionWUP(ByRef target As Range, ByVal cellToAdd As Range)
+    If target Is Nothing Then
+        Set target = cellToAdd
+    Else
+        Set target = Union(target, cellToAdd)
     End If
 End Sub
 
-Public Sub ClearTemotoRatioMapCache()
-    Set mTemotoRatioMap = Nothing
-    mTemotoRatioMapPath = vbNullString
-    mTemotoRatioMapTime = 0
+Private Sub AddPackComponent(ByVal comps As Collection, ByVal data As Variant, _
+                             ByVal fieldCount As Long, ByVal r As Long, _
+                             ByVal compField As Long, ByVal qtyField As Long)
+    If compField > fieldCount - 1 Or qtyField > fieldCount - 1 Then Exit Sub
+    Dim compText As String, qtyText As String
+    compText = Trim$(StrConv(CommonNzText(data(compField, r)), vbNarrow))
+    qtyText = Trim$(StrConv(CommonNzText(data(qtyField, r)), vbNarrow))
+    If Len(compText) = 0 Or Not IsNumeric(compText) Then Exit Sub
+    If Len(qtyText) = 0 Or Not IsNumeric(qtyText) Then Exit Sub
+    comps.Add Array(CStr(CLng(Val(compText))), CDbl(qtyText))
 End Sub
 
-Public Sub GetVendorBlockLayoutCountsForLimit(ByVal wsInfo As Worksheet, _
-                                              ByVal vendorCountLimit As Long, _
-                                              ByRef weldingBlockCount As Long, _
-                                              ByRef railBlockCount As Long)
-    Dim weldingBlocks() As WeldingVendorBlock
-    Dim railBlocks() As WeldingVendorBlock
-    ScanVendorBlocks wsInfo, weldingBlocks, weldingBlockCount, railBlocks, railBlockCount, 0, _
-        vendorCountLimit, True
+' É}ÉXÉ^ÉtÉ@ÉCÉãÇÃÉpÉXâåà(ã∆é“É}ÉXÉ^Ç∆ìØï˚éÆ)
+'   1) %USERPROFILE%\ëÂìSçHã∆äîéÆâÔé–\ê¸òHèoí£èäóp_íçï∂èë_êøãÅèëÉAÉNÉZÉXÉTÉCÉg - ÉhÉLÉÖÉÅÉìÉg\É}ÉXÉ^ÉfÅ[É^\
+'   2) ThisWorkbook ÇÃêeÉtÉHÉãÉ_\É}ÉXÉ^ÉfÅ[É^\
+'   3) ThisWorkbook Ç∆ìØäKëw\É}ÉXÉ^ÉfÅ[É^\
+' ÉtÉ@ÉCÉãñºÇÕÅuÉåÅ[Éãónê⁄_ãOìπâÔé–äOíçîÔó¶àÍóó*.xlsxÅvÇ≈ÉèÉCÉãÉhÉJÅ[Éhåüçı(ññîˆÇÃãÛîíìôÇãñóe)
+
+Private Sub ApplyGreyFill(ByVal targetCell As Range)
+    With targetCell
+        .ClearContents
+        .NumberFormat = "General"
+        .Interior.Color = RGB(WUP_FILL_COLOR_R, WUP_FILL_COLOR_G, WUP_FILL_COLOR_B)
+    End With
 End Sub
 
-Private Sub ApplyWeldingVendorUnitPricesToSheetColumns(ByVal wsWelding As Worksheet, _
-                                                       ByVal wsInfo As Worksheet, _
-                                                       ByRef weldingBlocks() As WeldingVendorBlock, _
-                                                       ByVal weldingBlockCount As Long, _
-                                                       ByRef railBlocks() As WeldingVendorBlock, _
-                                                       ByVal railBlockCount As Long, _
-                                                       ByVal temotoMap As Object, _
-                                                       ByVal missingSeiriMap As Object, _
-                                                       ByVal targetValueColumns As Collection)
-    Dim lastRow As Long
-    lastRow = wsWelding.Cells(wsWelding.Rows.Count, WUP_SEIRI_COL).End(xlUp).Row
-    If lastRow < WUP_DATA_START_ROW Then Exit Sub
+Private Sub ApplyMergedCell(ByVal wsWelding As Worksheet, _
+                            ByVal rowIndex As Long, _
+                            ByVal dayCol As Long, _
+                            ByVal nightCol As Long, _
+                            ByVal cellText As String, _
+                            ByVal useShrinkToFit As Boolean)
+    Dim mergeRange As Range
+    Set mergeRange = wsWelding.Range(wsWelding.Cells(rowIndex, dayCol), _
+                                     wsWelding.Cells(rowIndex, nightCol))
 
-    ClearLegacyOutsourcePatternSelector wsWelding
-    Set mSeiriRowMap = BuildSeiriRowMapWUP(wsWelding, lastRow)
-
-    Dim outsourceHeaderText As String
-    Dim railHeaderText As String
-    outsourceHeaderText = BuildWeldingUnitPriceHeaderText(wsInfo, True)
-    railHeaderText = BuildWeldingUnitPriceHeaderText(wsInfo, False)
-
-    Dim vendorUnitPriceNameMap As Object
-    Set vendorUnitPriceNameMap = mod_VendorMaster.BuildVendorUnitPriceNameMap(wsInfo)
-
-    Dim wIdx As Long
-    For wIdx = 1 To weldingBlockCount
-        Dim weldingDayCol As Long
-        weldingDayCol = GetWeldingDayColByIndex(wIdx)
-        If weldingBlocks(wIdx).hasRatio Then
-            If CollectionContainsLongWUP(targetValueColumns, weldingBlocks(wIdx).valueColumn) Then
-                ApplyWeldingVendorBlock wsWelding, lastRow, weldingDayCol, weldingBlocks(wIdx), True, _
-                                        outsourceHeaderText, vendorUnitPriceNameMap, temotoMap, missingSeiriMap, _
-                                        ResolveVendorUnitPriceNameWUP(vendorUnitPriceNameMap, weldingBlocks(wIdx).vendorName)
-            Else
-                UpdateWeldingVendorDisplayNameOnly wsWelding, weldingDayCol, _
-                    ResolveVendorUnitPriceNameWUP(vendorUnitPriceNameMap, weldingBlocks(wIdx).vendorName)
-            End If
-        End If
-    Next wIdx
-
-    Dim railIndex As Long
-    For railIndex = 1 To railBlockCount
-        Dim railDayCol As Long
-        railDayCol = GetRailDayColByIndex(weldingBlockCount, railIndex)
-        If CollectionContainsLongWUP(targetValueColumns, railBlocks(railIndex).valueColumn) Then
-            If railBlocks(railIndex).hasRatio Then
-                railBlocks(railIndex).patternAddress = BuildRailPatternSheetRef(wsWelding, railDayCol)
-                ApplyRailPatternRow wsWelding, wsInfo, railDayCol, railBlocks(railIndex).valueColumn
-                ApplyWeldingVendorBlock wsWelding, lastRow, railDayCol, railBlocks(railIndex), False, _
-                                        railHeaderText, vendorUnitPriceNameMap, temotoMap, missingSeiriMap
-            Else
-                ClearRailPatternBlock wsWelding, railDayCol
-                ClearWeldingVendorBlock wsWelding, lastRow, railDayCol
-            End If
-        End If
-    Next railIndex
-
-    LogWUP "ïîï™ìWäJäÆóπ sheet=[" & wsWelding.Name & "] ëŒè€óÒêî=" & CStr(targetValueColumns.Count)
+    SafeUnmergeRangeWUP mergeRange
+    mergeRange.Merge
+    With mergeRange
+        .Value = cellText
+        .HorizontalAlignment = xlCenter
+        .VerticalAlignment = xlCenter
+        .ShrinkToFit = useShrinkToFit
+        .WrapText = False
+    End With
 End Sub
 
-Private Function CollectionContainsLongWUP(ByVal values As Collection, ByVal targetValue As Long) As Boolean
-    Dim item As Variant
-    For Each item In values
-        If CLng(item) = targetValue Then
-            CollectionContainsLongWUP = True
-            Exit Function
-        End If
-    Next item
-End Function
+' ãå D3:E3ÅuäOíçîÔéZèoÉpÉ^Å[ÉìÅFÅv/ F3 ÉhÉçÉbÉvÉ_ÉEÉìÇçÌèúÇ∑ÇÈ
 
-Public Function IsWeldingUnitPriceSheet(ByVal targetSheet As Worksheet) As Boolean
-    If targetSheet Is Nothing Then Exit Function
-    IsWeldingUnitPriceSheet = _
-        (InStr(1, NormalizeMatchTextWUP(CStr(targetSheet.Name)), _
-               NormalizeMatchTextWUP(WeldingSheetSuffixText()), vbTextCompare) > 0)
-End Function
+Private Sub ApplyOutsourceRatioRow(ByVal wsWelding As Worksheet, _
+                                   ByVal dayCol As Long, _
+                                   ByVal nightCol As Long, _
+                                   ByVal ratioPercent As Variant)
+    With wsWelding.Cells(WUP_RATIO_ROW, dayCol)
+        .Formula = ""
+        .Value = OutsourceRatioLabelText()
+        .HorizontalAlignment = xlRight
+        .VerticalAlignment = xlCenter
+    End With
 
-' ÉVÅ[ÉgíPà ÇÃìWäJèàóù
+    With wsWelding.Cells(WUP_RATIO_ROW, nightCol)
+        .Formula = ""
+        If IsNumeric(ratioPercent) Then .Value = CDbl(ratioPercent)
+        .NumberFormat = WUP_RATIO_NUMBER_FORMAT
+        .HorizontalAlignment = xlCenter
+        .VerticalAlignment = xlCenter
+    End With
 
-Private Sub ApplyWeldingVendorUnitPricesToSheet(ByVal wsWelding As Worksheet, _
-                                                ByVal wsInfo As Worksheet, _
-                                                ByRef weldingBlocks() As WeldingVendorBlock, _
-                                                ByVal weldingBlockCount As Long, _
-                                                ByRef railBlocks() As WeldingVendorBlock, _
-                                                ByVal railBlockCount As Long, _
-                                                ByVal temotoMap As Object, _
-                                                ByVal missingSeiriMap As Object)
-    Dim lastRow As Long
-    lastRow = wsWelding.Cells(wsWelding.Rows.Count, WUP_SEIRI_COL).End(xlUp).Row
-    If lastRow < WUP_DATA_START_ROW Then
-        LogWUP "ÉfÅ[É^çsÇ»Çµ sheet=[" & wsWelding.Name & "]"
+    With wsWelding.Range(wsWelding.Cells(WUP_RATIO_ROW, dayCol), _
+                         wsWelding.Cells(WUP_RATIO_ROW, nightCol)).Font
+        .Name = WeldingUnitPriceFontNameText()
+        .Size = WUP_RATIO_FONT_SIZE
+        On Error Resume Next
+        .NameFarEast = WeldingUnitPriceFontNameText()
+        On Error GoTo 0
+    End With
+End Sub
+
+' ãOìπâÔé–ÉuÉçÉbÉNÇÃ1çsñ⁄: íãóÒ(I/KÅc)=É}ÉXÉ^H1ÇÃÉâÉxÉãï∂éöóÒÅuè„è∏ó¶ É¿ =Åv/
+'                          ñÈóÒ(J/LÅc)=É}ÉXÉ^I1ÇÃó¶ÇÃêîíl(0.0%ï\é¶)ÅB
+' ÉfÅ[É^çsÇÃêîéÆÇÕíãñÈÇ∆Ç‡ñÈóÒ(ó¶êîílÉZÉã)ÇéQè∆Ç∑ÇÈÅB
+' ãOìπâÔé–ÉuÉçÉbÉNÇÃ1çsñ⁄: íãóÒ(I/KÅc)=ÅuäOíçî‰ó¶ÅÅÅvÉâÉxÉã /
+'                          ñÈóÒ(J/LÅc)=äÓñ{èÓïÒÉVÅ[ÉgÇÃìñé–óÒ31çsñ⁄(F31/I31Åc)Ç÷ÇÃéQè∆ÅB
+' âÔé–ñº(óÒ)Ç∆êÆçáÇ∑ÇÈÇÊÇ§ ratioAddress(=ìñÉuÉçÉbÉNÇÃäÓñ{èÓïÒóÒ$31) ÇÇªÇÃÇ‹Ç‹éQè∆Ç∑ÇÈÅB
+
+Private Sub ApplyPackCell(ByVal targetCell As Range, ByVal formulaText As String)
+    targetCell.Interior.ColorIndex = xlColorIndexNone
+    targetCell.ShrinkToFit = False
+    If Len(formulaText) = 0 Then
+        ApplyGreyFill targetCell                     ' ç\ê¨çsÇ™âåàÇ≈Ç´Ç»Ç¢ -> ÉOÉåÅ[
+    Else
+        targetCell.Formula = formulaText
+        targetCell.NumberFormat = WUP_NUMBER_FORMAT
+    End If
+End Sub
+
+' èëéÆÅEårê¸ÅEÉNÉäÉA(mod_VendorMaster ÇÃíPâøÉVÅ[ÉgçÏê¨ÉçÉWÉbÉNÇ∆ìØàÍédól)
+
+Private Sub ApplyPackRowForBlock(ByVal wsWelding As Worksheet, _
+                                 ByVal rowIndex As Long, _
+                                 ByVal dayCol As Long, _
+                                 ByVal nightCol As Long, _
+                                 ByVal packKey As String, _
+                                 ByVal isWeldingVendor As Boolean)
+    If mPackMap Is Nothing Or mSeiriRowMap Is Nothing Or Not mPackMap.Exists(packKey) Then
+        ApplyGreyFill wsWelding.Cells(rowIndex, dayCol)
+        ApplyGreyFill wsWelding.Cells(rowIndex, nightCol)
         Exit Sub
     End If
 
-    ClearLegacyOutsourcePatternSelector wsWelding
+    Dim comps As Collection
+    Set comps = mPackMap(packKey)
 
-    Set mSeiriRowMap = BuildSeiriRowMapWUP(wsWelding, lastRow)
+    ApplyPackCell wsWelding.Cells(rowIndex, dayCol), _
+                  BuildPackSumFormula(wsWelding, dayCol, comps, isWeldingVendor)
+    ApplyPackCell wsWelding.Cells(rowIndex, nightCol), _
+                  BuildPackSumFormula(wsWelding, nightCol, comps, isWeldingVendor)
+End Sub
 
-    Dim outsourceHeaderText As String
-    Dim railHeaderText As String
-    outsourceHeaderText = BuildWeldingUnitPriceHeaderText(wsInfo, True)
-    railHeaderText = BuildWeldingUnitPriceHeaderText(wsInfo, False)
+' ç\ê¨çHéÌÇÃìØóÒÉZÉãÅ~êîó  ÇÃçáåvéÆÅBónê⁄=ëSç\ê¨ÅAãOìπ=êÊì™1çHéÌ(J/K)ÇÃÇ›ÅB
 
-    Dim vendorUnitPriceNameMap As Object
-    Set vendorUnitPriceNameMap = mod_VendorMaster.BuildVendorUnitPriceNameMap(wsInfo)
+Private Sub ApplyRailMarkupCell(ByVal targetCell As Range, _
+                                ByVal wsWelding As Worksheet, _
+                                ByVal rowIndex As Long, _
+                                ByVal sourceCol As Long, _
+                                ByVal temotoRatio As Variant, _
+                                ByVal ratioAddress As String, _
+                                ByVal patternAddress As String)
+    With targetCell
+        .ShrinkToFit = False
+        .Interior.ColorIndex = xlColorIndexNone
+    End With
 
-    ' --- ónê⁄é{çHâÔé–ÉuÉçÉbÉN (10çsñ⁄=ónê⁄çHéñÇÃÇ›ÅA1é–2óÒÇ∏Ç¬) ---
-    Dim wIdx As Long
-    For wIdx = 1 To weldingBlockCount
-        Dim weldingDayCol As Long
-        weldingDayCol = GetWeldingDayColByIndex(wIdx)
-        If weldingBlocks(wIdx).hasRatio Then
-            ApplyWeldingVendorBlock wsWelding, lastRow, weldingDayCol, weldingBlocks(wIdx), True, _
-                                    outsourceHeaderText, vendorUnitPriceNameMap, temotoMap, missingSeiriMap, _
-                                    ResolveVendorUnitPriceNameWUP(vendorUnitPriceNameMap, weldingBlocks(wIdx).vendorName)
+    If Len(Trim$(CStr(wsWelding.Cells(rowIndex, sourceCol).Value))) = 0 Then
+        ApplyGreyFill targetCell
+        Exit Sub
+    End If
+    If Not IsNumeric(temotoRatio) Then
+        ApplyGreyFill targetCell
+        Exit Sub
+    End If
+
+    targetCell.Formula = BuildRailMarkupFormula(wsWelding, rowIndex, sourceCol, _
+                                                CDbl(temotoRatio), ratioAddress, patternAddress)
+    targetCell.NumberFormat = WUP_NUMBER_FORMAT
+End Sub
+
+' ãOìπâÔé–íPâøÇÃêîéÆÅBónê⁄íPâøÉVÅ[Ég3çsñ⁄(âÔé–óÒç∂ë§ÇÃÉpÉ^Å[ÉìâEóÒ)ÇÃílÇ≈åvéZï˚éÆÇêÿë÷Ç¶ÇÈÅB
+'   ã§í : jr=JRíPâø(E/F) / lit=éËå≥äÑçá(É}ÉXÉ^íãE/ñÈF ÉäÉeÉâÉã) / R=ãOìπäOíçî‰ó¶(äÓñ{èÓïÒ31çs)
+'   Å°ï®âøéwêîìKóp : v=(jrÅ~(100/100.7)Å~lit)Å~R Ç êÆêîïî4åÖà»è„ÇÕè„à 3åÖÅ{0ñÑÇﬂ(êÿÇËéÃÇƒ3åÖ)ÅA
+'                   3åÖà»â∫ÇÕROUNDDOWNÇ≈êÆêîâªÅB
+'   Å°äOíçî‰ó¶ìKóp : Y=litÅ~R, v=YÅ~jr Ç åÖêî3à»â∫ÇÕÇªÇÃÇ‹Ç‹ÅA4åÖà»è„ÇÕè„à 4åÖROUND(,-1)Ç≈åÖñﬂÇµÅB
+'                   (ÉÜÅ[ÉUÅ[éwíËéÆ: =IF(J="","",IF(LEN(TEXT(Y*J,"#"))<=3,Y*J,
+'                     ROUND(VALUE(LEFT(TEXT(Y*J,"#"),4)),-1)*10^VALUE(LEN(TEXT(Y*J,"#"))-4))))
+'   Å°ëOîNìxíPâøìKóp: ñ¢íËã`ÇÃÇΩÇﬂãÛóì("")ÅB
+' äÓñ{èÓïÒ30çsñ⁄ÇêÿÇËë÷Ç¶ÇÈÇ∆ExcelÇÃçƒåvéZÇ≈ÇªÇÃÇ‹Ç‹íPâøÇ™êÿÇËë÷ÇÌÇÈÅB
+
+Private Sub ApplyRailMarkupRatioRow(ByVal wsWelding As Worksheet, _
+                                    ByVal dayCol As Long, _
+                                    ByVal nightCol As Long, _
+                                    ByVal ratioAddress As String)
+    ' íãóÒ1çsñ⁄: ÅuäOíçî‰ó¶ÅÅÅvÉâÉxÉã(ónê⁄âÔé–óÒÇ∆ìØÇ∂ï\ãL)
+    With wsWelding.Cells(WUP_RATIO_ROW, dayCol)
+        .Formula = ""
+        .Value = OutsourceRatioLabelText()
+        .HorizontalAlignment = xlRight
+        .VerticalAlignment = xlCenter
+    End With
+
+    ' ñÈóÒ1çsñ⁄: äÓñ{èÓïÒÇÃìñé–óÒ31çsñ⁄Ç÷ÇÃéQè∆(ó· ='äÓñ{èÓïÒ'!$F$31)
+    With wsWelding.Cells(WUP_RATIO_ROW, nightCol)
+        If Len(ratioAddress) > 0 Then
+            .Formula = "=" & ratioAddress
         Else
-            ClearWeldingVendorBlock wsWelding, lastRow, weldingDayCol
+            .ClearContents
         End If
-    Next wIdx
-    For wIdx = weldingBlockCount + 1 To MAX_VENDOR_BLOCK_COUNT
-        ClearWeldingVendorBlock wsWelding, lastRow, GetWeldingDayColByIndex(wIdx)
-    Next wIdx
+        .NumberFormat = WUP_RATIO_NUMBER_FORMAT
+        .HorizontalAlignment = xlCenter
+        .VerticalAlignment = xlCenter
+    End With
 
-    ' --- ãOìπâÔé–ÉuÉçÉbÉN (íPâø ﬂ¿∞›2óÒ + âÔé–2óÒÇ1é–4óÒÇ∏Ç¬) ---
-    Dim railIndex As Long
-    For railIndex = 1 To railBlockCount
-        Dim railDayCol As Long
-        railDayCol = GetRailDayColByIndex(weldingBlockCount, railIndex)
-        If railBlocks(railIndex).hasRatio Then
-            railBlocks(railIndex).patternAddress = BuildRailPatternSheetRef(wsWelding, railDayCol)
-            ApplyRailPatternRow wsWelding, wsInfo, railDayCol, railBlocks(railIndex).valueColumn
-            ApplyWeldingVendorBlock wsWelding, lastRow, railDayCol, railBlocks(railIndex), False, _
-                                    railHeaderText, vendorUnitPriceNameMap, temotoMap, missingSeiriMap
-        Else
-            ClearRailPatternBlock wsWelding, railDayCol
-            ClearWeldingVendorBlock wsWelding, lastRow, railDayCol
-        End If
-    Next railIndex
+    With wsWelding.Range(wsWelding.Cells(WUP_RATIO_ROW, dayCol), _
+                         wsWelding.Cells(WUP_RATIO_ROW, nightCol)).Font
+        .Name = WeldingUnitPriceFontNameText()
+        .Size = WUP_RATIO_FONT_SIZE
+        On Error Resume Next
+        .NameFarEast = WeldingUnitPriceFontNameText()
+        On Error GoTo 0
+    End With
+End Sub
 
-    For railIndex = railBlockCount + 1 To MAX_VENDOR_BLOCK_COUNT
-        railDayCol = GetRailDayColByIndex(weldingBlockCount, railIndex)
-        ClearRailPatternBlock wsWelding, railDayCol
-        ClearWeldingVendorBlock wsWelding, lastRow, railDayCol
-    Next railIndex
+Private Sub ApplyRailPatternRow(ByVal wsWelding As Worksheet, _
+                                ByVal wsInfo As Worksheet, _
+                                ByVal railDayCol As Long, _
+                                ByVal basicInfoValueColumn As Long)
+    Dim labelCol As Long
+    Dim valueCol As Long
+    labelCol = railDayCol
+    valueCol = railDayCol + 1
 
-    LogWUP "ìWäJäÆóπ sheet=[" & wsWelding.Name & "] ónê⁄âÔé–êî=" & CStr(weldingBlockCount) & _
-           " ãOìπâÔé–êî=" & CStr(railBlockCount)
+    With wsWelding.Cells(WUP_PATTERN_ROW, labelCol)
+        .Formula = ""
+        .Value = UnitPricePatternLabelText()
+        .HorizontalAlignment = xlRight
+        .VerticalAlignment = xlCenter
+        .ShrinkToFit = True
+        .WrapText = False
+        .Font.Name = WeldingUnitPriceFontNameText()
+        On Error Resume Next
+        .Font.NameFarEast = WeldingUnitPriceFontNameText()
+        On Error GoTo 0
+    End With
+
+    With wsWelding.Cells(WUP_PATTERN_ROW, valueCol)
+        .Formula = ""
+        .Value = wsInfo.Cells(BASIC_INFO_RAIL_PATTERN_ROW, basicInfoValueColumn).Value
+        .HorizontalAlignment = xlLeft
+        .VerticalAlignment = xlCenter
+        .ShrinkToFit = True
+        .WrapText = False
+        .Font.Name = WeldingUnitPriceFontNameText()
+        On Error Resume Next
+        .Font.NameFarEast = WeldingUnitPriceFontNameText()
+        On Error GoTo 0
+    End With
 End Sub
 
 Private Sub ApplyWeldingVendorBlock(ByVal wsWelding As Worksheet, _
@@ -780,6 +1017,58 @@ End Sub
 
 ' ÉfÅ[É^çsÇÇ‹Ç∆ÇﬂÇƒéZèoÇµÅAóÒÇ≤Ç∆Ç…1âÒÇÃêîéÆàÍäáë„ì¸Ç≈èëÇ´çûÇﬁ(ÉZÉãíPà âùïúÇîrèú)ÅB
 ' êîéÆï∂éöóÒÇÕè]óàÇÃ Build*Formula Ç∆ìØàÍÅBãÛï∂éöÇÃçsÇÕÉOÉåÅ[ìhÇËëŒè€Ç∆ÇµÇƒÇ‹Ç∆ÇﬂÇƒèàóùÇ∑ÇÈÅB
+
+Private Sub ApplyWeldingVendorBorders(ByVal wsWelding As Worksheet, _
+                                      ByVal lastRow As Long, _
+                                      ByVal dayCol As Long, _
+                                      ByVal nightCol As Long)
+    Dim borderRange As Range
+    Set borderRange = wsWelding.Range(wsWelding.Cells(WUP_HEADER_ROW, dayCol), _
+                                      wsWelding.Cells(lastRow, nightCol))
+    With borderRange
+        .Borders.LineStyle = xlNone
+        With .Borders
+            .LineStyle = xlContinuous
+            .Weight = xlThin
+        End With
+        .Borders(xlEdgeLeft).Weight = xlMedium
+        .Borders(xlEdgeTop).Weight = xlMedium
+        .Borders(xlEdgeRight).Weight = xlMedium
+        .Borders(xlEdgeBottom).Weight = xlMedium
+    End With
+End Sub
+
+Private Sub ApplyWeldingVendorCell(ByVal targetCell As Range, _
+                                   ByVal wsWelding As Worksheet, _
+                                   ByVal rowIndex As Long, _
+                                   ByVal sourceCol As Long, _
+                                   ByVal temotoRatio As Variant, _
+                                   ByVal ratioAddress As String, _
+                                   ByVal isWeldingVendor As Boolean)
+    With targetCell
+        .ShrinkToFit = False
+        .Interior.ColorIndex = xlColorIndexNone
+    End With
+
+    If Len(Trim$(CStr(wsWelding.Cells(rowIndex, sourceCol).Value))) = 0 Then
+        ApplyGreyFill targetCell
+        Exit Sub
+    End If
+    If Not IsNumeric(temotoRatio) Then
+        ApplyGreyFill targetCell
+        Exit Sub
+    End If
+
+    targetCell.Formula = BuildWeldingVendorFormula(wsWelding, rowIndex, sourceCol, _
+                                                   CDbl(temotoRatio), ratioAddress, isWeldingVendor)
+    targetCell.NumberFormat = WUP_NUMBER_FORMAT
+End Sub
+
+' êîéÆëgÇ›óßÇƒ:
+'   ónê⁄âÔé–: =IFERROR(ROUND(E7*(1-0.0791)*('äÓñ{èÓïÒ'!$L$31),-INT(LOG10(E7*(1-0.0791)*('äÓñ{èÓïÒ'!$L$31)))+2),0)
+'   ãOìπâÔé–: =IFERROR(ROUND(E7*0.0791*('äÓñ{èÓïÒ'!$F$29),-INT(LOG10(E7*0.0791*('äÓñ{èÓïÒ'!$F$29)))+2),0)
+' Å¶óLå¯3åÖä€ÇﬂÅBéËå≥î‰ó¶0ÇÃçHéÌ(ïtë—çÏã∆ìô)Ç≈ãOìπë§Ç™0Ç…Ç»ÇÈÇΩÇﬂIFERRORÇ≈0Çï‘Ç∑ÅB
+
 Private Sub ApplyWeldingVendorDataRowsBatch(ByVal wsWelding As Worksheet, _
                                             ByVal dayCol As Long, _
                                             ByVal nightCol As Long, _
@@ -912,32 +1201,20 @@ Private Sub ApplyWeldingVendorDataRowsBatch(ByVal wsWelding As Worksheet, _
 End Sub
 
 ' 1ÉZÉãï™ÇÃêîéÆï∂éöóÒÇï‘Ç∑(ÉOÉåÅ[ëŒè€ÇÕãÛï∂éö)ÅBîªíËÅEêîéÆÇ∆Ç‡è]óàÇÃ ApplyWeldingVendorCell / ApplyRailMarkupCell Ç∆ìØàÍÅB
-Private Function BuildWeldingDataCellFormula(ByVal wsWelding As Worksheet, _
-                                             ByVal rowIndex As Long, _
-                                             ByVal sourceCol As Long, _
-                                             ByVal jrValue As Variant, _
-                                             ByVal temotoRatio As Variant, _
-                                             ByVal ratioAddress As String, _
-                                             ByVal patternAddress As String, _
-                                             ByVal isWeldingVendor As Boolean) As String
-    If Len(Trim$(CStr(CommonNzText(jrValue)))) = 0 Then Exit Function
-    If Not IsNumeric(temotoRatio) Then Exit Function
 
-    If isWeldingVendor Then
-        BuildWeldingDataCellFormula = BuildWeldingVendorFormula(wsWelding, rowIndex, sourceCol, _
-                                          CDbl(temotoRatio), ratioAddress, isWeldingVendor)
-    Else
-        BuildWeldingDataCellFormula = BuildRailMarkupFormula(wsWelding, rowIndex, sourceCol, _
-                                          CDbl(temotoRatio), ratioAddress, patternAddress)
-    End If
-End Function
-
-Private Sub AddCellToUnionWUP(ByRef target As Range, ByVal cellToAdd As Range)
-    If target Is Nothing Then
-        Set target = cellToAdd
-    Else
-        Set target = Union(target, cellToAdd)
-    End If
+Private Sub ApplyWeldingVendorFont(ByVal wsWelding As Worksheet, _
+                                   ByVal lastRow As Long, _
+                                   ByVal dayCol As Long, _
+                                   ByVal nightCol As Long)
+    Dim fontRange As Range
+    Set fontRange = wsWelding.Range(wsWelding.Cells(WUP_HEADER_ROW, dayCol), _
+                                    wsWelding.Cells(lastRow, nightCol))
+    With fontRange.Font
+        .Name = WeldingUnitPriceFontNameText()
+        On Error Resume Next
+        .NameFarEast = WeldingUnitPriceFontNameText()
+        On Error GoTo 0
+    End With
 End Sub
 
 Private Sub ApplyWeldingVendorRow(ByVal wsWelding As Worksheet, _
@@ -1001,333 +1278,136 @@ Private Sub ApplyWeldingVendorRow(ByVal wsWelding As Worksheet, _
     End If
 End Sub
 
-Private Sub ApplyWeldingVendorCell(ByVal targetCell As Range, _
-                                   ByVal wsWelding As Worksheet, _
-                                   ByVal rowIndex As Long, _
-                                   ByVal sourceCol As Long, _
-                                   ByVal temotoRatio As Variant, _
-                                   ByVal ratioAddress As String, _
-                                   ByVal isWeldingVendor As Boolean)
-    With targetCell
-        .ShrinkToFit = False
-        .Interior.ColorIndex = xlColorIndexNone
-    End With
-
-    If Len(Trim$(CStr(wsWelding.Cells(rowIndex, sourceCol).Value))) = 0 Then
-        ApplyGreyFill targetCell
-        Exit Sub
-    End If
-    If Not IsNumeric(temotoRatio) Then
-        ApplyGreyFill targetCell
+Private Sub ApplyWeldingVendorUnitPricesToSheet(ByVal wsWelding As Worksheet, _
+                                                ByVal wsInfo As Worksheet, _
+                                                ByRef weldingBlocks() As WeldingVendorBlock, _
+                                                ByVal weldingBlockCount As Long, _
+                                                ByRef railBlocks() As WeldingVendorBlock, _
+                                                ByVal railBlockCount As Long, _
+                                                ByVal temotoMap As Object, _
+                                                ByVal missingSeiriMap As Object)
+    Dim lastRow As Long
+    lastRow = wsWelding.Cells(wsWelding.Rows.Count, WUP_SEIRI_COL).End(xlUp).Row
+    If lastRow < WUP_DATA_START_ROW Then
+        LogWUP "ÉfÅ[É^çsÇ»Çµ sheet=[" & wsWelding.Name & "]"
         Exit Sub
     End If
 
-    targetCell.Formula = BuildWeldingVendorFormula(wsWelding, rowIndex, sourceCol, _
-                                                   CDbl(temotoRatio), ratioAddress, isWeldingVendor)
-    targetCell.NumberFormat = WUP_NUMBER_FORMAT
-End Sub
+    ClearLegacyOutsourcePatternSelector wsWelding
 
-' êîéÆëgÇ›óßÇƒ:
-'   ónê⁄âÔé–: =IFERROR(ROUND(E7*(1-0.0791)*('äÓñ{èÓïÒ'!$L$31),-INT(LOG10(E7*(1-0.0791)*('äÓñ{èÓïÒ'!$L$31)))+2),0)
-'   ãOìπâÔé–: =IFERROR(ROUND(E7*0.0791*('äÓñ{èÓïÒ'!$F$29),-INT(LOG10(E7*0.0791*('äÓñ{èÓïÒ'!$F$29)))+2),0)
-' Å¶óLå¯3åÖä€ÇﬂÅBéËå≥î‰ó¶0ÇÃçHéÌ(ïtë—çÏã∆ìô)Ç≈ãOìπë§Ç™0Ç…Ç»ÇÈÇΩÇﬂIFERRORÇ≈0Çï‘Ç∑ÅB
-Private Function BuildWeldingVendorFormula(ByVal wsWelding As Worksheet, _
-                                           ByVal rowIndex As Long, _
-                                           ByVal sourceCol As Long, _
-                                           ByVal temotoRatio As Double, _
-                                           ByVal ratioAddress As String, _
-                                           ByVal isWeldingVendor As Boolean) As String
-    Dim unitCellRef As String
-    unitCellRef = wsWelding.Cells(rowIndex, sourceCol).Address(False, False)
+    Set mSeiriRowMap = BuildSeiriRowMapWUP(wsWelding, lastRow)
 
-    Dim factorText As String
-    If isWeldingVendor Then
-        factorText = "(1-" & RatioLiteralText(temotoRatio) & ")"
-    Else
-        factorText = RatioLiteralText(temotoRatio)
-    End If
+    Dim outsourceHeaderText As String
+    Dim railHeaderText As String
+    outsourceHeaderText = BuildWeldingUnitPriceHeaderText(wsInfo, True)
+    railHeaderText = BuildWeldingUnitPriceHeaderText(wsInfo, False)
 
-    Dim exprText As String
-    exprText = unitCellRef & "*" & factorText & "*(" & ratioAddress & ")"
+    Dim vendorUnitPriceNameMap As Object
+    Set vendorUnitPriceNameMap = mod_VendorMaster.mod_VendorUnitPrice.BuildVendorUnitPriceNameMap(wsInfo)
 
-    BuildWeldingVendorFormula = "=IFERROR(ROUND(" & exprText & _
-                                ",-INT(LOG10(" & exprText & "))+2),0)"
-End Function
-
-' Double Ç Excel êîéÆópÇÃêîílÉäÉeÉâÉãÇ÷(è¨êîì_ÇÕèÌÇ…ÉsÉäÉIÉh)
-Private Function RatioLiteralText(ByVal value As Double) As String
-    Dim s As String
-    s = Trim$(Str$(value))
-    If Left$(s, 1) = "." Then s = "0" & s
-    If Left$(s, 2) = "-." Then s = "-0" & Mid$(s, 2)
-    RatioLiteralText = s
-End Function
-
-' ãOìπâÔé–óÒ(markupï˚éÆ)ÇÃêîéÆÅEÉZÉãèëÇ´çûÇ›
-
-' ãOìπâÔé–ÉZÉãÇ÷êVíPâøêîéÆÇèëÇ´çûÇﬁ(ónê⁄âÔé–ÉZÉãÇ∆ìØólÇ…ÉOÉåÅ[ìhÇËîªíËÇçsÇ§)ÅB
-'   sourceCol  : JRíPâøóÒ(íã=E/ñÈ=F)
-'   temotoRatio: É}ÉXÉ^ónê⁄éËå≥äÑçáÇÃíl(íãE/ñÈF) Å¶ÉäÉeÉâÉã
-'   ratioAddress: ãOìπäOíçî‰ó¶(äÓñ{èÓïÒ31çs 1é–ñ⁄F31/2é–ñ⁄I31Åc)ÇÃÉZÉãéQè∆
-Private Sub ApplyRailMarkupCell(ByVal targetCell As Range, _
-                                ByVal wsWelding As Worksheet, _
-                                ByVal rowIndex As Long, _
-                                ByVal sourceCol As Long, _
-                                ByVal temotoRatio As Variant, _
-                                ByVal ratioAddress As String, _
-                                ByVal patternAddress As String)
-    With targetCell
-        .ShrinkToFit = False
-        .Interior.ColorIndex = xlColorIndexNone
-    End With
-
-    If Len(Trim$(CStr(wsWelding.Cells(rowIndex, sourceCol).Value))) = 0 Then
-        ApplyGreyFill targetCell
-        Exit Sub
-    End If
-    If Not IsNumeric(temotoRatio) Then
-        ApplyGreyFill targetCell
-        Exit Sub
-    End If
-
-    targetCell.Formula = BuildRailMarkupFormula(wsWelding, rowIndex, sourceCol, _
-                                                CDbl(temotoRatio), ratioAddress, patternAddress)
-    targetCell.NumberFormat = WUP_NUMBER_FORMAT
-End Sub
-
-' ãOìπâÔé–íPâøÇÃêîéÆÅBónê⁄íPâøÉVÅ[Ég3çsñ⁄(âÔé–óÒç∂ë§ÇÃÉpÉ^Å[ÉìâEóÒ)ÇÃílÇ≈åvéZï˚éÆÇêÿë÷Ç¶ÇÈÅB
-'   ã§í : jr=JRíPâø(E/F) / lit=éËå≥äÑçá(É}ÉXÉ^íãE/ñÈF ÉäÉeÉâÉã) / R=ãOìπäOíçî‰ó¶(äÓñ{èÓïÒ31çs)
-'   Å°ï®âøéwêîìKóp : v=(jrÅ~(100/100.7)Å~lit)Å~R Ç êÆêîïî4åÖà»è„ÇÕè„à 3åÖÅ{0ñÑÇﬂ(êÿÇËéÃÇƒ3åÖ)ÅA
-'                   3åÖà»â∫ÇÕROUNDDOWNÇ≈êÆêîâªÅB
-'   Å°äOíçî‰ó¶ìKóp : Y=litÅ~R, v=YÅ~jr Ç åÖêî3à»â∫ÇÕÇªÇÃÇ‹Ç‹ÅA4åÖà»è„ÇÕè„à 4åÖROUND(,-1)Ç≈åÖñﬂÇµÅB
-'                   (ÉÜÅ[ÉUÅ[éwíËéÆ: =IF(J="","",IF(LEN(TEXT(Y*J,"#"))<=3,Y*J,
-'                     ROUND(VALUE(LEFT(TEXT(Y*J,"#"),4)),-1)*10^VALUE(LEN(TEXT(Y*J,"#"))-4))))
-'   Å°ëOîNìxíPâøìKóp: ñ¢íËã`ÇÃÇΩÇﬂãÛóì("")ÅB
-' äÓñ{èÓïÒ30çsñ⁄ÇêÿÇËë÷Ç¶ÇÈÇ∆ExcelÇÃçƒåvéZÇ≈ÇªÇÃÇ‹Ç‹íPâøÇ™êÿÇËë÷ÇÌÇÈÅB
-Private Function BuildRailMarkupFormula(ByVal wsWelding As Worksheet, _
-                                        ByVal rowIndex As Long, _
-                                        ByVal sourceCol As Long, _
-                                        ByVal temotoRatio As Double, _
-                                        ByVal ratioAddress As String, _
-                                        ByVal patternAddress As String) As String
-    Dim q As String
-    q = Chr$(34)
-
-    Dim jrRef As String
-    jrRef = wsWelding.Cells(rowIndex, sourceCol).Address(False, False)
-    Dim lit As String
-    lit = RatioLiteralText(temotoRatio)
-
-    Dim patternRef As String
-    patternRef = patternAddress
-
-    ' --- ï®âøéwêîìKóp ---
-    Dim coreBukka As String
-    coreBukka = "(" & jrRef & "*" & WUP_RAIL_JR_FACTOR & "*" & lit & ")*" & ratioAddress
-    Dim txBukka As String
-    txBukka = "TEXT((" & coreBukka & "),0)"
-    Dim exprBukka As String
-    exprBukka = "IF(VALUE(LEN(" & txBukka & "))>3," & _
-                "VALUE(MID(" & txBukka & ",1,3)&REPT(0,LEN(" & txBukka & ")-3))," & _
-                "(ROUNDDOWN(" & coreBukka & ",0)))"
-
-    ' --- äOíçî‰ó¶ìKóp ---  Y=litÅ~R, v=YÅ~jr
-    Dim prodGaibu As String
-    prodGaibu = "(" & lit & "*" & ratioAddress & ")*" & jrRef
-    Dim txGaibu As String
-    txGaibu = "TEXT(" & prodGaibu & "," & q & "#" & q & ")"
-    Dim exprGaibu As String
-    exprGaibu = "IF(" & jrRef & "=" & q & q & "," & q & q & "," & _
-                "IF(LEN(" & txGaibu & ")<=3," & prodGaibu & "," & _
-                "ROUND(VALUE(LEFT(" & txGaibu & ",4)),-1)*10^VALUE(LEN(" & txGaibu & ")-4)))"
-
-    BuildRailMarkupFormula = _
-        "=IF(" & patternRef & "=" & q & PatternOutsourceRatioText() & q & "," & exprGaibu & "," & _
-        "IF(" & patternRef & "=" & q & PatternPriceIndexText() & q & "," & exprBukka & "," & _
-        q & q & "))"
-End Function
-
-' ÉpÉbÉNçHéÌ(5000î‘ë‰)ÇÃåvéZ
-
-' ìñäYÉVÅ[ÉgÇÃ êÆóùî‘çÜ -> çsî‘çÜ É}ÉbÉv(ÉpÉbÉNç\ê¨çHéÌÇÃçséQè∆óp)
-Private Function BuildSeiriRowMapWUP(ByVal wsWelding As Worksheet, ByVal lastRow As Long) As Object
-    Dim m As Object
-    Set m = CreateObject("Scripting.Dictionary")
-    m.CompareMode = vbTextCompare
-
-    Dim r As Long, t As String
-    For r = WUP_DATA_START_ROW To lastRow
-        t = Trim$(StrConv(CStr(wsWelding.Cells(r, WUP_SEIRI_COL).Value), vbNarrow))
-        If Len(t) > 0 And IsNumeric(t) Then
-            Dim k As String
-            k = CStr(CLng(Val(t)))
-            If Not m.Exists(k) Then m.Add k, r
-        End If
-    Next r
-    Set BuildSeiriRowMapWUP = m
-End Function
-
-' ÉpÉbÉNçs(dayCol/nightCol)Ç÷ç\ê¨çHéÌÇÃçáåvéÆÇèëÇ´çûÇﬁÅB
-' ç\ê¨Ç‚çsÇ™âåàÇ≈Ç´Ç»Ç¢èÍçáÇÕÉOÉåÅ[ìhÇËÅB
-Private Sub ApplyPackRowForBlock(ByVal wsWelding As Worksheet, _
-                                 ByVal rowIndex As Long, _
-                                 ByVal dayCol As Long, _
-                                 ByVal nightCol As Long, _
-                                 ByVal packKey As String, _
-                                 ByVal isWeldingVendor As Boolean)
-    If mPackMap Is Nothing Or mSeiriRowMap Is Nothing Or Not mPackMap.Exists(packKey) Then
-        ApplyGreyFill wsWelding.Cells(rowIndex, dayCol)
-        ApplyGreyFill wsWelding.Cells(rowIndex, nightCol)
-        Exit Sub
-    End If
-
-    Dim comps As Collection
-    Set comps = mPackMap(packKey)
-
-    ApplyPackCell wsWelding.Cells(rowIndex, dayCol), _
-                  BuildPackSumFormula(wsWelding, dayCol, comps, isWeldingVendor)
-    ApplyPackCell wsWelding.Cells(rowIndex, nightCol), _
-                  BuildPackSumFormula(wsWelding, nightCol, comps, isWeldingVendor)
-End Sub
-
-' ç\ê¨çHéÌÇÃìØóÒÉZÉãÅ~êîó  ÇÃçáåvéÆÅBónê⁄=ëSç\ê¨ÅAãOìπ=êÊì™1çHéÌ(J/K)ÇÃÇ›ÅB
-Private Function BuildPackSumFormula(ByVal wsWelding As Worksheet, _
-                                     ByVal col As Long, _
-                                     ByVal comps As Collection, _
-                                     ByVal isWeldingVendor As Boolean) As String
-    Dim maxComp As Long
-    maxComp = comps.Count
-    If Not isWeldingVendor Then maxComp = 1          ' ãOìπÇÕJóÒ(1çHéÌ)ÇÃÇ›
-    If maxComp > comps.Count Then maxComp = comps.Count
-
-    Dim terms As String
-    Dim i As Long
-    For i = 1 To maxComp
-        Dim comp As Variant
-        comp = comps(i)                              ' Array(ç\ê¨êÆóùî‘çÜ, êîó )
-        Dim compKey As String
-        compKey = CStr(comp(0))
-        If mSeiriRowMap.Exists(compKey) Then
-            Dim compRow As Long
-            compRow = CLng(mSeiriRowMap(compKey))
-            Dim cellRef As String
-            cellRef = wsWelding.Cells(compRow, col).Address(False, False)
-            If Len(terms) > 0 Then terms = terms & "+"
-            terms = terms & cellRef & "*" & RatioLiteralText(CDbl(comp(1)))
-        End If
-    Next i
-
-    If Len(terms) = 0 Then
-        BuildPackSumFormula = ""
-    Else
-        BuildPackSumFormula = "=" & terms
-    End If
-End Function
-
-Private Sub ApplyPackCell(ByVal targetCell As Range, ByVal formulaText As String)
-    targetCell.Interior.ColorIndex = xlColorIndexNone
-    targetCell.ShrinkToFit = False
-    If Len(formulaText) = 0 Then
-        ApplyGreyFill targetCell                     ' ç\ê¨çsÇ™âåàÇ≈Ç´Ç»Ç¢ -> ÉOÉåÅ[
-    Else
-        targetCell.Formula = formulaText
-        targetCell.NumberFormat = WUP_NUMBER_FORMAT
-    End If
-End Sub
-
-' èëéÆÅEårê¸ÅEÉNÉäÉA(mod_VendorMaster ÇÃíPâøÉVÅ[ÉgçÏê¨ÉçÉWÉbÉNÇ∆ìØàÍédól)
-
-Private Sub ApplyOutsourceRatioRow(ByVal wsWelding As Worksheet, _
-                                   ByVal dayCol As Long, _
-                                   ByVal nightCol As Long, _
-                                   ByVal ratioPercent As Variant)
-    With wsWelding.Cells(WUP_RATIO_ROW, dayCol)
-        .Formula = ""
-        .Value = OutsourceRatioLabelText()
-        .HorizontalAlignment = xlRight
-        .VerticalAlignment = xlCenter
-    End With
-
-    With wsWelding.Cells(WUP_RATIO_ROW, nightCol)
-        .Formula = ""
-        If IsNumeric(ratioPercent) Then .Value = CDbl(ratioPercent)
-        .NumberFormat = WUP_RATIO_NUMBER_FORMAT
-        .HorizontalAlignment = xlCenter
-        .VerticalAlignment = xlCenter
-    End With
-
-    With wsWelding.Range(wsWelding.Cells(WUP_RATIO_ROW, dayCol), _
-                         wsWelding.Cells(WUP_RATIO_ROW, nightCol)).Font
-        .Name = WeldingUnitPriceFontNameText()
-        .Size = WUP_RATIO_FONT_SIZE
-        On Error Resume Next
-        .NameFarEast = WeldingUnitPriceFontNameText()
-        On Error GoTo 0
-    End With
-End Sub
-
-' ãOìπâÔé–ÉuÉçÉbÉNÇÃ1çsñ⁄: íãóÒ(I/KÅc)=É}ÉXÉ^H1ÇÃÉâÉxÉãï∂éöóÒÅuè„è∏ó¶ É¿ =Åv/
-'                          ñÈóÒ(J/LÅc)=É}ÉXÉ^I1ÇÃó¶ÇÃêîíl(0.0%ï\é¶)ÅB
-' ÉfÅ[É^çsÇÃêîéÆÇÕíãñÈÇ∆Ç‡ñÈóÒ(ó¶êîílÉZÉã)ÇéQè∆Ç∑ÇÈÅB
-' ãOìπâÔé–ÉuÉçÉbÉNÇÃ1çsñ⁄: íãóÒ(I/KÅc)=ÅuäOíçî‰ó¶ÅÅÅvÉâÉxÉã /
-'                          ñÈóÒ(J/LÅc)=äÓñ{èÓïÒÉVÅ[ÉgÇÃìñé–óÒ31çsñ⁄(F31/I31Åc)Ç÷ÇÃéQè∆ÅB
-' âÔé–ñº(óÒ)Ç∆êÆçáÇ∑ÇÈÇÊÇ§ ratioAddress(=ìñÉuÉçÉbÉNÇÃäÓñ{èÓïÒóÒ$31) ÇÇªÇÃÇ‹Ç‹éQè∆Ç∑ÇÈÅB
-Private Sub ApplyRailMarkupRatioRow(ByVal wsWelding As Worksheet, _
-                                    ByVal dayCol As Long, _
-                                    ByVal nightCol As Long, _
-                                    ByVal ratioAddress As String)
-    ' íãóÒ1çsñ⁄: ÅuäOíçî‰ó¶ÅÅÅvÉâÉxÉã(ónê⁄âÔé–óÒÇ∆ìØÇ∂ï\ãL)
-    With wsWelding.Cells(WUP_RATIO_ROW, dayCol)
-        .Formula = ""
-        .Value = OutsourceRatioLabelText()
-        .HorizontalAlignment = xlRight
-        .VerticalAlignment = xlCenter
-    End With
-
-    ' ñÈóÒ1çsñ⁄: äÓñ{èÓïÒÇÃìñé–óÒ31çsñ⁄Ç÷ÇÃéQè∆(ó· ='äÓñ{èÓïÒ'!$F$31)
-    With wsWelding.Cells(WUP_RATIO_ROW, nightCol)
-        If Len(ratioAddress) > 0 Then
-            .Formula = "=" & ratioAddress
+    ' --- ónê⁄é{çHâÔé–ÉuÉçÉbÉN (10çsñ⁄=ónê⁄çHéñÇÃÇ›ÅA1é–2óÒÇ∏Ç¬) ---
+    Dim wIdx As Long
+    For wIdx = 1 To weldingBlockCount
+        Dim weldingDayCol As Long
+        weldingDayCol = GetWeldingDayColByIndex(wIdx)
+        If weldingBlocks(wIdx).hasRatio Then
+            ApplyWeldingVendorBlock wsWelding, lastRow, weldingDayCol, weldingBlocks(wIdx), True, _
+                                    outsourceHeaderText, vendorUnitPriceNameMap, temotoMap, missingSeiriMap, _
+                                    ResolveVendorUnitPriceNameWUP(vendorUnitPriceNameMap, weldingBlocks(wIdx).vendorName)
         Else
-            .ClearContents
+            ClearWeldingVendorBlock wsWelding, lastRow, weldingDayCol
         End If
-        .NumberFormat = WUP_RATIO_NUMBER_FORMAT
-        .HorizontalAlignment = xlCenter
-        .VerticalAlignment = xlCenter
-    End With
+    Next wIdx
+    For wIdx = weldingBlockCount + 1 To MAX_VENDOR_BLOCK_COUNT
+        ClearWeldingVendorBlock wsWelding, lastRow, GetWeldingDayColByIndex(wIdx)
+    Next wIdx
 
-    With wsWelding.Range(wsWelding.Cells(WUP_RATIO_ROW, dayCol), _
-                         wsWelding.Cells(WUP_RATIO_ROW, nightCol)).Font
-        .Name = WeldingUnitPriceFontNameText()
-        .Size = WUP_RATIO_FONT_SIZE
-        On Error Resume Next
-        .NameFarEast = WeldingUnitPriceFontNameText()
-        On Error GoTo 0
-    End With
+    ' --- ãOìπâÔé–ÉuÉçÉbÉN (íPâø ﬂ¿∞›2óÒ + âÔé–2óÒÇ1é–4óÒÇ∏Ç¬) ---
+    Dim railIndex As Long
+    For railIndex = 1 To railBlockCount
+        Dim railDayCol As Long
+        railDayCol = GetRailDayColByIndex(weldingBlockCount, railIndex)
+        If railBlocks(railIndex).hasRatio Then
+            railBlocks(railIndex).patternAddress = BuildRailPatternSheetRef(wsWelding, railDayCol)
+            ApplyRailPatternRow wsWelding, wsInfo, railDayCol, railBlocks(railIndex).valueColumn
+            ApplyWeldingVendorBlock wsWelding, lastRow, railDayCol, railBlocks(railIndex), False, _
+                                    railHeaderText, vendorUnitPriceNameMap, temotoMap, missingSeiriMap
+        Else
+            ClearRailPatternBlock wsWelding, railDayCol
+            ClearWeldingVendorBlock wsWelding, lastRow, railDayCol
+        End If
+    Next railIndex
+
+    For railIndex = railBlockCount + 1 To MAX_VENDOR_BLOCK_COUNT
+        railDayCol = GetRailDayColByIndex(weldingBlockCount, railIndex)
+        ClearRailPatternBlock wsWelding, railDayCol
+        ClearWeldingVendorBlock wsWelding, lastRow, railDayCol
+    Next railIndex
+
+    LogWUP "ìWäJäÆóπ sheet=[" & wsWelding.Name & "] ónê⁄âÔé–êî=" & CStr(weldingBlockCount) & _
+           " ãOìπâÔé–êî=" & CStr(railBlockCount)
 End Sub
 
-Private Sub ApplyMergedCell(ByVal wsWelding As Worksheet, _
-                            ByVal rowIndex As Long, _
-                            ByVal dayCol As Long, _
-                            ByVal nightCol As Long, _
-                            ByVal cellText As String, _
-                            ByVal useShrinkToFit As Boolean)
-    Dim mergeRange As Range
-    Set mergeRange = wsWelding.Range(wsWelding.Cells(rowIndex, dayCol), _
-                                     wsWelding.Cells(rowIndex, nightCol))
+Private Sub ApplyWeldingVendorUnitPricesToSheetColumns(ByVal wsWelding As Worksheet, _
+                                                       ByVal wsInfo As Worksheet, _
+                                                       ByRef weldingBlocks() As WeldingVendorBlock, _
+                                                       ByVal weldingBlockCount As Long, _
+                                                       ByRef railBlocks() As WeldingVendorBlock, _
+                                                       ByVal railBlockCount As Long, _
+                                                       ByVal temotoMap As Object, _
+                                                       ByVal missingSeiriMap As Object, _
+                                                       ByVal targetValueColumns As Collection)
+    Dim lastRow As Long
+    lastRow = wsWelding.Cells(wsWelding.Rows.Count, WUP_SEIRI_COL).End(xlUp).Row
+    If lastRow < WUP_DATA_START_ROW Then Exit Sub
 
-    SafeUnmergeRangeWUP mergeRange
-    mergeRange.Merge
-    With mergeRange
-        .Value = cellText
-        .HorizontalAlignment = xlCenter
-        .VerticalAlignment = xlCenter
-        .ShrinkToFit = useShrinkToFit
-        .WrapText = False
-    End With
+    ClearLegacyOutsourcePatternSelector wsWelding
+    Set mSeiriRowMap = BuildSeiriRowMapWUP(wsWelding, lastRow)
+
+    Dim outsourceHeaderText As String
+    Dim railHeaderText As String
+    outsourceHeaderText = BuildWeldingUnitPriceHeaderText(wsInfo, True)
+    railHeaderText = BuildWeldingUnitPriceHeaderText(wsInfo, False)
+
+    Dim vendorUnitPriceNameMap As Object
+    Set vendorUnitPriceNameMap = mod_VendorMaster.mod_VendorUnitPrice.BuildVendorUnitPriceNameMap(wsInfo)
+
+    Dim wIdx As Long
+    For wIdx = 1 To weldingBlockCount
+        Dim weldingDayCol As Long
+        weldingDayCol = GetWeldingDayColByIndex(wIdx)
+        If weldingBlocks(wIdx).hasRatio Then
+            If CollectionContainsLongWUP(targetValueColumns, weldingBlocks(wIdx).valueColumn) Then
+                ApplyWeldingVendorBlock wsWelding, lastRow, weldingDayCol, weldingBlocks(wIdx), True, _
+                                        outsourceHeaderText, vendorUnitPriceNameMap, temotoMap, missingSeiriMap, _
+                                        ResolveVendorUnitPriceNameWUP(vendorUnitPriceNameMap, weldingBlocks(wIdx).vendorName)
+            Else
+                UpdateWeldingVendorDisplayNameOnly wsWelding, weldingDayCol, _
+                    ResolveVendorUnitPriceNameWUP(vendorUnitPriceNameMap, weldingBlocks(wIdx).vendorName)
+            End If
+        End If
+    Next wIdx
+
+    Dim railIndex As Long
+    For railIndex = 1 To railBlockCount
+        Dim railDayCol As Long
+        railDayCol = GetRailDayColByIndex(weldingBlockCount, railIndex)
+        If CollectionContainsLongWUP(targetValueColumns, railBlocks(railIndex).valueColumn) Then
+            If railBlocks(railIndex).hasRatio Then
+                railBlocks(railIndex).patternAddress = BuildRailPatternSheetRef(wsWelding, railDayCol)
+                ApplyRailPatternRow wsWelding, wsInfo, railDayCol, railBlocks(railIndex).valueColumn
+                ApplyWeldingVendorBlock wsWelding, lastRow, railDayCol, railBlocks(railIndex), False, _
+                                        railHeaderText, vendorUnitPriceNameMap, temotoMap, missingSeiriMap
+            Else
+                ClearRailPatternBlock wsWelding, railDayCol
+                ClearWeldingVendorBlock wsWelding, lastRow, railDayCol
+            End If
+        End If
+    Next railIndex
+
+    LogWUP "ïîï™ìWäJäÆóπ sheet=[" & wsWelding.Name & "] ëŒè€óÒêî=" & CStr(targetValueColumns.Count)
 End Sub
 
-' ãå D3:E3ÅuäOíçîÔéZèoÉpÉ^Å[ÉìÅFÅv/ F3 ÉhÉçÉbÉvÉ_ÉEÉìÇçÌèúÇ∑ÇÈ
 Private Sub ClearLegacyOutsourcePatternSelector(ByVal wsWelding As Worksheet)
     If wsWelding Is Nothing Then Exit Sub
     On Error GoTo CleanupErr
@@ -1354,41 +1434,6 @@ CleanupErr:
 End Sub
 
 ' ãOìπâÔé–óÒ(íã/ñÈ)ÇÃ3çsñ⁄: ç∂óÒ=ÅuíPâø ﬂ¿∞›:Åv/ âEóÒ=äÓñ{èÓïÒ30çsñ⁄ÇÃëIëì‡óe(5çsñ⁄âÔé–ñºÇ∆ìØÇ∂2óÒ)
-Private Sub ApplyRailPatternRow(ByVal wsWelding As Worksheet, _
-                                ByVal wsInfo As Worksheet, _
-                                ByVal railDayCol As Long, _
-                                ByVal basicInfoValueColumn As Long)
-    Dim labelCol As Long
-    Dim valueCol As Long
-    labelCol = railDayCol
-    valueCol = railDayCol + 1
-
-    With wsWelding.Cells(WUP_PATTERN_ROW, labelCol)
-        .Formula = ""
-        .Value = UnitPricePatternLabelText()
-        .HorizontalAlignment = xlRight
-        .VerticalAlignment = xlCenter
-        .ShrinkToFit = True
-        .WrapText = False
-        .Font.Name = WeldingUnitPriceFontNameText()
-        On Error Resume Next
-        .Font.NameFarEast = WeldingUnitPriceFontNameText()
-        On Error GoTo 0
-    End With
-
-    With wsWelding.Cells(WUP_PATTERN_ROW, valueCol)
-        .Formula = ""
-        .Value = wsInfo.Cells(BASIC_INFO_RAIL_PATTERN_ROW, basicInfoValueColumn).Value
-        .HorizontalAlignment = xlLeft
-        .VerticalAlignment = xlCenter
-        .ShrinkToFit = True
-        .WrapText = False
-        .Font.Name = WeldingUnitPriceFontNameText()
-        On Error Resume Next
-        .Font.NameFarEast = WeldingUnitPriceFontNameText()
-        On Error GoTo 0
-    End With
-End Sub
 
 Private Sub ClearRailPatternBlock(ByVal wsWelding As Worksheet, ByVal railDayCol As Long)
     Dim labelCol As Long
@@ -1408,97 +1453,11 @@ Private Sub ClearRailPatternBlock(ByVal wsWelding As Worksheet, ByVal railDayCol
     End With
 End Sub
 
-Private Function GetWeldingDayColByIndex(ByVal weldingIndex As Long) As Long
-    GetWeldingDayColByIndex = WUP_WELDING_DAY_COL + ((weldingIndex - 1) * WUP_VENDOR_BLOCK_WIDTH)
-End Function
-
-' ãOìπâÔé–: ónê⁄âÔé–óÒÇÃíºå„Ç©ÇÁ2óÒçèÇ›ÅB1é–ñ⁄=I/J(9/10), 2é–ñ⁄=K/L(11/12), 3é–ñ⁄=M/N(13/14)Åc
-Private Function GetRailDayColByIndex(ByVal weldingBlockCount As Long, ByVal railIndex As Long) As Long
-    GetRailDayColByIndex = WUP_WELDING_DAY_COL + (weldingBlockCount * WUP_VENDOR_BLOCK_WIDTH) + _
-                           ((railIndex - 1) * WUP_VENDOR_BLOCK_WIDTH)
-End Function
-
-Private Function BuildRailPatternSheetRef(ByVal wsWelding As Worksheet, ByVal railDayCol As Long) As String
-    BuildRailPatternSheetRef = "'" & Replace$(wsWelding.Name, "'", "''") & "'!" & _
-        wsWelding.Cells(WUP_PATTERN_ROW, railDayCol + 1).Address(True, True)
-End Function
-
-' äOíçîÔéZèoÉpÉ^Å[ÉìÇÃëIëéà(äÓñ{èÓïÒ30çsñ⁄ÇÃÉhÉçÉbÉvÉ_ÉEÉìÇ∆êîéÆî‰ärÇ≈ìØàÍï∂éöóÒÇégóp)
-Public Function BasicInfoRailPatternValidationListText() As String
-    BasicInfoRailPatternValidationListText = PatternPrevYearText() & "," & _
-                                             PatternOutsourceRatioText() & "," & _
-                                             PatternPriceIndexText()
-End Function
-
-Private Function UnitPricePatternLabelText() As String
-    Static cached As String
-    If cached = "" Then
-        cached = ChrW$(&H5358) & ChrW$(&H4FA1) & ChrW$(&HFF8A) & ChrW$(&HFF9F) & ChrW$(&HFF80) & _
-                 ChrW$(&HFF70) & ChrW$(&HFF9D) & ":"
-    End If
-    UnitPricePatternLabelText = cached
-End Function
-
-Private Function PatternPrevYearText() As String
-    Static cached As String
-    If cached = "" Then
-        cached = ChrW$(&H524D) & ChrW$(&H5E74) & ChrW$(&H5EA6) & ChrW$(&H5358) & ChrW$(&H4FA1) & _
-                 ChrW$(&H9069) & ChrW$(&H7528) & ChrW$(&H30D1) & ChrW$(&H30BF) & ChrW$(&H30FC) & ChrW$(&H30F3)
-    End If
-    PatternPrevYearText = cached
-End Function
-
-Private Function PatternOutsourceRatioText() As String
-    Static cached As String
-    If cached = "" Then
-        cached = ChrW$(&H5916) & ChrW$(&H6CE8) & ChrW$(&H6BD4) & ChrW$(&H7387) & ChrW$(&H9069) & ChrW$(&H7528) & _
-                 ChrW$(&H30D1) & ChrW$(&H30BF) & ChrW$(&H30FC) & ChrW$(&H30F3)
-    End If
-    PatternOutsourceRatioText = cached
-End Function
-
-Private Function PatternPriceIndexText() As String
-    Static cached As String
-    If cached = "" Then
-        cached = ChrW$(&H7269) & ChrW$(&H4FA1) & ChrW$(&H6307) & ChrW$(&H6570) & ChrW$(&H9069) & ChrW$(&H7528) & _
-                 ChrW$(&H30D1) & ChrW$(&H30BF) & ChrW$(&H30FC) & ChrW$(&H30F3)
-    End If
-    PatternPriceIndexText = cached
-End Function
-
-Private Sub ApplyWeldingVendorFont(ByVal wsWelding As Worksheet, _
-                                   ByVal lastRow As Long, _
-                                   ByVal dayCol As Long, _
-                                   ByVal nightCol As Long)
-    Dim fontRange As Range
-    Set fontRange = wsWelding.Range(wsWelding.Cells(WUP_HEADER_ROW, dayCol), _
-                                    wsWelding.Cells(lastRow, nightCol))
-    With fontRange.Font
-        .Name = WeldingUnitPriceFontNameText()
-        On Error Resume Next
-        .NameFarEast = WeldingUnitPriceFontNameText()
-        On Error GoTo 0
-    End With
-End Sub
-
-Private Sub ApplyWeldingVendorBorders(ByVal wsWelding As Worksheet, _
-                                      ByVal lastRow As Long, _
-                                      ByVal dayCol As Long, _
-                                      ByVal nightCol As Long)
-    Dim borderRange As Range
-    Set borderRange = wsWelding.Range(wsWelding.Cells(WUP_HEADER_ROW, dayCol), _
-                                      wsWelding.Cells(lastRow, nightCol))
-    With borderRange
-        .Borders.LineStyle = xlNone
-        With .Borders
-            .LineStyle = xlContinuous
-            .Weight = xlThin
-        End With
-        .Borders(xlEdgeLeft).Weight = xlMedium
-        .Borders(xlEdgeTop).Weight = xlMedium
-        .Borders(xlEdgeRight).Weight = xlMedium
-        .Borders(xlEdgeBottom).Weight = xlMedium
-    End With
+Private Sub ClearWeldingSheetVendorAreaThrough(ByVal wsWelding As Worksheet, _
+                                               ByVal lastRow As Long, _
+                                               ByVal rightmostNightCol As Long)
+    If rightmostNightCol < WUP_WELDING_DAY_COL Then Exit Sub
+    ClearWeldingVendorColumnsRange wsWelding, lastRow, WUP_WELDING_DAY_COL, rightmostNightCol
 End Sub
 
 Private Sub ClearWeldingVendorBlock(ByVal wsWelding As Worksheet, _
@@ -1520,11 +1479,22 @@ Private Sub ClearWeldingVendorBlock(ByVal wsWelding As Worksheet, _
     ClearWeldingVendorColumnsRange wsWelding, lastRow, dayCol, nightCol
 End Sub
 
-Private Sub ClearWeldingSheetVendorAreaThrough(ByVal wsWelding As Worksheet, _
-                                               ByVal lastRow As Long, _
-                                               ByVal rightmostNightCol As Long)
-    If rightmostNightCol < WUP_WELDING_DAY_COL Then Exit Sub
-    ClearWeldingVendorColumnsRange wsWelding, lastRow, WUP_WELDING_DAY_COL, rightmostNightCol
+Private Sub ClearWeldingVendorColumnsBeyondLayout(ByVal wsWelding As Worksheet, _
+                                                  ByVal lastRow As Long, _
+                                                  ByVal rightmostNightCol As Long)
+    Dim sheetLastCol As Long
+    On Error Resume Next
+    sheetLastCol = wsWelding.Cells(WUP_NAME_ROW, wsWelding.Columns.Count).End(xlToLeft).Column
+    On Error GoTo 0
+    If sheetLastCol <= rightmostNightCol Then Exit Sub
+    If sheetLastCol < WUP_WELDING_DAY_COL Then Exit Sub
+
+    Dim dayCol As Long
+    dayCol = rightmostNightCol + 1
+    Do While dayCol <= sheetLastCol
+        ClearWeldingVendorBlock wsWelding, lastRow, dayCol
+        dayCol = dayCol + 2
+    Loop
 End Sub
 
 Private Sub ClearWeldingVendorColumnsRange(ByVal wsWelding As Worksheet, _
@@ -1566,12 +1536,10 @@ Private Sub ClearWeldingVendorColumnsRangeCore(ByVal clearRange As Range)
     clearRange.Borders.LineStyle = xlNone
 End Sub
 
-Private Sub ApplyGreyFill(ByVal targetCell As Range)
-    With targetCell
-        .ClearContents
-        .NumberFormat = "General"
-        .Interior.Color = RGB(WUP_FILL_COLOR_R, WUP_FILL_COLOR_G, WUP_FILL_COLOR_B)
-    End With
+Private Sub LogWUP(ByVal msg As String)
+    On Error Resume Next
+    mod_DebugLog.Log "[WeldingUP] " & msg
+    On Error GoTo 0
 End Sub
 
 Private Sub SafeUnmergeRangeWUP(ByVal targetRange As Range)
@@ -1586,6 +1554,7 @@ End Sub
 '
 ' ónê⁄âÔé–óÒ: 10çsñ⁄=Åuónê⁄çHéñÅvÇÃÉuÉçÉbÉNÇÃÇ›ÅAèoåªèáÇ… G/H, I/J Åc Ç÷1é–2óÒÇ∏Ç¬îzíu
 ' ãOìπâÔé–óÒ: ónê⁄óÒÇÃíºå„Ç©ÇÁ2óÒçèÇ›(I/J, K/L, M/N Åc)ÅB3çsñ⁄Ç…íPâø ﬂ¿∞›ÅA5çsñ⁄Ç…âÔé–ñº
+
 Private Sub ScanVendorBlocks(ByVal wsInfo As Worksheet, _
                              ByRef weldingBlocks() As WeldingVendorBlock, _
                              ByRef weldingBlockCount As Long, _
@@ -1640,559 +1609,469 @@ Private Sub ScanVendorBlocks(ByVal wsInfo As Worksheet, _
     End If
 End Sub
 
-Private Function GetVendorBlockCountWUP(ByVal wsInfo As Worksheet) As Long
-    Dim countValue As Long
-    countValue = CLng(Val(StrConv(CStr(wsInfo.Range(BASIC_INFO_VENDOR_COUNT_CELL).Value), vbNarrow)))
-    If countValue < 1 Then countValue = 1
-    If countValue > MAX_VENDOR_BLOCK_COUNT Then countValue = MAX_VENDOR_BLOCK_COUNT
-    GetVendorBlockCountWUP = countValue
+Private Sub SyncWeldingVendorBlocksLayoutOnSheet(ByVal wsWelding As Worksheet, _
+                                                 ByVal wsInfo As Worksheet, _
+                                                 ByRef weldingBlocks() As WeldingVendorBlock, _
+                                                 ByVal weldingBlockCount As Long, _
+                                                 ByRef railBlocks() As WeldingVendorBlock, _
+                                                 ByVal railBlockCount As Long, _
+                                                 ByVal vendorUnitPriceNameMap As Object)
+    Dim lastRow As Long
+    lastRow = wsWelding.Cells(wsWelding.Rows.Count, WUP_SEIRI_COL).End(xlUp).Row
+    If lastRow < WUP_DATA_START_ROW Then lastRow = WUP_DATA_START_ROW + 200
+
+    ClearLegacyOutsourcePatternSelector wsWelding
+
+    Dim wIdx As Long
+    For wIdx = 1 To weldingBlockCount
+        Dim weldingDayCol As Long
+        weldingDayCol = GetWeldingDayColByIndex(wIdx)
+        If ShouldShowWeldingVendorBlock(weldingBlocks(wIdx)) Then
+            UpdateWeldingVendorDisplayNameOnly wsWelding, weldingDayCol, _
+                ResolveVendorUnitPriceNameWUP(vendorUnitPriceNameMap, weldingBlocks(wIdx).vendorName)
+        Else
+            ClearWeldingVendorBlock wsWelding, lastRow, weldingDayCol
+        End If
+    Next wIdx
+
+    For wIdx = weldingBlockCount + 1 To MAX_VENDOR_BLOCK_COUNT
+        ClearWeldingVendorBlock wsWelding, lastRow, GetWeldingDayColByIndex(wIdx)
+    Next wIdx
+
+    Dim railIndex As Long
+    Dim railDayCol As Long
+    For railIndex = 1 To railBlockCount
+        railDayCol = GetRailDayColByIndex(weldingBlockCount, railIndex)
+        If ShouldShowWeldingVendorBlock(railBlocks(railIndex)) Then
+            ApplyRailPatternRow wsWelding, wsInfo, railDayCol, railBlocks(railIndex).valueColumn
+            UpdateWeldingVendorDisplayNameOnly wsWelding, railDayCol, _
+                ResolveVendorUnitPriceNameWUP(vendorUnitPriceNameMap, railBlocks(railIndex).vendorName)
+        Else
+            ClearRailPatternBlock wsWelding, railDayCol
+            ClearWeldingVendorBlock wsWelding, lastRow, railDayCol
+        End If
+    Next railIndex
+
+    For railIndex = railBlockCount + 1 To MAX_VENDOR_BLOCK_COUNT
+        railDayCol = GetRailDayColByIndex(weldingBlockCount, railIndex)
+        ClearRailPatternBlock wsWelding, railDayCol
+        ClearWeldingVendorBlock wsWelding, lastRow, railDayCol
+    Next railIndex
+
+    ClearWeldingVendorColumnsBeyondLayout wsWelding, lastRow, _
+        GetWeldingSheetRightmostVendorNightCol(weldingBlockCount, railBlockCount)
+End Sub
+
+Private Sub UpdateWeldingVendorDisplayNameOnly(ByVal wsWelding As Worksheet, _
+                                               ByVal dayCol As Long, _
+                                               ByVal displayName As String)
+    ApplyMergedCell wsWelding, WUP_NAME_ROW, dayCol, dayCol + 1, displayName, True
+End Sub
+
+' éwíËÇµÇΩäÓñ{èÓïÒóÒ( F/I/LÅc )Ç…ëŒâûÇ∑ÇÈónê⁄íPâøóÒÇæÇØÇìWäJÇ∑ÇÈÅB
+' 2é–ñ⁄ÇÃèââÒì¸óÕÇ»Ç«ÅAëSÉVÅ[ÉgëSóÒÇÃçƒìWäJÇîÇØÇÈÇΩÇﬂÇ…égópÇ∑ÇÈÅB
+
+Public Function BasicInfoRailPatternValidationListText() As String
+    BasicInfoRailPatternValidationListText = PatternPrevYearText() & "," & _
+                                             PatternOutsourceRatioText() & "," & _
+                                             PatternPriceIndexText()
 End Function
 
-Private Function BuildVendorBlock(ByVal wsInfo As Worksheet, _
-                                  ByVal valueColumn As Long, _
-                                  ByVal ratioRow As Long) As WeldingVendorBlock
-    Dim result As WeldingVendorBlock
-    result.valueColumn = valueColumn
-    result.vendorName = Trim$(CStr(wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, valueColumn).Value))
-    result.ratioAddress = "'" & Replace$(wsInfo.Name, "'", "''") & "'!" & _
-                          wsInfo.Cells(ratioRow, valueColumn).Address(True, True)
-    result.patternAddress = "'" & Replace$(wsInfo.Name, "'", "''") & "'!" & _
-                            wsInfo.Cells(BASIC_INFO_RAIL_PATTERN_ROW, valueColumn).Address(True, True)
-    result.ratioPercent = NormalizeRatioValue(wsInfo.Cells(ratioRow, valueColumn).Value)
-    result.hasRatio = IsNumeric(result.ratioPercent)
-    BuildVendorBlock = result
+Public Function IsWeldingUnitPriceSheet(ByVal targetSheet As Worksheet) As Boolean
+    If targetSheet Is Nothing Then Exit Function
+    IsWeldingUnitPriceSheet = _
+        (InStr(1, NormalizeMatchTextWUP(CStr(targetSheet.Name)), _
+               NormalizeMatchTextWUP(WeldingSheetSuffixText()), vbTextCompare) > 0)
 End Function
 
-' î‰ó¶Ç0Å`1Ç÷ê≥ãKâª(67.1 Ç‚ "67.1%" -> 0.671)ÅBêîílâªÇ≈Ç´Ç»ÇØÇÍÇŒEmpty
-Private Function NormalizeRatioValue(ByVal sourceValue As Variant) As Variant
-    Dim textValue As String
+' ÉVÅ[ÉgíPà ÇÃìWäJèàóù
 
-    If IsError(sourceValue) Then Exit Function
-    If IsNumeric(sourceValue) Then
-        NormalizeRatioValue = NormalizePercentScale(CDbl(sourceValue))
-        Exit Function
-    End If
+Public Function RemovedVendorIndicesRequireWeldingRefresh(ByVal wsInfo As Worksheet, _
+                                                          ByVal firstRemovedIndex As Long, _
+                                                          ByVal lastRemovedIndex As Long) As Boolean
+    If wsInfo Is Nothing Then Exit Function
+    If firstRemovedIndex > lastRemovedIndex Then Exit Function
 
-    textValue = Trim$(StrConv(CStr(CommonNzText(sourceValue)), vbNarrow))
-    If Len(textValue) = 0 Then Exit Function
+    Dim i As Long
+    For i = firstRemovedIndex To lastRemovedIndex
+        Dim valueColumn As Long
+        valueColumn = BASIC_INFO_VENDOR_BLOCK_VALUE_COL + ((i - 1) * BASIC_INFO_VENDOR_BLOCK_STEP_COLS)
 
-    If Right$(textValue, 1) = "%" Then
-        textValue = Trim$(Left$(textValue, Len(textValue) - 1))
-        If IsNumeric(textValue) Then NormalizeRatioValue = CDbl(textValue) / 100#
-        Exit Function
-    End If
+        Dim vendorName As String
+        Dim workTypeText As String
+        vendorName = Trim$(CStr(wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, valueColumn).Value))
+        workTypeText = NormalizeMatchTextWUP(CStr(wsInfo.Cells(BASIC_INFO_VENDOR_BLOCK_TOP_ROW, valueColumn).Value))
 
-    If IsNumeric(textValue) Then NormalizeRatioValue = NormalizePercentScale(CDbl(textValue))
-End Function
+        If Len(vendorName) = 0 And Len(workTypeText) = 0 Then
+            If Len(Trim$(CStr(wsInfo.Cells(BASIC_INFO_WELDING_RATIO_ROW, valueColumn).Value))) = 0 Then
+                GoTo ContinueNextRemoved
+            End If
+        End If
 
-Private Function NormalizePercentScale(ByVal value As Double) As Double
-    If value > 1# And value <= 100# Then
-        NormalizePercentScale = value / 100#
-    Else
-        NormalizePercentScale = value
-    End If
-End Function
-
-' éËå≥î‰ó¶É}ÉXÉ^(ÉåÅ[Éãónê⁄_ãOìπâÔé–äOíçîÔó¶àÍóó / ónê⁄éËå≥äÑçáÉVÅ[Ég)
-
-' Dictionary: key=êÆóùî‘çÜ(ï∂éöóÒ) -> Array(éËå≥î‰ó¶íã, éËå≥î‰ó¶ñÈ) Å¶ñ¢ê›íËÇÕEmpty
-Private Function LoadTemotoRatioMap(ByRef loadErrorText As String) As Object
-    loadErrorText = ""
-
-    Dim sourceFilePath As String
-    sourceFilePath = ResolveTemotoMasterFilePath()
-    If sourceFilePath = "" Then
-        loadErrorText = "ÉtÉ@ÉCÉãÇ™å©Ç¬Ç©ÇËÇ‹ÇπÇÒ: É}ÉXÉ^ÉfÅ[É^\" & TemotoMasterFilePatternText()
-        Exit Function
-    End If
-
-    Dim sourceFileTime As Date
-    On Error Resume Next
-    sourceFileTime = FileDateTime(sourceFilePath)
-    On Error GoTo 0
-
-    If Not mTemotoRatioMap Is Nothing Then
-        If StrComp(mTemotoRatioMapPath, sourceFilePath, vbTextCompare) = 0 Then
-            If sourceFileTime = mTemotoRatioMapTime Then
-                Set LoadTemotoRatioMap = mTemotoRatioMap
+        If StrComp(workTypeText, NormalizeMatchTextWUP(WeldingWorkTypeText()), vbTextCompare) = 0 Then
+            If Len(vendorName) > 0 Or _
+               Len(Trim$(CStr(wsInfo.Cells(BASIC_INFO_WELDING_RATIO_ROW, valueColumn).Value))) > 0 Then
+                RemovedVendorIndicesRequireWeldingRefresh = True
                 Exit Function
             End If
         End If
+ContinueNextRemoved:
+    Next i
+End Function
+
+Public Sub ApplyWeldingVendorUnitPricesForBasicInfo(Optional ByVal wsInfo As Worksheet, _
+                                                    Optional ByVal showWarnings As Boolean = False, _
+                                                    Optional ByVal preferredRatioColumn As Long = 0, _
+                                                    Optional ByVal deferCalculation As Boolean = False)
+    If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet()
+    If wsInfo Is Nothing Then Exit Sub
+
+    Dim targetBook As Workbook
+    Set targetBook = wsInfo.Parent
+
+    Dim weldingSheets As Collection
+    Set weldingSheets = CollectWeldingUnitPriceSheets(targetBook)
+    If weldingSheets.Count = 0 Then
+        LogWUP "ÉåÅ[Éãónê⁄íPâøÉVÅ[ÉgÇ»Çµ -> ÉXÉLÉbÉv"
+        Exit Sub
     End If
 
-    LogWUP "éËå≥î‰ó¶É}ÉXÉ^ path=[" & sourceFilePath & "]"
+    Dim warningTexts As Collection
+    Set warningTexts = New Collection
 
-    Dim cn As Object
-    Set cn = CommonOpenExcelAdoConnection(sourceFilePath)
-    If cn Is Nothing Then
-        loadErrorText = "ADOê⁄ë±Ç…é∏îsÇµÇ‹ÇµÇΩ: " & sourceFilePath
-        Exit Function
+    ' --- éËå≥î‰ó¶É}ÉXÉ^ÇÃì«Ç›çûÇ› ---
+    Dim temotoMap As Object
+    Dim loadErrorText As String
+    Set temotoMap = LoadTemotoRatioMap(loadErrorText)
+    If temotoMap Is Nothing Then
+        LogWUP "éËå≥î‰ó¶É}ÉXÉ^ì«çûé∏îs: " & loadErrorText
+        If showWarnings Then MsgBox "éËå≥î‰ó¶É}ÉXÉ^Çì«Ç›çûÇﬂÇ‹ÇπÇÒÇ≈ÇµÇΩÅB" & vbCrLf & loadErrorText, vbExclamation
+        Exit Sub
     End If
+    LogWUP "éËå≥î‰ó¶É}ÉXÉ^ì«çûäÆóπ åèêî=" & CStr(temotoMap.Count)
+
+    ' --- äÓñ{èÓïÒÇÃã∆é“ÉuÉçÉbÉNï™óﬁ ---
+    Dim weldingBlocks() As WeldingVendorBlock
+    Dim weldingBlockCount As Long
+    Dim railBlocks() As WeldingVendorBlock
+    Dim railBlockCount As Long
+    ScanVendorBlocks wsInfo, weldingBlocks, weldingBlockCount, railBlocks, railBlockCount
+
+    Dim wIdx As Long
+    For wIdx = 1 To weldingBlockCount
+        If Not weldingBlocks(wIdx).hasRatio Then
+            warningTexts.Add WarnWeldingBlockText(weldingBlocks(wIdx))
+        End If
+    Next wIdx
+    If railBlockCount = 0 Then
+        warningTexts.Add "äÓñ{èÓïÒÇ…ÅuãOìπçHéñÅvÇÃã∆é“ÉuÉçÉbÉNÇ™å©Ç¬Ç©ÇËÇ‹ÇπÇÒÅB"
+    End If
+
+    ' ãOìπâÔé–ÉuÉçÉbÉNÇÃî‰ó¶éQè∆(31çsñ⁄)Ççƒç\íz
+    Dim rbIndex As Long
+    For rbIndex = 1 To railBlockCount
+        railBlocks(rbIndex) = BuildVendorBlock(wsInfo, railBlocks(rbIndex).valueColumn, _
+                                               BASIC_INFO_WELDING_RATIO_ROW)
+    Next rbIndex
+
+    Dim missingSeiriMap As Object
+    Set missingSeiriMap = CreateObject("Scripting.Dictionary")
+
+    Dim previousScreenUpdating As Boolean
+    Dim previousCalculation As XlCalculation
+    previousScreenUpdating = Application.ScreenUpdating
+    previousCalculation = Application.Calculation
+    Application.ScreenUpdating = False
+    Application.Calculation = xlCalculationManual
 
     On Error GoTo Cleanup
 
-    Dim adoSheetName As String
-    adoSheetName = FindAdoSheetNameWUP(cn, TemotoMasterSheetNameText())
-    If adoSheetName = "" Then
-        loadErrorText = "ÉVÅ[ÉgÅu" & TemotoMasterSheetNameText() & "ÅvÇ™å©Ç¬Ç©ÇËÇ‹ÇπÇÒ: " & sourceFilePath
-        GoTo Cleanup
-    End If
+    Dim wsWelding As Variant
+    For Each wsWelding In weldingSheets
+        ApplyWeldingVendorUnitPricesToSheet wsWelding, wsInfo, weldingBlocks, weldingBlockCount, _
+                                            railBlocks, railBlockCount, temotoMap, missingSeiriMap
+    Next wsWelding
 
-    Dim rs As Object
-    Set rs = CreateObject("ADODB.Recordset")
-    rs.Open "SELECT * FROM [" & adoSheetName & "$]", cn, 0, 1  ' adOpenForwardOnly, adLockReadOnly
-    If rs.EOF Then
-        loadErrorText = "ÉVÅ[ÉgÅu" & TemotoMasterSheetNameText() & "ÅvÇ…ÉfÅ[É^Ç™Ç†ÇËÇ‹ÇπÇÒÅB"
-        CommonCloseAdoRecordset rs
-        GoTo Cleanup
-    End If
-
-    Dim data As Variant
-    data = rs.GetRows
-    CommonCloseAdoRecordset rs
-
-    Set LoadTemotoRatioMap = BuildTemotoMapFromData(data, loadErrorText)
-    If Not LoadTemotoRatioMap Is Nothing Then
-        Set mTemotoRatioMap = LoadTemotoRatioMap
-        mTemotoRatioMapPath = sourceFilePath
-        mTemotoRatioMapTime = sourceFileTime
+    If missingSeiriMap.Count > 0 Then
+        warningTexts.Add BuildMissingSeiriWarningText(missingSeiriMap)
     End If
 
 Cleanup:
-    CommonCloseAdoConnection cn
-End Function
-
-Private Function BuildTemotoMapFromData(ByVal data As Variant, _
-                                        ByRef loadErrorText As String) As Object
-    Dim fieldCount As Long
-    Dim recordCount As Long
-    fieldCount = UBound(data, 1) + 1
-    recordCount = UBound(data, 2) + 1
-
-    ' --- ÉwÉbÉ_Å[çsÇÃåüèo(ÅuêÆóùî‘çÜÅvÇä‹ÇﬁÉZÉãÇíTÇ∑) ---
-    Dim headerRecord As Long
-    Dim seiriField As Long
-    headerRecord = -1
-    seiriField = -1
-
-    Dim r As Long, f As Long
-    For r = 0 To Application.WorksheetFunction.Min(recordCount - 1, 19)
-        For f = 0 To fieldCount - 1
-            If InStr(1, NormalizeMatchTextWUP(CommonNzText(data(f, r))), _
-                     SeiriHeaderKeywordText(), vbTextCompare) > 0 Then
-                headerRecord = r
-                seiriField = f
-                Exit For
-            End If
-        Next f
-        If headerRecord >= 0 Then Exit For
-    Next r
-
-    If headerRecord < 0 Then
-        loadErrorText = "ÉwÉbÉ_Å[çs(êÆóùî‘çÜ)ÇåüèoÇ≈Ç´Ç‹ÇπÇÒÇ≈ÇµÇΩÅB"
-        Exit Function
-    End If
-
-    ' --- íã/ñÈÇÃéËå≥î‰ó¶óÒÇÃåüèo ---
-    Dim dayField As Long
-    Dim nightField As Long
-    dayField = -1
-    nightField = -1
-    For f = 0 To fieldCount - 1
-        Dim headerCellText As String
-        headerCellText = NormalizeMatchTextWUP(CommonNzText(data(f, headerRecord)))
-        If f <> seiriField And Len(headerCellText) > 0 Then
-            If dayField < 0 And InStr(1, headerCellText, DayKeywordText(), vbTextCompare) > 0 Then
-                dayField = f
-            ElseIf nightField < 0 And InStr(1, headerCellText, NightKeywordText(), vbTextCompare) > 0 Then
-                nightField = f
-            End If
-        End If
-    Next f
-
-    If dayField < 0 Then dayField = seiriField + 1
-    If nightField < 0 Then nightField = dayField + 1
-    If dayField > fieldCount - 1 Then
-        loadErrorText = "éËå≥î‰ó¶(íã)ÇÃóÒÇåüèoÇ≈Ç´Ç‹ÇπÇÒÇ≈ÇµÇΩÅB"
-        Exit Function
-    End If
-    LogWUP "éËå≥î‰ó¶É}ÉXÉ^ headerRow=" & CStr(headerRecord + 1) & _
-           " êÆóùî‘çÜóÒ=" & CStr(seiriField + 1) & _
-           " íãóÒ=" & CStr(dayField + 1) & " ñÈóÒ=" & CStr(nightField + 1)
-
-    ' --- êÆóùî‘çÜ -> Array(íã, ñÈ) ÇÃé´èëÇç\íz / 5000î‘ë‰ÇÕÉpÉbÉNç\ê¨Ç‡ìoò^ ---
-    Dim result As Object
-    Set result = CreateObject("Scripting.Dictionary")
-    result.CompareMode = vbTextCompare
-
-    Set mPackMap = CreateObject("Scripting.Dictionary")
-    mPackMap.CompareMode = vbTextCompare
-
-    For r = headerRecord + 1 To recordCount - 1
-        Dim seiriText As String
-        seiriText = Trim$(StrConv(CommonNzText(data(seiriField, r)), vbNarrow))
-        If Len(seiriText) > 0 And IsNumeric(seiriText) Then
-            Dim seiriKey As String
-            seiriKey = CStr(CLng(Val(seiriText)))
-
-            Dim dayRatio As Variant
-            Dim nightRatio As Variant
-            dayRatio = NormalizeRatioValue(data(dayField, r))
-            If nightField <= fieldCount - 1 Then
-                nightRatio = NormalizeRatioValue(data(nightField, r))
-            End If
-
-            If Not result.Exists(seiriKey) Then
-                result.Add seiriKey, Array(dayRatio, nightRatio)
-            End If
-
-            If CLng(Val(seiriText)) >= WUP_PACK_SEIRI_MIN And Not mPackMap.Exists(seiriKey) Then
-                Dim comps As Collection
-                Set comps = New Collection
-                AddPackComponent comps, data, fieldCount, r, _
-                                 WUP_MASTER_PACK_COMP1_FIELD, WUP_MASTER_PACK_QTY1_FIELD
-                AddPackComponent comps, data, fieldCount, r, _
-                                 WUP_MASTER_PACK_COMP2_FIELD, WUP_MASTER_PACK_QTY2_FIELD
-                AddPackComponent comps, data, fieldCount, r, _
-                                 WUP_MASTER_PACK_COMP3_FIELD, WUP_MASTER_PACK_QTY3_FIELD
-                If comps.Count > 0 Then mPackMap.Add seiriKey, comps
-            End If
-        End If
-    Next r
-
-    LogWUP "ÉpÉbÉNç\ê¨É}ÉXÉ^ åèêî=" & CStr(mPackMap.Count)
-
-    If result.Count = 0 Then
-        loadErrorText = "éËå≥î‰ó¶ÉfÅ[É^Ç1åèÇ‡ì«Ç›çûÇﬂÇ‹ÇπÇÒÇ≈ÇµÇΩÅB"
-        Exit Function
-    End If
-
-    Set BuildTemotoMapFromData = result
-End Function
-
-' ÉpÉbÉNç\ê¨1åèÇí«â¡(ç\ê¨êÆóùî‘çÜÅEêîó Ç™Ç∆Ç‡Ç…êîílÇÃÇ∆Ç´ÇÃÇ›)
-Private Sub AddPackComponent(ByVal comps As Collection, ByVal data As Variant, _
-                             ByVal fieldCount As Long, ByVal r As Long, _
-                             ByVal compField As Long, ByVal qtyField As Long)
-    If compField > fieldCount - 1 Or qtyField > fieldCount - 1 Then Exit Sub
-    Dim compText As String, qtyText As String
-    compText = Trim$(StrConv(CommonNzText(data(compField, r)), vbNarrow))
-    qtyText = Trim$(StrConv(CommonNzText(data(qtyField, r)), vbNarrow))
-    If Len(compText) = 0 Or Not IsNumeric(compText) Then Exit Sub
-    If Len(qtyText) = 0 Or Not IsNumeric(qtyText) Then Exit Sub
-    comps.Add Array(CStr(CLng(Val(compText))), CDbl(qtyText))
-End Sub
-
-' É}ÉXÉ^ÉtÉ@ÉCÉãÇÃÉpÉXâåà(ã∆é“É}ÉXÉ^Ç∆ìØï˚éÆ)
-'   1) %USERPROFILE%\ëÂìSçHã∆äîéÆâÔé–\ê¸òHèoí£èäóp_íçï∂èë_êøãÅèëÉAÉNÉZÉXÉTÉCÉg - ÉhÉLÉÖÉÅÉìÉg\É}ÉXÉ^ÉfÅ[É^\
-'   2) ThisWorkbook ÇÃêeÉtÉHÉãÉ_\É}ÉXÉ^ÉfÅ[É^\
-'   3) ThisWorkbook Ç∆ìØäKëw\É}ÉXÉ^ÉfÅ[É^\
-' ÉtÉ@ÉCÉãñºÇÕÅuÉåÅ[Éãónê⁄_ãOìπâÔé–äOíçîÔó¶àÍóó*.xlsxÅvÇ≈ÉèÉCÉãÉhÉJÅ[Éhåüçı(ññîˆÇÃãÛîíìôÇãñóe)
-Private Function ResolveTemotoMasterFilePath() As String
-    Dim fso As Object
-    Set fso = CreateObject("Scripting.FileSystemObject")
-
-    Dim folderCandidates As Collection
-    Set folderCandidates = New Collection
-
-    Dim userProfilePath As String
-    userProfilePath = Environ$("USERPROFILE")
-    If Len(Trim$(userProfilePath)) = 0 Then userProfilePath = Environ$("HOMEDRIVE") & Environ$("HOMEPATH")
-    If Len(Trim$(userProfilePath)) > 0 Then
-        folderCandidates.Add userProfilePath & "\" & CommonCompanyNameText() & "\" & _
-                             OrderInvoiceDocumentFolderTextWUP() & "\" & MasterDataFolderText()
-    End If
-    If Len(ThisWorkbook.Path) > 0 Then
-        folderCandidates.Add fso.GetParentFolderName(ThisWorkbook.Path) & "\" & MasterDataFolderText()
-        folderCandidates.Add ThisWorkbook.Path & "\" & MasterDataFolderText()
-    End If
-
-    Dim folderPath As Variant
-    For Each folderPath In folderCandidates
-        Dim foundName As String
-        foundName = ""
+    Application.Calculation = previousCalculation
+    Application.ScreenUpdating = previousScreenUpdating
+    If Not deferCalculation Then
         On Error Resume Next
-        foundName = Dir(CStr(folderPath) & "\" & TemotoMasterFilePatternText(), vbNormal)
+        Application.Calculate
         On Error GoTo 0
-        If Len(foundName) > 0 Then
-            ResolveTemotoMasterFilePath = CStr(folderPath) & "\" & foundName
-            Exit Function
-        End If
-    Next folderPath
-End Function
-
-Private Function FindAdoSheetNameWUP(ByVal cn As Object, ByVal targetSheetName As String) As String
-    Dim sheetNames As Collection
-    Set sheetNames = CommonGetAdoWorksheetNames(cn)
-
-    Dim normalizedTarget As String
-    normalizedTarget = NormalizeMatchTextWUP(targetSheetName)
-
-    Dim sheetName As Variant
-    For Each sheetName In sheetNames
-        If StrComp(NormalizeMatchTextWUP(CStr(sheetName)), normalizedTarget, vbTextCompare) = 0 Then
-            FindAdoSheetNameWUP = CStr(sheetName)
-            Exit Function
-        End If
-    Next sheetName
-
-    ' äÆëSàÍívÇ™Ç»ÇØÇÍÇŒïîï™àÍívÇ≈çƒåüçı
-    For Each sheetName In sheetNames
-        If InStr(1, NormalizeMatchTextWUP(CStr(sheetName)), normalizedTarget, vbTextCompare) > 0 Then
-            FindAdoSheetNameWUP = CStr(sheetName)
-            Exit Function
-        End If
-    Next sheetName
-End Function
-
-' ÉwÉãÉpÅ[
-
-Private Function CollectWeldingUnitPriceSheets(ByVal targetBook As Workbook) As Collection
-    Dim result As Collection
-    Set result = New Collection
-
-    Dim ws As Worksheet
-    For Each ws In targetBook.Worksheets
-        If IsWeldingUnitPriceSheet(ws) And _
-           mod_MaterialPriceImport.IsCurrentImportBatchUnitPriceSheet(ws) Then
-            result.Add ws
-        End If
-    Next ws
-
-    Set CollectWeldingUnitPriceSheets = result
-End Function
-
-' (âÒêî)(îNìx4åÖ)äOíçíPâø / ãOìπâÔé–óÒÇÕ(âÒêî)(îNìx4åÖ)ónê⁄éËå≥íPâø
-Private Function BuildWeldingUnitPriceHeaderText(ByVal wsInfo As Worksheet, _
-                                                 Optional ByVal isWeldingVendor As Boolean = True) As String
-    Dim labelText As String
-    If isWeldingVendor Then
-        labelText = OutsourceUnitPriceLabelText()
-    Else
-        labelText = WeldingTemotoUnitPriceLabelText()
     End If
 
-    BuildWeldingUnitPriceHeaderText = Trim$(CStr(wsInfo.Range(BASIC_INFO_BILLING_COUNT_CELL).Value)) & _
-                                      CommonExtractYear4Digits(CStr(wsInfo.Range(BASIC_INFO_YEAR_CELL).Value)) & _
-                                      labelText
-End Function
-
-Private Function ResolveVendorUnitPriceNameWUP(ByVal vendorUnitPriceNameMap As Object, _
-                                               ByVal basicInfoVendorName As String) As String
-    Dim vendorNameKey As String
-    vendorNameKey = CommonNormalizeText(basicInfoVendorName)
-
-    If Not vendorUnitPriceNameMap Is Nothing Then
-        If vendorUnitPriceNameMap.Exists(vendorNameKey) Then
-            ResolveVendorUnitPriceNameWUP = CStr(vendorUnitPriceNameMap(vendorNameKey))
-            Exit Function
-        End If
+    If showWarnings And warningTexts.Count > 0 Then
+        MsgBox JoinCollectionText(warningTexts, vbCrLf & vbCrLf), vbExclamation, "ÉåÅ[Éãónê⁄íPâø"
     End If
-
-    ResolveVendorUnitPriceNameWUP = basicInfoVendorName
-End Function
-
-Private Function WarnWeldingBlockText(ByRef weldingBlock As WeldingVendorBlock) As String
-    If weldingBlock.valueColumn = 0 Then
-        WarnWeldingBlockText = "äÓñ{èÓïÒÇ…Åuónê⁄çHéñÅvÇÃã∆é“ÉuÉçÉbÉNÇ™å©Ç¬Ç©ÇËÇ‹ÇπÇÒÅB"
-    Else
-        WarnWeldingBlockText = "äÓñ{èÓïÒÇÃónê⁄äOíçî‰ó¶(31çsñ⁄)Ç™ñ¢ì¸óÕÇ≈Ç∑ÅB" & vbCrLf & _
-                               "âÔé–=[" & weldingBlock.vendorName & "] ÇÃónê⁄íPâøóÒÇÕçÏê¨Ç≥ÇÍÇ‹ÇπÇÒÅB"
-    End If
-End Function
-
-Private Function BuildMissingSeiriWarningText(ByVal missingSeiriMap As Object) As String
-    Dim keys As Variant
-    keys = missingSeiriMap.keys
-
-    Dim displayText As String
-    Dim i As Long
-    For i = LBound(keys) To UBound(keys)
-        If i > LBound(keys) Then displayText = displayText & ", "
-        If i - LBound(keys) >= 10 Then
-            displayText = displayText & "...(åv" & CStr(missingSeiriMap.Count) & "åè)"
-            Exit For
-        End If
-        displayText = displayText & CStr(keys(i))
-    Next i
-
-    BuildMissingSeiriWarningText = "éËå≥î‰ó¶É}ÉXÉ^Ç…à»â∫ÇÃêÆóùî‘çÜÇ™å©Ç¬Ç©ÇÁÇ»Ç¢ÇΩÇﬂÅA" & _
-                                   "äYìñçsÇÕÉOÉåÅ[ìhÇËÇ…ÇµÇ‹ÇµÇΩ:" & vbCrLf & displayText
-End Function
-
-Private Function JoinCollectionText(ByVal values As Collection, ByVal delimiter As String) As String
-    Dim itemValue As Variant
-    Dim result As String
-    For Each itemValue In values
-        If Len(result) > 0 Then result = result & delimiter
-        result = result & CStr(itemValue)
-    Next itemValue
-    JoinCollectionText = result
-End Function
-
-Private Function NormalizeMatchTextWUP(ByVal value As String) As String
-    NormalizeMatchTextWUP = CommonRemoveAllSpaces(CommonNormalizeText(value))
-End Function
-
-Private Sub LogWUP(ByVal msg As String)
-    On Error Resume Next
-    mod_DebugLog.Log "[WeldingUP] " & msg
-    On Error GoTo 0
 End Sub
 
+' çHéñéÌï (10çsñ⁄)Ç™ïœÇÌÇÁÇ»Ç¢é{çHâÔé–ïœçXéûÇÕÅAÉåÅ[Éãónê⁄íPâøÉVÅ[ÉgÇÃóÒÉåÉCÉAÉEÉgÇäÓñ{èÓïÒÇ∆ìØä˙Ç∑ÇÈÅB
+' äÓñ{èÓïÒÇ…ñ≥Ç¢é{çHâÔé–óÒÇÕÉNÉäÉAÇµÅAóLå¯ÉuÉçÉbÉNÇÕ5çsñ⁄ÇÃâÔé–ñºÇÃÇ›çXêVÇ∑ÇÈ(êîéÆÇÃëSçsçƒìWäJÇÕçsÇÌÇ»Ç¢)ÅB
 
-Private Function WeldingSheetSuffixText() As String
-    Static cached As String
-    If cached = "" Then
-        cached = "_" & ChrW$(&H30EC) & ChrW$(&H30FC) & ChrW$(&H30EB) & _
-                 ChrW$(&H6EB6) & ChrW$(&H63A5) & ChrW$(&H5358) & ChrW$(&H4FA1)
+Public Sub ApplyWeldingVendorUnitPricesForBasicInfoColumns(ByVal wsInfo As Worksheet, _
+                                                           ByVal targetValueColumns As Collection, _
+                                                           Optional ByVal preferredRatioColumn As Long = 0, _
+                                                           Optional ByVal deferCalculation As Boolean = False)
+    If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet()
+    If wsInfo Is Nothing Then Exit Sub
+    If targetValueColumns Is Nothing Then Exit Sub
+    If targetValueColumns.Count = 0 Then Exit Sub
+
+    Dim targetBook As Workbook
+    Set targetBook = wsInfo.Parent
+
+    Dim weldingSheets As Collection
+    Set weldingSheets = CollectWeldingUnitPriceSheets(targetBook)
+    If weldingSheets.Count = 0 Then Exit Sub
+
+    Dim temotoMap As Object
+    Dim loadErrorText As String
+    Set temotoMap = LoadTemotoRatioMap(loadErrorText)
+    If temotoMap Is Nothing Then
+        LogWUP "éËå≥î‰ó¶É}ÉXÉ^ì«çûé∏îs: " & loadErrorText
+        Exit Sub
     End If
-    WeldingSheetSuffixText = cached
-End Function
 
-Private Function WeldingWorkTypeText() As String
-    Static cached As String
-    If cached = "" Then
-        cached = ChrW$(&H6EB6) & ChrW$(&H63A5) & ChrW$(&H5DE5) & ChrW$(&H4E8B)
+    Dim weldingBlocks() As WeldingVendorBlock
+    Dim weldingBlockCount As Long
+    Dim railBlocks() As WeldingVendorBlock
+    Dim railBlockCount As Long
+    ScanVendorBlocks wsInfo, weldingBlocks, weldingBlockCount, railBlocks, railBlockCount, preferredRatioColumn
+
+    Dim rbIndex As Long
+    For rbIndex = 1 To railBlockCount
+        railBlocks(rbIndex) = BuildVendorBlock(wsInfo, railBlocks(rbIndex).valueColumn, _
+                                               BASIC_INFO_WELDING_RATIO_ROW)
+    Next rbIndex
+
+    Dim missingSeiriMap As Object
+    Set missingSeiriMap = CreateObject("Scripting.Dictionary")
+
+    Dim previousScreenUpdating As Boolean
+    Dim previousCalculation As XlCalculation
+    previousScreenUpdating = Application.ScreenUpdating
+    previousCalculation = Application.Calculation
+    Application.ScreenUpdating = False
+    Application.Calculation = xlCalculationManual
+
+    On Error GoTo Cleanup
+
+    Dim wsWelding As Variant
+    For Each wsWelding In weldingSheets
+        ApplyWeldingVendorUnitPricesToSheetColumns wsWelding, wsInfo, weldingBlocks, weldingBlockCount, _
+            railBlocks, railBlockCount, temotoMap, missingSeiriMap, targetValueColumns
+    Next wsWelding
+
+Cleanup:
+    Application.Calculation = previousCalculation
+    Application.ScreenUpdating = previousScreenUpdating
+    If Not deferCalculation Then
+        On Error Resume Next
+        Application.Calculate
+        On Error GoTo 0
     End If
-    WeldingWorkTypeText = cached
-End Function
+End Sub
 
-' Åuónê⁄çHéñÇ†ÇËÅv(äÓñ{èÓïÒC23ÇÃîªíËÉLÅ[ÉèÅ[Éh)
-Private Function WeldingWorkPresentKeywordText() As String
-    Static cached As String
-    If cached = "" Then
-        cached = WeldingWorkTypeText() & ChrW$(&H3042) & ChrW$(&H308A)   ' ónê⁄çHéñ + Ç†ÇË
+Public Sub ClearSurplusWeldingVendorBlocksForBasicInfo(Optional ByVal wsInfo As Worksheet)
+    If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet()
+    If wsInfo Is Nothing Then Exit Sub
+
+    Dim targetBook As Workbook
+    Set targetBook = wsInfo.Parent
+
+    Dim weldingSheets As Collection
+    Set weldingSheets = CollectWeldingUnitPriceSheets(targetBook)
+    If weldingSheets.Count = 0 Then Exit Sub
+
+    Dim weldingBlocks() As WeldingVendorBlock
+    Dim weldingBlockCount As Long
+    Dim railBlocks() As WeldingVendorBlock
+    Dim railBlockCount As Long
+    ScanVendorBlocks wsInfo, weldingBlocks, weldingBlockCount, railBlocks, railBlockCount, 0
+
+    Dim previousScreenUpdating As Boolean
+    Dim previousCalculation As XlCalculation
+    previousScreenUpdating = Application.ScreenUpdating
+    previousCalculation = Application.Calculation
+    Application.ScreenUpdating = False
+    Application.Calculation = xlCalculationManual
+
+    On Error GoTo Cleanup
+
+    Dim wsWelding As Variant
+    For Each wsWelding In weldingSheets
+        Dim lastRow As Long
+        lastRow = wsWelding.Cells(wsWelding.Rows.Count, WUP_SEIRI_COL).End(xlUp).Row
+        If lastRow < WUP_DATA_START_ROW Then GoTo ContinueNextSheet
+
+        Dim wIdx As Long
+        For wIdx = weldingBlockCount + 1 To MAX_VENDOR_BLOCK_COUNT
+            ClearWeldingVendorBlock wsWelding, lastRow, GetWeldingDayColByIndex(wIdx)
+        Next wIdx
+
+        Dim railIndex As Long
+        For railIndex = railBlockCount + 1 To MAX_VENDOR_BLOCK_COUNT
+            Dim surplusRailDayCol As Long
+            surplusRailDayCol = GetRailDayColByIndex(weldingBlockCount, railIndex)
+            ClearRailPatternBlock wsWelding, surplusRailDayCol
+            ClearWeldingVendorBlock wsWelding, lastRow, surplusRailDayCol
+        Next railIndex
+
+        ClearWeldingVendorColumnsBeyondLayout wsWelding, lastRow, _
+            GetWeldingSheetRightmostVendorNightCol(weldingBlockCount, railBlockCount)
+ContinueNextSheet:
+    Next wsWelding
+
+Cleanup:
+    Application.Calculation = previousCalculation
+    Application.ScreenUpdating = previousScreenUpdating
+End Sub
+
+' é{çHâÔé–êîå∏è≠Ç≈äOÇÍÇÈÉuÉçÉbÉNÇ…ónê⁄/ãOìπÇÃê›íËÇ™ä‹Ç‹ÇÍÇÈÇ©îªíËÇ∑ÇÈÅB
+' ñ¢ì¸óÕÇÃãÛÉuÉçÉbÉN(âÔé–ñºÅEçHéñéÌï ÅEî‰ó¶Ç∑Ç◊ÇƒãÛ)ÇÕèúäOÇµÅAïsóvÇ»ëSìWäJÇîÇØÇÈÅB
+
+Public Sub ClearTemotoRatioMapCache()
+    Set mTemotoRatioMap = Nothing
+    mTemotoRatioMapPath = vbNullString
+    mTemotoRatioMapTime = 0
+End Sub
+
+Public Sub GetVendorBlockLayoutCountsForLimit(ByVal wsInfo As Worksheet, _
+                                              ByVal vendorCountLimit As Long, _
+                                              ByRef weldingBlockCount As Long, _
+                                              ByRef railBlockCount As Long)
+    Dim weldingBlocks() As WeldingVendorBlock
+    Dim railBlocks() As WeldingVendorBlock
+    ScanVendorBlocks wsInfo, weldingBlocks, weldingBlockCount, railBlocks, railBlockCount, 0, _
+        vendorCountLimit, True
+End Sub
+
+Public Sub RefreshWeldingAfterVendorCountDecrease(ByVal wsInfo As Worksheet, _
+                                                  ByVal currentVendorCount As Long, _
+                                                  ByVal oldWeldingBlockCount As Long, _
+                                                  ByVal oldRailBlockCount As Long, _
+                                                  Optional ByVal deferCalculation As Boolean = False)
+    If wsInfo Is Nothing Then Exit Sub
+    If currentVendorCount < 1 Then Exit Sub
+
+    Dim newWeldingBlockCount As Long
+    Dim newRailBlockCount As Long
+    GetVendorBlockLayoutCountsForLimit wsInfo, currentVendorCount, _
+        newWeldingBlockCount, newRailBlockCount
+
+    Dim layoutShifted As Boolean
+    layoutShifted = (oldWeldingBlockCount <> newWeldingBlockCount)
+
+    Dim targetBook As Workbook
+    Set targetBook = wsInfo.Parent
+
+    Dim weldingSheets As Collection
+    Set weldingSheets = CollectWeldingUnitPriceSheets(targetBook)
+    If weldingSheets.Count = 0 Then Exit Sub
+
+    Dim previousScreenUpdating As Boolean
+    Dim previousCalculation As XlCalculation
+    previousScreenUpdating = Application.ScreenUpdating
+    previousCalculation = Application.Calculation
+    Application.ScreenUpdating = False
+    Application.Calculation = xlCalculationManual
+
+    On Error GoTo RefreshDecreaseCleanup
+
+    Dim oldRightmostNightCol As Long
+    Dim newRightmostNightCol As Long
+    oldRightmostNightCol = GetWeldingSheetRightmostVendorNightCol(oldWeldingBlockCount, oldRailBlockCount)
+    newRightmostNightCol = GetWeldingSheetRightmostVendorNightCol(newWeldingBlockCount, newRailBlockCount)
+
+    Dim wsWelding As Variant
+    For Each wsWelding In weldingSheets
+        Dim lastRow As Long
+        lastRow = wsWelding.Cells(wsWelding.Rows.Count, WUP_SEIRI_COL).End(xlUp).Row
+        If lastRow < WUP_DATA_START_ROW Then GoTo ContinueDecreaseSheet
+
+        If layoutShifted Then
+            ClearWeldingSheetVendorAreaThrough wsWelding, lastRow, oldRightmostNightCol
+        ElseIf oldRightmostNightCol > newRightmostNightCol Then
+            ClearWeldingVendorColumnsRange wsWelding, lastRow, newRightmostNightCol + 1, oldRightmostNightCol
+        Else
+            ClearWeldingVendorColumnsBeyondLayout wsWelding, lastRow, newRightmostNightCol
+        End If
+ContinueDecreaseSheet:
+    Next wsWelding
+
+    If layoutShifted Then
+        Dim targetValueColumns As Collection
+        Set targetValueColumns = New Collection
+        Dim vendorIndex As Long
+        For vendorIndex = 1 To currentVendorCount
+            targetValueColumns.Add BASIC_INFO_VENDOR_BLOCK_VALUE_COL + _
+                ((vendorIndex - 1) * BASIC_INFO_VENDOR_BLOCK_STEP_COLS)
+        Next vendorIndex
+        ApplyWeldingVendorUnitPricesForBasicInfoColumns wsInfo, targetValueColumns, 0, deferCalculation
+    Else
+        UpdateWeldingVendorDisplayNamesForBasicInfo wsInfo
     End If
-    WeldingWorkPresentKeywordText = cached
-End Function
 
-Private Function RailWorkTypeText() As String
-    Static cached As String
-    If cached = "" Then
-        cached = ChrW$(&H8ECC) & ChrW$(&H9053) & ChrW$(&H5DE5) & ChrW$(&H4E8B)
+RefreshDecreaseCleanup:
+    Application.Calculation = previousCalculation
+    Application.ScreenUpdating = previousScreenUpdating
+    If Not deferCalculation Then
+        On Error Resume Next
+        Application.Calculate
+        On Error GoTo 0
     End If
-    RailWorkTypeText = cached
-End Function
+End Sub
 
-Private Function TemotoMasterSheetNameText() As String
-    Static cached As String
-    If cached = "" Then
-        cached = ChrW$(&H6EB6) & ChrW$(&H63A5) & ChrW$(&H624B) & _
-                 ChrW$(&H5143) & ChrW$(&H5272) & ChrW$(&H5408)
-    End If
-    TemotoMasterSheetNameText = cached
-End Function
+' F9(é{çHâÔé–êî)Çå∏ÇÁÇµÇΩÇ∆Ç´ÅAó]èËÇÃãOìπóÒÇæÇØÇÉNÉäÉAÇ∑ÇÈåyó èàóùÅB
+' çÌèúëŒè€Ç…ónê⁄/ãOìπÇÃê›íËÇ™ñ≥Ç¢èÍçáÇÕëSçsçƒìWäJÇÃë„ÇÌÇËÇ…Ç±ÇøÇÁÇégÇ§ÅB
 
-Private Function TemotoMasterFilePatternText() As String
-    Static cached As String
-    If cached = "" Then
-        cached = ChrW$(&H30EC) & ChrW$(&H30FC) & ChrW$(&H30EB) & _
-                 ChrW$(&H6EB6) & ChrW$(&H63A5) & "_" & _
-                 ChrW$(&H8ECC) & ChrW$(&H9053) & ChrW$(&H4F1A) & ChrW$(&H793E) & _
-                 ChrW$(&H5916) & ChrW$(&H6CE8) & ChrW$(&H8CBB) & ChrW$(&H7387) & _
-                 ChrW$(&H4E00) & ChrW$(&H89A7) & "*.xlsx"
-    End If
-    TemotoMasterFilePatternText = cached
-End Function
+Public Sub UpdateWeldingVendorDisplayNamesForBasicInfo(Optional ByVal wsInfo As Worksheet, _
+                                                       Optional ByVal preferredRatioColumn As Long = 0)
+    If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet()
+    If wsInfo Is Nothing Then Exit Sub
 
-Private Function MasterDataFolderText() As String
-    Static cached As String
-    If cached = "" Then
-        cached = ChrW$(&H30DE) & ChrW$(&H30B9) & ChrW$(&H30BF) & _
-                 ChrW$(&H30C7) & ChrW$(&H30FC) & ChrW$(&H30BF)
-    End If
-    MasterDataFolderText = cached
-End Function
+    Dim targetBook As Workbook
+    Set targetBook = wsInfo.Parent
 
-Private Function OrderInvoiceDocumentFolderTextWUP() As String
-    Static cached As String
-    If cached = "" Then
-        cached = ChrW$(&H7DDA) & ChrW$(&H8DEF) & ChrW$(&H51FA) & ChrW$(&H5F35) & ChrW$(&H6240) & ChrW$(&H7528) & _
-                 "_" & ChrW$(&H6CE8) & ChrW$(&H6587) & ChrW$(&H66F8) & "_" & _
-                 ChrW$(&H8ACB) & ChrW$(&H6C42) & ChrW$(&H66F8) & _
-                 ChrW$(&H30A2) & ChrW$(&H30AF) & ChrW$(&H30BB) & ChrW$(&H30B9) & _
-                 ChrW$(&H30B5) & ChrW$(&H30A4) & ChrW$(&H30C8) & _
-                 " - " & ChrW$(&H30C9) & ChrW$(&H30AD) & ChrW$(&H30E5) & ChrW$(&H30E1) & ChrW$(&H30F3) & ChrW$(&H30C8)
-    End If
-    OrderInvoiceDocumentFolderTextWUP = cached
-End Function
+    Dim weldingSheets As Collection
+    Set weldingSheets = CollectWeldingUnitPriceSheets(targetBook)
+    If weldingSheets.Count = 0 Then Exit Sub
 
-Private Function OutsourceUnitPriceLabelText() As String
-    Static cached As String
-    If cached = "" Then
-        cached = ChrW$(&H5916) & ChrW$(&H6CE8) & ChrW$(&H5358) & ChrW$(&H4FA1)
-    End If
-    OutsourceUnitPriceLabelText = cached
-End Function
+    Dim weldingBlocks() As WeldingVendorBlock
+    Dim weldingBlockCount As Long
+    Dim railBlocks() As WeldingVendorBlock
+    Dim railBlockCount As Long
+    ScanVendorBlocks wsInfo, weldingBlocks, weldingBlockCount, railBlocks, railBlockCount
 
-Private Function WeldingTemotoUnitPriceLabelText() As String
-    Static cached As String
-    If cached = "" Then
-        cached = ChrW$(&H6EB6) & ChrW$(&H63A5) & ChrW$(&H624B) & ChrW$(&H5143) & _
-                 ChrW$(&H5358) & ChrW$(&H4FA1)
-    End If
-    WeldingTemotoUnitPriceLabelText = cached
-End Function
+    Dim vendorUnitPriceNameMap As Object
+    Set vendorUnitPriceNameMap = mod_VendorMaster.mod_VendorUnitPrice.BuildVendorUnitPriceNameMap(wsInfo)
 
-Private Function OutsourceRatioLabelText() As String
-    Static cached As String
-    If cached = "" Then
-        cached = ChrW$(&H5916) & ChrW$(&H6CE8) & ChrW$(&H6BD4) & ChrW$(&H7387) & ChrW$(&HFF1D)
-    End If
-    OutsourceRatioLabelText = cached
-End Function
+    Dim previousScreenUpdating As Boolean
+    previousScreenUpdating = Application.ScreenUpdating
+    Application.ScreenUpdating = False
+    On Error GoTo Cleanup
 
-Private Function MiddleDotText() As String
-    Static cached As String
-    If cached = "" Then cached = ChrW$(&H30FB)
-    MiddleDotText = cached
-End Function
+    Dim wsWelding As Variant
+    For Each wsWelding In weldingSheets
+        On Error Resume Next
+        SyncWeldingVendorBlocksLayoutOnSheet wsWelding, wsInfo, weldingBlocks, weldingBlockCount, _
+            railBlocks, railBlockCount, vendorUnitPriceNameMap
+        If Err.Number <> 0 Then
+            LogWUP "ÉåÉCÉAÉEÉgìØä˙ÉXÉLÉbÉv sheet=[" & wsWelding.Name & "] Err=" & CStr(Err.Number)
+            Err.Clear
+        End If
+        On Error GoTo Cleanup
+    Next wsWelding
 
-Private Function DayLabelText() As String
-    Static cached As String
-    If cached = "" Then cached = ChrW$(&H663C) & ChrW$(&H9593)
-    DayLabelText = cached
-End Function
+Cleanup:
+    Application.ScreenUpdating = previousScreenUpdating
+End Sub
 
-Private Function NightLabelText() As String
-    Static cached As String
-    If cached = "" Then cached = ChrW$(&H591C) & ChrW$(&H9593)
-    NightLabelText = cached
-End Function
+' F9(é{çHâÔé–êî)å∏è≠éû: ãåÉåÉCÉAÉEÉgÇ∆ÇÃç∑ï™ÇæÇØèàóùÇµÅAëSóÒÅ~ëSçsÇÃìÒèdÉNÉäÉA/çƒìWäJÇîÇØÇÈÅB
+' oldWelding/oldRail ÇÕ mod_VendorBlockLayout.ClearUnusedVendorBlocks ëOÇ… GetVendorBlockLayoutCountsForLimit Ç≈éÊìæÇ∑ÇÈÇ±Ç∆ÅB
 
-Private Function WasteDisposalKeywordText() As String
-    Static cached As String
-    If cached = "" Then
-        cached = ChrW$(&H7523) & ChrW$(&H5EC3) & ChrW$(&H51E6) & ChrW$(&H7406)
-    End If
-    WasteDisposalKeywordText = cached
-End Function
-
-Private Function SeiriHeaderKeywordText() As String
-    Static cached As String
-    If cached = "" Then
-        cached = ChrW$(&H6574) & ChrW$(&H7406) & ChrW$(&H756A) & ChrW$(&H53F7)
-    End If
-    SeiriHeaderKeywordText = cached
-End Function
-
-Private Function DayKeywordText() As String
-    Static cached As String
-    If cached = "" Then cached = ChrW$(&H663C)
-    DayKeywordText = cached
-End Function
-
-Private Function NightKeywordText() As String
-    Static cached As String
-    If cached = "" Then cached = ChrW$(&H591C)
-    NightKeywordText = cached
-End Function
-
-Private Function WeldingUnitPriceFontNameText() As String
-    Static cached As String
-    If cached = "" Then
-        cached = "BIZ UD" & ChrW$(&H30B4) & ChrW$(&H30B7) & ChrW$(&H30C3) & ChrW$(&H30AF)
-    End If
-    WeldingUnitPriceFontNameText = cached
-End Function
