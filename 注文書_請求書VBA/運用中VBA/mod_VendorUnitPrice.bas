@@ -1809,7 +1809,7 @@ End Sub
 Public Sub HandleVendorUnitPriceMonitorChange(ByVal wsInfo As Worksheet, ByVal changedRange As Range)
     If wsInfo Is Nothing Then Exit Sub
     If changedRange Is Nothing Then Exit Sub
-    If mSyncVendorBlocksInProgress Then Exit Sub
+    If mod_VendorBlockLayout.IsSyncVendorBlocksInProgressImpl() Then Exit Sub
     If Intersect(changedRange, GetVendorUnitPriceMonitorRange(wsInfo)) Is Nothing Then Exit Sub
 
     Dim prevEvents As Boolean
