@@ -276,8 +276,8 @@ Public Function CommonTextFromChars(ParamArray charCodes() As Variant) As String
     CommonTextFromChars = result
 End Function
 
-' 工事現況表マスタ(【各支店工事番号データ】)のフォルダパスを解決する。
-' 正本: ドキュメント\マスタデータ\【各支店工事番号データ】\
+' 扎事現況表マスタ(掣各支店扎事番揉デ拏タ掏)のフォルダパスを解決する截
+' 攀本: ドキュ�揀塔g\マスタデ拏タ\掣各支店扎事番揉デ拏タ掏\
 Public Function CommonGetProjectStatusDataFolderPath() As String
     Dim candidates As Collection
     Set candidates = CommonCollectProjectStatusFolderCandidates()
