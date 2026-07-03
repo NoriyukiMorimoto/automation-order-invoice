@@ -657,17 +657,17 @@ Private Function FindManagerListFile(ByVal folderPath As String, ByVal yearText 
         FindManagerListFile = folderPath & fileName
         Exit Function
     End If
-    fileName = Dir(folderPath & yearText & "_*" & listKeyword & "*.*")
+    fileName = Dir(folderPath & yearText & "_*" & listKeyword & "*.xlsm")
     If fileName <> "" Then
         FindManagerListFile = folderPath & fileName
         Exit Function
     End If
-    fileName = Dir(folderPath & "*" & yearText & "*" & listKeyword & "*.*")
+    fileName = Dir(folderPath & "*" & yearText & "*" & listKeyword & "*.xlsm")
     If fileName <> "" Then
         FindManagerListFile = folderPath & fileName
         Exit Function
     End If
-    fileName = Dir(folderPath & "*" & listKeyword & "*.*")
+    fileName = Dir(folderPath & "*" & listKeyword & "*.xlsm")
     Do While fileName <> ""
         If InStr(fileName, yearText) > 0 Then
             FindManagerListFile = folderPath & fileName
@@ -678,7 +678,7 @@ Private Function FindManagerListFile(ByVal folderPath As String, ByVal yearText 
 End Function
 
 Private Function ManagerListFileNameText(ByVal yearText As String) As String
-    ManagerListFileNameText = yearText & "_" & ManagerListKeywordText() & ".xlsx"
+    ManagerListFileNameText = yearText & "_" & ManagerListKeywordText() & ".xlsm"
 End Function
 
 Private Function OrderInvoiceDocumentFolderText() As String
