@@ -267,20 +267,6 @@ Public Function CommonGetAdoFieldValue(ByVal rs As Object, ByVal fieldIndex As L
     On Error GoTo 0
 End Function
 
-Public Sub CommonSortLongArrayAsc(ByRef arr() As Long, ByVal itemCount As Long)
-    Dim i As Long, j As Long, key As Long
-    For i = 1 To itemCount - 1
-        key = arr(i)
-        j = i - 1
-        Do While j >= 0
-            If arr(j) <= key Then Exit Do
-            arr(j + 1) = arr(j)
-            j = j - 1
-        Loop
-        arr(j + 1) = key
-    Next i
-End Sub
-
 Public Function CommonTextFromChars(ParamArray charCodes() As Variant) As String
     Dim i As Long
     Dim result As String
@@ -290,8 +276,8 @@ Public Function CommonTextFromChars(ParamArray charCodes() As Variant) As String
     CommonTextFromChars = result
 End Function
 
-' HŽ–Œ»‹µ•\ƒ}ƒXƒ^(yŠeŽx“XHŽ–”Ô†ƒf[ƒ^z)‚ÌƒtƒHƒ‹ƒ_ƒpƒX‚ð‰ðŒˆ‚·‚éB
-' ³–{: ƒhƒLƒ…ƒƒ“ƒg\ƒ}ƒXƒ^ƒf[ƒ^\yŠeŽx“XHŽ–”Ô†ƒf[ƒ^z\
+' HŽ–Œ»‹µ•\ƒ}ƒXƒ^(yŠeŽx“XHŽ–”Ô†ƒf[ƒ^z)‚ÌƒtƒHƒ‹ƒ_ƒpƒX‚ð‰ðŒˆ‚·‚éB
+' ³–{: ƒhƒLƒ…ƒƒ“ƒg\ƒ}ƒXƒ^ƒf[ƒ^\yŠeŽx“XHŽ–”Ô†ƒf[ƒ^z\
 Public Function CommonGetProjectStatusDataFolderPath() As String
     Dim candidates As Collection
     Set candidates = CommonCollectProjectStatusFolderCandidates()
@@ -487,7 +473,7 @@ Private Function CommonFindProjectStatusFolderFromWorkbookPath() As String
     Next depth
 End Function
 
-Private Function CommonMasterDataFolderText() As String
+Public Function CommonMasterDataFolderText() As String
     Static cached As String
     If cached = "" Then
         cached = ChrW$(&H30DE) & ChrW$(&H30B9) & ChrW$(&H30BF) & ChrW$(&H30C7) & _
@@ -506,7 +492,7 @@ Private Function CommonProjectStatusDataSubFolderText() As String
     CommonProjectStatusDataSubFolderText = cached
 End Function
 
-Private Function CommonOrderInvoiceDocumentFolderText() As String
+Public Function CommonOrderInvoiceDocumentFolderText() As String
     Static cached As String
     If cached = "" Then
         cached = ChrW$(&H7DDA) & ChrW$(&H8DEF) & ChrW$(&H51FA) & ChrW$(&H5F35) & ChrW$(&H6240) & _

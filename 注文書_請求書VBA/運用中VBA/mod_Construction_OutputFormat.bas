@@ -79,14 +79,6 @@ Public Sub ClearDoubleBorder(ByVal target As Range)
     Next edgeId
 End Sub
 
-Public Sub ApplyThinGridBorder(ByVal target As Range)
-    With target.Borders
-        .LineStyle = xlContinuous
-        .Weight = xlThin
-        .Color = RGB(150, 150, 150)
-    End With
-End Sub
-
 Public Sub ClearOutputTotalPairFormatting(ByVal ws As Worksheet, _
                                            ByVal rowIndex As Long, _
                                            ByVal labelColumn As Long, _
@@ -146,12 +138,6 @@ Public Sub DrawDoubleBorder(ByVal target As Range, ByVal lineColor As Long)
             .Color = lineColor
         End With
     Next edgeId
-End Sub
-
-Public Sub RedrawTotalBorders(ByVal ws As Worksheet, ByVal totalRow As Long, _
-                               ByVal labelColumn As Long, ByVal sumColumn As Long)
-    DrawDoubleBorder ws.Cells(totalRow, labelColumn), RGB(0, 0, 0)
-    DrawDoubleBorder ws.Cells(totalRow, sumColumn), RGB(255, 0, 0)
 End Sub
 
 Public Sub WriteOutputTotalRows( _

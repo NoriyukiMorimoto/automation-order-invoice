@@ -224,20 +224,6 @@ Private Sub ResetListValidation(ByVal targetCell As Range, ByVal listRange As Ra
     End With
 End Sub
 
-Public Sub ScheduleOfficeComboBoxPrompt()
-    CancelScheduledOfficeComboBoxPrompt
-    mOfficePromptTime = Now + TimeSerial(0, 0, 1)
-
-    On Error Resume Next
-    Application.OnTime mOfficePromptTime, "'" & ThisWorkbook.Name & "'!PromptOfficeComboBox"
-    If Err.Number <> 0 Then
-        Err.Clear
-        mOfficePromptTime = 0
-        PromptOfficeComboBox
-    End If
-    On Error GoTo 0
-End Sub
-
 Public Sub CancelScheduledOfficeComboBoxPrompt()
     If mOfficePromptTime = 0 Then Exit Sub
 
@@ -696,24 +682,11 @@ Private Function ManagerListFileNameText(ByVal yearText As String) As String
 End Function
 
 Private Function OrderInvoiceDocumentFolderText() As String
-    Static cached As String
-    If cached = "" Then
-        cached = ChrW$(&H7DDA) & ChrW$(&H8DEF) & ChrW$(&H51FA) & ChrW$(&H5F35) & ChrW$(&H6240) & _
-                 ChrW$(&H7528) & ChrW$(&H5F) & ChrW$(&H6CE8) & ChrW$(&H6587) & ChrW$(&H66F8) & ChrW$(&H5F) & _
-                 ChrW$(&H8ACB) & ChrW$(&H6C42) & ChrW$(&H66F8) & ChrW$(&H30A2) & ChrW$(&H30AF) & ChrW$(&H30BB) & _
-                 ChrW$(&H30B9) & ChrW$(&H30B5) & ChrW$(&H30A4) & ChrW$(&H30C8) & " - " & _
-                 ChrW$(&H30C9) & ChrW$(&H30AD) & ChrW$(&H30E5) & ChrW$(&H30E1) & ChrW$(&H30F3) & ChrW$(&H30C8)
-    End If
-    OrderInvoiceDocumentFolderText = cached
+    OrderInvoiceDocumentFolderText = mod_common.CommonOrderInvoiceDocumentFolderText()
 End Function
 
 Private Function MasterDataFolderText() As String
-    Static cached As String
-    If cached = "" Then
-        cached = ChrW$(&H30DE) & ChrW$(&H30B9) & ChrW$(&H30BF) & ChrW$(&H30C7) & _
-                 ChrW$(&H30FC) & ChrW$(&H30BF)
-    End If
-    MasterDataFolderText = cached
+    MasterDataFolderText = mod_common.CommonMasterDataFolderText()
 End Function
 
 Private Function ManagerNameFolderText() As String

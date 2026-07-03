@@ -551,16 +551,7 @@ End Function
 
 ' "線路出張所用_注文書_請求書アクセスサイト - ドキュメント"
 Public Function OrderInvoiceDocumentFolderTextCI() As String
-    Static cached As String
-    If cached = "" Then
-        cached = ChrW$(&H7DDA) & ChrW$(&H8DEF) & ChrW$(&H51FA) & ChrW$(&H5F35) & ChrW$(&H6240) & ChrW$(&H7528) & _
-                 "_" & ChrW$(&H6CE8) & ChrW$(&H6587) & ChrW$(&H66F8) & "_" & _
-                 ChrW$(&H8ACB) & ChrW$(&H6C42) & ChrW$(&H66F8) & _
-                 ChrW$(&H30A2) & ChrW$(&H30AF) & ChrW$(&H30BB) & ChrW$(&H30B9) & _
-                 ChrW$(&H30B5) & ChrW$(&H30A4) & ChrW$(&H30C8) & _
-                 " - " & ChrW$(&H30C9) & ChrW$(&H30AD) & ChrW$(&H30E5) & ChrW$(&H30E1) & ChrW$(&H30F3) & ChrW$(&H30C8)
-    End If
-    OrderInvoiceDocumentFolderTextCI = cached
+    OrderInvoiceDocumentFolderTextCI = mod_common.CommonOrderInvoiceDocumentFolderText()
 End Function
 
 ' "在来線及び新幹線"

@@ -1084,21 +1084,6 @@ End Sub
 ' 全展開経路用の高速版。E列/F列の桁区切り書式を、B列に値のある連続行セグメント単位で
 ' 範囲一括適用する(結果は行単位の NumberFormat 設定と同一)。
 
-Public Sub ApplyVendorUnitPriceSourceColumnsNumberFormat(ByVal wsUnitPrice As Worksheet, _
-                                                          ByVal firstRow As Long, _
-                                                          ByVal lastRow As Long)
-    If wsUnitPrice Is Nothing Then Exit Sub
-    If lastRow < firstRow Then Exit Sub
-
-    Dim rowIndex As Long
-    For rowIndex = firstRow To lastRow
-        If Len(Trim$(CStr(wsUnitPrice.Cells(rowIndex, VENDOR_UNIT_PRICE_LAST_ROW_COL).value))) > 0 Then
-            wsUnitPrice.Cells(rowIndex, VENDOR_UNIT_PRICE_REF_UNIT_COL).NumberFormat = VENDOR_UNIT_PRICE_NUMBER_FORMAT
-            wsUnitPrice.Cells(rowIndex, VENDOR_UNIT_PRICE_REF_WIDTH_COL).NumberFormat = VENDOR_UNIT_PRICE_NUMBER_FORMAT
-        End If
-    Next rowIndex
-End Sub
-
 Public Sub ApplyVendorUnitPriceSourceColumnsNumberFormatFast(ByVal wsUnitPrice As Worksheet, _
                                                               ByVal firstRow As Long, _
                                                               ByVal lastRow As Long, _
@@ -1201,22 +1186,6 @@ Public Sub ApplyVendorUnitPriceSourceRowIfNeededFromValue(ByVal wsUnitPrice As W
 End Sub
 
 ' HasNumericVendorUnitPriceSource(セル版)と同一判定を、読み取り済み値に対して行う。
-
-Public Sub ApplyVendorUnitPriceSourceRowsForRange(ByVal wsUnitPrice As Worksheet, _
-                                                   ByVal wsInfo As Worksheet, _
-                                                   ByVal firstRow As Long, _
-                                                   ByVal lastRow As Long)
-    Dim rowIndex As Long
-    For rowIndex = firstRow To lastRow
-        If Len(Trim$(CStr(wsUnitPrice.Cells(rowIndex, VENDOR_UNIT_PRICE_LAST_ROW_COL).value))) = 0 Then GoTo ContinueRow
-
-        ApplyVendorUnitPriceSourceRowIfNeeded wsUnitPrice, wsInfo, rowIndex, _
-            VENDOR_UNIT_PRICE_REF_UNIT_COL, True
-        ApplyVendorUnitPriceSourceRowIfNeeded wsUnitPrice, wsInfo, rowIndex, _
-            VENDOR_UNIT_PRICE_REF_WIDTH_COL, False
-ContinueRow:
-    Next rowIndex
-End Sub
 
 ' 全展開経路用の高速版。B列(判定用)/E列/F列を配列で一括読み取りし、行判定をメモリで行う。
 ' 各行の書式適用(グレー塗り/桁区切り)と業者列への数式反映は既存関数を呼ぶため結果は同一。

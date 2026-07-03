@@ -55,18 +55,6 @@ Public Sub InitLineNames(ByVal lineNames As Collection)
     On Error GoTo 0
 End Sub
 
-Public Sub InitRooms(ByRef rooms() As String, ByVal cnt As Long)
-    Dim lineNames As Collection
-    Set lineNames = New Collection
-
-    Dim i As Long
-    For i = 0 To cnt - 1
-        lineNames.Add rooms(i)
-    Next i
-
-    InitLineNames lineNames
-End Sub
-
 Public Property Get SelectionConfirmed() As Boolean
     SelectionConfirmed = mSelectionConfirmed
 End Property

@@ -37,10 +37,6 @@ Public Sub SetSubcontractorTrigger(ByVal triggerName As String)
     mLastTrigger = Trim$(triggerName)
 End Sub
 
-Public Sub ShowSubcontractorSelectionDebugLog()
-    mod_DebugLog.FlushToSheet
-End Sub
-
 Public Sub OpenSubcontractorSelectionLogFile()
     SubconLog "OpenSubcontractorSelectionLogFile"
     On Error Resume Next
@@ -289,10 +285,6 @@ Private Function VendorBlockMatchesWorkType(ByVal wsInfo As Worksheet, _
     VendorBlockMatchesWorkType = (workTypeText <> "") And _
         (InStr(1, workTypeText, workTypeKeyword, vbTextCompare) > 0)
 End Function
-
-Public Sub ApplySubcontractorDropdownsToActiveSheet()
-    ApplySubcontractorDropdowns ActiveSheet
-End Sub
 
 Public Sub ApplySubcontractorDropdowns(ByVal ws As Worksheet)
     If ws Is Nothing Then Exit Sub

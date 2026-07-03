@@ -297,24 +297,6 @@ Public Sub CopyVendorBlockMergeAreasFromTemplate(ByVal wsInfo As Worksheet, ByVa
     On Error GoTo 0
 End Sub
 
-Public Sub CopyVendorBlockTotalRowsFromTemplate(ByVal wsInfo As Worksheet, ByVal destVendorIndex As Long)
-    If wsInfo Is Nothing Then Exit Sub
-    If destVendorIndex < 2 Then Exit Sub
-
-    Dim sourceRange As Range
-    Set sourceRange = wsInfo.Range(wsInfo.Cells(BASIC_INFO_VENDOR_PURCHASE_TOTAL_ROW, BASIC_INFO_VENDOR_BLOCK_LABEL_COL), _
-                                   wsInfo.Cells(BASIC_INFO_VENDOR_TOTAL_ROW, BASIC_INFO_VENDOR_BLOCK_VALUE_COL))
-
-    Dim destRange As Range
-    Set destRange = wsInfo.Range(wsInfo.Cells(BASIC_INFO_VENDOR_PURCHASE_TOTAL_ROW, VendorLabelColumnByIndex(destVendorIndex)), _
-                                  wsInfo.Cells(BASIC_INFO_VENDOR_TOTAL_ROW, VendorValueColumnByIndex(destVendorIndex)))
-
-    SafeUnmergeRange destRange
-    destRange.ClearContents
-    sourceRange.Copy Destination:=destRange
-    Application.CutCopyMode = False
-End Sub
-
 Public Sub EnsureVendorBlockFromTemplate(ByVal wsInfo As Worksheet, ByVal destVendorIndex As Long)
     CopyVendorBlockFromTemplate wsInfo, destVendorIndex
     RestoreVendorBlockPresentationFromTemplate wsInfo, destVendorIndex

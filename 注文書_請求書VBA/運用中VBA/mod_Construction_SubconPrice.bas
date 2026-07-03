@@ -609,26 +609,73 @@ Public Sub RefreshSubcontractorColumnInteriors(ByVal ws As Worksheet, _
 
     Dim lastColumn As Long
     Dim sanpaiFillColor As Long
-    Dim r As Long
-    Dim priceCol As Long
     lastColumn = firstColumn + columnCount - 1
     sanpaiFillColor = mod_Construction_BasicTotals.GetSanpaiFillColor()
 
-    For r = 2 To lastRow
-        If mod_Construction_BasicTotals.IsSanpaiRow(ws, r) Then
-            ws.Range(ws.Cells(r, firstColumn), ws.Cells(r, lastColumn)).Interior.Color = sanpaiFillColor
-        Else
-            For priceCol = firstColumn To lastColumn Step 2
-                If Len(CommonNzText(ws.Cells(r, priceCol).value)) > 0 Then
-                    ws.Cells(r, priceCol).Interior.Pattern = xlNone
-                    ws.Cells(r, priceCol + 1).Interior.Pattern = xlNone
-                Else
-                    ws.Cells(r, priceCol).Interior.Color = sanpaiFillColor
-                    ws.Cells(r, priceCol + 1).Interior.Color = sanpaiFillColor
-                End If
-            Next priceCol
+    ' 産廃行フラグと単価セル値を一括読取し、Interior の適用を
+    ' 行×列の逐次から同一状態の連続区間単位にまとめてCOM往復を削減する。
+    Dim sanpaiFlags As Variant
+    sanpaiFlags = mod_Construction_BasicTotals.BuildSanpaiRowFlags(ws, lastRow)
+
+    Dim priceVals As Variant
+    priceVals = ws.Range(ws.Cells(2, firstColumn), ws.Cells(lastRow, lastColumn)).Value2
+    Dim singleValue As Boolean
+    singleValue = Not IsArray(priceVals)
+
+    Dim r As Long
+    Dim runStart As Long
+
+    ' 産廃行: 連続区間ごとに全幅を一括塗り
+    runStart = 0
+    For r = 2 To lastRow + 1
+        If r <= lastRow And sanpaiFlags(r) Then
+            If runStart = 0 Then runStart = r
+        ElseIf runStart > 0 Then
+            ws.Range(ws.Cells(runStart, firstColumn), ws.Cells(r - 1, lastColumn)).Interior.Color = sanpaiFillColor
+            runStart = 0
         End If
     Next r
+
+    ' 非産廃行: 列ペア(昼/夜)ごとに同一状態の連続区間をまとめて塗り分け
+    Dim priceCol As Long
+    Dim pairEndCol As Long
+    Dim state As Long          ' 0=対象外(産廃行) 1=パターン解除 2=産廃色
+    Dim prevState As Long
+    Dim cellText As String
+    For priceCol = firstColumn To lastColumn Step 2
+        pairEndCol = priceCol + 1
+        If pairEndCol > lastColumn Then pairEndCol = lastColumn
+
+        prevState = 0
+        runStart = 0
+        For r = 2 To lastRow + 1
+            If r > lastRow Then
+                state = 0
+            ElseIf sanpaiFlags(r) Then
+                state = 0
+            Else
+                If singleValue Then
+                    cellText = CommonNzText(priceVals)
+                Else
+                    cellText = CommonNzText(priceVals(r - 1, priceCol - firstColumn + 1))
+                End If
+                If Len(cellText) > 0 Then
+                    state = 1
+                Else
+                    state = 2
+                End If
+            End If
+            If state <> prevState Then
+                If prevState = 1 Then
+                    ws.Range(ws.Cells(runStart, priceCol), ws.Cells(r - 1, pairEndCol)).Interior.Pattern = xlNone
+                ElseIf prevState = 2 Then
+                    ws.Range(ws.Cells(runStart, priceCol), ws.Cells(r - 1, pairEndCol)).Interior.Color = sanpaiFillColor
+                End If
+                runStart = r
+                prevState = state
+            End If
+        Next r
+    Next priceCol
 End Sub
 
 Public Sub RefreshOutputSheetVendorColumnColors(ByVal ws As Worksheet, ByVal lastRow As Long)

@@ -2852,15 +2852,11 @@ Private Function BuildImportCompleteMessage(ByVal selectedSheetNames As Collecti
 End Function
 
 Private Function OrderInvoiceDocumentFolderText() As String
-    Static cached As String
-    If cached = "" Then cached = "線路出張所用_注文書_請求書アクセスサイト - ドキュメント"
-    OrderInvoiceDocumentFolderText = cached
+    OrderInvoiceDocumentFolderText = mod_common.CommonOrderInvoiceDocumentFolderText()
 End Function
 
 Private Function MasterDataFolderText() As String
-    Static cached As String
-    If cached = "" Then cached = "マスタデータ"
-    MasterDataFolderText = cached
+    MasterDataFolderText = mod_common.CommonMasterDataFolderText()
 End Function
 
 Private Function UnitPriceMasterFolderText() As String

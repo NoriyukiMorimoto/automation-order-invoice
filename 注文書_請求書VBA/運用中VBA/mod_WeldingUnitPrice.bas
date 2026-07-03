@@ -835,39 +835,7 @@ End Sub
 '                          夜列(J/L…)=基本情報シートの当社列31行目(F31/I31…)への参照。
 ' 会社名(列)と整合するよう ratioAddress(=当ブロックの基本情報列$31) をそのまま参照する。
 
-Private Sub ApplyPackCell(ByVal targetCell As Range, ByVal formulaText As String)
-    targetCell.Interior.ColorIndex = xlColorIndexNone
-    targetCell.ShrinkToFit = False
-    If Len(formulaText) = 0 Then
-        ApplyGreyFill targetCell                     ' 構成行が解決できない -> グレー
-    Else
-        targetCell.Formula = formulaText
-        targetCell.NumberFormat = WUP_NUMBER_FORMAT
-    End If
-End Sub
-
 ' 書式・罫線・クリア(mod_VendorMaster の単価シート作成ロジックと同一仕様)
-
-Private Sub ApplyPackRowForBlock(ByVal wsWelding As Worksheet, _
-                                 ByVal rowIndex As Long, _
-                                 ByVal dayCol As Long, _
-                                 ByVal nightCol As Long, _
-                                 ByVal packKey As String, _
-                                 ByVal isWeldingVendor As Boolean)
-    If mPackMap Is Nothing Or mSeiriRowMap Is Nothing Or Not mPackMap.Exists(packKey) Then
-        ApplyGreyFill wsWelding.Cells(rowIndex, dayCol)
-        ApplyGreyFill wsWelding.Cells(rowIndex, nightCol)
-        Exit Sub
-    End If
-
-    Dim comps As Collection
-    Set comps = mPackMap(packKey)
-
-    ApplyPackCell wsWelding.Cells(rowIndex, dayCol), _
-                  BuildPackSumFormula(wsWelding, dayCol, comps, isWeldingVendor)
-    ApplyPackCell wsWelding.Cells(rowIndex, nightCol), _
-                  BuildPackSumFormula(wsWelding, nightCol, comps, isWeldingVendor)
-End Sub
 
 ' 構成工種の同列セル×数量 の合計式。溶接=全構成、軌道=先頭1工種(J/K)のみ。
 
@@ -1232,67 +1200,6 @@ Private Sub ApplyWeldingVendorFont(ByVal wsWelding As Worksheet, _
         .NameFarEast = WeldingUnitPriceFontNameText()
         On Error GoTo 0
     End With
-End Sub
-
-Private Sub ApplyWeldingVendorRow(ByVal wsWelding As Worksheet, _
-                                  ByVal rowIndex As Long, _
-                                  ByVal dayCol As Long, _
-                                  ByVal nightCol As Long, _
-                                  ByRef block As WeldingVendorBlock, _
-                                  ByVal isWeldingVendor As Boolean, _
-                                  ByVal temotoMap As Object, _
-                                  ByVal missingSeiriMap As Object)
-    Dim seiriText As String
-    seiriText = Trim$(CStr(wsWelding.Cells(rowIndex, WUP_SEIRI_COL).Value))
-    If Len(seiriText) = 0 Then
-        ApplyGreyFill wsWelding.Cells(rowIndex, dayCol)
-        ApplyGreyFill wsWelding.Cells(rowIndex, nightCol)
-        Exit Sub
-    End If
-
-    Dim seiriNumber As Long
-    seiriNumber = CLng(Val(StrConv(seiriText, vbNarrow)))
-
-    '   溶接(G/H)=3工種(J/K,L/M,N/O) / 軌道(I/J等)=1工種(J/K)のみ
-    If seiriNumber >= WUP_PACK_SEIRI_MIN Then
-        ApplyPackRowForBlock wsWelding, rowIndex, dayCol, nightCol, CStr(seiriNumber), isWeldingVendor
-        Exit Sub
-    End If
-
-    ' 産廃処理は対象外(既存ロジック踏襲)
-    Dim workTypeName As String
-    workTypeName = NormalizeMatchTextWUP(CStr(wsWelding.Cells(rowIndex, WUP_WORK_NAME_COL).Value))
-    If InStr(1, workTypeName, WasteDisposalKeywordText(), vbTextCompare) > 0 Then
-        ApplyGreyFill wsWelding.Cells(rowIndex, dayCol)
-        ApplyGreyFill wsWelding.Cells(rowIndex, nightCol)
-        Exit Sub
-    End If
-
-    ' (溶接単価シートB列の整理番号 = マスタ溶接手元割合シートA列の整理番号 で照合)
-    Dim seiriKey As String
-    seiriKey = CStr(seiriNumber)
-    If Not temotoMap.Exists(seiriKey) Then
-        ApplyGreyFill wsWelding.Cells(rowIndex, dayCol)
-        ApplyGreyFill wsWelding.Cells(rowIndex, nightCol)
-        If Not missingSeiriMap.Exists(seiriKey) Then missingSeiriMap.Add seiriKey, True
-        Exit Sub
-    End If
-
-    Dim temotoPair As Variant
-    temotoPair = temotoMap(seiriKey)   ' Array(昼E, 夜F) ※未設定はEmpty
-
-    If isWeldingVendor Then
-        ApplyWeldingVendorCell wsWelding.Cells(rowIndex, dayCol), wsWelding, rowIndex, _
-                               WUP_JR_DAY_COL, temotoPair(0), block.ratioAddress, isWeldingVendor
-        ApplyWeldingVendorCell wsWelding.Cells(rowIndex, nightCol), wsWelding, rowIndex, _
-                               WUP_JR_NIGHT_COL, temotoPair(1), block.ratioAddress, isWeldingVendor
-    Else
-        ' 軌道会社: (JR×100/100.7)×手元割合(昼E/夜F)×軌道外注比率(基本情報31行)
-        ApplyRailMarkupCell wsWelding.Cells(rowIndex, dayCol), wsWelding, rowIndex, _
-                            WUP_JR_DAY_COL, temotoPair(0), block.ratioAddress, block.patternAddress
-        ApplyRailMarkupCell wsWelding.Cells(rowIndex, nightCol), wsWelding, rowIndex, _
-                            WUP_JR_NIGHT_COL, temotoPair(1), block.ratioAddress, block.patternAddress
-    End If
 End Sub
 
 Private Sub ApplyWeldingVendorUnitPricesToSheet(ByVal wsWelding As Worksheet, _
@@ -1894,69 +1801,8 @@ Cleanup:
     End If
 End Sub
 
-Public Sub ClearSurplusWeldingVendorBlocksForBasicInfo(Optional ByVal wsInfo As Worksheet)
-    If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet()
-    If wsInfo Is Nothing Then Exit Sub
-
-    Dim targetBook As Workbook
-    Set targetBook = wsInfo.Parent
-
-    Dim weldingSheets As Collection
-    Set weldingSheets = CollectWeldingUnitPriceSheets(targetBook)
-    If weldingSheets.Count = 0 Then Exit Sub
-
-    Dim weldingBlocks() As WeldingVendorBlock
-    Dim weldingBlockCount As Long
-    Dim railBlocks() As WeldingVendorBlock
-    Dim railBlockCount As Long
-    ScanVendorBlocks wsInfo, weldingBlocks, weldingBlockCount, railBlocks, railBlockCount, 0
-
-    Dim previousScreenUpdating As Boolean
-    Dim previousCalculation As XlCalculation
-    previousScreenUpdating = Application.ScreenUpdating
-    previousCalculation = Application.Calculation
-    Application.ScreenUpdating = False
-    Application.Calculation = xlCalculationManual
-
-    On Error GoTo Cleanup
-
-    Dim wsWelding As Variant
-    For Each wsWelding In weldingSheets
-        Dim lastRow As Long
-        lastRow = wsWelding.Cells(wsWelding.Rows.Count, WUP_SEIRI_COL).End(xlUp).Row
-        If lastRow < WUP_DATA_START_ROW Then GoTo ContinueNextSheet
-
-        Dim wIdx As Long
-        For wIdx = weldingBlockCount + 1 To MAX_VENDOR_BLOCK_COUNT
-            ClearWeldingVendorBlock wsWelding, lastRow, GetWeldingDayColByIndex(wIdx)
-        Next wIdx
-
-        Dim railIndex As Long
-        For railIndex = railBlockCount + 1 To MAX_VENDOR_BLOCK_COUNT
-            Dim surplusRailDayCol As Long
-            surplusRailDayCol = GetRailDayColByIndex(weldingBlockCount, railIndex)
-            ClearRailPatternBlock wsWelding, surplusRailDayCol
-            ClearWeldingVendorBlock wsWelding, lastRow, surplusRailDayCol
-        Next railIndex
-
-        ClearWeldingVendorColumnsBeyondLayout wsWelding, lastRow, _
-            GetWeldingSheetRightmostVendorNightCol(weldingBlockCount, railBlockCount)
-ContinueNextSheet:
-    Next wsWelding
-
-Cleanup:
-    Application.Calculation = previousCalculation
-    Application.ScreenUpdating = previousScreenUpdating
-End Sub
-
 ' 施工会社数減少で外れるブロックに溶接/軌道の設定が含まれるか判定する。
 ' 未入力の空ブロック(会社名・工事種別・比率すべて空)は除外し、不要な全展開を避ける。
-
-Public Sub ClearTemotoRatioMapCache()
-    Set mTemotoRatioMap = Nothing
-    mTemotoRatioMapPath = vbNullString
-    mTemotoRatioMapTime = 0
-End Sub
 
 Public Sub GetVendorBlockLayoutCountsForLimit(ByVal wsInfo As Worksheet, _
                                               ByVal vendorCountLimit As Long, _

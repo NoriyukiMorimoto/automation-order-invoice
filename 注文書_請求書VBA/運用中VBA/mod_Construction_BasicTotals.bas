@@ -1013,6 +1013,35 @@ Public Function IsSanpaiRow(ByVal ws As Worksheet, ByVal rowIndex As Long) As Bo
         CommonNzText(ws.Cells(rowIndex, mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_TYPE)).value))
 End Function
 
+' 種別列を一括読取し、2行目～lastRowの産廃行フラグ配列(添字=実行番号)を返す。
+' 行単位の IsSanpaiRow 連呼(毎回セル読取)を避けるための一括版。
+Public Function BuildSanpaiRowFlags(ByVal ws As Worksheet, ByVal lastRow As Long) As Variant
+    Dim flags() As Boolean
+    If ws Is Nothing Or lastRow < 2 Then
+        ReDim flags(2 To 2)
+        BuildSanpaiRowFlags = flags
+        Exit Function
+    End If
+    ReDim flags(2 To lastRow)
+
+    Dim typeCol As Long
+    typeCol = mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_TYPE)
+
+    Dim typeVals As Variant
+    typeVals = ws.Range(ws.Cells(2, typeCol), ws.Cells(lastRow, typeCol)).Value2
+    If Not IsArray(typeVals) Then
+        flags(2) = IsSanpaiTypeText(CommonNzText(typeVals))
+        BuildSanpaiRowFlags = flags
+        Exit Function
+    End If
+
+    Dim r As Long
+    For r = 2 To lastRow
+        flags(r) = IsSanpaiTypeText(CommonNzText(typeVals(r - 1, 1)))
+    Next r
+    BuildSanpaiRowFlags = flags
+End Function
+
 Public Function GetSanpaiFillColor() As Long
     If mSanpaiFillColorCached Then
         GetSanpaiFillColor = mSanpaiFillColorCache
