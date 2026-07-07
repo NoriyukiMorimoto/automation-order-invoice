@@ -101,8 +101,9 @@ Public Sub ClearProjectLineNameAliasCache()
 End Sub
 
 ' ============================================================
-' 在来線フォルダ各ファイルの F列(積算線区) 出現順を順位として返す。
-' mod_MaterialPriceImport が単価シートの表示・取込・C24順を F列順に揃えるために使用する。
+' 在来線フォルダ各ファイルの D列(積算線区コード) 数値順を順位として返す。
+' mod_MaterialPriceImport が単価シートの表示・取込・C24順を D列コード順に揃えるために使用する。
+' SortWorksSheet が施工指示書(工事)/(溶接)の G列(契約線区名)並びを同順位で揃える。
 ' 照合は線区名対応(エイリアス)と同じ正規化 NormalizeLineLookupText(_, False) を用いる。
 ' 該当無しは -1 を返す。
 ' ============================================================
@@ -135,23 +136,33 @@ Public Sub EnsureProjectMasterLineOrderMapLoaded()
     Set lineNamePairs = LoadProjectMasterLineNamePairs()
     If lineNamePairs Is Nothing Then Exit Sub
 
-    Dim nextRank As Long
-    nextRank = 0
-
     Dim pairItem As Variant
     For Each pairItem In lineNamePairs
         ' 同一マスタ行の F列(積算線区)と G列(施工指示書記載線区名) は
-        ' 同一順位を共有させ、マスタの行順をそのまま順位とする。
-        ' F列を主キー、G列を補助キー(単価シート同がG列と一致する場合のフォールバック)とする。
-        Dim registeredF As Boolean
-        registeredF = RegisterProjectMasterLineOrderKeyAtRank(CStr(pairItem(0)), nextRank)
-        Dim registeredG As Boolean
-        registeredG = RegisterProjectMasterLineOrderKeyAtRank(CStr(pairItem(1)), nextRank)
-        If registeredF Or registeredG Then nextRank = nextRank + 1
+        ' D列(積算線区コード)の数値を共有順位とする。
+        Dim lineCodeRank As Long
+        lineCodeRank = ParseProjectMasterLineCodeRank(pairItem(2))
+        If lineCodeRank >= 0 Then
+            RegisterProjectMasterLineOrderKeyAtRank CStr(pairItem(0)), lineCodeRank
+            RegisterProjectMasterLineOrderKeyAtRank CStr(pairItem(1)), lineCodeRank
+        End If
     Next pairItem
 
-    LogCI "単価シート並順キー数(F列順)=" & mProjectMasterLineOrderRankMap.Count
+    LogCI "単価シート並順キー数(D列コード順)=" & mProjectMasterLineOrderRankMap.Count
 End Sub
+
+' D列(積算線区コード)を数値順位へ変換する。書式「00」等の文字列も数値化する。
+' 空・非数値は -1。
+Public Function ParseProjectMasterLineCodeRank(ByVal rawCode As Variant) As Long
+    ParseProjectMasterLineCodeRank = -1
+
+    Dim codeText As String
+    codeText = Trim$(CommonNzText(rawCode))
+    If Len(codeText) = 0 Then Exit Function
+    If Not IsNumeric(codeText) Then Exit Function
+
+    ParseProjectMasterLineCodeRank = CLng(CDbl(codeText))
+End Function
 
 ' 指定 rank でキーを登録する。新規登録したら True、既出キーなら False を返す。
 Public Function RegisterProjectMasterLineOrderKeyAtRank(ByVal lineName As String, _
@@ -319,20 +330,22 @@ Public Function AppendProjectMasterLineNamePairsFromWorkbook(ByVal masterPath As
     Dim recordset As Object
     For Each sheetName In sheetNames
         Set recordset = CreateObject("ADODB.Recordset")
-        recordset.Open "SELECT [F6], [F7] FROM " & _
+        recordset.Open "SELECT [F4], [F6], [F7] FROM " & _
                        mod_Construction_OutputLayout.BuildAdoSheetTableName(CStr(sheetName)), connection, 0, 1, 1
 
         Dim rowNumber As Long
         rowNumber = 1
         Do Until recordset.EOF
+            Dim lineCode As String
             Dim unitPriceLineName As String
             Dim sourceLineName As String
 
-            unitPriceLineName = CommonNzText(recordset.Fields(0).value)
+            lineCode = CommonNzText(recordset.Fields(0).value)
+            unitPriceLineName = CommonNzText(recordset.Fields(1).value)
             If rowNumber >= PROJECT_MASTER_START_ROW And Trim$(unitPriceLineName) <> "" Then
-                sourceLineName = CommonNzText(recordset.Fields(1).value)
+                sourceLineName = CommonNzText(recordset.Fields(2).value)
                 If Trim$(sourceLineName) = "" Then sourceLineName = unitPriceLineName
-                lineNamePairs.Add Array(unitPriceLineName, sourceLineName)
+                lineNamePairs.Add Array(unitPriceLineName, sourceLineName, lineCode)
             End If
             recordset.MoveNext
             rowNumber = rowNumber + 1
@@ -1258,18 +1271,22 @@ Public Sub SortWorksSheet(ByVal ws As Worksheet)
     colDayNight = mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_DAYNIGHT)
     colSeiri = mod_Construction_OutputLayout.OutputSheetSeiriColumnCore(ws)
 
-    Dim r As Long, lineName As String, kindName As String
+    Dim r As Long
+    Dim lineName As String
+    Dim kindName As String
+    Dim lineRank As Long
     For r = 2 To lastRow
         lineName = CommonRemoveAllSpaces(CommonNzText(ws.Cells(r, colLine).value))
         kindName = CommonRemoveAllSpaces(CommonNzText(ws.Cells(r, colKind).value))
         ws.Cells(r, colSide).value = IIf(InStr(1, lineName, SIDELINE_KEYWORD) > 0, 1, 0)
-        ws.Cells(r, colWeld).value = IIf(InStr(1, kindName, WELDING_KEYWORD) > 0, 1, 0)
+        lineRank = GetProjectMasterLineOrderRankCore(lineName)
+        If lineRank < 0 Then lineRank = PROJECT_MASTER_LINE_ORDER_UNKNOWN_RANK
+        ws.Cells(r, colWeld).value = lineRank
     Next r
 
     With ws.Sort
         .SortFields.Clear
         .SortFields.Add key:=ws.Range(ws.Cells(2, colSide), ws.Cells(lastRow, colSide)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
-        .SortFields.Add key:=ws.Range(ws.Cells(2, colLine), ws.Cells(lastRow, colLine)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
         .SortFields.Add key:=ws.Range(ws.Cells(2, colWeld), ws.Cells(lastRow, colWeld)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
         .SortFields.Add key:=ws.Range(ws.Cells(2, colKind), ws.Cells(lastRow, colKind)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
         .SortFields.Add key:=ws.Range(ws.Cells(2, colDayNight), ws.Cells(lastRow, colDayNight)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
