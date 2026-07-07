@@ -1151,6 +1151,9 @@ Private Sub CopyWeldingVendorHeaderToLineSections(ByVal wsWelding As Worksheet, 
 
         If Not IsWeldingProjectNameLabelCellWUP(CommonNzText(wsWelding.Cells(rowIndex, 1).Value)) Then GoTo NextSectionRow
 
+        ' 先頭テンプレート(3～6行目)自身への複写は結合を壊すためスキップする
+        If rowIndex = WUP_PATTERN_ROW Then GoTo NextSectionRow
+
         Dim destRange As Range
         Set destRange = wsWelding.Range(wsWelding.Cells(rowIndex, WUP_WELDING_DAY_COL), _
                                         wsWelding.Cells(rowIndex + (WUP_LABEL_ROW - WUP_PATTERN_ROW), _
@@ -1164,6 +1167,83 @@ NextSectionRow:
 
     Application.CutCopyMode = False
     Application.ScreenUpdating = prevScreenUpdating
+
+    RestoreWeldingVendorHeaderMergesAllSections wsWelding, weldingBlockCount, railBlockCount, lastRow
+End Sub
+
+' 4行目(ヘッダー)・5行目(会社名)の G:H / I:J / K:L / M:N 結合を復元する。
+' 線区替わり箇所(工事件名：行基準)も同様に処理する。
+
+Private Sub MergeWeldingVendorDayNightPair(ByVal wsWelding As Worksheet, _
+                                           ByVal rowIndex As Long, _
+                                           ByVal dayCol As Long)
+    Dim nightCol As Long
+    nightCol = dayCol + 1
+
+    Dim mergeRange As Range
+    Set mergeRange = wsWelding.Range(wsWelding.Cells(rowIndex, dayCol), _
+                                     wsWelding.Cells(rowIndex, nightCol))
+    If mergeRange.MergeCells Then Exit Sub
+
+    Dim cellValue As Variant
+    cellValue = mergeRange.Cells(1, 1).Value
+    If Len(Trim$(CStr(CommonNzText(cellValue)))) = 0 Then
+        cellValue = mergeRange.Cells(1, 2).Value
+    End If
+
+    Dim hAlign As Long
+    Dim vAlign As Long
+    Dim shrinkToFit As Boolean
+    With mergeRange.Cells(1, 1)
+        hAlign = .HorizontalAlignment
+        vAlign = .VerticalAlignment
+        shrinkToFit = .ShrinkToFit
+    End With
+
+    SafeUnmergeRangeWUP mergeRange
+    mergeRange.Merge
+    With mergeRange
+        .Value = cellValue
+        .HorizontalAlignment = hAlign
+        .VerticalAlignment = vAlign
+        .ShrinkToFit = shrinkToFit
+        .WrapText = False
+    End With
+End Sub
+
+Private Sub RestoreWeldingVendorHeaderBlockMerges(ByVal wsWelding As Worksheet, _
+                                                  ByVal projectNameRow As Long, _
+                                                  ByVal rightmostNightCol As Long)
+    Dim headerRow As Long
+    Dim nameRow As Long
+    headerRow = projectNameRow + (WUP_HEADER_ROW - WUP_PATTERN_ROW)
+    nameRow = projectNameRow + (WUP_NAME_ROW - WUP_PATTERN_ROW)
+
+    Dim dayCol As Long
+    dayCol = WUP_WELDING_DAY_COL
+    Do While dayCol <= rightmostNightCol
+        MergeWeldingVendorDayNightPair wsWelding, headerRow, dayCol
+        MergeWeldingVendorDayNightPair wsWelding, nameRow, dayCol
+        dayCol = dayCol + WUP_VENDOR_BLOCK_WIDTH
+    Loop
+End Sub
+
+Private Sub RestoreWeldingVendorHeaderMergesAllSections(ByVal wsWelding As Worksheet, _
+                                                        ByVal weldingBlockCount As Long, _
+                                                        ByVal railBlockCount As Long, _
+                                                        ByVal lastRow As Long)
+    Dim rightmostNightCol As Long
+    rightmostNightCol = GetWeldingSheetRightmostVendorNightCol(weldingBlockCount, railBlockCount)
+    If rightmostNightCol < WUP_WELDING_DAY_COL Then Exit Sub
+    If lastRow < WUP_LABEL_ROW Then Exit Sub
+
+    Dim rowIndex As Long
+    For rowIndex = 1 To lastRow
+        If rowIndex + (WUP_LABEL_ROW - WUP_PATTERN_ROW) > lastRow Then Exit For
+        If Not IsWeldingProjectNameLabelCellWUP(CommonNzText(wsWelding.Cells(rowIndex, 1).Value)) Then GoTo NextMergeRow
+        RestoreWeldingVendorHeaderBlockMerges wsWelding, rowIndex, rightmostNightCol
+NextMergeRow:
+    Next rowIndex
 End Sub
 
 Private Sub ApplyWeldingVendorCell(ByVal targetCell As Range, _
