@@ -549,7 +549,6 @@ Public Sub ApplyConstructionUnitPriceImportedRowDecorationsFast(ByVal wsUnitPric
                                  VENDOR_UNIT_PRICE_FILL_COLOR_G, _
                                  VENDOR_UNIT_PRICE_FILL_COLOR_B)
                 End With
-                ApplyConstructionUnitPriceBaseColumnsFont wsUnitPrice, segStart, rowIndex - 1
                 segStart = 0
             End If
         End If
@@ -558,17 +557,18 @@ Public Sub ApplyConstructionUnitPriceImportedRowDecorationsFast(ByVal wsUnitPric
     If skipVendorColumnRefresh Then
         ApplyVendorUnitPriceSourceEfDecorationsFast wsUnitPrice, firstRow, lastRow, bArr
         RefreshVendorUnitPriceBordersForSheet wsUnitPrice, wsInfo
-        Exit Sub
+    Else
+        ' シート全体の外枠罫線再適用(従来 ApplyVendorUnitPriceBaseRowBorders 内で呼んでいた処理)
+        RefreshVendorUnitPriceBordersForSheet wsUnitPrice, wsInfo
+
+        ' 単価元セル(E/F)の書式(空欄グレー塗り/数値桁区切り)と業者列の再計算
+        ApplyVendorUnitPriceSourceRowsForRangeFast wsUnitPrice, wsInfo, firstRow, lastRow, bArr
+
+        ' 単価元列(E/F)の桁区切り書式をまとめて適用
+        ApplyVendorUnitPriceSourceColumnsNumberFormatFast wsUnitPrice, firstRow, lastRow, bArr
     End If
 
-    ' シート全体の外枠罫線再適用(従来 ApplyVendorUnitPriceBaseRowBorders 内で呼んでいた処理)
-    RefreshVendorUnitPriceBordersForSheet wsUnitPrice, wsInfo
-
-    ' 単価元セル(E/F)の書式(空欄グレー塗り/数値桁区切り)と業者列の再計算
-    ApplyVendorUnitPriceSourceRowsForRangeFast wsUnitPrice, wsInfo, firstRow, lastRow, bArr
-
-    ' 単価元列(E/F)の桁区切り書式をまとめて適用
-    ApplyVendorUnitPriceSourceColumnsNumberFormatFast wsUnitPrice, firstRow, lastRow, bArr
+    ApplyConstructionUnitPriceDataRowFontForSegments wsUnitPrice, wsInfo, firstRow, lastRow, bArr
 End Sub
 
 ' 工事単価シートのデータ行(7行目以降)へ罫線・塗りつぶし・桁区切りを一括適用する。
@@ -876,15 +876,20 @@ Public Sub ApplyVendorUnitPriceDataRows(ByVal wsUnitPrice As Worksheet, _
         nightFormulaR1C1, wasteKeyword, lastRow, False, usePreloadedArrays, preloadedNightSrcArr, preloadedWorkArr
 End Sub
 
-Private Sub ApplyConstructionUnitPriceBaseColumnsFont(ByVal wsUnitPrice As Worksheet, _
-                                                       ByVal firstRow As Long, _
-                                                       ByVal lastRow As Long)
+Private Sub ApplyConstructionUnitPriceDataRowFont(ByVal wsUnitPrice As Worksheet, _
+                                                   ByVal wsInfo As Worksheet, _
+                                                   ByVal firstRow As Long, _
+                                                   ByVal lastRow As Long)
     If wsUnitPrice Is Nothing Then Exit Sub
+    If wsInfo Is Nothing Then Exit Sub
     If lastRow < firstRow Then Exit Sub
+
+    Dim lastFillCol As Long
+    lastFillCol = GetVendorUnitPriceInitialFillLastColumn(wsInfo)
 
     Dim fontRange As Range
     Set fontRange = wsUnitPrice.Range(wsUnitPrice.Cells(firstRow, 1), _
-                                      wsUnitPrice.Cells(lastRow, VENDOR_UNIT_PRICE_REF_WIDTH_COL))
+                                      wsUnitPrice.Cells(lastRow, lastFillCol))
 
     With fontRange.Font
         .Name = VendorUnitPriceFontNameText()
@@ -892,6 +897,40 @@ Private Sub ApplyConstructionUnitPriceBaseColumnsFont(ByVal wsUnitPrice As Works
         .NameFarEast = VendorUnitPriceFontNameText()
         On Error GoTo 0
     End With
+End Sub
+
+Private Sub ApplyConstructionUnitPriceDataRowFontForSegments(ByVal wsUnitPrice As Worksheet, _
+                                                              ByVal wsInfo As Worksheet, _
+                                                              ByVal firstRow As Long, _
+                                                              ByVal lastRow As Long, _
+                                                              ByVal bArr As Variant)
+    Dim rowCount As Long
+    rowCount = lastRow - firstRow + 1
+    If rowCount <= 0 Then Exit Sub
+
+    Dim segStart As Long
+    segStart = 0
+
+    Dim r As Long
+    For r = 1 To rowCount + 1
+        Dim rowIndex As Long
+        rowIndex = firstRow + r - 1
+
+        Dim hasValue As Boolean
+        hasValue = False
+        If r <= rowCount Then
+            hasValue = (Len(Trim$(CStr(CommonNzText(bArr(r, 1))))) > 0)
+        End If
+
+        If hasValue Then
+            If segStart = 0 Then segStart = rowIndex
+        Else
+            If segStart > 0 Then
+                ApplyConstructionUnitPriceDataRowFont wsUnitPrice, wsInfo, segStart, rowIndex - 1
+                segStart = 0
+            End If
+        End If
+    Next r
 End Sub
 
 Public Sub ApplyVendorUnitPriceFont(ByVal wsUnitPrice As Worksheet, _
@@ -1047,7 +1086,7 @@ Public Sub ApplyVendorUnitPriceNewRowFill(ByVal wsUnitPrice As Worksheet, _
                                  VENDOR_UNIT_PRICE_FILL_COLOR_G, _
                                  VENDOR_UNIT_PRICE_FILL_COLOR_B)
                 End With
-                ApplyConstructionUnitPriceBaseColumnsFont wsUnitPrice, changedCell.Row, changedCell.Row
+                ApplyConstructionUnitPriceDataRowFont wsUnitPrice, wsInfo, changedCell.Row, changedCell.Row
             End If
         End If
     Next changedCell
