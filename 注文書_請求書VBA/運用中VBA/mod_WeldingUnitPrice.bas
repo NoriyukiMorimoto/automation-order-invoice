@@ -448,6 +448,21 @@ Private Function GetWeldingSheetRightmostVendorNightCol(ByVal weldingBlockCount 
     GetWeldingSheetRightmostVendorNightCol = rightmost
 End Function
 
+' 数式の評価結果が「値が表示されない」状態(Empty/空文字/数値の0)かどうかを判定する。
+' エラー値は問題の発見を妨げないようグレー塗り対象にしない。
+
+Private Function IsFormulaResultBlankWUP(ByVal resultValue As Variant) As Boolean
+    If IsError(resultValue) Then Exit Function
+
+    If IsEmpty(resultValue) Then
+        IsFormulaResultBlankWUP = True
+    ElseIf IsNumeric(resultValue) Then
+        IsFormulaResultBlankWUP = (CDbl(resultValue) = 0)
+    Else
+        IsFormulaResultBlankWUP = (Len(Trim$(CStr(resultValue))) = 0)
+    End If
+End Function
+
 Private Function JoinCollectionText(ByVal values As Collection, ByVal delimiter As String) As String
     Dim itemValue As Variant
     Dim result As String
@@ -644,6 +659,19 @@ End Function
 '   sourceCol  : JR単価列(昼=E/夜=F)
 '   temotoRatio: マスタ溶接手元割合の値(昼E/夜F) ※リテラル
 '   ratioAddress: 軌道外注比率(基本情報31行 1社目F31/2社目I31…)のセル参照
+
+' 1列分のセル値を (1 To rowCount, 1 To 1) の2次元配列として読み取る(1行の場合のスカラー化を吸収)。
+
+Private Function ReadColumnValuesWUP(ByVal targetRange As Range, ByVal rowCount As Long) As Variant
+    If rowCount = 1 Then
+        Dim vals() As Variant
+        ReDim vals(1 To 1, 1 To 1)
+        vals(1, 1) = targetRange.Cells(1, 1).Value
+        ReadColumnValuesWUP = vals
+    Else
+        ReadColumnValuesWUP = targetRange.Value
+    End If
+End Function
 
 Private Function ResolveVendorUnitPriceNameWUP(ByVal vendorUnitPriceNameMap As Object, _
                                                ByVal basicInfoVendorName As String) As String
@@ -1002,6 +1030,8 @@ End Sub
 
 ' データ行をまとめて算出し、列ごとに1回の数式一括代入で書き込む(セル単位往復を排除)。
 ' 数式文字列は従来の Build*Formula と同一。空文字の行はグレー塗り対象としてまとめて処理する。
+' さらに書き込み後に再計算し、数式はあっても値が表示されないセル(空文字/0)もグレー塗りする。
+' 整理番号(B列)が数値でない行(積算線区替わりの見出し行等)はグレー塗りしない。
 
 Private Sub ApplyWeldingVendorBorders(ByVal wsWelding As Worksheet, _
                                       ByVal lastRow As Long, _
@@ -1093,6 +1123,11 @@ Private Sub ApplyWeldingVendorDataRowsBatch(ByVal wsWelding As Worksheet, _
     ReDim dayArr(1 To rowCount, 1 To 1)
     ReDim nightArr(1 To rowCount, 1 To 1)
 
+    ' 整理番号(B列)が数値の行のみをデータ行として扱う。
+    ' 積算線区替わりの見出し行(年度・工事件名・ヘッダー等)はグレー塗り対象外とする。
+    Dim isDataRow() As Boolean
+    ReDim isDataRow(1 To rowCount)
+
     Dim greyDay As Range
     Dim greyNight As Range
 
@@ -1110,11 +1145,13 @@ Private Sub ApplyWeldingVendorDataRowsBatch(ByVal wsWelding As Worksheet, _
         nightF = ""
 
         Dim seiriText As String
-        seiriText = Trim$(CStr(CommonNzText(src(r, COL_SEIRI))))
+        seiriText = Trim$(StrConv(CStr(CommonNzText(src(r, COL_SEIRI))), vbNarrow))
 
-        If Len(seiriText) > 0 Then
+        If Len(seiriText) > 0 And IsNumeric(seiriText) Then
+            isDataRow(r) = True
+
             Dim seiriNumber As Long
-            seiriNumber = CLng(Val(StrConv(seiriText, vbNarrow)))
+            seiriNumber = CLng(Val(seiriText))
 
             If seiriNumber >= WUP_PACK_SEIRI_MIN Then
                 Dim packKey As String
@@ -1153,19 +1190,53 @@ Private Sub ApplyWeldingVendorDataRowsBatch(ByVal wsWelding As Worksheet, _
             dayArr(r, 1) = dayF
         Else
             dayArr(r, 1) = ""
-            AddCellToUnionWUP greyDay, wsWelding.Cells(rowIndex, dayCol)
+            If isDataRow(r) Then AddCellToUnionWUP greyDay, wsWelding.Cells(rowIndex, dayCol)
         End If
 
         If Len(nightF) > 0 Then
             nightArr(r, 1) = nightF
         Else
             nightArr(r, 1) = ""
-            AddCellToUnionWUP greyNight, wsWelding.Cells(rowIndex, nightCol)
+            If isDataRow(r) Then AddCellToUnionWUP greyNight, wsWelding.Cells(rowIndex, nightCol)
         End If
     Next r
 
-    wsWelding.Range(wsWelding.Cells(firstRow, dayCol), wsWelding.Cells(lastRow, dayCol)).Formula = dayArr
-    wsWelding.Range(wsWelding.Cells(firstRow, nightCol), wsWelding.Cells(lastRow, nightCol)).Formula = nightArr
+    Dim dayRange As Range
+    Dim nightRange As Range
+    Set dayRange = wsWelding.Range(wsWelding.Cells(firstRow, dayCol), wsWelding.Cells(lastRow, dayCol))
+    Set nightRange = wsWelding.Range(wsWelding.Cells(firstRow, nightCol), wsWelding.Cells(lastRow, nightCol))
+
+    dayRange.Formula = dayArr
+    nightRange.Formula = nightArr
+
+    ' 数式を書き込んだ列を再計算し、評価結果が表示されないセル(空文字/0)もグレー塗り対象へ追加する。
+    ' 数式は消さずに残す(単価パターン切替時は再計算で値が復帰する)。
+    On Error Resume Next
+    dayRange.Calculate
+    nightRange.Calculate
+    On Error GoTo 0
+
+    Dim dayValues As Variant
+    Dim nightValues As Variant
+    dayValues = ReadColumnValuesWUP(dayRange, rowCount)
+    nightValues = ReadColumnValuesWUP(nightRange, rowCount)
+
+    Dim greyDayBlankResult As Range
+    Dim greyNightBlankResult As Range
+    For r = 1 To rowCount
+        If isDataRow(r) Then
+            If Len(CStr(dayArr(r, 1))) > 0 Then
+                If IsFormulaResultBlankWUP(dayValues(r, 1)) Then
+                    AddCellToUnionWUP greyDayBlankResult, wsWelding.Cells(firstRow + r - 1, dayCol)
+                End If
+            End If
+            If Len(CStr(nightArr(r, 1))) > 0 Then
+                If IsFormulaResultBlankWUP(nightValues(r, 1)) Then
+                    AddCellToUnionWUP greyNightBlankResult, wsWelding.Cells(firstRow + r - 1, nightCol)
+                End If
+            End If
+        End If
+    Next r
 
     ' 書式は範囲へ一括適用
     Dim dataRange As Range
@@ -1182,6 +1253,14 @@ Private Sub ApplyWeldingVendorDataRowsBatch(ByVal wsWelding As Worksheet, _
     If Not greyNight Is Nothing Then
         greyNight.NumberFormat = "General"
         greyNight.Interior.Color = RGB(WUP_FILL_COLOR_R, WUP_FILL_COLOR_G, WUP_FILL_COLOR_B)
+    End If
+
+    ' グレー塗り(数式はあるが値が表示されない)をまとめて適用(数式・表示形式は保持)
+    If Not greyDayBlankResult Is Nothing Then
+        greyDayBlankResult.Interior.Color = RGB(WUP_FILL_COLOR_R, WUP_FILL_COLOR_G, WUP_FILL_COLOR_B)
+    End If
+    If Not greyNightBlankResult Is Nothing Then
+        greyNightBlankResult.Interior.Color = RGB(WUP_FILL_COLOR_R, WUP_FILL_COLOR_G, WUP_FILL_COLOR_B)
     End If
 End Sub
 
