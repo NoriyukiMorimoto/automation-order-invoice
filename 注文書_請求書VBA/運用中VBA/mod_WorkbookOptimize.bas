@@ -12,7 +12,8 @@ Option Explicit
 '  - 基本情報シート … 業者ブロックは最大10社(値列 F..AG=33列目)まで使用する。
 '    10社分の空ブロックには背景色・斜線ガイド等の意図した書式があるため消さない。
 '    業者ブロック範囲より右(34列目以降)の空セル書式のみクリアする。
-'  - 工事単価シート … 値のある最終行/最終列より外側の空セル書式をクリアする。
+'  - 工事単価シート … 触らない。罫線・塗り・桁区切りは VBA で意図的に付与するため、
+'    Find ベースの「値の外側」判定で ClearFormats すると誤って消える。
 '  - それ以外のシート … 触らない(誤って装飾を消さないための安全側)。
 ' =============================================================
 
@@ -51,8 +52,6 @@ Private Sub OptimizeWorkbookInternal(ByVal wb As Workbook, ByVal showResult As B
     For Each ws In wb.worksheets
         If StrComp(ws.Name, basicInfoName, vbTextCompare) = 0 Then
             If OptimizeBasicInfoSheet(ws) Then clearedSheets = clearedSheets + 1
-        ElseIf mod_MaterialPriceImport.IsConstructionUnitPriceSheet(ws) Then
-            If OptimizeDataRangeSheet(ws) Then clearedSheets = clearedSheets + 1
         End If
     Next ws
 
@@ -90,40 +89,6 @@ Private Function OptimizeBasicInfoSheet(ByVal ws As Worksheet) As Boolean
     OptimizeBasicInfoSheet = True
 End Function
 
-' 一般データシート: 値のある最終行/列より外側(下側・右側)の空セル書式をクリア
-Private Function OptimizeDataRangeSheet(ByVal ws As Worksheet) As Boolean
-    Dim usedLastRow As Long
-    Dim usedLastCol As Long
-    usedLastRow = GetSheetUsedLastRow(ws)
-    usedLastCol = GetSheetUsedLastCol(ws)
-    If usedLastRow < 1 Or usedLastCol < 1 Then Exit Function
-
-    Dim dataLastRow As Long
-    Dim dataLastCol As Long
-    dataLastRow = GetSheetValueLastRow(ws)
-    dataLastCol = GetSheetValueLastCol(ws)
-    If dataLastRow < 1 Then dataLastRow = 1
-    If dataLastCol < 1 Then dataLastCol = 1
-
-    Dim didClear As Boolean
-
-    ' 下側(最終データ行より下)
-    If usedLastRow > dataLastRow Then
-        ResetRangeFormats ws.Range(ws.Cells(dataLastRow + 1, 1), _
-                                   ws.Cells(usedLastRow, usedLastCol))
-        didClear = True
-    End If
-
-    ' 右側(最終データ列より右、かつ下側で消していない行範囲)
-    If usedLastCol > dataLastCol Then
-        ResetRangeFormats ws.Range(ws.Cells(1, dataLastCol + 1), _
-                                   ws.Cells(dataLastRow, usedLastCol))
-        didClear = True
-    End If
-
-    OptimizeDataRangeSheet = didClear
-End Function
-
 ' 書式を既定へ戻す。結合セルがあれば解除してからクリアする。
 Private Sub ResetRangeFormats(ByVal target As Range)
     If target Is Nothing Then Exit Sub
@@ -151,26 +116,6 @@ Private Function GetSheetUsedLastCol(ByVal ws As Worksheet) As Long
     On Error Resume Next
     GetSheetUsedLastCol = ws.UsedRange.Column + ws.UsedRange.Columns.Count - 1
     On Error GoTo 0
-End Function
-
-' 値のある最終行(Find で xlValues, 前方向検索)
-Private Function GetSheetValueLastRow(ByVal ws As Worksheet) As Long
-    Dim foundCell As Range
-    On Error Resume Next
-    Set foundCell = ws.Cells.Find(What:="*", LookIn:=xlValues, LookAt:=xlPart, _
-                                  SearchOrder:=xlByRows, SearchDirection:=xlPrevious)
-    On Error GoTo 0
-    If Not foundCell Is Nothing Then GetSheetValueLastRow = foundCell.Row
-End Function
-
-' 値のある最終列(Find で xlValues, 前方向検索)
-Private Function GetSheetValueLastCol(ByVal ws As Worksheet) As Long
-    Dim foundCell As Range
-    On Error Resume Next
-    Set foundCell = ws.Cells.Find(What:="*", LookIn:=xlValues, LookAt:=xlPart, _
-                                  SearchOrder:=xlByColumns, SearchDirection:=xlPrevious)
-    On Error GoTo 0
-    If Not foundCell Is Nothing Then GetSheetValueLastCol = foundCell.Column
 End Function
 
 Private Function OptimizeTitleText() As String
