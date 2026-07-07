@@ -1273,11 +1273,9 @@ Public Sub SortWorksSheet(ByVal ws As Worksheet)
 
     Dim r As Long
     Dim lineName As String
-    Dim kindName As String
     Dim lineRank As Long
     For r = 2 To lastRow
         lineName = CommonRemoveAllSpaces(CommonNzText(ws.Cells(r, colLine).value))
-        kindName = CommonRemoveAllSpaces(CommonNzText(ws.Cells(r, colKind).value))
         ws.Cells(r, colSide).value = IIf(InStr(1, lineName, SIDELINE_KEYWORD) > 0, 1, 0)
         lineRank = GetProjectMasterLineOrderRankCore(lineName)
         If lineRank < 0 Then lineRank = PROJECT_MASTER_LINE_ORDER_UNKNOWN_RANK
