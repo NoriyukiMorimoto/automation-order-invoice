@@ -549,6 +549,7 @@ Public Sub ApplyConstructionUnitPriceImportedRowDecorationsFast(ByVal wsUnitPric
                                  VENDOR_UNIT_PRICE_FILL_COLOR_G, _
                                  VENDOR_UNIT_PRICE_FILL_COLOR_B)
                 End With
+                ApplyConstructionUnitPriceBaseColumnsFont wsUnitPrice, segStart, rowIndex - 1
                 segStart = 0
             End If
         End If
@@ -875,6 +876,24 @@ Public Sub ApplyVendorUnitPriceDataRows(ByVal wsUnitPrice As Worksheet, _
         nightFormulaR1C1, wasteKeyword, lastRow, False, usePreloadedArrays, preloadedNightSrcArr, preloadedWorkArr
 End Sub
 
+Private Sub ApplyConstructionUnitPriceBaseColumnsFont(ByVal wsUnitPrice As Worksheet, _
+                                                       ByVal firstRow As Long, _
+                                                       ByVal lastRow As Long)
+    If wsUnitPrice Is Nothing Then Exit Sub
+    If lastRow < firstRow Then Exit Sub
+
+    Dim fontRange As Range
+    Set fontRange = wsUnitPrice.Range(wsUnitPrice.Cells(firstRow, 1), _
+                                      wsUnitPrice.Cells(lastRow, VENDOR_UNIT_PRICE_REF_WIDTH_COL))
+
+    With fontRange.Font
+        .Name = VendorUnitPriceFontNameText()
+        On Error Resume Next
+        .NameFarEast = VendorUnitPriceFontNameText()
+        On Error GoTo 0
+    End With
+End Sub
+
 Public Sub ApplyVendorUnitPriceFont(ByVal wsUnitPrice As Worksheet, _
                                      ByVal dayCol As Long, _
                                      ByVal nightCol As Long, _
@@ -1028,6 +1047,7 @@ Public Sub ApplyVendorUnitPriceNewRowFill(ByVal wsUnitPrice As Worksheet, _
                                  VENDOR_UNIT_PRICE_FILL_COLOR_G, _
                                  VENDOR_UNIT_PRICE_FILL_COLOR_B)
                 End With
+                ApplyConstructionUnitPriceBaseColumnsFont wsUnitPrice, changedCell.Row, changedCell.Row
             End If
         End If
     Next changedCell
