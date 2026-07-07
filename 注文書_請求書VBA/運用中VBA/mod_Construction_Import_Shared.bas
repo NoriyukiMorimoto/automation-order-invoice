@@ -83,8 +83,10 @@ Public Const BASIC_INFO_REF_VALUE_CELL As String = "C12"
 Public Const BASIC_INFO_REF_FONT_NAME As String = "BIZ UDゴシック"
 
 Public Const PROJECT_MASTER_START_ROW As Long = 2
+Public Const PROJECT_MASTER_LINE_CODE_COL As Long = 4
 Public Const PROJECT_MASTER_UNIT_PRICE_LINE_COL As Long = 6
 Public Const PROJECT_MASTER_SOURCE_LINE_COL As Long = 7
+Public Const PROJECT_MASTER_LINE_ORDER_UNKNOWN_RANK As Long = 999999
 Public Const MASTER_DATA_FOLDER As String = "マスタデータ"
 Public Const UNIT_PRICE_LINE_MASTER_FILE As String = "出張所別_単価適用線区.xlsx"
 Public Const VENDOR_MASTER_FILE As String = "業者マスタ(全社版).xlsx"
