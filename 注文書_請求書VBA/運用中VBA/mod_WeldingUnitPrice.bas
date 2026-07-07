@@ -1111,6 +1111,61 @@ Private Sub ApplyWeldingVendorBorders(ByVal wsWelding As Worksheet, _
     Next rowIndex
 End Sub
 
+Private Function WeldingProjectNameLabelKeywordText() As String
+    Static cached As String
+    If cached = "" Then cached = ChrW$(&H5DE5) & ChrW$(&H4E8B) & ChrW$(&H4EF6) & ChrW$(&H540D)
+    WeldingProjectNameLabelKeywordText = cached
+End Function
+
+Private Function IsWeldingProjectNameLabelCellWUP(ByVal labelText As String) As Boolean
+    Dim normalized As String
+    normalized = CommonRemoveAllSpaces(CommonNormalizeText(labelText))
+    If Len(normalized) = 0 Then Exit Function
+    IsWeldingProjectNameLabelCellWUP = _
+        (InStr(1, normalized, WeldingProjectNameLabelKeywordText(), vbTextCompare) > 0)
+End Function
+
+' 先頭ブロック(3～6行目 G～N列)の会社ヘッダーを、A列「工事件名：」行とその下3行へ複写する。
+' 線区替わり箇所でも単価ﾊﾟﾀｰﾝ・外注比率適用パターン・会社名・昼間/夜間ラベルを表示する。
+
+Private Sub CopyWeldingVendorHeaderToLineSections(ByVal wsWelding As Worksheet, _
+                                                  ByVal weldingBlockCount As Long, _
+                                                  ByVal railBlockCount As Long, _
+                                                  ByVal lastRow As Long)
+    Dim rightmostNightCol As Long
+    rightmostNightCol = GetWeldingSheetRightmostVendorNightCol(weldingBlockCount, railBlockCount)
+    If rightmostNightCol < WUP_WELDING_DAY_COL Then Exit Sub
+    If lastRow < WUP_LABEL_ROW Then Exit Sub
+
+    Dim sourceRange As Range
+    Set sourceRange = wsWelding.Range(wsWelding.Cells(WUP_PATTERN_ROW, WUP_WELDING_DAY_COL), _
+                                      wsWelding.Cells(WUP_LABEL_ROW, rightmostNightCol))
+
+    Dim prevScreenUpdating As Boolean
+    prevScreenUpdating = Application.ScreenUpdating
+    Application.ScreenUpdating = False
+
+    Dim rowIndex As Long
+    For rowIndex = 1 To lastRow
+        If rowIndex + (WUP_LABEL_ROW - WUP_PATTERN_ROW) > lastRow Then Exit For
+
+        If Not IsWeldingProjectNameLabelCellWUP(CommonNzText(wsWelding.Cells(rowIndex, 1).Value)) Then GoTo NextSectionRow
+
+        Dim destRange As Range
+        Set destRange = wsWelding.Range(wsWelding.Cells(rowIndex, WUP_WELDING_DAY_COL), _
+                                        wsWelding.Cells(rowIndex + (WUP_LABEL_ROW - WUP_PATTERN_ROW), _
+                                                         rightmostNightCol))
+
+        SafeUnmergeRangeWUP destRange
+        sourceRange.Copy
+        destRange.PasteSpecial xlPasteAll
+NextSectionRow:
+    Next rowIndex
+
+    Application.CutCopyMode = False
+    Application.ScreenUpdating = prevScreenUpdating
+End Sub
+
 Private Sub ApplyWeldingVendorCell(ByVal targetCell As Range, _
                                    ByVal wsWelding As Worksheet, _
                                    ByVal rowIndex As Long, _
@@ -1407,6 +1462,8 @@ Private Sub ApplyWeldingVendorUnitPricesToSheet(ByVal wsWelding As Worksheet, _
 
     LogWUP "展開完了 sheet=[" & wsWelding.Name & "] 溶接会社数=" & CStr(weldingBlockCount) & _
            " 軌道会社数=" & CStr(railBlockCount)
+
+    CopyWeldingVendorHeaderToLineSections wsWelding, weldingBlockCount, railBlockCount, lastRow
 End Sub
 
 Private Sub ApplyWeldingVendorUnitPricesToSheetColumns(ByVal wsWelding As Worksheet, _
@@ -1467,6 +1524,8 @@ Private Sub ApplyWeldingVendorUnitPricesToSheetColumns(ByVal wsWelding As Worksh
     Next railIndex
 
     LogWUP "部分展開完了 sheet=[" & wsWelding.Name & "] 対象列数=" & CStr(targetValueColumns.Count)
+
+    CopyWeldingVendorHeaderToLineSections wsWelding, weldingBlockCount, railBlockCount, lastRow
 End Sub
 
 Private Sub ClearLegacyOutsourcePatternSelector(ByVal wsWelding As Worksheet)
@@ -1721,6 +1780,8 @@ Private Sub SyncWeldingVendorBlocksLayoutOnSheet(ByVal wsWelding As Worksheet, _
 
     ClearWeldingVendorColumnsBeyondLayout wsWelding, lastRow, _
         GetWeldingSheetRightmostVendorNightCol(weldingBlockCount, railBlockCount)
+
+    CopyWeldingVendorHeaderToLineSections wsWelding, weldingBlockCount, railBlockCount, lastRow
 End Sub
 
 Private Sub UpdateWeldingVendorDisplayNameOnly(ByVal wsWelding As Worksheet, _
