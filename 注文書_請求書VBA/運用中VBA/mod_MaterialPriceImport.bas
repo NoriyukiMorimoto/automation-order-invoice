@@ -412,17 +412,17 @@ Private Sub ImportUnitPriceData(ByVal wsInfo As Worksheet)
     End If
     LogUP "LoadWorksheetNameCandidatesFromWorkbooks: 候補シート数=" & CStr(sheetNames.Count)
 
-    ' C20=在来線の場合のみ、単価シート候補を「工事件名別マスタ F列(積算線区)の出現順」に
-    ' 並べ替える。マスタF列に該当しないシートは取込対象から除外する。
+    ' C20=在来線の場合のみ、単価シート候補を「工事件名別マスタ D列(積算線区コード)の番号順」に
+    ' 並べ替える。マスタD列に該当しないシートは取込対象から除外する。
     ' ここで並べ替えることで、選択ダイアログの表示順・取込順・C24の記載順がすべて揃う。
     If StrComp(request.lineType, ZAIRAISEN_NAME, vbTextCompare) = 0 Then
         Set sheetNames = OrderUnitPriceSheetNamesByProjectMasterFColumn(sheetNames, sheetSourceSheetMap)
         If sheetNames Is Nothing Or sheetNames.Count = 0 Then
-            LogUP "F列順並べ替え後に対象シートが0件 -> 中断"
+            LogUP "D列コード順並べ替え後に対象シートが0件 -> 中断"
             MsgBox UiMsgUnitPriceImportableSheetNotFoundText() & vbCrLf & JoinCollectionText(sourceFilePaths, vbCrLf), vbExclamation
             Exit Sub
         End If
-        LogUP "F列順並べ替え後の候補シート数=" & CStr(sheetNames.Count)
+        LogUP "D列コード順並べ替え後の候補シート数=" & CStr(sheetNames.Count)
     End If
 
     Dim selectedSheetNames As Collection
@@ -1698,9 +1698,9 @@ Private Function TrimLeadingDigitsAndSeparators(ByVal rawValue As String) As Str
 End Function
 
 ' ============================================================
-' 単価シート名候補(displayName)を、工事件名別マスタ F列(積算線区)の
-' 出現順に並べ替える。照合は実シート名(sheetSourceSheetMap)で行う。
-' マスタF列に該当しない(rank<0)候補は除外する。
+' 単価シート名候補(displayName)を、工事件名別マスタ D列(積算線区コード)の
+' 番号順に並べ替える。照合は実シート名(sheetSourceSheetMap)で行う。
+' マスタD列に該当しない(rank<0)候補は除外する。
 ' 同順位内は元の出現順を保持する(安定ソート)。
 Private Function OrderUnitPriceSheetNamesByProjectMasterFColumn( _
         ByVal sheetNames As Collection, _
@@ -1745,7 +1745,7 @@ Private Function OrderUnitPriceSheetNamesByProjectMasterFColumn( _
             origins(n) = originIndex
             names(n) = CStr(displayName)
         Else
-            LogUP "F列順除外(マスタF列に未登録) sheet=[" & CStr(displayName) & "] lookup=[" & lookupName & "]"
+            LogUP "D列コード順除外(マスタD列に未登録) sheet=[" & CStr(displayName) & "] lookup=[" & lookupName & "]"
         End If
     Next displayName
 
