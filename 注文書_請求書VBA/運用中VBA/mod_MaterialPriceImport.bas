@@ -2188,7 +2188,10 @@ Private Sub ApplyImportedUnitPriceSheetFormat(ByVal targetSheet As Worksheet)
     If fontRange Is Nothing Then Set fontRange = targetSheet.Range("A1")
 
     On Error Resume Next
-    fontRange.Font.Name = ImportedUnitPriceSheetFontNameText()
+    With fontRange.Font
+        .Name = ImportedUnitPriceSheetFontNameText()
+        .NameFarEast = ImportedUnitPriceSheetFontNameText()
+    End With
     If Err.Number <> 0 Then
         fmtErr = Err.Number
         Err.Clear
