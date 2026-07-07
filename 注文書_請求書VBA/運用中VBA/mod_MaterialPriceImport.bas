@@ -1480,8 +1480,11 @@ Private Function ImportWeldingUnitPriceSheetsIfRequired(ByVal wsInfo As Workshee
         Exit Function
     End If
 
+    Dim lineType As String
+    lineType = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_LINE_TYPE_CELL).value))
+
     Dim weldingSheetNames As Collection
-    Set weldingSheetNames = LoadWeldingSheetNames(weldingFilePath, selectedLineNames)
+    Set weldingSheetNames = LoadWeldingSheetNames(weldingFilePath, selectedLineNames, lineType)
     If weldingSheetNames Is Nothing Then
         LogUP "LoadWeldingSheetNames -> Nothing 中断"
         Exit Function
@@ -1537,7 +1540,8 @@ Private Function IsWeldingUnitPriceRequired(ByVal wsInfo As Worksheet) As Boolea
 End Function
 
 Private Function LoadWeldingSheetNames(ByVal sourceFilePath As String, _
-                                       ByVal selectedLineNames As Collection) As Collection
+                                       ByVal selectedLineNames As Collection, _
+                                       ByVal lineType As String) As Collection
     Dim sourceSheetNames As Collection
     Set sourceSheetNames = LoadWorksheetNamesFromWorkbook(sourceFilePath)
     If sourceSheetNames Is Nothing Then Exit Function
@@ -1546,9 +1550,10 @@ Private Function LoadWeldingSheetNames(ByVal sourceFilePath As String, _
     Set result = New Collection
 
     Dim sheetName As Variant
-    If Not selectedLineNames Is Nothing Then
-        For Each sheetName In sourceSheetNames
-            If CollectionContainsText(selectedLineNames, CStr(sheetName)) Then result.Add CStr(sheetName)
+    If Not selectedLineNames Is Nothing And selectedLineNames.Count > 0 Then
+        ' 工事単価シートの選択順(D列コード順)を維持して溶接元シートを拾う。
+        For Each sheetName In selectedLineNames
+            If CollectionContainsText(sourceSheetNames, CStr(sheetName)) Then result.Add CStr(sheetName)
         Next sheetName
     End If
 
@@ -1556,6 +1561,11 @@ Private Function LoadWeldingSheetNames(ByVal sourceFilePath As String, _
         For Each sheetName In sourceSheetNames
             result.Add CStr(sheetName)
         Next sheetName
+    End If
+
+    ' 在来線は工事件名別マスタ D列(積算線区コード)順に並べ替える。
+    If StrComp(lineType, ZAIRAISEN_NAME, vbTextCompare) = 0 And result.Count > 0 Then
+        Set result = OrderUnitPriceSheetNamesByProjectMasterFColumn(result, Nothing)
     End If
 
     Set LoadWeldingSheetNames = result
