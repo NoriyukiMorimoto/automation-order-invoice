@@ -1033,13 +1033,23 @@ End Sub
 ' さらに書き込み後に再計算し、数式はあっても値が表示されないセル(空文字/0)もグレー塗りする。
 ' 整理番号(B列)が数値でない行(積算線区替わりの見出し行等)はグレー塗りしない。
 
-Private Sub ApplyWeldingVendorBorders(ByVal wsWelding As Worksheet, _
-                                      ByVal lastRow As Long, _
-                                      ByVal dayCol As Long, _
-                                      ByVal nightCol As Long)
+Private Function IsWeldingUnitPriceDataSeiriRowWUP(ByVal cellValue As Variant) As Boolean
+    Dim textValue As String
+    textValue = Trim$(StrConv(CommonNzText(cellValue), vbNarrow))
+    If Len(textValue) = 0 Then Exit Function
+    IsWeldingUnitPriceDataSeiriRowWUP = IsNumeric(textValue)
+End Function
+
+Private Sub ApplyWeldingVendorBorderBlock(ByVal wsWelding As Worksheet, _
+                                          ByVal startRow As Long, _
+                                          ByVal endRow As Long, _
+                                          ByVal dayCol As Long, _
+                                          ByVal nightCol As Long)
+    If startRow > endRow Then Exit Sub
+
     Dim borderRange As Range
-    Set borderRange = wsWelding.Range(wsWelding.Cells(WUP_HEADER_ROW, dayCol), _
-                                      wsWelding.Cells(lastRow, nightCol))
+    Set borderRange = wsWelding.Range(wsWelding.Cells(startRow, dayCol), _
+                                      wsWelding.Cells(endRow, nightCol))
     With borderRange
         .Borders.LineStyle = xlNone
         With .Borders
@@ -1051,6 +1061,54 @@ Private Sub ApplyWeldingVendorBorders(ByVal wsWelding As Worksheet, _
         .Borders(xlEdgeRight).Weight = xlMedium
         .Borders(xlEdgeBottom).Weight = xlMedium
     End With
+End Sub
+
+Private Sub ClearWeldingVendorRowBorders(ByVal wsWelding As Worksheet, _
+                                       ByVal rowIndex As Long, _
+                                       ByVal dayCol As Long, _
+                                       ByVal nightCol As Long)
+    wsWelding.Range(wsWelding.Cells(rowIndex, dayCol), _
+                    wsWelding.Cells(rowIndex, nightCol)).Borders.LineStyle = xlNone
+End Sub
+
+' 1～3行目(外注比率・単価ﾊﾟﾀｰﾝ)は罫線なし。4～6行目はヘッダーブロック。
+' 7行目以降は整理番号(B列)が数値のデータ行のみ連続ブロックごとに罫線を付ける。
+' 積算線区替わりの見出し行(年度・工事件名・積算線区・列見出し等)は罫線なし。
+
+Private Sub ApplyWeldingVendorBorders(ByVal wsWelding As Worksheet, _
+                                      ByVal lastRow As Long, _
+                                      ByVal dayCol As Long, _
+                                      ByVal nightCol As Long)
+    Dim clearRow As Long
+    For clearRow = WUP_RATIO_ROW To WUP_HEADER_ROW - 1
+        ClearWeldingVendorRowBorders wsWelding, clearRow, dayCol, nightCol
+    Next clearRow
+
+    ApplyWeldingVendorBorderBlock wsWelding, WUP_HEADER_ROW, WUP_LABEL_ROW, dayCol, nightCol
+
+    Dim rowIndex As Long
+    Dim blockStart As Long
+    blockStart = 0
+
+    For rowIndex = WUP_DATA_START_ROW To lastRow + 1
+        Dim isDataRow As Boolean
+        isDataRow = False
+        If rowIndex <= lastRow Then
+            isDataRow = IsWeldingUnitPriceDataSeiriRowWUP(wsWelding.Cells(rowIndex, WUP_SEIRI_COL).Value)
+        End If
+
+        If isDataRow Then
+            If blockStart = 0 Then blockStart = rowIndex
+        Else
+            If blockStart > 0 Then
+                ApplyWeldingVendorBorderBlock wsWelding, blockStart, rowIndex - 1, dayCol, nightCol
+                blockStart = 0
+            End If
+            If rowIndex <= lastRow Then
+                ClearWeldingVendorRowBorders wsWelding, rowIndex, dayCol, nightCol
+            End If
+        End If
+    Next rowIndex
 End Sub
 
 Private Sub ApplyWeldingVendorCell(ByVal targetCell As Range, _
