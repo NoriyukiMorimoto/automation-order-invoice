@@ -110,6 +110,9 @@ Public Function BuildConstructionSheetName(ByVal sourceA3Text As String, _
     baseName = SanitizeSheetName(sourceA3Text)
     If baseName = "" Then Exit Function
 
+    ' 出力シート名の文書名表記を「施行」へ統一する
+    baseName = ConvertToConstructionExecutionDocName(baseName)
+
     Dim maxBaseLen As Long
     maxBaseLen = 31 - Len(suffix)
     If maxBaseLen < 1 Then maxBaseLen = 1
@@ -117,6 +120,48 @@ Public Function BuildConstructionSheetName(ByVal sourceA3Text As String, _
 
     BuildConstructionSheetName = baseName & suffix
 End Function
+
+' 取込元A3由来の文書名を「施行」表記へ統一する(施工指示書→施行指示書、施工通知書→施行通知書)
+Private Function ConvertToConstructionExecutionDocName(ByVal nameText As String) As String
+    Dim t As String
+    t = nameText
+    t = Replace$(t, ConstructionOrderDocPhraseText(), ExecutionOrderDocPhraseText())
+    t = Replace$(t, ConstructionNoticeDocPhraseText(), ExecutionNoticeDocPhraseText())
+    ConvertToConstructionExecutionDocName = t
+End Function
+
+Private Function ConstructionOrderDocPhraseText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = CommonTextFromChars(&H65BD, &H5DE5, &H6307, &H793A, &H66F8)
+    End If
+    ConstructionOrderDocPhraseText = cached
+End Function
+
+Private Function ExecutionOrderDocPhraseText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = CommonTextFromChars(&H65BD, &H884C, &H6307, &H793A, &H66F8)
+    End If
+    ExecutionOrderDocPhraseText = cached
+End Function
+
+Private Function ConstructionNoticeDocPhraseText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = CommonTextFromChars(&H65BD, &H5DE5, &H901A, &H77E5, &H66F8)
+    End If
+    ConstructionNoticeDocPhraseText = cached
+End Function
+
+Private Function ExecutionNoticeDocPhraseText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = CommonTextFromChars(&H65BD, &H884C, &H901A, &H77E5, &H66F8)
+    End If
+    ExecutionNoticeDocPhraseText = cached
+End Function
+
 
 Public Function SanitizeSheetName(ByVal s As String) As String
     Dim t As String

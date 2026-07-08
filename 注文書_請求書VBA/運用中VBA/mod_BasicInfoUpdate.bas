@@ -344,8 +344,44 @@ Private Function NormalizeOutputSheetNameKey(ByVal sheetName As String) As Strin
     t = CommonNormalizeText(sheetName)
     t = Replace$(t, ChrW$(&HFF08), "(")
     t = Replace$(t, ChrW$(&HFF09), ")")
+    ' 施行/施工の表記ゆれを同一キーへ正規化する(既存シート名との後方互換)
+    t = Replace$(t, ExecutionOrderDocPhraseText(), ConstructionOrderDocPhraseText())
+    t = Replace$(t, ExecutionNoticeDocPhraseText(), ConstructionNoticeDocPhraseText())
     NormalizeOutputSheetNameKey = t
 End Function
+
+Private Function ConstructionOrderDocPhraseText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = CommonTextFromChars(&H65BD, &H5DE5, &H6307, &H793A, &H66F8)
+    End If
+    ConstructionOrderDocPhraseText = cached
+End Function
+
+Private Function ExecutionOrderDocPhraseText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = CommonTextFromChars(&H65BD, &H884C, &H6307, &H793A, &H66F8)
+    End If
+    ExecutionOrderDocPhraseText = cached
+End Function
+
+Private Function ConstructionNoticeDocPhraseText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = CommonTextFromChars(&H65BD, &H5DE5, &H901A, &H77E5, &H66F8)
+    End If
+    ConstructionNoticeDocPhraseText = cached
+End Function
+
+Private Function ExecutionNoticeDocPhraseText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = CommonTextFromChars(&H65BD, &H884C, &H901A, &H77E5, &H66F8)
+    End If
+    ExecutionNoticeDocPhraseText = cached
+End Function
+
 
 Private Sub AppendUniqueSheetName(ByVal targetNames As Collection, ByVal sheetName As String)
     Dim i As Long

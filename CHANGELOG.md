@@ -430,3 +430,13 @@
 
 ### 追記（2026-07-08）
 - 施工会社セル（11行目）変更処理の末尾に `mod_OrderTpl_Generate.HandleVendorNameCellChange` の呼び出しを追加。
+- F9（下請負会社数）変更処理（`SyncVendorBlocksFromCount` 直後）に `RemoveOrphanGeneratedSheets` を追加。会社数を減らした時点で対象外会社の注文書テンプレート5シートを削除する。
+
+## mod_Construction_OutputLayout.bas / mod_BasicInfoUpdate.bas（出力シート名の表記統一）
+
+### 追記（2026-07-08）
+- 施工指示書・施工通知書の取込時に生成する出力シート名を「施行」表記へ統一
+  （施工指示書(工事)→施行指示書(工事)、施工通知書(溶接)→施行通知書(溶接) 等）。
+  `BuildConstructionSheetName` で取込元A3由来の文書名を変換する。
+- `NormalizeOutputSheetNameKey` は施行/施工の表記ゆれを同一キーへ正規化し、
+  旧表記で作成済みのシートも既知テンプレートシートとして認識する(後方互換)。

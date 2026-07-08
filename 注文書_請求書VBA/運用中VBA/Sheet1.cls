@@ -85,6 +85,8 @@ Private Sub Worksheet_Change(ByVal target As Range)
         mod_VendorMaster.SyncVendorBlocksFromCount Me
         Set vendorNameRange = mod_VendorMaster.GetVendorNameRange(Me)
         mod_Construction_Order_Import.RefreshBasicInfoConstructionTotals
+        ' 会社数減少で対象外になった注文書テンプレートシートを削除
+        mod_OrderTpl_Generate.RemoveOrphanGeneratedSheets Me
     End If
 
     If Not Intersect(target, Me.Range("B6,C6")) Is Nothing Then
