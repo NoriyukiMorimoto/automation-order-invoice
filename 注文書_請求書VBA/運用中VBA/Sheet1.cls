@@ -148,6 +148,8 @@ Private Sub Worksheet_Change(ByVal target As Range)
         mod_VendorMaster.HideVendorComboBox Me
         mod_Construction_Order_Import.RefreshBasicInfoConstructionTotals _
             mod_VendorMaster.GetVendorIndexFromValueColumnPublic(changedVendorCell.Column)
+        ' 施工会社確定に伴う注文書テンプレートシートの作成/削除
+        mod_OrderTpl_Generate.HandleVendorNameCellChange Me, changedVendorCell
     End If
 
     Dim monitorHit As Range

@@ -44,6 +44,10 @@
 | `mod_Construction_LineMapping.bas` | 工事件名別マスタ F/G 線区名エイリアスと単価シート名解決。 | `[ConstructionImport]` |
 | `mod_Construction_OutputLayout.bas` | 出力シート列位置・溶接判定・購入充当単価転記などレイアウト補助。 | `[ConstructionImport]` |
 | `mod_subcontractorselector.bas` | 外注業者選択（`frmSubconSelector`）関連の制御。 | |
+| `mod_OrderTpl_Shared.bas` | 注文書テンプレート取込の共通定数・業者マスタ照合(A/P/O列)・部店コード解決・取込元シート探索。 | `[OrderTpl]` |
+| `mod_OrderTpl_Generate.bas` | 施工会社確定時のテンプレート5シート挿入・削除・再作成(`GenerateVendorOrderSheets`/`RefreshAllVendorOrderDetails`)。 | `[OrderTpl]` |
+| `mod_OrderTpl_Header.bas` | 内訳明細ヘッダー部(部店コード・注文番号・工期・外注会社等)の転記。 | `[OrderTpl]` |
+| `mod_OrderTpl_Detail.bas` | 内訳明細明細部の転記エンジン(セクション構築・ソート・行挿入・書式)。 | `[OrderTpl]` |
 | `ModuleExport.bas` | VBA モジュールのエクスポート用。 | |
 
 ## フォーム（`注文書_請求書VBA/運用中VBA/`、`.frm` / `.frx`）
