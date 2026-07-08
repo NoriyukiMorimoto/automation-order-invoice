@@ -15,6 +15,7 @@ Private Sub Workbook_BeforeClose(Cancel As Boolean)
     mod_FillManagerName.CancelScheduledOfficeComboBoxPrompt
     mod_VendorMaster.CancelScheduledVendorListDropdown
     mod_BasicInfoCalendar.ClearProjectSelectionState
+    mod_OrderTpl_Generate.CancelScheduledOrderDetailRefresh
     On Error GoTo 0
 End Sub
 
@@ -141,6 +142,9 @@ UnitPriceCleanup:
         mod_Construction_Order_Import.RefreshSubcontractorPriceColumns Sh, CollectVendorChangeRows(Sh, Target)
     End If
     GetVendorSelectionColumns(Sh).AutoFit
+
+    ' {H‰ïĞ—ñ‚Ì•ÏX‚ğŠeĞ‚Ì“à–ó–¾×‚Ö©“®”½‰f(’x‰„—\–ñ)
+    mod_OrderTpl_Generate.ScheduleOrderDetailRefresh
 
 Cleanup:
     Application.EnableEvents = prevEE

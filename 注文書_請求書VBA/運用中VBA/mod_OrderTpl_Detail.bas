@@ -17,6 +17,40 @@ Private Const SRC_FIELD_PRICE As Long = 6
 Private Const FMT_GROUP_GENERAL As Long = 0
 Private Const FMT_GROUP_INTEGER As Long = 1
 Private Const FMT_GROUP_DECIMAL As Long = 2
+Private Const SUMMARY_EXTRA_ROWS As Long = 5   ' 値引/計/消費税/合計/罫線用空白
+Private Const SUMMARY_NUMBER_FORMAT As String = "#,##0"
+
+Private Function DiscountLabelText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = CommonTextFromChars(&H5024, &H5F15)
+    End If
+    DiscountLabelText = cached
+End Function
+
+Private Function NetTotalLabelText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = CommonTextFromChars(&H8A08)
+    End If
+    NetTotalLabelText = cached
+End Function
+
+Private Function TaxLabelText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = CommonTextFromChars(&H6D88, &H8CBB, &H7A0E)
+    End If
+    TaxLabelText = cached
+End Function
+
+Private Function GrandTotalLabelText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = CommonTextFromChars(&H5408, &H8A08)
+    End If
+    GrandTotalLabelText = cached
+End Function
 
 ' 内訳明細シートの明細部(11行目～小計行の直前)へ転記する
 Public Sub ApplyBreakdownDetails(ByVal wsBreakdown As Worksheet, _
@@ -77,7 +111,7 @@ Public Sub ApplyBreakdownDetails(ByVal wsBreakdown As Worksheet, _
         Exit Sub
     End If
 
-    EnsureDetailCapacity wsBreakdown, subtotalRow, totalLines
+    PositionSubtotalRow wsBreakdown, subtotalRow, totalLines
 
     ' 転記値の組み立て
     Dim valuesAF() As Variant
@@ -111,6 +145,8 @@ Public Sub ApplyBreakdownDetails(ByVal wsBreakdown As Worksheet, _
 
     ApplyDetailFormats wsBreakdown, startRow, endRow, headerLineRows, integerLineRows, decimalLineRows
 
+    BuildSummaryBlock wsBreakdown, subtotalRow, totalLines
+
     mod_OrderTpl_Shared.OrderTplLog "ApplyBreakdownDetails done: " & wsBreakdown.Name & _
         " rows=" & totalLines & " works=" & worksLineCount & " weld=" & weldLineCount
     Exit Sub
@@ -124,6 +160,11 @@ End Sub
 Private Sub ResetDetailArea(ByVal wsBreakdown As Worksheet, ByRef subtotalRow As Long)
     subtotalRow = FindSubtotalRow(wsBreakdown)
     If subtotalRow = 0 Then Exit Sub
+
+    ' 以前に生成した集計ブロック(値引/計/消費税/合計/罫線用空白行)を削除する
+    If IsSummaryLabelRow(wsBreakdown, subtotalRow + 1, DiscountLabelText()) Then
+        wsBreakdown.Rows((subtotalRow + 1) & ":" & (subtotalRow + SUMMARY_EXTRA_ROWS)).Delete
+    End If
 
     Dim defaultLastRow As Long
     defaultLastRow = ORDER_TPL_DETAIL_START_ROW + ORDER_TPL_DETAIL_DEFAULT_ROWS - 1
@@ -159,32 +200,142 @@ Private Function FindSubtotalRow(ByVal wsBreakdown As Worksheet) As Long
     Next r
 End Function
 
-' 必要行数を確保する(不足分は小計行の直前へ行挿入し、数式・書式を引き継ぐ)
-Private Sub EnsureDetailCapacity(ByVal wsBreakdown As Worksheet, _
-                                 ByRef subtotalRow As Long, _
-                                 ByVal neededLines As Long)
-    Dim availableRows As Long
-    availableRows = subtotalRow - ORDER_TPL_DETAIL_START_ROW
+' 小計行を「最終データ行から2行空けた位置」へ移動する(不足は行挿入、余剰は行削除)
+Private Sub PositionSubtotalRow(ByVal wsBreakdown As Worksheet, _
+                                ByRef subtotalRow As Long, _
+                                ByVal totalLines As Long)
+    Dim desiredRow As Long
+    desiredRow = ORDER_TPL_DETAIL_START_ROW + totalLines + 2
 
-    If neededLines <= availableRows - 1 Then Exit Sub
+    If desiredRow > subtotalRow Then
+        Dim insertCount As Long
+        insertCount = desiredRow - subtotalRow
 
-    Dim insertCount As Long
-    insertCount = neededLines - availableRows + 1
+        wsBreakdown.Rows(subtotalRow & ":" & (subtotalRow + insertCount - 1)).Insert _
+            Shift:=xlDown, CopyOrigin:=xlFormatFromLeftOrAbove
 
-    wsBreakdown.Rows(subtotalRow & ":" & (subtotalRow + insertCount - 1)).Insert _
+        ' 数式列(G:P)をクリーンなテンプレート行(12行目)からコピーして引き継ぐ
+        Dim sourceRow As Range
+        Set sourceRow = wsBreakdown.Range(wsBreakdown.Cells(ORDER_TPL_DETAIL_START_ROW + 1, 7), _
+                                          wsBreakdown.Cells(ORDER_TPL_DETAIL_START_ROW + 1, 16))
+        sourceRow.Copy Destination:=wsBreakdown.Range( _
+            wsBreakdown.Cells(subtotalRow, 7), _
+            wsBreakdown.Cells(desiredRow - 1, 16))
+        Application.CutCopyMode = False
+    ElseIf desiredRow < subtotalRow Then
+        wsBreakdown.Rows(desiredRow & ":" & (subtotalRow - 1)).Delete
+    End If
+
+    subtotalRow = desiredRow
+End Sub
+
+' 集計ブロックを構築する: 小計/値引/計/消費税/合計 + 罫線用空白行
+Private Sub BuildSummaryBlock(ByVal wsBreakdown As Worksheet, _
+                              ByVal subtotalRow As Long, _
+                              ByVal totalLines As Long)
+    Dim lastDataRow As Long
+    lastDataRow = ORDER_TPL_DETAIL_START_ROW + totalLines - 1
+
+    ' 小計行の下へ4行(値引/計/消費税/合計)+罫線用空白行を挿入する
+    wsBreakdown.Rows((subtotalRow + 1) & ":" & (subtotalRow + SUMMARY_EXTRA_ROWS)).Insert _
         Shift:=xlDown, CopyOrigin:=xlFormatFromLeftOrAbove
 
-    ' 数式列(G:P)をクリーンなテンプレート行(12行目)からコピーして引き継ぐ
-    Dim sourceRow As Range
-    Set sourceRow = wsBreakdown.Range(wsBreakdown.Cells(ORDER_TPL_DETAIL_START_ROW + 1, 7), _
-                                      wsBreakdown.Cells(ORDER_TPL_DETAIL_START_ROW + 1, 16))
-    sourceRow.Copy Destination:=wsBreakdown.Range( _
-        wsBreakdown.Cells(subtotalRow, 7), _
-        wsBreakdown.Cells(subtotalRow + insertCount - 1, 16))
-    Application.CutCopyMode = False
+    ' 消費税率(基本情報B34「消費税(10%)：」のカッコ内)を取得する
+    Dim taxRateText As String
+    taxRateText = Trim$(Str$(mod_Construction_BasicTotals.ResolveBasicInfoTaxRate( _
+        CommonGetBasicInfoWorksheet())))
 
-    subtotalRow = subtotalRow + insertCount
+    ' ラベル(A:C結合・中央揃え)
+    WriteSummaryLabel wsBreakdown, subtotalRow, mod_OrderTpl_Shared.OrderTplSubtotalLabelText()
+    WriteSummaryLabel wsBreakdown, subtotalRow + 1, DiscountLabelText()
+    WriteSummaryLabel wsBreakdown, subtotalRow + 2, NetTotalLabelText()
+    WriteSummaryLabel wsBreakdown, subtotalRow + 3, TaxLabelText()
+    WriteSummaryLabel wsBreakdown, subtotalRow + 4, GrandTotalLabelText()
+
+    ' G/J/M/P 列: 小計=SUM(11:最終データ行)、値引=-MOD(小計,1000)、計=小計+値引、
+    ' 消費税=ROUNDDOWN(計*税率,0)、合計=計+消費税
+    Dim summaryColumns As Variant
+    summaryColumns = Array("G", "J", "M", "P")
+
+    Dim i As Long
+    For i = LBound(summaryColumns) To UBound(summaryColumns)
+        Dim colLetter As String
+        colLetter = CStr(summaryColumns(i))
+
+        wsBreakdown.Range(colLetter & subtotalRow).Formula = _
+            "=SUM(" & colLetter & ORDER_TPL_DETAIL_START_ROW & ":" & colLetter & lastDataRow & ")"
+        wsBreakdown.Range(colLetter & (subtotalRow + 1)).Formula = _
+            "=-MOD(" & colLetter & subtotalRow & ",1000)"
+        wsBreakdown.Range(colLetter & (subtotalRow + 2)).Formula = _
+            "=" & colLetter & subtotalRow & "+" & colLetter & (subtotalRow + 1)
+        wsBreakdown.Range(colLetter & (subtotalRow + 3)).Formula = _
+            "=ROUNDDOWN(" & colLetter & (subtotalRow + 2) & "*" & taxRateText & ",0)"
+        wsBreakdown.Range(colLetter & (subtotalRow + 4)).Formula = _
+            "=" & colLetter & (subtotalRow + 2) & "+" & colLetter & (subtotalRow + 3)
+
+        wsBreakdown.Range(colLetter & subtotalRow & ":" & colLetter & (subtotalRow + 4)).NumberFormat = _
+            SUMMARY_NUMBER_FORMAT
+    Next i
+
+    ' フォント
+    wsBreakdown.Range(wsBreakdown.Cells(subtotalRow, 1), _
+                      wsBreakdown.Cells(subtotalRow + 4, 16)).Font.Name = BASIC_INFO_REF_FONT_NAME
+
+    ApplySummaryBorders wsBreakdown, subtotalRow
 End Sub
+
+' ラベルセル(A:C結合・上下左右中央揃え)への書き込み
+Private Sub WriteSummaryLabel(ByVal wsBreakdown As Worksheet, _
+                              ByVal rowIndex As Long, _
+                              ByVal labelText As String)
+    Dim labelRange As Range
+    Set labelRange = wsBreakdown.Range(wsBreakdown.Cells(rowIndex, 1), wsBreakdown.Cells(rowIndex, 3))
+
+    On Error Resume Next
+    If Not labelRange.MergeCells Then
+        labelRange.UnMerge
+        labelRange.Merge
+    End If
+    On Error GoTo 0
+
+    labelRange.Cells(1, 1).value = labelText
+    labelRange.HorizontalAlignment = xlCenter
+    labelRange.VerticalAlignment = xlCenter
+End Sub
+
+' 集計ブロックの罫線: 小計行の上罫線=二重線、ブロック内横罫線=細線、
+' 罫線用空白行の下罫線=中線(A:P)。縦罫線は挿入時に上方セルから継承済み
+Private Sub ApplySummaryBorders(ByVal wsBreakdown As Worksheet, _
+                                ByVal subtotalRow As Long)
+    Dim blockRange As Range
+    Set blockRange = wsBreakdown.Range(wsBreakdown.Cells(subtotalRow, 1), _
+                                       wsBreakdown.Cells(subtotalRow + SUMMARY_EXTRA_ROWS, 16))
+
+    With blockRange.Borders(xlInsideHorizontal)
+        .LineStyle = xlContinuous
+        .Weight = xlThin
+    End With
+
+    With wsBreakdown.Range(wsBreakdown.Cells(subtotalRow, 1), _
+                           wsBreakdown.Cells(subtotalRow, 16)).Borders(xlEdgeTop)
+        .LineStyle = xlDouble
+    End With
+
+    With wsBreakdown.Range(wsBreakdown.Cells(subtotalRow + SUMMARY_EXTRA_ROWS, 1), _
+                           wsBreakdown.Cells(subtotalRow + SUMMARY_EXTRA_ROWS, 16)).Borders(xlEdgeBottom)
+        .LineStyle = xlContinuous
+        .Weight = xlMedium
+    End With
+End Sub
+
+' A列セルの表示文字列が指定ラベルと一致するか
+Private Function IsSummaryLabelRow(ByVal wsBreakdown As Worksheet, _
+                                   ByVal rowIndex As Long, _
+                                   ByVal labelText As String) As Boolean
+    IsSummaryLabelRow = (StrComp( _
+        CommonRemoveAllSpaces(CommonNormalizeText(CommonNzText(wsBreakdown.Cells(rowIndex, 1).value))), _
+        labelText, vbTextCompare) = 0)
+End Function
 
 ' 取込済みシートから施工会社で抽出し、契約線区名_管理室のセクション一覧を作る
 ' 戻り値: Collection of Array(セクション見出し, 行Collection)。行 = Array(整理番号, 工事種類, 昼夜別, 単位, 数量, JR単価)

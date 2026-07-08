@@ -532,6 +532,10 @@ Public Sub SelectSubcontractorForSelection()
     Application.EnableEvents = prevEvents
 
     SubconLog "Select complete rows=" & targetRows.Count & " company=[" & chosen & "]"
+
+    ' 施工会社割当てを各社の内訳明細へ自動反映
+    mCurrentStep = "RefreshOrderDetails"
+    mod_OrderTpl_Generate.RefreshAllVendorOrderDetailsSilent
     MsgBox "選択された" & targetRows.Count & "行に「" & chosen & "」の施工単価を設定しました。", _
            vbInformation
     GoTo CleanExit

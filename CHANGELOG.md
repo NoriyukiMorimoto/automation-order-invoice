@@ -440,3 +440,32 @@
   `BuildConstructionSheetName` で取込元A3由来の文書名を変換する。
 - `NormalizeOutputSheetNameKey` は施行/施工の表記ゆれを同一キーへ正規化し、
   旧表記で作成済みのシートも既知テンプレートシートとして認識する(後方互換)。
+
+## mod_OrderTpl_Generate.bas / ThisWorkbook.cls / mod_subcontractorselector.bas（施工会社割当ての自動再転記）
+
+### 追記（2026-07-08）
+- 施行指示書・施行通知書シートの施工会社列（工事:A列、溶接:A・B列）が変更されると、
+  各社の内訳明細を自動で再転記するようにした。
+  - 手入力・ドロップダウン変更: `Workbook_SheetChange` から `ScheduleOrderDetailRefresh` を予約
+    （1秒の遅延実行で連続変更を1回にまとめる。`Application.OnTime` 使用）。
+  - 選択フォームからの一括割当て: `SelectSubcontractorForSelection` の書込完了後に
+    `RefreshAllVendorOrderDetailsSilent` を即時実行。
+- `RefreshAllVendorOrderDetails` を Core 化し、完了メッセージなしの
+  `RefreshAllVendorOrderDetailsSilent` と OnTime 用 `RunScheduledOrderDetailRefresh` を追加。
+- `Workbook_BeforeClose` に遅延予約のキャンセル(`CancelScheduledOrderDetailRefresh`)を追加。
+- 併せて、シートコピー後のリネーム参照を `Worksheets(...)` から `Sheets(...)` へ修正
+  （アンカー `Index` との整合。再生成時の巻き戻りを修正）。
+
+## mod_OrderTpl_Detail.bas（集計ブロックの動的配置）
+
+### #2（2026-07-08）
+- 小計行の扱いを「下へずらす」方式から「最終データ行から2行空けた位置へ配置」する方式へ変更
+  （`PositionSubtotalRow`: 不足時は行挿入・余剰時は行削除で小計行位置を調整）。
+- 小計行の下に 値引・計・消費税・合計・罫線用空白行 を生成する `BuildSummaryBlock` を追加。
+  - ラベルは A:C 結合・上下左右中央揃え・BIZ UDゴシック。
+  - G/J/M/P 列: 小計=SUM(11:最終データ行)、値引=-MOD(小計,1000)（百の位以下をマイナス表示）、
+    計=小計+値引、消費税=ROUNDDOWN(計×税率,0)（税率は基本情報B34のカッコ内を
+    `ResolveBasicInfoTaxRate` で解析）、合計=計+消費税。表示形式は #,##0（桁区切り・小数なし）。
+  - 罫線: 小計行の上罫線=二重線(A:P)、ブロック内横罫線=細線、罫線用空白行の下罫線=中線(A:P)。
+    縦罫線は行挿入時に上方セルから継承。
+- 再転記時は既生成の集計ブロック(値引〜罫線用空白行)を削除してから再構築する(`ResetDetailArea` 拡張)。

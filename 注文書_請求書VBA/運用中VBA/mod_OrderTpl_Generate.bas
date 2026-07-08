@@ -5,6 +5,7 @@ Option Explicit
 ' 改修履歴: CHANGELOG.md 参照
 
 Private mGenerating As Boolean
+Private mDetailRefreshScheduledTime As Date
 
 Private Function GenerateErrorText() As String
     Static cached As String
@@ -117,7 +118,7 @@ Public Sub GenerateVendorOrderSheets(ByVal wsInfo As Worksheet, ByVal vendorInde
 
     Dim i As Long
     For i = LBound(baseNames) To UBound(baseNames)
-        ThisWorkbook.Worksheets(anchorSheet.Index + 1 + i - LBound(baseNames)).Name = _
+        ThisWorkbook.Sheets(anchorSheet.Index + 1 + i - LBound(baseNames)).Name = _
             mod_OrderTpl_Shared.OrderTplBuildSheetName(CStr(baseNames(i)), aliasText)
     Next i
 
@@ -156,6 +157,15 @@ End Sub
 
 ' 全確定会社の内訳明細を再転記する(施工指示書等の取込後に手動実行する公開マクロ)
 Public Sub RefreshAllVendorOrderDetails()
+    RefreshAllVendorOrderDetailsCore True
+End Sub
+
+' 全確定会社の内訳明細を再転記する(完了メッセージなし。自動反映用)
+Public Sub RefreshAllVendorOrderDetailsSilent()
+    RefreshAllVendorOrderDetailsCore False
+End Sub
+
+Private Sub RefreshAllVendorOrderDetailsCore(ByVal showCompletionMessage As Boolean)
     Dim wsInfo As Worksheet
     Set wsInfo = CommonGetBasicInfoWorksheet()
     If wsInfo Is Nothing Then Exit Sub
@@ -218,7 +228,9 @@ Public Sub RefreshAllVendorOrderDetails()
     Application.EnableEvents = prevEnableEvents
     Application.ScreenUpdating = prevScreenUpdating
 
-    MsgBox mod_OrderTpl_Shared.OrderTplRefreshDoneMessageText(), vbInformation
+    If showCompletionMessage Then
+        MsgBox mod_OrderTpl_Shared.OrderTplRefreshDoneMessageText(), vbInformation
+    End If
     Exit Sub
 
 ErrorHandler:
@@ -226,7 +238,68 @@ ErrorHandler:
     Application.Calculation = prevCalculation
     Application.EnableEvents = prevEnableEvents
     Application.ScreenUpdating = prevScreenUpdating
-    MsgBox RefreshErrorText() & vbCrLf & Err.Description, vbExclamation
+    If showCompletionMessage Then
+        MsgBox RefreshErrorText() & vbCrLf & Err.Description, vbExclamation
+    End If
+End Sub
+
+' 施行指示書・施行通知書シートの施工会社列(工事:A列/溶接:A・B列)変更時に、
+' 遅延実行で全社再転記を予約する(ThisWorkbook.Workbook_SheetChange から呼ばれる)
+Public Sub HandleSourceSheetVendorCellChange(ByVal sh As Object, ByVal target As Range)
+    If mGenerating Then Exit Sub
+    If TypeName(sh) <> "Worksheet" Then Exit Sub
+    If target Is Nothing Then Exit Sub
+
+    On Error GoTo Quiet
+
+    Dim ws As Worksheet
+    Set ws = sh
+
+    If Not mod_Construction_Import_Load.IsManagedImportOutputSheet(ws) Then Exit Sub
+    If mod_Construction_BasicTotals.IsPurchaseOutputSheet(ws) Then Exit Sub
+
+    Dim vendorColumns As Range
+    If mod_Construction_OutputLayout.IsWeldingOutputSheetCore(ws) Then
+        Set vendorColumns = ws.Range(ws.Cells(2, 1), ws.Cells(ws.Rows.Count, 2))
+    Else
+        Set vendorColumns = ws.Range(ws.Cells(2, 1), ws.Cells(ws.Rows.Count, 1))
+    End If
+    If Intersect(target, vendorColumns) Is Nothing Then Exit Sub
+
+    ScheduleOrderDetailRefresh
+    Exit Sub
+
+Quiet:
+    Err.Clear
+End Sub
+
+' 全社再転記の遅延実行を予約する(連続変更を1回にまとめる)
+Public Sub ScheduleOrderDetailRefresh()
+    CancelScheduledOrderDetailRefresh
+
+    mDetailRefreshScheduledTime = Now + TimeSerial(0, 0, 1)
+    On Error Resume Next
+    Application.OnTime EarliestTime:=mDetailRefreshScheduledTime, _
+                       Procedure:="'" & ThisWorkbook.Name & "'!RunScheduledOrderDetailRefresh"
+    If Err.Number <> 0 Then mDetailRefreshScheduledTime = 0
+    On Error GoTo 0
+End Sub
+
+Public Sub CancelScheduledOrderDetailRefresh()
+    If mDetailRefreshScheduledTime = 0 Then Exit Sub
+
+    On Error Resume Next
+    Application.OnTime EarliestTime:=mDetailRefreshScheduledTime, _
+                       Procedure:="'" & ThisWorkbook.Name & "'!RunScheduledOrderDetailRefresh", _
+                       Schedule:=False
+    On Error GoTo 0
+    mDetailRefreshScheduledTime = 0
+End Sub
+
+' Application.OnTime から呼ばれる遅延再転記の実行部
+Public Sub RunScheduledOrderDetailRefresh()
+    mDetailRefreshScheduledTime = 0
+    RefreshAllVendorOrderDetailsCore False
 End Sub
 
 ' 指定略称のテンプレート5シートを削除する
