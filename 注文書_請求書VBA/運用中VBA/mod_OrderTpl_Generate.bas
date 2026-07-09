@@ -302,6 +302,24 @@ Public Sub RunScheduledOrderDetailRefresh()
     RefreshAllVendorOrderDetailsCore False
 End Sub
 
+' 基本情報クリア時に、生成済みの注文書テンプレート5シート(全略称)を削除する
+Public Sub RemoveAllGeneratedOrderTemplateSheets()
+    Dim sheetNamesToDelete As Collection
+    Set sheetNamesToDelete = New Collection
+
+    Dim ws As Worksheet
+    Dim baseName As String
+    Dim sheetAlias As String
+    For Each ws In ThisWorkbook.Worksheets
+        If mod_OrderTpl_Shared.OrderTplIsGeneratedSheet(ws, baseName, sheetAlias) Then
+            sheetNamesToDelete.Add ws.Name
+        End If
+    Next ws
+
+    DeleteSheetsByNameList sheetNamesToDelete
+    mod_OrderTpl_Shared.OrderTplClearCaches
+End Sub
+
 ' 指定略称のテンプレート5シートを削除する
 Public Sub RemoveGeneratedSheetsByAlias(ByVal aliasText As String)
     Dim normalizedAlias As String

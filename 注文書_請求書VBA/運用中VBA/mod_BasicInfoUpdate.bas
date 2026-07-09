@@ -141,7 +141,7 @@ Public Sub ClearBasicInfo()
     mod_BasicInfoGuide.ClearAllGuides wsInfo
     LogClearStep "ConfirmAndClearUnitPrice begin"
     mod_MaterialPriceImport.ConfirmAndClearUnitPriceForBasicInfo wsInfo
-    LogClearStep "DeleteConstructionImportSheets begin"
+    LogClearStep "DeleteImportAndTemplateSheets begin"
     DeleteConstructionImportSheets False
     LogClearStep "ClearContents begin"
     wsInfo.Range(BASIC_INFO_CLEAR_RANGES).ClearContents
@@ -196,6 +196,10 @@ Public Sub SilentClearBasicInfo(ByVal wsInfo As Worksheet)
     Application.ScreenUpdating = False
     Application.EnableEvents = False
 
+    On Error Resume Next
+    mod_OrderTpl_Generate.CancelScheduledOrderDetailRefresh
+    On Error GoTo ErrorHandler
+
     HideOfficeComboBoxForUpdate wsInfo
     mod_BasicInfoGuide.ClearAllGuides wsInfo
     mod_MaterialPriceImport.SilentClearUnitPriceForBasicInfo wsInfo
@@ -237,6 +241,12 @@ Private Sub DeleteConstructionImportSheets(Optional ByVal showConfirm As Boolean
     Dim i As Long
     Dim prevAlerts As Boolean
     Dim prevScreenUpdating As Boolean
+
+    On Error Resume Next
+    mod_OrderTpl_Generate.CancelScheduledOrderDetailRefresh
+    On Error GoTo 0
+
+    mod_OrderTpl_Generate.RemoveAllGeneratedOrderTemplateSheets
 
     Set wsInfo = CommonGetBasicInfoWorksheet()
 
