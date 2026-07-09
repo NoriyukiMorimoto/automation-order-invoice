@@ -43,11 +43,8 @@ Private Sub Worksheet_Change(ByVal target As Range)
     Dim vendorUnitPriceMonitorRange As Range
     Set vendorUnitPriceMonitorRange = mod_VendorMaster.GetVendorUnitPriceMonitorRange(Me)
 
-    If Intersect(target, Me.Range("B4,B6,C6,C10,C13,C15:C16,F9,C20,C22,C23,C24,F2")) Is Nothing And _
-       Intersect(target, vendorNameRange) Is Nothing And _
-       Intersect(target, vendorUnitPriceMonitorRange) Is Nothing And _
-       Intersect(target, Me.Range("C2,C9,C22,C23,F6,F9,F10,F11,F16,F27,F29,F31,I10,I11,I16,I27,I29,I31,L10,L11,L16,L27,L29,L31,O10,O11,O16,O27,O29,O31,R10,R11,R16,R27,R29,R31,U10,U11,U16,U27,U29,U31,X10,X11,X16,X27,X29,X31,AA10,AA11,AA16,AA27,AA29,AA31,AD10,AD11,AD16,AD27,AD29,AD31,AG10,AG11,AG16,AG27,AG29,AG31")) Is Nothing Then
-        mod_DebugLog.Log "[Sheet1] ŠÄŽ‹‘ÎÛŠO -> Exit"
+    If IsIgnoredBasicInfoChange(Me, target, vendorNameRange, vendorUnitPriceMonitorRange) Then
+        mod_DebugLog.Log "[Sheet1] ŠÄŽ‹‘ÎÛŠO -> Exit"
         Exit Sub
     End If
 
@@ -337,6 +334,61 @@ End Sub
 Private Sub btnClearBasicInfo_Click()
     mod_BasicInfoUpdate.ClearBasicInfo
 End Sub
+
+Private Function IsIgnoredBasicInfoChange(ByVal ws As Worksheet, _
+                                          ByVal target As Range, _
+                                          ByVal vendorNameRange As Range, _
+                                          ByVal vendorUnitPriceMonitorRange As Range) As Boolean
+    If target Is Nothing Then
+        IsIgnoredBasicInfoChange = True
+        Exit Function
+    End If
+
+    If IntersectsBasicInfoMonitorTarget(target, ws.Range("B4,B6,C6,C10,C13,C15:C16,F9,C20,C22,C23,C24,F2")) Then Exit Function
+    If IntersectsBasicInfoMonitorTarget(target, vendorNameRange) Then Exit Function
+    If IntersectsBasicInfoMonitorTarget(target, vendorUnitPriceMonitorRange) Then Exit Function
+    If IntersectsBasicInfoMonitorTarget(target, GetBasicInfoChangeGateRange(ws)) Then Exit Function
+
+    IsIgnoredBasicInfoChange = True
+End Function
+
+Private Function GetBasicInfoChangeGateRange(ByVal ws As Worksheet) As Range
+    Dim result As Range
+
+    On Error Resume Next
+    Set result = mod_OrderTpl_Header.GetBasicInfoHeaderSourceMonitorRange(ws)
+
+    Dim guideRange As Range
+    Set guideRange = mod_BasicInfoGuide.GetVendorGuideMonitorRangePublic(ws)
+    If Not guideRange Is Nothing Then
+        If result Is Nothing Then
+            Set result = guideRange
+        Else
+            Set result = Union(result, guideRange)
+        End If
+    End If
+
+    Dim extraRange As Range
+    Set extraRange = ws.Range("C22,C23")
+    If Not extraRange Is Nothing Then
+        If result Is Nothing Then
+            Set result = extraRange
+        Else
+            Set result = Union(result, extraRange)
+        End If
+    End If
+    On Error GoTo 0
+
+    Set GetBasicInfoChangeGateRange = result
+End Function
+
+Private Function IntersectsBasicInfoMonitorTarget(ByVal target As Range, ByVal monitorRange As Range) As Boolean
+    If monitorRange Is Nothing Then Exit Function
+
+    On Error Resume Next
+    IntersectsBasicInfoMonitorTarget = Not (Intersect(target, monitorRange) Is Nothing)
+    On Error GoTo 0
+End Function
 
 Private Function GetTargetValueText(ByVal target As Range) As String
     On Error GoTo ErrorHandler
