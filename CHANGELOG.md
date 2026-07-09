@@ -554,3 +554,27 @@
   再転記時は結合を解除してから明細をクリアする。
 - 施行通知書には管理室名が無いため、管理室名が空の場合は見出し末尾の「_」を付けない
   （施行指示書は従来どおり「線区名_管理室名」）。
+
+## mod_OrderTpl_Generate.bas / ThisWorkbook.cls（コントロールイベント内シートコピー失敗の修正）
+
+### 追記（2026-07-09）
+- 会社名をActiveXコンボ等で確定した際に「注文書シートの作成中にエラーが発生しました。
+  このシートをコピーできませんでした。」(実行時エラー1004)となる問題を修正。
+  コントロールイベントの実行コンテキスト内（コントロールがフォーカス保持中）では
+  `Worksheets.Copy` が失敗するというExcelの制限が原因。
+- シート生成を `Application.OnTime` による遅延実行へ変更（`ScheduleVendorSheetGeneration` /
+  `RunScheduledVendorSheetGeneration`）。イベント完了・フォーカス正常化後に生成されるため、
+  入力経路（直接入力・コンボ・選択フォーム）によらず安定して動作する。
+  複数ブロックの連続確定は予約をまとめて1回で実行。`Workbook_BeforeClose` で予約をキャンセル。
+
+## Sheet1.cls / mod_OrderTpl_Header.bas / mod_OrderTpl_Generate.bas（欠損復旧・未実装関数の補完）
+
+### 追記（2026-07-09）
+- Sheet1.cls が末尾欠損（`GetBasicInfoChangeGateRange` の途中で切断）していたため復旧。
+  変更監視ゲートのリファクタ（`IsIgnoredBasicInfoChange` 方式）を完成させた:
+  `GetBasicInfoChangeGateRange`（ヘッダー転記元+ガイド監視+固定セル+業者ブロック10社分の
+  10/11/16/27/29/31行目）、`IntersectsBasicInfoMonitorTarget`、`GetTargetValueText` を実装。
+- 参照されていた未実装関数を実装:
+  - `mod_OrderTpl_Header.GetBasicInfoHeaderSourceMonitorRange`（監視範囲の公開ラッパー）
+  - `mod_OrderTpl_Generate.RemoveAllGeneratedOrderTemplateSheets`（生成済みテンプレートシートの
+    全削除。基本情報クリアの `DeleteConstructionImportSheets` 冒頭から呼ばれる）

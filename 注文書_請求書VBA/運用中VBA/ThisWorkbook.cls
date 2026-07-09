@@ -16,6 +16,7 @@ Private Sub Workbook_BeforeClose(Cancel As Boolean)
     mod_VendorMaster.CancelScheduledVendorListDropdown
     mod_BasicInfoCalendar.ClearProjectSelectionState
     mod_OrderTpl_Generate.CancelScheduledOrderDetailRefresh
+    mod_OrderTpl_Generate.CancelScheduledVendorSheetGeneration
     On Error GoTo 0
 End Sub
 

@@ -6,6 +6,8 @@ Option Explicit
 
 Private mGenerating As Boolean
 Private mDetailRefreshScheduledTime As Date
+Private mPendingVendorIndexes As Object        ' 遅延生成待ちのブロック番号(Dictionary)
+Private mVendorGenScheduledTime As Date
 
 Private Function GenerateErrorText() As String
     Static cached As String
@@ -38,7 +40,66 @@ Public Sub HandleVendorNameCellChange(ByVal wsInfo As Worksheet, ByVal changedCe
     vendorIndex = mod_VendorMaster.GetVendorIndexFromValueColumnPublic(changedCell.Column)
     If vendorIndex < 1 Then Exit Sub
 
-    GenerateVendorOrderSheets wsInfo, vendorIndex
+    ' ActiveXコンボ等のコントロールイベント内から Worksheets.Copy を実行すると
+    ' 実行時エラー1004(このシートをコピーできませんでした)になるため、
+    ' OnTime でイベント完了後(フォーカス正常化後)に遅延実行する
+    ScheduleVendorSheetGeneration vendorIndex
+End Sub
+
+' 指定ブロックのシート生成を遅延予約する(複数ブロックの予約はまとめて実行される)
+Public Sub ScheduleVendorSheetGeneration(ByVal vendorIndex As Long)
+    If mPendingVendorIndexes Is Nothing Then
+        Set mPendingVendorIndexes = CreateObject("Scripting.Dictionary")
+    End If
+    If Not mPendingVendorIndexes.Exists(vendorIndex) Then
+        mPendingVendorIndexes.Add vendorIndex, True
+    End If
+
+    CancelScheduledVendorSheetGeneration
+
+    mVendorGenScheduledTime = Now
+    On Error Resume Next
+    Application.OnTime EarliestTime:=mVendorGenScheduledTime, _
+                       Procedure:="'" & ThisWorkbook.Name & "'!RunScheduledVendorSheetGeneration"
+    If Err.Number <> 0 Then mVendorGenScheduledTime = 0
+    On Error GoTo 0
+End Sub
+
+Public Sub CancelScheduledVendorSheetGeneration()
+    If mVendorGenScheduledTime = 0 Then Exit Sub
+    On Error Resume Next
+    Application.OnTime EarliestTime:=mVendorGenScheduledTime, _
+                       Procedure:="'" & ThisWorkbook.Name & "'!RunScheduledVendorSheetGeneration", _
+                       Schedule:=False
+    On Error GoTo 0
+    mVendorGenScheduledTime = 0
+End Sub
+
+' Application.OnTime から呼ばれる遅延生成の実行部
+Public Sub RunScheduledVendorSheetGeneration()
+    mVendorGenScheduledTime = 0
+    If mPendingVendorIndexes Is Nothing Then Exit Sub
+    If mPendingVendorIndexes.Count = 0 Then Exit Sub
+
+    Dim wsInfo As Worksheet
+    Set wsInfo = CommonGetBasicInfoWorksheet()
+    If wsInfo Is Nothing Then Exit Sub
+
+    ' 実行前に予約リストを退避してクリアする(実行中の再予約と衝突させない)
+    Dim pendingKeys As Variant
+    pendingKeys = mPendingVendorIndexes.Keys
+    mPendingVendorIndexes.RemoveAll
+
+    Dim prevEnableEvents As Boolean
+    prevEnableEvents = Application.EnableEvents
+    Application.EnableEvents = False
+
+    Dim i As Long
+    For i = LBound(pendingKeys) To UBound(pendingKeys)
+        GenerateVendorOrderSheets wsInfo, CLng(pendingKeys(i))
+    Next i
+
+    Application.EnableEvents = prevEnableEvents
 End Sub
 
 ' 指定ブロックの施工会社のテンプレート5シートを削除して再作成し、内訳明細へ転記する
@@ -302,7 +363,7 @@ Public Sub RunScheduledOrderDetailRefresh()
     RefreshAllVendorOrderDetailsCore False
 End Sub
 
-' 基本情報クリア時に、生成済みの注文書テンプレート5シート(全略称)を削除する
+' 生成済みのテンプレートシートをすべて削除する(基本情報クリア時の後始末用)
 Public Sub RemoveAllGeneratedOrderTemplateSheets()
     Dim sheetNamesToDelete As Collection
     Set sheetNamesToDelete = New Collection
@@ -317,7 +378,6 @@ Public Sub RemoveAllGeneratedOrderTemplateSheets()
     Next ws
 
     DeleteSheetsByNameList sheetNamesToDelete
-    mod_OrderTpl_Shared.OrderTplClearCaches
 End Sub
 
 ' 指定略称のテンプレート5シートを削除する

@@ -72,11 +72,6 @@ Quiet:
     Err.Clear
 End Sub
 
-' Sheet1(基本情報)のWorksheet_Change 監視判定・HandleBasicInfoHeaderSourceChange 用
-Public Function GetBasicInfoHeaderSourceMonitorRange(ByVal wsInfo As Worksheet) As Range
-    Set GetBasicInfoHeaderSourceMonitorRange = BuildHeaderSourceRange(wsInfo)
-End Function
-
 ' Sheet1(基本情報)のWorksheet_Changeから呼ばれる入口。
 ' ヘッダー転記元セル(B6/C6/C2/C9/C10/C15:C16/F6、各ブロックの16/27行目)の変更を各社シートへ反映する
 Public Sub HandleBasicInfoHeaderSourceChange(ByVal wsInfo As Worksheet, ByVal target As Range)
@@ -96,6 +91,12 @@ Public Sub HandleBasicInfoHeaderSourceChange(ByVal wsInfo As Worksheet, ByVal ta
 Quiet:
     Err.Clear
 End Sub
+
+' ヘッダー転記元セルの監視範囲を返す公開ラッパー(Sheet1の変更ゲート構築用)
+Public Function GetBasicInfoHeaderSourceMonitorRange(ByVal wsInfo As Worksheet) As Range
+    If wsInfo Is Nothing Then Exit Function
+    Set GetBasicInfoHeaderSourceMonitorRange = BuildHeaderSourceRange(wsInfo)
+End Function
 
 ' ヘッダー転記元セルの監視範囲(共通セル + 各ブロックの業者コード16行目/注文番号27行目)
 Private Function BuildHeaderSourceRange(ByVal wsInfo As Worksheet) As Range

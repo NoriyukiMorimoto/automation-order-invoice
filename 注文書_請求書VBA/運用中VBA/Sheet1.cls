@@ -352,6 +352,7 @@ Private Function IsIgnoredBasicInfoChange(ByVal ws As Worksheet, _
     IsIgnoredBasicInfoChange = True
 End Function
 
+' 変更監視ゲート: ヘッダー転記元 + ガイド監視範囲 + 固定セル + 業者ブロック(最大10社)の監視行
 Private Function GetBasicInfoChangeGateRange(ByVal ws As Worksheet) As Range
     Dim result As Range
 
@@ -368,30 +369,45 @@ Private Function GetBasicInfoChangeGateRange(ByVal ws As Worksheet) As Range
         End If
     End If
 
-    Dim extraRange As Range
-    Set extraRange = ws.Range("C22,C23")
-    If Not extraRange Is Nothing Then
-        If result Is Nothing Then
-            Set result = extraRange
-        Else
-            Set result = Union(result, extraRange)
-        End If
+    Dim fixedRange As Range
+    Set fixedRange = ws.Range("C2,C9,C22,C23,F6,F9")
+    If result Is Nothing Then
+        Set result = fixedRange
+    Else
+        Set result = Union(result, fixedRange)
     End If
+
+    ' 業者ブロック(F列始まり3列おき)の 10/11/16/27/29/31 行目
+    Dim monitorRows As Variant
+    monitorRows = Array(10, 11, 16, 27, 29, 31)
+
+    Dim i As Long
+    For i = 1 To BASIC_INFO_VENDOR_MAX_BLOCKS
+        Dim valueColumn As Long
+        valueColumn = mod_Construction_BasicTotals.BasicInfoVendorColumn(i)
+
+        Dim r As Long
+        For r = LBound(monitorRows) To UBound(monitorRows)
+            Set result = Union(result, ws.Cells(CLng(monitorRows(r)), valueColumn))
+        Next r
+    Next i
     On Error GoTo 0
 
     Set GetBasicInfoChangeGateRange = result
 End Function
 
-Private Function IntersectsBasicInfoMonitorTarget(ByVal target As Range, ByVal monitorRange As Range) As Boolean
+Private Function IntersectsBasicInfoMonitorTarget(ByVal target As Range, _
+                                                  ByVal monitorRange As Range) As Boolean
+    If target Is Nothing Then Exit Function
     If monitorRange Is Nothing Then Exit Function
 
     On Error Resume Next
-    IntersectsBasicInfoMonitorTarget = Not (Intersect(target, monitorRange) Is Nothing)
+    IntersectsBasicInfoMonitorTarget = Not Application.Intersect(target, monitorRange) Is Nothing
     On Error GoTo 0
 End Function
 
 Private Function GetTargetValueText(ByVal target As Range) As String
-    On Error GoTo ErrorHandler
+    On Error GoTo Unreadable
 
     If target Is Nothing Then
         GetTargetValueText = ""
@@ -415,6 +431,6 @@ Private Function GetTargetValueText(ByVal target As Range) As String
     End If
     Exit Function
 
-ErrorHandler:
+Unreadable:
     GetTargetValueText = "(unreadable)"
 End Function
