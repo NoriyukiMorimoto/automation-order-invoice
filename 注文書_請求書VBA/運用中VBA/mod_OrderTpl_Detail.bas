@@ -19,6 +19,9 @@ Private Const FMT_GROUP_INTEGER As Long = 1
 Private Const FMT_GROUP_DECIMAL As Long = 2
 Private Const SUMMARY_EXTRA_ROWS As Long = 5   ' 値引/計/消費税/合計/罫線用空白
 Private Const SUMMARY_NUMBER_FORMAT As String = "#,##0"
+Private Const DETAIL_AMOUNT_NUMBER_FORMAT As String = "#,##0;-#,##0;"            ' 桁区切り・ゼロ非表示
+Private Const DETAIL_QTY_DECIMAL_NUMBER_FORMAT As String = "#,##0.000;-#,##0.000;" ' 小数3桁・ゼロ非表示
+Private Const DETAIL_FONT_SIZE As Double = 10#
 
 Private Function DiscountLabelText() As String
     Static cached As String
@@ -147,6 +150,10 @@ Public Sub ApplyBreakdownDetails(ByVal wsBreakdown As Worksheet, _
 
     BuildSummaryBlock wsBreakdown, subtotalRow, totalLines
 
+    ' 11行目以降(集計ブロック含む)のフォントサイズを10ポイントへ統一する
+    wsBreakdown.Range(wsBreakdown.Cells(startRow, 1), _
+                      wsBreakdown.Cells(subtotalRow + SUMMARY_EXTRA_ROWS, 16)).Font.Size = DETAIL_FONT_SIZE
+
     mod_OrderTpl_Shared.OrderTplLog "ApplyBreakdownDetails done: " & wsBreakdown.Name & _
         " rows=" & totalLines & " works=" & worksLineCount & " weld=" & weldLineCount
     Exit Sub
@@ -176,6 +183,10 @@ Private Sub ResetDetailArea(ByVal wsBreakdown As Worksheet, ByRef subtotalRow As
 
     Dim clearLastRow As Long
     clearLastRow = subtotalRow - 1
+
+    ' 前回転記のセクション見出し(A:C結合)を解除してから値をクリアする
+    mod_VendorBlockLayout.SafeUnmergeRange wsBreakdown.Range( _
+        wsBreakdown.Cells(ORDER_TPL_DETAIL_START_ROW, 1), wsBreakdown.Cells(clearLastRow, 3))
 
     With wsBreakdown
         .Range(.Cells(ORDER_TPL_DETAIL_START_ROW, 1), .Cells(clearLastRow, 6)).ClearContents
@@ -307,6 +318,15 @@ End Sub
 ' 罫線用空白行の下罫線=中線(A:P)。縦罫線は挿入時に上方セルから継承済み
 Private Sub ApplySummaryBorders(ByVal wsBreakdown As Worksheet, _
                                 ByVal subtotalRow As Long)
+    ' 明細部(11行目～小計行の直前)の横罫線をすべて細線で引き直す(転記の最後に実行)
+    With wsBreakdown.Range(wsBreakdown.Cells(ORDER_TPL_DETAIL_START_ROW, 1), _
+                           wsBreakdown.Cells(subtotalRow - 1, 16))
+        .Borders(xlInsideHorizontal).LineStyle = xlContinuous
+        .Borders(xlInsideHorizontal).Weight = xlThin
+        .Borders(xlEdgeBottom).LineStyle = xlContinuous
+        .Borders(xlEdgeBottom).Weight = xlThin
+    End With
+
     Dim blockRange As Range
     Set blockRange = wsBreakdown.Range(wsBreakdown.Cells(subtotalRow, 1), _
                                        wsBreakdown.Cells(subtotalRow + SUMMARY_EXTRA_ROWS, 16))
@@ -315,6 +335,29 @@ Private Sub ApplySummaryBorders(ByVal wsBreakdown As Worksheet, _
         .LineStyle = xlContinuous
         .Weight = xlThin
     End With
+
+    ' 縦罫線(小計行～合計行の1行下): D/E間・G/H間・J/K間・M/N間=中線、
+    ' E～G間・H～J間・K～M間・N～P間=細線
+    Dim mediumRightColumns As Variant
+    mediumRightColumns = Array(4, 7, 10, 13)
+    Dim thinRightColumns As Variant
+    thinRightColumns = Array(5, 6, 8, 9, 11, 12, 14, 15)
+
+    Dim c As Variant
+    For Each c In mediumRightColumns
+        With wsBreakdown.Range(wsBreakdown.Cells(subtotalRow, CLng(c)), _
+                               wsBreakdown.Cells(subtotalRow + SUMMARY_EXTRA_ROWS, CLng(c))).Borders(xlEdgeRight)
+            .LineStyle = xlContinuous
+            .Weight = xlMedium
+        End With
+    Next c
+    For Each c In thinRightColumns
+        With wsBreakdown.Range(wsBreakdown.Cells(subtotalRow, CLng(c)), _
+                               wsBreakdown.Cells(subtotalRow + SUMMARY_EXTRA_ROWS, CLng(c))).Borders(xlEdgeRight)
+            .LineStyle = xlContinuous
+            .Weight = xlThin
+        End With
+    Next c
 
     With wsBreakdown.Range(wsBreakdown.Cells(subtotalRow, 1), _
                            wsBreakdown.Cells(subtotalRow, 16)).Borders(xlEdgeTop)
@@ -421,7 +464,13 @@ Private Function BuildSectionLabel(ByVal lineText As String, _
     If isWeldingSource Then
         label = label & "_" & mod_OrderTpl_Shared.OrderTplRailWeldingLabelText()
     End If
-    BuildSectionLabel = label & "_" & CommonNormalizeText(managerRoomText)
+
+    ' 施行通知書には管理室名が無いため、空の場合は「_」を付けない
+    Dim managerRoomName As String
+    managerRoomName = CommonNormalizeText(managerRoomText)
+    If Len(managerRoomName) > 0 Then label = label & "_" & managerRoomName
+
+    BuildSectionLabel = label
 End Function
 
 ' セクション内ソート: 第1キー 昼夜別(昼が先)、第2キー 整理番号(昇順)
@@ -595,26 +644,29 @@ Private Sub ApplyDetailFormats(ByVal wsBreakdown As Worksheet, _
         ' C列: 昼夜別は左右中央揃え
         .Range(.Cells(startRow, 3), .Cells(endRow, 3)).HorizontalAlignment = xlCenter
 
-        ' F列/O列: JR単価は小数点なし
-        .Range(.Cells(startRow, 6), .Cells(endRow, 6)).NumberFormat = "0"
-        .Range(.Cells(startRow, 15), .Cells(endRow, 15)).NumberFormat = "0"
-
-        ' G列/P列: 金額は小数が出る場合のみ小数表示(General)
-        .Range(.Cells(startRow, 7), .Cells(endRow, 7)).NumberFormat = "General"
-        .Range(.Cells(startRow, 16), .Cells(endRow, 16)).NumberFormat = "General"
+        ' E～P列: 桁区切り・ゼロ値非表示。数量列(E/H/K/N)の既定=整数、小数3桁の行は後で上書き
+        .Range(.Cells(startRow, 5), .Cells(endRow, 16)).NumberFormat = DETAIL_AMOUNT_NUMBER_FORMAT
     End With
 
-    ' セクション見出し行: 左詰め
+    ' セクション見出し行(契約線区名・管理室名): A:C結合・左詰め・縮小してセル内に収める
     Dim lineIndex As Variant
     For Each lineIndex In headerLineRows
-        wsBreakdown.Cells(startRow + CLng(lineIndex) - 1, 1).HorizontalAlignment = xlLeft
+        Dim headerRowIndex As Long
+        headerRowIndex = startRow + CLng(lineIndex) - 1
+        With wsBreakdown.Range(wsBreakdown.Cells(headerRowIndex, 1), wsBreakdown.Cells(headerRowIndex, 3))
+            .Merge
+            .HorizontalAlignment = xlLeft
+            .VerticalAlignment = xlCenter
+            .WrapText = False
+            .ShrinkToFit = True
+        End With
     Next lineIndex
 
-    ' E列/N列: 数量の表示形式(整数/小数3桁)
-    ApplyNumberFormatToLineRows wsBreakdown, startRow, 5, integerLineRows, "0"
-    ApplyNumberFormatToLineRows wsBreakdown, startRow, 14, integerLineRows, "0"
-    ApplyNumberFormatToLineRows wsBreakdown, startRow, 5, decimalLineRows, "0.000"
-    ApplyNumberFormatToLineRows wsBreakdown, startRow, 14, decimalLineRows, "0.000"
+    ' 数量列(E/H/K/N): 単位が小数3桁対象(m/m3/M/㎡/t)の行を小数3桁表示へ上書き
+    ApplyNumberFormatToLineRows wsBreakdown, startRow, 5, decimalLineRows, DETAIL_QTY_DECIMAL_NUMBER_FORMAT
+    ApplyNumberFormatToLineRows wsBreakdown, startRow, 8, decimalLineRows, DETAIL_QTY_DECIMAL_NUMBER_FORMAT
+    ApplyNumberFormatToLineRows wsBreakdown, startRow, 11, decimalLineRows, DETAIL_QTY_DECIMAL_NUMBER_FORMAT
+    ApplyNumberFormatToLineRows wsBreakdown, startRow, 14, decimalLineRows, DETAIL_QTY_DECIMAL_NUMBER_FORMAT
 End Sub
 
 Private Sub ApplyNumberFormatToLineRows(ByVal wsBreakdown As Worksheet, _
