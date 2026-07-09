@@ -578,3 +578,17 @@
   - `mod_OrderTpl_Header.GetBasicInfoHeaderSourceMonitorRange`（監視範囲の公開ラッパー）
   - `mod_OrderTpl_Generate.RemoveAllGeneratedOrderTemplateSheets`（生成済みテンプレートシートの
     全削除。基本情報クリアの `DeleteConstructionImportSheets` 冒頭から呼ばれる）
+
+## mod_OrderTpl_Detail.bas / mod_OrderTpl_Header.bas（テンプレート列追加への対応）
+
+### 追記（2026-07-09）
+- 注文書テンプレート(内訳明細)のB列とC列の間に1列追加された新レイアウトへ対応
+  （C列以降が1列右へシフト: 昼夜別=D、単位=E、数量=F/I/L/O、単価=G/J/M/P、金額=H/K/N/Q）。
+- 新テンプレートには金額数式が入っていないため、金額列(H/K/N/Q)へ
+  `=数量×単価`(R1C1: =RC[-2]*RC[-1]) の数式をコード側で明細部全行に設定するようにした。
+- 数量列(F/I/L/O)の単位別書式（整数/小数3桁・桁区切り・ゼロ非表示）を新列位置へ適用。
+- セクション見出し・集計ブロックのラベル結合を A:D へ変更(テンプレートの小計 A33:D33 に合わせる)。
+- 罫線・フォント適用範囲を A〜Q へ拡張。縦罫線は E/F・H/I・K/L・N/O間=中線、
+  F〜H・I〜K・L〜N・O〜Q間=細線へシフト。
+- ヘッダー転記先を新位置へ変更: 工事名称=D6、工期=L5/L6、作成日=O2、所長=O3、
+  外注会社名=P5、業者コード=P6（部店コードC2・注文番号C3・工事番号B6は結合拡張のみで位置不変）。

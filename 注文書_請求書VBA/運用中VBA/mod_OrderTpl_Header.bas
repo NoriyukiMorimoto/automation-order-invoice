@@ -161,25 +161,25 @@ Public Sub ApplyBreakdownHeader(ByVal wsInfo As Worksheet, _
     ' B6: 工事番号(基本情報C9)
     WriteHeaderValue wsBreakdown.Range("B6"), wsInfo.Range("C9").value, False
 
-    ' C6: 工事名称(基本情報C10、結合セルのため中央揃え)
-    WriteHeaderValue wsBreakdown.Range("C6"), wsInfo.Range("C10").value, True
+    ' D6: 工事名称(基本情報C10、結合セルのため中央揃え)
+    WriteHeaderValue wsBreakdown.Range("D6"), wsInfo.Range("C10").value, True
 
-    ' K5/K6: 工期 自/至(基本情報C15/C16、和暦表示)
-    WriteHeaderDate wsBreakdown.Range("K5"), wsInfo.Range("C15").value
-    WriteHeaderDate wsBreakdown.Range("K6"), wsInfo.Range("C16").value
+    ' L5/L6: 工期 自/至(基本情報C15/C16、和暦表示)
+    WriteHeaderDate wsBreakdown.Range("L5"), wsInfo.Range("C15").value
+    WriteHeaderDate wsBreakdown.Range("L6"), wsInfo.Range("C16").value
 
-    ' N2: 作成日(基本情報C2、和暦表示)
-    WriteHeaderDate wsBreakdown.Range("N2"), wsInfo.Range("C2").value
+    ' O2: 作成日(基本情報C2、和暦表示)
+    WriteHeaderDate wsBreakdown.Range("O2"), wsInfo.Range("C2").value
 
-    ' N3: 所長名(基本情報F6)
-    WriteHeaderValue wsBreakdown.Range("N3"), wsInfo.Range("F6").value, True
+    ' O3: 所長名(基本情報F6)
+    WriteHeaderValue wsBreakdown.Range("O3"), wsInfo.Range("F6").value, True
 
-    ' O5: 外注会社名(施工会社ブロック11行目)
-    WriteHeaderValue wsBreakdown.Range("O5"), _
+    ' P5: 外注会社名(施工会社ブロック11行目)
+    WriteHeaderValue wsBreakdown.Range("P5"), _
                      wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, valueColumn).value, True
 
-    ' O6: 業者コード(施工会社ブロック16行目)
-    WriteHeaderValue wsBreakdown.Range("O6"), _
+    ' P6: 業者コード(施工会社ブロック16行目)
+    WriteHeaderValue wsBreakdown.Range("P6"), _
                      wsInfo.Cells(ORDER_TPL_BLOCK_VENDOR_CODE_ROW, valueColumn).value, True
 
     ' 複数ページ印刷用にヘッダー行(7:10行目)をタイトル行に設定する
