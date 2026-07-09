@@ -143,7 +143,7 @@ UnitPriceCleanup:
     End If
     GetVendorSelectionColumns(Sh).AutoFit
 
-    ' {H‰ïĞ—ñ‚Ì•ÏX‚ğŠeĞ‚Ì“à–ó–¾×‚Ö©“®”½‰f(’x‰„—\–ñ)
+    ' {H‰ïĞ—ñ‚Ì•ÏX‚ğŠeĞ‚Ì“à–ó–¾×‚Ö©“®”½‰f(’x‰„—\–ñ)
     mod_OrderTpl_Generate.ScheduleOrderDetailRefresh
 
 Cleanup:

@@ -85,7 +85,7 @@ Private Sub Worksheet_Change(ByVal target As Range)
         mod_VendorMaster.SyncVendorBlocksFromCount Me
         Set vendorNameRange = mod_VendorMaster.GetVendorNameRange(Me)
         mod_Construction_Order_Import.RefreshBasicInfoConstructionTotals
-        ' 会社数減少で対象外になった注文書テンプレートシートを削除
+        ' 会社摧減擯で対旱外になった喋文搗テンプレ拏トシ拏トを晨撩
         mod_OrderTpl_Generate.RemoveOrphanGeneratedSheets Me
     End If
 
@@ -150,7 +150,7 @@ Private Sub Worksheet_Change(ByVal target As Range)
         mod_VendorMaster.HideVendorComboBox Me
         mod_Construction_Order_Import.RefreshBasicInfoConstructionTotals _
             mod_VendorMaster.GetVendorIndexFromValueColumnPublic(changedVendorCell.Column)
-        ' 施工会社確定に伴う注文書テンプレートシートの作成/削除
+        ' 施扎会社確定に伴う喋文搗テンプレ拏トシ拏トの晧擣/晨撩
         mod_OrderTpl_Generate.HandleVendorNameCellChange Me, changedVendorCell
     End If
 

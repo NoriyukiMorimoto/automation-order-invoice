@@ -573,6 +573,18 @@ Public Function CollectLineLookupCandidates(ByVal lineName As String, _
         Next synthesizedItem
     End If
 
+    ' 最終候補: 末尾の括弧書き(例: (LR化))を除いた表記。
+    ' 既存候補が優先されるため、阪和線(南)等の正規名称の照合には影響しない
+    Dim strippedTail As String
+    strippedTail = RemoveTrailingParenGroup(normalized)
+    If StrComp(strippedTail, normalized, vbTextCompare) <> 0 And Len(strippedTail) > 0 Then
+        AddUniqueLineLookupCandidate result, strippedTail
+        AddUniqueLineLookupCandidate result, ResolveProjectLineNameAlias(strippedTail, isWeldingSheet)
+        If Not isWeldingSheet Then
+            AppendReverseConstructionAliasSources result, strippedTail
+        End If
+    End If
+
     Set CollectLineLookupCandidates = result
 End Function
 
@@ -786,6 +798,22 @@ Public Function RemoveTrackDesignationMarker(ByVal sourceText As String) As Stri
     result = Replace$(result, halfWidthMarker, "", , , vbTextCompare)
     result = Replace$(result, fullWidthMarker, "", , , vbTextCompare)
     RemoveTrackDesignationMarker = result
+End Function
+
+' 末尾の括弧書き1組を除去する(例: 大阪環状・関西本線・阪和・環状第３線(LR化) → 同(LR化)なし)。
+' 全体が括弧の場合や括弧が末尾にない場合はそのまま返す
+Public Function RemoveTrailingParenGroup(ByVal sourceText As String) As String
+    Dim t As String
+    t = NormalizeLineLookupBracketChars(CommonNzText(sourceText))
+    RemoveTrailingParenGroup = t
+    If Len(t) < 3 Then Exit Function
+    If Right$(t, 1) <> ")" Then Exit Function
+
+    Dim openPos As Long
+    openPos = InStrRev(t, "(")
+    If openPos <= 1 Then Exit Function
+
+    RemoveTrailingParenGroup = Trim$(Left$(t, openPos - 1))
 End Function
 
 ' 線区テキストに(軌道)マーカーが含まれるか
@@ -1192,7 +1220,8 @@ Public Sub WritePriceComparisonAtColumns( _
                         Dim guidanceSheetName As String
                         guidanceSheetName = unitPriceSheetName
                         If guidanceSheetName = "" Then
-                            guidanceSheetName = CommonNzText(ws.Cells(rowIndex, mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_LINE)).value)
+                            guidanceSheetName = RemoveTrailingParenGroup(CommonNzText( _
+                                ws.Cells(rowIndex, mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_LINE)).value))
                         End If
                         .value = "独自工種の内容を" & guidanceSheetName & "シートに入力してください。"
                         .Font.Color = RGB(255, 0, 0)
