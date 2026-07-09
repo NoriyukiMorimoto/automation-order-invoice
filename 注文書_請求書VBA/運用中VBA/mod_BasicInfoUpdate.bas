@@ -130,15 +130,29 @@ Public Sub ClearBasicInfo()
     Application.ScreenUpdating = False
     Application.EnableEvents = False
 
+    LogClearStep "ClearBasicInfo begin EnableEvents=" & prevEnableEvents
+    On Error Resume Next
+    mod_OrderTpl_Generate.CancelScheduledOrderDetailRefresh
+    On Error GoTo ErrorHandler
+
+    LogClearStep "HideOfficeComboBox begin"
     HideOfficeComboBoxForUpdate wsInfo
+    LogClearStep "ClearAllGuides begin"
     mod_BasicInfoGuide.ClearAllGuides wsInfo
+    LogClearStep "ConfirmAndClearUnitPrice begin"
     mod_MaterialPriceImport.ConfirmAndClearUnitPriceForBasicInfo wsInfo
+    LogClearStep "DeleteConstructionImportSheets begin"
     DeleteConstructionImportSheets False
+    LogClearStep "ClearContents begin"
     wsInfo.Range(BASIC_INFO_CLEAR_RANGES).ClearContents
+    LogClearStep "ClearVendorTotalCells begin"
     ClearVendorTotalCells wsInfo
     ClearBasicInfoYenTotalCells wsInfo
+    LogClearStep "Set F9=1"
     wsInfo.Range(BASIC_INFO_BILLING_SEQUENCE_CELL).value = 1
+    LogClearStep "SyncVendorBlocksFromCount begin"
     mod_VendorMaster.SyncVendorBlocksFromCount wsInfo
+    LogClearStep "SyncVendorBlocksFromCount end"
     ClearBasicInfoYenTotalCells wsInfo
 
     GoTo AfterClear
@@ -146,10 +160,13 @@ Public Sub ClearBasicInfo()
 ErrorHandler:
     savedErrNum = Err.Number
     savedErrDesc = Err.Description
+    LogClearStep "ErrorHandler Err=" & savedErrNum & " " & savedErrDesc
 
 AfterClear:
     On Error Resume Next
+    LogClearStep "InitBasicInfoGuide begin"
     If Not wsInfo Is Nothing Then mod_BasicInfoGuide.InitBasicInfoGuide wsInfo
+    LogClearStep "InitBasicInfoGuide end"
     On Error GoTo 0
 
     Application.EnableEvents = prevEnableEvents
@@ -158,6 +175,7 @@ AfterClear:
 FinallyExit:
     Application.EnableEvents = prevEnableEvents
     Application.ScreenUpdating = previousScreenUpdating
+    LogClearStep "ClearBasicInfo done Err=" & savedErrNum
     If savedErrNum <> 0 Then
         MsgBox "Basic information clear failed." & vbCrLf & savedErrDesc, vbExclamation
     End If
@@ -486,4 +504,18 @@ Private Sub ClearBasicInfoYenTotalCells(ByVal wsInfo As Worksheet)
         If targetCell.MergeCells Then Set targetCell = targetCell.MergeArea.Cells(1, 1)
         targetCell.ClearContents
     Next rowIndex
+End Sub
+
+' 基本情報クリアの診断ログ(ブックと同じフォルダへ即時追記。ハング箇所特定用)
+Private Sub LogClearStep(ByVal msg As String)
+    On Error Resume Next
+    mod_DebugLog.Log "[ClearBI] " & msg
+
+    If Len(ThisWorkbook.Path) = 0 Then Exit Sub
+    Dim fileNo As Integer
+    fileNo = FreeFile
+    Open ThisWorkbook.Path & "\ClearBasicInfo_diag.log" For Append Access Write As #fileNo
+    Print #fileNo, Format$(Now, "yyyy-mm-dd hh:mm:ss") & "  " & msg
+    Close #fileNo
+    On Error GoTo 0
 End Sub
