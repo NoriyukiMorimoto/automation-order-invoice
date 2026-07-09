@@ -1,8 +1,133 @@
 Option Explicit
 
-' 内訳明細シートのヘッダー部(部店コード・注文番号・工事番号・工事名称・工期・作成日・所長・外注会社)転記。
-' 入力文字はすべて BIZ UDゴシック(BASIC_INFO_REF_FONT_NAME)で入力する。
+' 注文書テンプレート各シートへの基本情報ヘッダー転記。
+' 生成時に加え、基本情報シートの転記元セル変更時にも再転記される(ライブ反映)。
+' 転記対象シートの追加は ApplyVendorSheetHeaders のディスパッチへ実装を差し込む。
 ' 改修履歴: CHANGELOG.md 参照
+
+' 基本情報のヘッダー転記元セル(全社共通分)。ブロック列(16/27行目)は動的に組み立てる
+Private Const HEADER_SOURCE_COMMON_CELLS As String = "C2,C9,C10,C15:C16,F6"
+
+' 指定ブロックの施工会社に対応するテンプレート5シートへヘッダーを転記する(ディスパッチャ)
+Public Sub ApplyVendorSheetHeaders(ByVal wsInfo As Worksheet, _
+                                   ByVal vendorIndex As Long, _
+                                   ByVal aliasText As String)
+    If wsInfo Is Nothing Then Exit Sub
+    If Len(aliasText) = 0 Then Exit Sub
+
+    Dim baseNames As Variant
+    baseNames = mod_OrderTpl_Shared.OrderTplTemplateSheetBaseNames()
+
+    Dim i As Long
+    For i = LBound(baseNames) To UBound(baseNames)
+        Dim sheetName As String
+        sheetName = mod_OrderTpl_Shared.OrderTplBuildSheetName(CStr(baseNames(i)), aliasText)
+        If mod_OrderTpl_Shared.OrderTplSheetExists(sheetName) Then
+            Dim wsTarget As Worksheet
+            Set wsTarget = ThisWorkbook.Worksheets(sheetName)
+
+            ApplyVendorSheetTabColor wsInfo, wsTarget, vendorIndex
+
+            Select Case i - LBound(baseNames)
+                Case 0: ApplyBreakdownHeader wsInfo, wsTarget, vendorIndex
+                Case 1: ApplyContractorHeader wsInfo, wsTarget, vendorIndex
+                Case 2: ApplyAcceptanceHeader wsInfo, wsTarget, vendorIndex
+                Case 3: ApplyBranchCopyHeader wsInfo, wsTarget, vendorIndex
+                Case 4: ApplyAttachment3Header wsInfo, wsTarget, vendorIndex
+            End Select
+        End If
+    Next i
+End Sub
+
+' 全確定会社のテンプレートシートへヘッダーを再転記する
+Public Sub RefreshAllVendorSheetHeaders(Optional ByVal wsInfo As Worksheet)
+    If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet()
+    If wsInfo Is Nothing Then Exit Sub
+
+    On Error GoTo Quiet
+
+    Dim branchName As String
+    branchName = CommonNormalizeText(CommonNzText(wsInfo.Range(BASIC_INFO_BRANCH_CELL).value))
+
+    Dim vendorCount As Long
+    vendorCount = mod_Construction_BasicTotals.GetBasicInfoVendorBlockCount(wsInfo)
+
+    Dim vendorIndex As Long
+    For vendorIndex = 1 To vendorCount
+        Dim companyName As String
+        companyName = mod_OrderTpl_Shared.OrderTplGetVendorCompanyName(wsInfo, vendorIndex)
+        If companyName <> "" Then
+            Dim vendorName As String
+            Dim aliasText As String
+            Dim workText As String
+            If mod_OrderTpl_Shared.OrderTplResolveVendorMasterInfo(branchName, companyName, vendorName, aliasText, workText) Then
+                ApplyVendorSheetHeaders wsInfo, vendorIndex, aliasText
+            End If
+        End If
+    Next vendorIndex
+    Exit Sub
+
+Quiet:
+    mod_OrderTpl_Shared.OrderTplLog "RefreshAllVendorSheetHeaders error: " & Err.Number & " " & Err.Description
+    Err.Clear
+End Sub
+
+' Sheet1(基本情報)のWorksheet_Changeから呼ばれる入口。
+' ヘッダー転記元セル(C2/C9/C10/C15:C16/F6、各ブロックの16/27行目)の変更を各社シートへ反映する
+Public Sub HandleBasicInfoHeaderSourceChange(ByVal wsInfo As Worksheet, ByVal target As Range)
+    If wsInfo Is Nothing Then Exit Sub
+    If target Is Nothing Then Exit Sub
+
+    On Error GoTo Quiet
+
+    Dim sourceRange As Range
+    Set sourceRange = BuildHeaderSourceRange(wsInfo)
+    If sourceRange Is Nothing Then Exit Sub
+    If Intersect(target, sourceRange) Is Nothing Then Exit Sub
+
+    RefreshAllVendorSheetHeaders wsInfo
+    Exit Sub
+
+Quiet:
+    Err.Clear
+End Sub
+
+' ヘッダー転記元セルの監視範囲(共通セル + 各ブロックの業者コード16行目/注文番号27行目)
+Private Function BuildHeaderSourceRange(ByVal wsInfo As Worksheet) As Range
+    Dim result As Range
+    Set result = wsInfo.Range(HEADER_SOURCE_COMMON_CELLS)
+
+    Dim vendorCount As Long
+    vendorCount = mod_Construction_BasicTotals.GetBasicInfoVendorBlockCount(wsInfo)
+
+    Dim vendorIndex As Long
+    For vendorIndex = 1 To vendorCount
+        Dim valueColumn As Long
+        valueColumn = mod_Construction_BasicTotals.BasicInfoVendorColumn(vendorIndex)
+        Set result = Union(result, _
+                           wsInfo.Cells(BASIC_INFO_VENDOR_WORK_TYPE_ROW, valueColumn), _
+                           wsInfo.Cells(ORDER_TPL_BLOCK_VENDOR_CODE_ROW, valueColumn), _
+                           wsInfo.Cells(ORDER_TPL_BLOCK_ORDER_NO_ROW, valueColumn))
+    Next vendorIndex
+
+    Set BuildHeaderSourceRange = result
+End Function
+
+' シート見出し(タブ)色: 工事区分(基本情報10行目)セルの塗りつぶし色を適用する
+Private Sub ApplyVendorSheetTabColor(ByVal wsInfo As Worksheet, _
+                                     ByVal wsTarget As Worksheet, _
+                                     ByVal vendorIndex As Long)
+    On Error Resume Next
+    Dim sourceCell As Range
+    Set sourceCell = wsInfo.Cells(BASIC_INFO_VENDOR_WORK_TYPE_ROW, _
+                                  mod_Construction_BasicTotals.BasicInfoVendorColumn(vendorIndex))
+    If sourceCell.Interior.ColorIndex = xlColorIndexNone Then
+        wsTarget.Tab.ColorIndex = xlColorIndexNone
+    Else
+        wsTarget.Tab.Color = sourceCell.Interior.Color
+    End If
+    On Error GoTo 0
+End Sub
 
 ' 内訳明細ヘッダー部へ基本情報シートの内容を転記する
 Public Sub ApplyBreakdownHeader(ByVal wsInfo As Worksheet, _
@@ -62,6 +187,34 @@ Public Sub ApplyBreakdownHeader(ByVal wsInfo As Worksheet, _
 ErrorHandler:
     mod_OrderTpl_Shared.OrderTplLog "ApplyBreakdownHeader error: " & Err.Number & " " & Err.Description
     Err.Clear
+End Sub
+
+' 受注者用シートへの転記(転記仕様が確定したらここへ実装する。実装後は自動でライブ反映される)
+Private Sub ApplyContractorHeader(ByVal wsInfo As Worksheet, _
+                                  ByVal wsTarget As Worksheet, _
+                                  ByVal vendorIndex As Long)
+    ' 転記仕様 未指定(コピーのみ)
+End Sub
+
+' 注文請書シートへの転記(転記仕様が確定したらここへ実装する)
+Private Sub ApplyAcceptanceHeader(ByVal wsInfo As Worksheet, _
+                                  ByVal wsTarget As Worksheet, _
+                                  ByVal vendorIndex As Long)
+    ' 転記仕様 未指定(コピーのみ)
+End Sub
+
+' 支店控シートへの転記(転記仕様が確定したらここへ実装する)
+Private Sub ApplyBranchCopyHeader(ByVal wsInfo As Worksheet, _
+                                  ByVal wsTarget As Worksheet, _
+                                  ByVal vendorIndex As Long)
+    ' 転記仕様 未指定(コピーのみ)
+End Sub
+
+' 別紙Ⅲシートへの転記(転記仕様が確定したらここへ実装する)
+Private Sub ApplyAttachment3Header(ByVal wsInfo As Worksheet, _
+                                   ByVal wsTarget As Worksheet, _
+                                   ByVal vendorIndex As Long)
+    ' 転記仕様 未指定(コピーのみ)
 End Sub
 
 ' 結合セル対応の値転記(フォント適用、必要に応じて上下左右中央揃え)

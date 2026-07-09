@@ -567,7 +567,9 @@ Public Sub SyncVendorBlocksFromCount(ByVal wsInfo As Worksheet)
         On Error GoTo ExitHandler
     End If
 
-    Exit Sub
+    ' 正常終了時も ExitHandler へ落とし、同期中フラグの解除と状態復元を必ず行う。
+    ' (旧実装は Exit Sub でフラグが解除されず、直後の会社名選択等の変更イベントが
+    '  Sheet1 側のガードで無視され、シート再アクティブまで転記されない不具合があった)
 
 ExitHandler:
     If Err.Number <> 0 Then

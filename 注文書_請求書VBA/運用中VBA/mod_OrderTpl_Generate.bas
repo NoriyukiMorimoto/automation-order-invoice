@@ -135,7 +135,7 @@ Public Sub GenerateVendorOrderSheets(ByVal wsInfo As Worksheet, ByVal vendorInde
                      mod_Construction_BasicTotals.BasicInfoVendorColumn(vendorIndex)).value))
     If workTypeText = "" Then workTypeText = workText
 
-    mod_OrderTpl_Header.ApplyBreakdownHeader wsInfo, wsBreakdown, vendorIndex
+    mod_OrderTpl_Header.ApplyVendorSheetHeaders wsInfo, vendorIndex, aliasText
     mod_OrderTpl_Detail.ApplyBreakdownDetails wsBreakdown, vendorName, companyName, branchName, workTypeText
 
     mod_OrderTpl_Shared.OrderTplLog "GenerateVendorOrderSheets done alias=" & aliasText
@@ -212,7 +212,7 @@ Private Sub RefreshAllVendorOrderDetailsCore(ByVal showCompletionMessage As Bool
                                      mod_Construction_BasicTotals.BasicInfoVendorColumn(vendorIndex)).value))
                     If workTypeText = "" Then workTypeText = workText
 
-                    mod_OrderTpl_Header.ApplyBreakdownHeader wsInfo, wsBreakdown, vendorIndex
+                    mod_OrderTpl_Header.ApplyVendorSheetHeaders wsInfo, vendorIndex, aliasText
                     mod_OrderTpl_Detail.ApplyBreakdownDetails wsBreakdown, vendorName, companyName, branchName, workTypeText
                 Else
                     GenerateVendorOrderSheets wsInfo, vendorIndex

@@ -23,7 +23,10 @@ Private Const VENDOR_UNIT_PRICE_REF_UNIT_COL As Long = 5
 Private Const VENDOR_UNIT_PRICE_REF_WIDTH_COL As Long = 6
 Private Const VENDOR_UNIT_PRICE_WORK_TYPE_COL As Long = 3
 Private Const VENDOR_UNIT_PRICE_LAST_ROW_COL As Long = 2
-Private Const VENDOR_UNIT_PRICE_INITIAL_FILL_LAST_COL As Long = 10
+' 塗りつぶしの下限列。単価元(E/F)の右端=F列を下限とし、確定業者のブロック数に応じて
+' GetVendorUnitPriceInitialFillLastColumn が右へ拡張する(1社=H列、2社=J列 …)。
+' 旧値10(J列)は1社のみでもI/J列が塗られる不具合の原因のため6(F列)へ変更。
+Private Const VENDOR_UNIT_PRICE_INITIAL_FILL_LAST_COL As Long = 6
 Private Const VENDOR_UNIT_PRICE_FILL_COLOR_R As Long = 128
 Private Const VENDOR_UNIT_PRICE_FILL_COLOR_G As Long = 128
 Private Const VENDOR_UNIT_PRICE_FILL_COLOR_B As Long = 128

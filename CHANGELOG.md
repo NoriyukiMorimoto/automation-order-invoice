@@ -499,3 +499,41 @@
 - `RemoveTrackDesignationMarker` で「(LR化)」（半角/全角括弧、半角/全角LRの計4表記）も
   除去するようにした。内訳明細のセクション見出し（`OrderTplStripLineSuffix` 経由）と
   工事側の単価シート名照合の両方で (LR化) が除去される。
+
+## mod_VendorUnitPrice.bas（単価シート塗りつぶし範囲の修正）
+
+### 追記（2026-07-09）
+- 単価シートの追記行（独自工種行など）の塗りつぶし範囲下限が J列固定
+  （`VENDOR_UNIT_PRICE_INITIAL_FILL_LAST_COL = 10`）だったため、確定業者が1社のみでも
+  I・J列（2社目ブロック）が塗られる不具合を修正。下限を F列（=6、単価元E/Fの右端）へ変更し、
+  `GetVendorUnitPriceInitialFillLastColumn` が確定業者のブロック数に応じて拡張する
+  （1社=E〜H、2社=E〜J …）。`mod_VendorMaster.bas.pre_split` の同宣言も追随更新。
+
+## mod_OrderTpl_Header.bas / mod_OrderTpl_Generate.bas / Sheet1.cls（ヘッダーのライブ反映）
+
+### 追記（2026-07-09）
+- テンプレート取込後に基本情報シートを入力・変更しても内訳明細のヘッダー
+  （C3注文番号・N2作成日・N3所長・O5外注会社名・O6業者コード等）へ反映されない問題を修正。
+  従来は会社確定時の一括転記のみだったため、後から入力した項目が空欄のままだった。
+- `HandleBasicInfoHeaderSourceChange` を新設し、Sheet1(基本情報)の `Worksheet_Change` から
+  転記元セル（C2/C9/C10/C15:C16/F6、各ブロックの16行目=業者コード・27行目=注文番号）の
+  変更を検知して全確定会社のヘッダーを再転記する。監視ゲートに C2・F6・各ブロック16行目を追加。
+- `ApplyVendorSheetHeaders`（ディスパッチャ）を新設。内訳明細に加え、受注者用・注文請書・
+  支店控・別紙Ⅲの転記スタブを用意（転記仕様が確定したら各スタブへ実装すれば、
+  生成時・基本情報変更時の両方で自動的に反映される設計）。
+  生成/再転記処理はディスパッチャ経由へ変更。
+
+## mod_VendorBlockLayout.bas / mod_OrderTpl_Header.bas / Sheet1.cls（F9同期直後の反映・タブ色）
+
+### 追記（2026-07-09）
+- F9（下請負会社数）変更でブロックを同期した直後、11行目で会社名を選択しても
+  業者情報・注文書シートへの転記が始まらない不具合を修正（基本情報シートを
+  一度離れて戻るまで反映されなかった）。原因は `SyncVendorBlocksFromCount` の
+  正常終了パスが `Exit Sub` で同期中フラグ（`mSyncVendorBlocksInProgress`）を
+  解除しないまま抜けており、以後の Worksheet_Change / Workbook_SheetChange が
+  ガードで無視されていたため。正常終了時も ExitHandler へ落としてフラグ解除・
+  状態復元を必ず行うようにした。
+- 生成される5シート（内訳明細〜別紙Ⅲ）のシート見出し（タブ）色に、対応する
+  工事区分列（基本情報10行目）セルの塗りつぶし色を適用（`ApplyVendorSheetTabColor`）。
+  工事区分の変更時も追従する（ヘッダー転記元の監視範囲へ10行目を追加）。
+  Sheet1 のヘッダー反映フックはガイド更新（10行目の色付け）後に実行する順序へ変更。
