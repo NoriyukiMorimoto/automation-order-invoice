@@ -481,3 +481,21 @@
   側線(昼間拡大) 等の正規名称の照合には影響しない。(LR化)以外の未知のマーカーにも対応。
 - 独自工種ガイダンス文言のフォールバック表示（単価シート名未解決時）も末尾の括弧書きを
   除去した線区名を表示するよう変更（「…(LR化)シートに入力してください」→「…シートに入力してください」）。
+
+## mod_Construction_LineMapping.bas / mod_OrderTpl_Shared.bas（(溶接通知書用)マーカー対応）
+
+### 追記（2026-07-09）
+- 施工通知書取込では溶接側の契約線区名の接尾辞が「(溶接通知書用)」となるが、
+  `RemoveWeldingInstructionMarker` は「(溶接指示書用)」しか除去せず、溶接単価の行照合キーが
+  一致しないため年初単価（N列）が未転記・単価比較が常に「単価不一致」となる不具合を修正。
+  同関数で「(溶接通知書用)」（半角/全角括弧とも）も除去するようにした。
+- mod_OrderTpl_Shared の `OrderTplStripLineSuffix`（内訳明細のセクション見出し生成）も
+  自前の接尾辞除去をやめ、`RemoveWeldingInstructionMarker` / `RemoveTrackDesignationMarker` へ
+  委譲する形に変更（通知書表記にも自動対応）。
+
+## mod_Construction_LineMapping.bas（(LR化)マーカーの除去）
+
+### 追記（2026-07-09）
+- `RemoveTrackDesignationMarker` で「(LR化)」（半角/全角括弧、半角/全角LRの計4表記）も
+  除去するようにした。内訳明細のセクション見出し（`OrderTplStripLineSuffix` 経由）と
+  工事側の単価シート名照合の両方で (LR化) が除去される。

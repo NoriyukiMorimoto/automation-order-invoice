@@ -67,28 +67,6 @@ Public Function OrderTplBaseNameAttachment3Text() As String
     OrderTplBaseNameAttachment3Text = cached
 End Function
 
-' Œ_–ñü‹æ–¼‚©‚çœŠO‚·‚éÚ”öŽ«(HŽ–)
-Public Function OrderTplTrackLineSuffixText() As String
-    Static cached As String
-    If cached = "" Then
-        cached = "(" & _
-                 CommonTextFromChars(&H8ECC, &H9053) & _
-                 ")"
-    End If
-    OrderTplTrackLineSuffixText = cached
-End Function
-
-' Œ_–ñü‹æ–¼‚©‚çœŠO‚·‚éÚ”öŽ«(—nÚ)
-Public Function OrderTplWeldingLineSuffixText() As String
-    Static cached As String
-    If cached = "" Then
-        cached = "(" & _
-                 CommonTextFromChars(&H6EB6, &H63A5, &H6307, &H793A, &H66F8, &H7528) & _
-                 ")"
-    End If
-    OrderTplWeldingLineSuffixText = cached
-End Function
-
 Public Function OrderTplRailWeldingLabelText() As String
     Static cached As String
     If cached = "" Then
@@ -518,23 +496,16 @@ Public Function OrderTplFindWeldingSourceSheet() As Worksheet
     Next ws
 End Function
 
-' Œ_–ñü‹æ–¼‚©‚çÚ”öŽ«((‹O“¹)/(—nÚŽwŽ¦‘—p))‚ðœ‹Ž‚·‚é
+' Œ_–ñü‹æ–¼‚©‚çÚ”öŽ«((‹O“¹)/(—nÚŽwŽ¦‘—p)/(—nÚ’Ê’m‘—p))‚ðœ‹Ž‚·‚é
+' Šù‘¶‚Ìƒ}[ƒJ[œ‹ŽŠÖ”‚ÖˆÏ÷‚µAŽwŽ¦‘E’Ê’m‘‚Ì—¼•\‹L‚É‘Î‰ž‚·‚é
 Public Function OrderTplStripLineSuffix(ByVal lineText As String, ByVal isWeldingSource As Boolean) As String
     Dim t As String
     t = mod_Construction_Import_Load.NormalizeSheetNameParentheses(CommonNormalizeText(lineText))
 
-    Dim suffixText As String
     If isWeldingSource Then
-        suffixText = OrderTplWeldingLineSuffixText()
+        t = mod_Construction_LineMapping.RemoveWeldingInstructionMarker(t)
     Else
-        suffixText = OrderTplTrackLineSuffixText()
-    End If
-    suffixText = mod_Construction_Import_Load.NormalizeSheetNameParentheses(suffixText)
-
-    If Len(t) >= Len(suffixText) Then
-        If StrComp(Right$(t, Len(suffixText)), suffixText, vbTextCompare) = 0 Then
-            t = Left$(t, Len(t) - Len(suffixText))
-        End If
+        t = mod_Construction_LineMapping.RemoveTrackDesignationMarker(t)
     End If
     OrderTplStripLineSuffix = Trim$(t)
 End Function

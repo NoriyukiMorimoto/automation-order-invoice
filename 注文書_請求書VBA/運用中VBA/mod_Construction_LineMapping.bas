@@ -769,34 +769,56 @@ End Function
 Public Function RemoveWeldingInstructionMarker(ByVal sourceText As String) As String
     Static halfWidthMarker As String
     Static fullWidthMarker As String
+    Static halfWidthNoticeMarker As String
+    Static fullWidthNoticeMarker As String
 
     If Len(halfWidthMarker) = 0 Then
         halfWidthMarker = ChrW$(&H28) & ChrW$(&H6EB6) & ChrW$(&H63A5) & ChrW$(&H6307) & _
                           ChrW$(&H793A) & ChrW$(&H66F8) & ChrW$(&H7528) & ChrW$(&H29)
         fullWidthMarker = ChrW$(&HFF08) & ChrW$(&H6EB6) & ChrW$(&H63A5) & ChrW$(&H6307) & _
                           ChrW$(&H793A) & ChrW$(&H66F8) & ChrW$(&H7528) & ChrW$(&HFF09)
+        ' é{çHí ímèëóRóàÇÃå_ñÒê¸ãÊñºÇ…ïtÇ≠ (ónê⁄í ímèëóp) Ç‡èúãéëŒè€Ç∆Ç∑ÇÈ
+        halfWidthNoticeMarker = ChrW$(&H28) & ChrW$(&H6EB6) & ChrW$(&H63A5) & ChrW$(&H901A) & _
+                                ChrW$(&H77E5) & ChrW$(&H66F8) & ChrW$(&H7528) & ChrW$(&H29)
+        fullWidthNoticeMarker = ChrW$(&HFF08) & ChrW$(&H6EB6) & ChrW$(&H63A5) & ChrW$(&H901A) & _
+                                ChrW$(&H77E5) & ChrW$(&H66F8) & ChrW$(&H7528) & ChrW$(&HFF09)
     End If
 
     Dim result As String
     result = sourceText
     result = Replace$(result, halfWidthMarker, "", , , vbTextCompare)
     result = Replace$(result, fullWidthMarker, "", , , vbTextCompare)
+    result = Replace$(result, halfWidthNoticeMarker, "", , , vbTextCompare)
+    result = Replace$(result, fullWidthNoticeMarker, "", , , vbTextCompare)
     RemoveWeldingInstructionMarker = result
 End Function
 
 Public Function RemoveTrackDesignationMarker(ByVal sourceText As String) As String
     Static halfWidthMarker As String
     Static fullWidthMarker As String
+    Static halfWidthLrMarker As String
+    Static fullWidthLrMarker As String
+    Static halfWidthLrWideMarker As String
+    Static fullWidthLrWideMarker As String
 
     If Len(halfWidthMarker) = 0 Then
         halfWidthMarker = ChrW$(&H28) & ChrW$(&H8ECC) & ChrW$(&H9053) & ChrW$(&H29)
         fullWidthMarker = ChrW$(&HFF08) & ChrW$(&H8ECC) & ChrW$(&H9053) & ChrW$(&HFF09)
+        ' ÉçÉìÉOÉåÅ[ÉãâªçHéñÇÃå_ñÒê¸ãÊñºÇ…ïtÇ≠ (LRâª) Ç‡èúãéëŒè€Ç∆Ç∑ÇÈ(îºäp/ëSäpLRÇÃóºï\ãL)
+        halfWidthLrMarker = ChrW$(&H28) & "LR" & ChrW$(&H5316) & ChrW$(&H29)
+        fullWidthLrMarker = ChrW$(&HFF08) & "LR" & ChrW$(&H5316) & ChrW$(&HFF09)
+        halfWidthLrWideMarker = ChrW$(&H28) & ChrW$(&HFF2C) & ChrW$(&HFF32) & ChrW$(&H5316) & ChrW$(&H29)
+        fullWidthLrWideMarker = ChrW$(&HFF08) & ChrW$(&HFF2C) & ChrW$(&HFF32) & ChrW$(&H5316) & ChrW$(&HFF09)
     End If
 
     Dim result As String
     result = sourceText
     result = Replace$(result, halfWidthMarker, "", , , vbTextCompare)
     result = Replace$(result, fullWidthMarker, "", , , vbTextCompare)
+    result = Replace$(result, halfWidthLrMarker, "", , , vbTextCompare)
+    result = Replace$(result, fullWidthLrMarker, "", , , vbTextCompare)
+    result = Replace$(result, halfWidthLrWideMarker, "", , , vbTextCompare)
+    result = Replace$(result, fullWidthLrWideMarker, "", , , vbTextCompare)
     RemoveTrackDesignationMarker = result
 End Function
 
