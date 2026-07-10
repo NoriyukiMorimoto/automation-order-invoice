@@ -36,10 +36,10 @@ Private Const MAX_INPUT_LEN As Long = 12
 
 Private WithEvents mDisplay As MSForms.TextBox
 Private mHandlers As Collection
-Private mRosaiHandlers As Collection
-Private mBuildingRosai As Boolean
-Public rosaiKo As Boolean
-Public rosaiOtsu As Boolean
+Private mChoiceHandlers As Collection
+Private mBuildingChoice As Boolean
+Public choiceTop As Boolean
+Public choiceBottom As Boolean
 
 Private Sub UserForm_Initialize()
     confirmed = False
@@ -288,17 +288,20 @@ Private Function InvalidNumberText() As String
                         ChrW$(&H3060) & ChrW$(&H3055) & ChrW$(&H3044) & ChrW$(&H3002)
 End Function
 
-' ===== 労災保険 加入負担 選択モード (frmNumericKeypad 再利用) =====
+' ===== 排他2択 選択モード (frmNumericKeypad 再利用) =====
 ' New 直後に本メソッドを呼ぶと、UserForm_Initialize が生成したテンキーを撤去し、
-' 甲/乙 チェックボックスを上下に並べた選択フォームへ組み替える。
-' どちらかにチェックが入った段階で確定してフォームを閉じる(甲/乙は排他)。
-Public Sub ConfigureLaborInsuranceMode(ByVal koChecked As Boolean, ByVal otsuChecked As Boolean)
+' 上下2つのチェックボックス(排他)を並べた選択フォームへ組み替える。
+' どちらかにチェックが入った段階で確定してフォームを閉じる。
+' 例) 行39: 「甲」/「乙」  行42: 「該当する」/「該当しない」
+Public Sub ConfigureExclusiveChoiceMode(ByVal formCaption As String, _
+                                        ByVal topLabel As String, ByVal bottomLabel As String, _
+                                        ByVal topChecked As Boolean, ByVal bottomChecked As Boolean)
     TearDownKeypadControls
-    Me.Caption = LaborInsuranceCaptionText()
-    Set mRosaiHandlers = New Collection
-    BuildLaborInsuranceCheckboxes koChecked, otsuChecked
-    Me.Width = 210
-    Me.Height = 116
+    Me.Caption = formCaption
+    Set mChoiceHandlers = New Collection
+    BuildExclusiveChoiceCheckboxes topLabel, bottomLabel, topChecked, bottomChecked
+    Me.Width = Application.Max(210, 30 + Len(formCaption) * 8)
+    Me.Height = 118
 End Sub
 
 ' Initialize が Controls.Add したテンキー系コントロールを撤去する
@@ -316,91 +319,78 @@ Private Sub TearDownKeypadControls()
     On Error GoTo 0
 End Sub
 
-Private Sub BuildLaborInsuranceCheckboxes(ByVal koChecked As Boolean, ByVal otsuChecked As Boolean)
-    mBuildingRosai = True
+Private Sub BuildExclusiveChoiceCheckboxes(ByVal topLabel As String, ByVal bottomLabel As String, _
+                                           ByVal topChecked As Boolean, ByVal bottomChecked As Boolean)
+    mBuildingChoice = True
 
-    Dim chkKo As MSForms.CheckBox
-    Set chkKo = Me.Controls.Add("Forms.CheckBox.1", "chkRosaiKo", True)
-    With chkKo
+    Dim cw As Single
+    cw = Application.Max(150, Me.Width - 44)
+
+    Dim chkTop As MSForms.CheckBox
+    Set chkTop = Me.Controls.Add("Forms.CheckBox.1", "chkChoiceTop", True)
+    With chkTop
         .Left = 18
         .Top = 12
-        .Width = 150
+        .Width = cw
         .Height = 26
-        .Caption = KoText()
+        .Caption = topLabel
         .Font.Name = FormFontNameText()
         .Font.Size = FORM_FONT_SIZE
-        .Value = koChecked
+        .Value = topChecked
     End With
 
-    Dim chkOtsu As MSForms.CheckBox
-    Set chkOtsu = Me.Controls.Add("Forms.CheckBox.1", "chkRosaiOtsu", True)
-    With chkOtsu
+    Dim chkBottom As MSForms.CheckBox
+    Set chkBottom = Me.Controls.Add("Forms.CheckBox.1", "chkChoiceBottom", True)
+    With chkBottom
         .Left = 18
         .Top = 44
-        .Width = 150
+        .Width = cw
         .Height = 26
-        .Caption = OtsuText()
+        .Caption = bottomLabel
         .Font.Name = FormFontNameText()
         .Font.Size = FORM_FONT_SIZE
-        .Value = otsuChecked
+        .Value = bottomChecked
     End With
 
-    AddRosaiHandler chkKo, "KO"
-    AddRosaiHandler chkOtsu, "OTSU"
+    AddChoiceHandler chkTop, "TOP"
+    AddChoiceHandler chkBottom, "BOTTOM"
 
-    rosaiKo = koChecked
-    rosaiOtsu = otsuChecked
-    mBuildingRosai = False
+    choiceTop = topChecked
+    choiceBottom = bottomChecked
+    mBuildingChoice = False
 End Sub
 
-Private Sub AddRosaiHandler(ByVal chk As MSForms.CheckBox, ByVal keyCode As String)
-    Dim handler As clsRosaiCheck
-    Set handler = New clsRosaiCheck
+Private Sub AddChoiceHandler(ByVal chk As MSForms.CheckBox, ByVal keyCode As String)
+    Dim handler As clsCheckboxRelay
+    Set handler = New clsCheckboxRelay
     Set handler.Chk = chk
     handler.Key = keyCode
     Set handler.Owner = Me
-    mRosaiHandlers.Add handler
+    mChoiceHandlers.Add handler
 End Sub
 
-' clsRosaiCheck から呼ばれる。チェックが入った段階で確定してフォームを閉じる。
-' 未チェック(オフ)へ戻す操作では閉じず、状態のみ更新する。
-Public Sub HandleRosaiCheck(ByVal keyCode As String, ByVal isChecked As Boolean)
-    If mBuildingRosai Then Exit Sub
+' clsCheckboxRelay から呼ばれる。チェックが入った段階で確定してフォームを閉じる(排他)。
+' 未チェックへ戻す操作では閉じず、状態のみ更新する。
+Public Sub OnCheckboxClick(ByVal keyCode As String, ByVal isChecked As Boolean)
+    If mBuildingChoice Then Exit Sub
 
     If Not isChecked Then
         Select Case keyCode
-            Case "KO": rosaiKo = False
-            Case "OTSU": rosaiOtsu = False
+            Case "TOP": choiceTop = False
+            Case "BOTTOM": choiceBottom = False
         End Select
         Exit Sub
     End If
 
     Select Case keyCode
-        Case "KO"
-            rosaiKo = True
-            rosaiOtsu = False
-        Case "OTSU"
-            rosaiKo = False
-            rosaiOtsu = True
+        Case "TOP"
+            choiceTop = True
+            choiceBottom = False
+        Case "BOTTOM"
+            choiceTop = False
+            choiceBottom = True
     End Select
 
     confirmed = True
     Me.Hide
 End Sub
-
-' "労災保険 加入負担選択"
-Private Function LaborInsuranceCaptionText() As String
-    LaborInsuranceCaptionText = ChrW$(&H52B4) & ChrW$(&H707D) & ChrW$(&H4FDD) & ChrW$(&H967A) & _
-                                " " & ChrW$(&H52A0) & ChrW$(&H5165) & ChrW$(&H8CA0) & ChrW$(&H62C5) & _
-                                ChrW$(&H9078) & ChrW$(&H629E)
-End Function
-
-' "甲"
-Private Function KoText() As String
-    KoText = ChrW$(&H7532)
-End Function
-
-' "乙"
-Private Function OtsuText() As String
-    OtsuText = ChrW$(&H4E59)
-End Function

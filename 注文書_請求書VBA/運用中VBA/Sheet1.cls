@@ -208,9 +208,27 @@ Private Sub Worksheet_BeforeDoubleClick(ByVal target As Range, Cancel As Boolean
         Exit Sub
     End If
 
-    If mod_BasicInfoLaborInsurance.IsLaborInsuranceTarget(Me, target) Then
+    If mod_BasicInfoExclusiveChoice.IsLaborInsuranceTarget(Me, target) Then
         Cancel = True
-        mod_BasicInfoLaborInsurance.RequestLaborInsuranceSelection Me, target
+        mod_BasicInfoExclusiveChoice.RequestLaborInsuranceSelection Me, target
+        Exit Sub
+    End If
+
+    If mod_BasicInfoSupplyLoan.IsSupplyMaterialTarget(Me, target) Then
+        Cancel = True
+        mod_BasicInfoSupplyLoan.RequestSupplyMaterialSelection Me, target
+        Exit Sub
+    End If
+
+    If mod_BasicInfoSupplyLoan.IsLoanItemTarget(Me, target) Then
+        Cancel = True
+        mod_BasicInfoSupplyLoan.RequestLoanItemSelection Me, target
+        Exit Sub
+    End If
+
+    If mod_BasicInfoExclusiveChoice.IsRecycleLawTarget(Me, target) Then
+        Cancel = True
+        mod_BasicInfoExclusiveChoice.RequestRecycleLawSelection Me, target
         Exit Sub
     End If
 

@@ -50,7 +50,8 @@
 | `mod_OrderTpl_Detail.bas` | 内訳明細明細部の転記エンジン(セクション構築・ソート・行挿入・書式)。 | `[OrderTpl]` |
 | `ModuleExport.bas` | VBA モジュールのエクスポート用。 | |
 | `mod_BasicInfoOrderNumberKeypad.bas` | 基本情報シート施工会社ブロック27行目(注文番号)セルのダブルクリックで数値入力補助(テンキー)フォームを起動し、値を書き戻す。 | `[OrderNoKeypad]` |
-| `mod_BasicInfoLaborInsurance.bas` | 基本情報シート施工会社ブロック39行目(労災保険 加入負担)セルのダブルクリックで frmNumericKeypad を労災モード(甲/乙チェックボックス)起動。選択結果をセルへ横並び表示し、対応する受注者用シートの H30(甲)/J30(乙)へチェック字形を中央揃えで書込。 | `[RosaiSelect]` |
+| `mod_BasicInfoExclusiveChoice.bas` | 施工会社ブロックの排他2択セル(39行目=労災保険 加入負担/42行目=建設リサイクル法該当有無)のダブルクリックで frmNumericKeypad を排他2択モード起動。基本情報セルへ横並び表示し、受注者用シートへ 39:H30/J30(甲/乙)、42:M34/R34(該当する/該当しない)をチェック字形(選択=ON/非選択=OFF)で排他・中央揃え書込。 | `[ExclChoice]` |
+| `mod_BasicInfoSupplyLoan.bas` | 施工会社ブロックの2セクション選択セル(40行目=支給材料/41行目=貸与品)のダブルクリックで frmSubconSelector を2セクションモード起動。下段候補は出張所別_単価適用線区.xlsx の該当シートA列をADO読込。上段(有償/無償)＋下段選択を受注者用 F32/F33 と基本情報セルへ左詰め書込(41は複数可・読点連結)。 | `[SupplyLoan]` |
 
 ## フォーム（`注文書_請求書VBA/運用中VBA/`、`.frm` / `.frx`）
 
@@ -59,9 +60,9 @@
 | `Project_Number_Selection.frm` | 工事番号選択フォーム。 |
 | `SelectLineName.frm` | 適用線区（単価シート）選択フォーム。 |
 | `AllVenderSelection.frm` | 全業者選択フォーム。 |
-| `frmSubconSelector.frm` | 外注業者選択フォーム。 |
+| `frmSubconSelector.frm` | 外注業者選択フォーム。40/41行目からは2セクション選択モード(有償/無償＋支給材料・貸与品)として再利用(`ConfigureTwoSectionMode`)。 |
 | `frmPrefectureSelector.frm` | 都道府県複数選択フォーム。 |
-| `frmNumericKeypad.frm` | 数値入力補助(テンキー)フォーム。基本情報シートの注文番号セル(27行目)ダブルクリックから起動。ボタンは実行時に動的生成。39行目(労災保険 加入負担)からは労災モード(甲/乙チェックボックス)として再利用(`ConfigureLaborInsuranceMode`)。 |
+| `frmNumericKeypad.frm` | 数値入力補助(テンキー)フォーム。基本情報シートの注文番号セル(27行目)ダブルクリックから起動。ボタンは実行時に動的生成。39/42行目からは排他2択モード(甲/乙・該当する/該当しない等のチェックボックス)として再利用(`ConfigureExclusiveChoiceMode`)。 |
 
 ## クラスモジュール（`注文書_請求書VBA/運用中VBA/`、`.cls`）
 
@@ -71,7 +72,7 @@
 | `Sheet1.cls` | 「基本情報」シートのイベント（業者・期間・単価関連の入力処理）。 |
 | `Sheet*.cls` | 各ワークシートのシートモジュール群（線区別シート 等）。 |
 | `clsKeypadBtn.cls` | frmNumericKeypad が実行時生成するボタンのクリック中継用クラス(WithEvents)。 |
-| `clsRosaiCheck.cls` | frmNumericKeypad の労災モードが動的生成するチェックボックスのクリック中継クラス(WithEvents)。 |
+| `clsCheckboxRelay.cls` | フォームが動的生成するチェックボックスのクリック中継クラス(WithEvents)。frmNumericKeypad(排他2択)と frmSubconSelector(2セクション)で共用。 |
 
 ## VBA 同期スクリプト（`注文書_請求書VBA/VBA同期/`）
 

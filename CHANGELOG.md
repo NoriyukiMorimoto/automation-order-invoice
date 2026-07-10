@@ -632,13 +632,18 @@
 - RefreshVendorBlockTaxRows の対象外ブロック消去を ClearContents+背景復元に変更し、WorkbookOptimize が施工会社34/35行目の UsedRange 伸長で AH 以降の塗りつぶしを消さないよう列別判定に修正。
 - 内訳明細: O2/L5/L6を14pt、集計枠罫線(A:Q)拡張、金額列ゼロ非表示(I12/L12連動含む)を調整。
 
-## mod_BasicInfoLaborInsurance.bas / frmNumericKeypad.frm / clsRosaiCheck.cls（労災保険 加入負担 選択）
+## mod_BasicInfoExclusiveChoice.bas / mod_BasicInfoSupplyLoan.bas / frmSubconSelector.frm / clsCheckboxRelay.cls（施工会社ブロック 40/41/42 行目 と 39 行目の改称）
 
-### #1
-- 基本情報シート施工会社ブロック **39行目（労災保険 加入負担）** の会社列セル（F/I/L/O/R/U/X/AA/AD/AG）をダブルクリックすると、`frmNumericKeypad` を**労災モード**で再利用し、甲/乙のチェックボックスを上下に並べた選択フォームを表示する（Caption「労災保険 加入負担選択」、`Application.OnTime` で遅延起動）。
-- どちらかにチェックが入った段階でフォームを閉じ（甲/乙は排他）、対象セルへチェック字形を横並びで書き込む（例: OFF甲 / ON乙 → セル中央揃え）。
-- 甲の状態を対応する **受注者用（略称）シートの H30**、乙の状態を **J30** へチェック字形単体で上下左右中央揃え表示（受注者用シート未生成時はセル書込のみ）。
-- `frmNumericKeypad`: New 直後に `ConfigureLaborInsuranceMode` を呼ぶと、Initialize が生成したテンキーを撤去して甲/乙チェックボックスへ組み替える（既存のテンキー機能は非破壊）。チェック字形は CP932 外のため `ChrW$(&H2610/&H2611)` で構築。
-- `clsRosaiCheck.cls`: 動的生成チェックボックスの Click を WithEvents で受け、フォームの `HandleRosaiCheck` へ中継。
-- `Sheet1.cls`: `Worksheet_BeforeDoubleClick` に `IsLaborInsuranceTarget` 判定と`RequestLaborInsuranceSelection` の分岐を追加。
-
+### #1 排他2択モジュールの汎用化（旧 mod_BasicInfoLaborInsurance）
+- `mod_BasicInfoLaborInsurance.bas` を **`mod_BasicInfoExclusiveChoice.bas`** に改称・汎用化。`frmNumericKeypad` の労災モードを **排他2択モード**（`ConfigureExclusiveChoiceMode`、キャプション/2ラベルを引数化）へ一般化し、`clsRosaiCheck.cls` は汎用の **`clsCheckboxRelay.cls`**（`OnCheckboxClick`）へ置換。
+- **39行目（労災保険 加入負担）**: 甲/乙 → 受注者用 H30/J30。従来どおり。
+- **42行目（建設リサイクル法 該当有無）**: 「甲/乙」ではなく **「該当する」/「該当しない」**。Caption「建設リサイクル法の対象建設工事に該当の有無選択」（文字数に応じフォーム幅を自動拡大）。「該当する」→ 受注者用 **M34**、「該当しない」→ **R34** にチェック字形を排他（一方がON字形なら他方はOFF字形）で中央揃え表示。
+### #2 2セクション選択モジュール（新規）
+- **`mod_BasicInfoSupplyLoan.bas`** 新規。`frmSubconSelector` を **2セクションモード**（`ConfigureTwoSectionMode`）で再利用。上段=有償/無償（排他）、下段=マスタ項目。
+- 下段候補は **出張所別_単価適用線区.xlsx** の該当シート **A列**（ヘッダー除く）を ADO で読込（40行目=「支給材料」シート、41行目=「貸与品」シート）。
+- **40行目（支給材料）**: 下段は単一選択 → 受注者用 **F32**（F32:V32 結合）。
+- **41行目（貸与品）**: 下段は複数選択可。ただし「なし」は排他。複数選択は **読点「、」連結** → 受注者用 **F33**（F33:V33 結合）。
+- 書式は「(ON字形)有償/無償 ＋ 全角空白 ＋ 下段選択」を受注者用結合セルと基本情報セルへ**左詰め**で書込。
+### #3 配線
+- `Sheet1.cls` `Worksheet_BeforeDoubleClick` に 40/41/42 行目の判定・起動分岐を追加、39行目の呼び出し先を新モジュール名へ更新。
+- 補足: 状態復元と視認性のため、基本情報セル（F40/F41/F42 等）にも同じ表示文字列を書き込む。
