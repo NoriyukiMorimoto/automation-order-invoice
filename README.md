@@ -49,6 +49,7 @@
 | `mod_OrderTpl_Header.bas` | 内訳明細ヘッダー部(部店コード・注文番号・工期・外注会社等)の転記。 | `[OrderTpl]` |
 | `mod_OrderTpl_Detail.bas` | 内訳明細明細部の転記エンジン(セクション構築・ソート・行挿入・書式)。 | `[OrderTpl]` |
 | `ModuleExport.bas` | VBA モジュールのエクスポート用。 | |
+| `mod_BasicInfoOrderNumberKeypad.bas` | 基本情報シート施工会社ブロック27行目(注文番号)セルのダブルクリックで数値入力補助(テンキー)フォームを起動し、値を書き戻す。 | `[OrderNoKeypad]` |
 
 ## フォーム（`注文書_請求書VBA/運用中VBA/`、`.frm` / `.frx`）
 
@@ -59,6 +60,7 @@
 | `AllVenderSelection.frm` | 全業者選択フォーム。 |
 | `frmSubconSelector.frm` | 外注業者選択フォーム。 |
 | `frmPrefectureSelector.frm` | 都道府県複数選択フォーム。 |
+| `frmNumericKeypad.frm` | 数値入力補助(テンキー)フォーム。基本情報シートの注文番号セル(27行目)ダブルクリックから起動。ボタンは実行時に動的生成。 |
 
 ## クラスモジュール（`注文書_請求書VBA/運用中VBA/`、`.cls`）
 
@@ -67,6 +69,7 @@
 | `ThisWorkbook.cls` | ブックレベルのイベント。 |
 | `Sheet1.cls` | 「基本情報」シートのイベント（業者・期間・単価関連の入力処理）。 |
 | `Sheet*.cls` | 各ワークシートのシートモジュール群（線区別シート 等）。 |
+| `clsKeypadBtn.cls` | frmNumericKeypad が実行時生成するボタンのクリック中継用クラス(WithEvents)。 |
 
 ## VBA 同期スクリプト（`注文書_請求書VBA/VBA同期/`）
 

@@ -592,3 +592,18 @@
   F〜H・I〜K・L〜N・O〜Q間=細線へシフト。
 - ヘッダー転記先を新位置へ変更: 工事名称=D6、工期=L5/L6、作成日=O2、所長=O3、
   外注会社名=P5、業者コード=P6（部店コードC2・注文番号C3・工事番号B6は結合拡張のみで位置不変）。
+
+## mod_BasicInfoOrderNumberKeypad.bas / frmNumericKeypad.frm / clsKeypadBtn.cls / Sheet1.cls（注文番号セルの数値入力補助フォーム追加）
+
+### 追記（2026-07-10）
+- 基本情報シートの施工会社ブロック27行目(注文番号、`mod_OrderTpl_Shared.ORDER_TPL_BLOCK_ORDER_NO_ROW`)
+  セル(F27/I27/L27...、F9の施工会社数に応じて3列おきに最大10社分)をダブルクリックすると、
+  テンキー形式の数値入力補助フォーム`frmNumericKeypad`を表示するようにした。
+- フォームは実行時に`Controls.Add`で数字ボタン(0-9)・クリア・バックスペース・OK・キャンセルを
+  動的生成し、ボタンのクリックは`clsKeypadBtn`(WithEvents)で受け止める。
+- ダブルクリックイベント中の同期モーダル表示によるハングを避けるため、
+  `mod_PrefectureSelector`と同様に`Application.OnTime`で1秒後に遅延起動する方式とした。
+- 確定時は入力値をセルへ書き戻した上で`mod_BasicInfoGuide.OnCellChanged`と
+  `mod_OrderTpl_Header.HandleBasicInfoHeaderSourceChange`を呼び出し、注文書テンプレート
+  各シートのヘッダーへ即時反映されるようにした。
+- `Sheet1.cls`の`Worksheet_BeforeDoubleClick`へ判定・起動呼び出しを追加。

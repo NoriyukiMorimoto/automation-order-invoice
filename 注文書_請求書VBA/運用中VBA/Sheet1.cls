@@ -202,6 +202,12 @@ Private Sub Worksheet_BeforeDoubleClick(ByVal target As Range, Cancel As Boolean
         Exit Sub
     End If
 
+    If mod_BasicInfoOrderNumberKeypad.IsOrderNumberKeypadTarget(Me, target) Then
+        Cancel = True
+        mod_BasicInfoOrderNumberKeypad.RequestOrderNumberKeypad Me, target
+        Exit Sub
+    End If
+
     Dim vendorNameCell As Range
     Set vendorNameCell = mod_VendorMaster.ResolveVendorNameChangeCell(Me, target)
     If vendorNameCell Is Nothing Then
