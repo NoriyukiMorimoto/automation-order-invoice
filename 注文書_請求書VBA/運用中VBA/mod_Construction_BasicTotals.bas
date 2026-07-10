@@ -172,15 +172,29 @@ Public Sub RefreshVendorBlockTaxRows(Optional ByVal wsInfo As Worksheet)
             wsInfo.Cells(34, valueColumn).value = taxAmount
             wsInfo.Cells(35, valueColumn).value = baseAmount + taxAmount
         Else
-            ' 会社数減少時は対象外ブロックの34/35行目を消去する
-            wsInfo.Range(wsInfo.Cells(34, labelColumn), wsInfo.Cells(35, valueColumn)).Clear
+            ' 会社数減少時は対象外ブロックの34/35行目の値のみ消去する。
+            ' .Clear は塗りつぶしまで解除するため使わない(未使用ブロックは #06111D を維持)。
+            ClearInactiveVendorBlockTaxRows wsInfo, labelColumn, valueColumn
         End If
     Next i
+    Application.CutCopyMode = False
     Exit Sub
 
 ErrorHandler:
+    Application.CutCopyMode = False
     LogCI "ブロック消費税行更新エラー Err " & Err.Number & ": " & Err.Description
     Err.Clear
+End Sub
+
+' 対象外施工会社ブロックの34/35行目: 値のみ消去し、未使用ブロックと同じ背景色を復元する。
+Private Sub ClearInactiveVendorBlockTaxRows(ByVal wsInfo As Worksheet, _
+                                            ByVal labelColumn As Long, _
+                                            ByVal valueColumn As Long)
+    Dim clearRange As Range
+    Set clearRange = wsInfo.Range(wsInfo.Cells(34, labelColumn), _
+                                  wsInfo.Cells(35, valueColumn))
+    clearRange.ClearContents
+    clearRange.Interior.Color = RGB(6, 17, 29)
 End Sub
 
 Public Sub ClearVendorAliasMapCacheCore()

@@ -629,3 +629,4 @@
   書式は33行目を模倣。`RefreshBasicInfoConstructionTotalsCore` の末尾で毎回更新するため、
   F9の会社数増減・金額変動に追従し、対象外ブロックの34/35行目は消去する
   （`RefreshVendorBlockTaxRows` 新設）。
+- RefreshVendorBlockTaxRows の対象外ブロック消去を ClearContents+背景復元に変更し、WorkbookOptimize が施工会社34/35行目の UsedRange 伸長で AH 以降の塗りつぶしを消さないよう列別判定に修正。

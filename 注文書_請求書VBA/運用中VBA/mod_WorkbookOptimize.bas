@@ -75,16 +75,17 @@ End Sub
 
 ' 基本情報シート: 業者ブロック使用範囲(AG=33列)より右の空セル書式のみクリア
 Private Function OptimizeBasicInfoSheet(ByVal ws As Worksheet) As Boolean
-    Dim usedLastRow As Long
     Dim usedLastCol As Long
-    usedLastRow = GetSheetUsedLastRow(ws)
     usedLastCol = GetSheetUsedLastCol(ws)
     If usedLastCol <= BASIC_INFO_VENDOR_LAST_COL Then Exit Function
-    If usedLastRow < 1 Then Exit Function
+
+    Dim rightUsedLastRow As Long
+    rightUsedLastRow = GetUsedLastRowInColumnRange(ws, BASIC_INFO_VENDOR_LAST_COL + 1, usedLastCol)
+    If rightUsedLastRow < 1 Then Exit Function
 
     Dim clearRange As Range
     Set clearRange = ws.Range(ws.Cells(1, BASIC_INFO_VENDOR_LAST_COL + 1), _
-                              ws.Cells(usedLastRow, usedLastCol))
+                              ws.Cells(rightUsedLastRow, usedLastCol))
     ResetRangeFormats clearRange
     OptimizeBasicInfoSheet = True
 End Function
@@ -116,6 +117,30 @@ Private Function GetSheetUsedLastCol(ByVal ws As Worksheet) As Long
     On Error Resume Next
     GetSheetUsedLastCol = ws.UsedRange.Column + ws.UsedRange.Columns.Count - 1
     On Error GoTo 0
+End Function
+
+' 指定列範囲ごとの UsedRange 下端行。施工会社列(<=33)の34/35行目で
+' シート全体の UsedRange が伸びても、AH 以降の意図した塗りつぶしを消さないため。
+Private Function GetUsedLastRowInColumnRange(ByVal ws As Worksheet, _
+                                             ByVal firstCol As Long, _
+                                             ByVal lastCol As Long) As Long
+    Dim col As Long
+    Dim maxRow As Long
+    maxRow = 0
+
+    On Error Resume Next
+    For col = firstCol To lastCol
+        Dim colUsed As Range
+        Set colUsed = Intersect(ws.UsedRange, ws.Columns(col))
+        If Not colUsed Is Nothing Then
+            Dim colLastRow As Long
+            colLastRow = colUsed.Row + colUsed.Rows.Count - 1
+            If colLastRow > maxRow Then maxRow = colLastRow
+        End If
+    Next col
+    On Error GoTo 0
+
+    GetUsedLastRowInColumnRange = maxRow
 End Function
 
 Private Function OptimizeTitleText() As String
