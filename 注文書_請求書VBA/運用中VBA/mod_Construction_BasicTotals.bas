@@ -115,10 +115,71 @@ Public Sub RefreshBasicInfoConstructionTotalsCore(Optional ByVal changedVendorIn
         If totalCell.MergeCells Then Set totalCell = totalCell.MergeArea.Cells(1, 1)
         totalCell.NumberFormatLocal = BasicInfoYenNumberFormat()
     Next i
+
+    ' 各ブロックの34/35行目(消費税・税込み金額)を追従更新する
+    RefreshVendorBlockTaxRows wsInfo
     Exit Sub
 
 ErrorHandler:
     LogCI "基本情報合計金額更新エラー Err " & Err.Number & ": " & Err.Description
+    Err.Clear
+End Sub
+
+'  RefreshVendorBlockTaxRows
+'  施工会社ブロックの34/35行目を更新する。
+'  ラベル列(値列の左)にはB34:B35(消費税(10%)：/税込み金額：)のデータ・罫線をコピーし、
+'  値列34行目=33行目(契約金額税抜)×税率(B34のカッコ内、C34と同じ切り捨て)、
+'  35行目=33行目+34行目。書式は33行目を模倣。F9の会社数増減にも追従する。
+Public Sub RefreshVendorBlockTaxRows(Optional ByVal wsInfo As Worksheet)
+    If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet(ThisWorkbook)
+    If wsInfo Is Nothing Then Exit Sub
+
+    On Error GoTo ErrorHandler
+
+    Dim taxRate As Double
+    taxRate = ResolveBasicInfoTaxRate(wsInfo)
+
+    Dim vendorCount As Long
+    vendorCount = GetBasicInfoVendorBlockCount(wsInfo)
+
+    Dim i As Long
+    For i = 1 To BASIC_INFO_VENDOR_MAX_BLOCKS
+        Dim valueColumn As Long
+        Dim labelColumn As Long
+        valueColumn = BasicInfoVendorColumn(i)
+        labelColumn = valueColumn - 1
+
+        If i <= vendorCount Then
+            ' ラベル(B34:B35)のデータと罫線をコピー
+            wsInfo.Range("B34:B35").Copy Destination:=wsInfo.Cells(34, labelColumn)
+
+            ' 値セルの書式は33行目(契約金額)を模倣
+            wsInfo.Cells(BASIC_INFO_VENDOR_TOTAL_ROW, valueColumn).Copy
+            wsInfo.Cells(34, valueColumn).Resize(2, 1).PasteSpecial xlPasteFormats
+            Application.CutCopyMode = False
+
+            Dim baseAmount As Double
+            baseAmount = 0
+            Dim baseValue As Variant
+            baseValue = wsInfo.Cells(BASIC_INFO_VENDOR_TOTAL_ROW, valueColumn).value
+            If IsNumeric(baseValue) And Len(Trim$(CStr(baseValue))) > 0 Then
+                baseAmount = CDbl(baseValue)
+            End If
+
+            Dim taxAmount As Double
+            taxAmount = RoundDownAmount(baseAmount * taxRate)
+
+            wsInfo.Cells(34, valueColumn).value = taxAmount
+            wsInfo.Cells(35, valueColumn).value = baseAmount + taxAmount
+        Else
+            ' 会社数減少時は対象外ブロックの34/35行目を消去する
+            wsInfo.Range(wsInfo.Cells(34, labelColumn), wsInfo.Cells(35, valueColumn)).Clear
+        End If
+    Next i
+    Exit Sub
+
+ErrorHandler:
+    LogCI "ブロック消費税行更新エラー Err " & Err.Number & ": " & Err.Description
     Err.Clear
 End Sub
 

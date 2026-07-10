@@ -75,6 +75,15 @@ Public Function OrderTplRailWeldingLabelText() As String
     OrderTplRailWeldingLabelText = cached
 End Function
 
+' 施工会社別単価列ヘッダーの接尾辞
+Public Function OrderTplUnitPriceHeaderSuffixText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = CommonTextFromChars(&H5358, &H4FA1)
+    End If
+    OrderTplUnitPriceHeaderSuffixText = cached
+End Function
+
 Public Function OrderTplDayFirstText() As String
     Static cached As String
     If cached = "" Then

@@ -155,6 +155,9 @@ Public Sub ApplyBreakdownDetails(ByVal wsBreakdown As Worksheet, _
 
     ApplyDetailFormats wsBreakdown, startRow, endRow, headerLineRows, integerLineRows, decimalLineRows
 
+    ' B:C列の結合(11行目～小計行の直前。セクション見出し行はA:D結合のため除く)
+    MergeDetailNameColumns wsBreakdown, startRow, subtotalRow - 1, headerLineRows
+
     BuildSummaryBlock wsBreakdown, subtotalRow, totalLines
 
     ' 11行目以降(集計ブロック含む)のフォントサイズを10ポイントへ統一する
@@ -335,23 +338,25 @@ Private Sub ApplySummaryBorders(ByVal wsBreakdown As Worksheet, _
         .Weight = xlThin
     End With
 
-    ' 縦罫線(小計行～合計行の1行下): E/F間・H/I間・K/L間・N/O間=中線、
-    ' F～H間・I～K間・L～N間・O～Q間=細線
-    Dim mediumRightColumns As Variant
-    mediumRightColumns = Array(5, 8, 11, 14)
-    Dim thinRightColumns As Variant
-    thinRightColumns = Array(6, 7, 9, 10, 12, 13, 15, 16)
+    ' 縦罫線の再設定: 集計ブロック内の既存縦罫線をいったん消去する
+    blockRange.Borders(xlInsideVertical).LineStyle = xlNone
+
+    ' D/E列間: 11行目～小計行の直前まで。小計行以下は消去
+    With wsBreakdown.Range(wsBreakdown.Cells(ORDER_TPL_DETAIL_START_ROW, 4), _
+                           wsBreakdown.Cells(subtotalRow - 1, 4)).Borders(xlEdgeRight)
+        .LineStyle = xlContinuous
+        .Weight = xlThin
+    End With
+    wsBreakdown.Range(wsBreakdown.Cells(subtotalRow, 4), _
+                      wsBreakdown.Cells(subtotalRow + SUMMARY_EXTRA_ROWS, 4)).Borders(xlEdgeRight).LineStyle = xlNone
+
+    ' G/H・J/K・M/N・P/Q列間: 11行目～合計行の1行下まで
+    Dim verticalRightColumns As Variant
+    verticalRightColumns = Array(7, 10, 13, 16)
 
     Dim c As Variant
-    For Each c In mediumRightColumns
-        With wsBreakdown.Range(wsBreakdown.Cells(subtotalRow, CLng(c)), _
-                               wsBreakdown.Cells(subtotalRow + SUMMARY_EXTRA_ROWS, CLng(c))).Borders(xlEdgeRight)
-            .LineStyle = xlContinuous
-            .Weight = xlMedium
-        End With
-    Next c
-    For Each c In thinRightColumns
-        With wsBreakdown.Range(wsBreakdown.Cells(subtotalRow, CLng(c)), _
+    For Each c In verticalRightColumns
+        With wsBreakdown.Range(wsBreakdown.Cells(ORDER_TPL_DETAIL_START_ROW, CLng(c)), _
                                wsBreakdown.Cells(subtotalRow + SUMMARY_EXTRA_ROWS, CLng(c))).Borders(xlEdgeRight)
             .LineStyle = xlContinuous
             .Weight = xlThin
@@ -398,6 +403,19 @@ Private Function CollectSourceSections(ByVal wsSource As Worksheet, _
     Dim sourceValues As Variant
     sourceValues = wsSource.Range(wsSource.Cells(2, 1), wsSource.Cells(lastRow, COL_JR_PRICE + columnOffset)).value
 
+    ' 施工会社別単価列(ヘッダー「会社名+単価」)を名寄せで特定する
+    Dim vendorPriceColumn As Long
+    vendorPriceColumn = FindVendorUnitPriceColumn(wsSource, targetKeys, aliasMap)
+    If vendorPriceColumn = 0 Then
+        mod_OrderTpl_Shared.OrderTplLog "vendor price column not found on: " & wsSource.Name
+    End If
+
+    Dim vendorPriceValues As Variant
+    If vendorPriceColumn > 0 Then
+        vendorPriceValues = wsSource.Range(wsSource.Cells(2, vendorPriceColumn), _
+                                           wsSource.Cells(lastRow, vendorPriceColumn)).value
+    End If
+
     Dim sectionKeys As Collection
     Set sectionKeys = New Collection
 
@@ -429,13 +447,18 @@ Private Function CollectSourceSections(ByVal wsSource As Worksheet, _
                 sectionKeys.Add Array(sectionLabel, sectionKey)
             End If
 
+            ' 単価は施工会社別単価列(会社名+単価)から取得する(未展開・未割当時は空欄)
+            Dim vendorPriceValue As Variant
+            vendorPriceValue = Empty
+            If vendorPriceColumn > 0 Then vendorPriceValue = vendorPriceValues(i, 1)
+
             sectionRows.Add Array( _
                 sourceValues(i, COL_SEIRI + columnOffset), _
                 sourceValues(i, COL_TYPE + columnOffset), _
                 sourceValues(i, COL_DAYNIGHT + columnOffset), _
                 sourceValues(i, COL_UNIT + columnOffset), _
                 sourceValues(i, COL_QTY + columnOffset), _
-                sourceValues(i, COL_JR_PRICE + columnOffset))
+                vendorPriceValue)
         End If
     Next i
 
@@ -697,6 +720,124 @@ Private Sub ApplyNumberFormatToLineRows(ByVal wsBreakdown As Worksheet, _
     Next lineIndex
 
     If Not targetRange Is Nothing Then targetRange.NumberFormat = formatText
+End Sub
+
+' 取込元シートの1行目から「会社名+単価」ヘッダー列を名寄せで探す
+Private Function FindVendorUnitPriceColumn(ByVal wsSource As Worksheet, _
+                                           ByVal targetKeys As Object, _
+                                           ByVal aliasMap As Object) As Long
+    If wsSource Is Nothing Then Exit Function
+    If targetKeys Is Nothing Then Exit Function
+
+    Dim lastColumn As Long
+    lastColumn = wsSource.Cells(1, wsSource.Columns.Count).End(xlToLeft).Column
+
+    Dim suffixText As String
+    suffixText = mod_OrderTpl_Shared.OrderTplUnitPriceHeaderSuffixText()
+
+    Dim c As Long
+    For c = 1 To lastColumn
+        Dim headerText As String
+        headerText = CommonRemoveAllSpaces(CommonNormalizeText(CommonNzText(wsSource.Cells(1, c).value)))
+        If Len(headerText) > Len(suffixText) Then
+            If StrComp(Right$(headerText, Len(suffixText)), suffixText, vbTextCompare) = 0 Then
+                Dim vendorKey As String
+                vendorKey = mod_Construction_BasicTotals.ResolveVendorCanonicalKey( _
+                    Left$(headerText, Len(headerText) - Len(suffixText)), aliasMap)
+                If vendorKey <> "" Then
+                    If targetKeys.Exists(vendorKey) Then
+                        FindVendorUnitPriceColumn = c
+                        Exit Function
+                    End If
+                End If
+            End If
+        End If
+    Next c
+End Function
+
+' B:C列を結合する(明細部のみ。セクション見出し行はA:D結合のため除外)
+Private Sub MergeDetailNameColumns(ByVal wsBreakdown As Worksheet, _
+                                   ByVal firstRow As Long, _
+                                   ByVal lastRow As Long, _
+                                   ByVal headerLineRows As Collection)
+    Dim headerRowMap As Object
+    Set headerRowMap = CreateObject("Scripting.Dictionary")
+
+    Dim lineIndex As Variant
+    If Not headerLineRows Is Nothing Then
+        For Each lineIndex In headerLineRows
+            headerRowMap(firstRow + CLng(lineIndex) - 1) = True
+        Next lineIndex
+    End If
+
+    Dim r As Long
+    For r = firstRow To lastRow
+        If Not headerRowMap.Exists(r) Then
+            With wsBreakdown.Range(wsBreakdown.Cells(r, 2), wsBreakdown.Cells(r, 3))
+                If Not .MergeCells Then .Merge
+                .WrapText = False
+                .ShrinkToFit = True
+                .HorizontalAlignment = xlLeft
+            End With
+        End If
+    Next r
+End Sub
+
+' 内訳明細シートの前回迄(I列)/今回(L列)への数量入力を監視し、単価列(J/M)を自動入力する。
+' ThisWorkbook.Workbook_SheetChange から呼ばれる
+Public Sub HandleBreakdownQuantityCellChange(ByVal sh As Object, ByVal target As Range)
+    If TypeName(sh) <> "Worksheet" Then Exit Sub
+    If target Is Nothing Then Exit Sub
+
+    On Error GoTo Quiet
+
+    Dim ws As Worksheet
+    Set ws = sh
+
+    Dim baseName As String
+    Dim aliasText As String
+    If Not mod_OrderTpl_Shared.OrderTplIsGeneratedSheet(ws, baseName, aliasText) Then Exit Sub
+    If StrComp(baseName, mod_OrderTpl_Shared.OrderTplBaseNameBreakdownText(), vbTextCompare) <> 0 Then Exit Sub
+
+    Dim hitRange As Range
+    Set hitRange = Intersect(target, Union(ws.Columns(9), ws.Columns(12)))
+    If hitRange Is Nothing Then Exit Sub
+
+    Dim subtotalRow As Long
+    subtotalRow = FindSubtotalRow(ws)
+    If subtotalRow = 0 Then Exit Sub
+
+    Set hitRange = Intersect(hitRange, _
+        ws.Range(ws.Cells(ORDER_TPL_DETAIL_START_ROW, 9), ws.Cells(subtotalRow - 1, 12)))
+    If hitRange Is Nothing Then Exit Sub
+
+    Dim prevEnableEvents As Boolean
+    prevEnableEvents = Application.EnableEvents
+    Application.EnableEvents = False
+
+    Dim changedCell As Range
+    For Each changedCell In hitRange.Cells
+        If changedCell.Column = 9 Or changedCell.Column = 12 Then
+            Dim priceCell As Range
+            Set priceCell = ws.Cells(changedCell.Row, changedCell.Column + 1)
+
+            Dim quantityValue As Variant
+            quantityValue = changedCell.value
+            If IsNumeric(quantityValue) And Len(Trim$(CStr(quantityValue))) > 0 Then
+                ' 単価は当初単価(G列=会社別単価)と同値を入力する
+                priceCell.value = ws.Cells(changedCell.Row, 7).value
+            Else
+                priceCell.ClearContents
+            End If
+        End If
+    Next changedCell
+
+    Application.EnableEvents = prevEnableEvents
+    Exit Sub
+
+Quiet:
+    Application.EnableEvents = True
+    Err.Clear
 End Sub
 
 Private Sub AddTargetKey(ByVal targetKeys As Object, _

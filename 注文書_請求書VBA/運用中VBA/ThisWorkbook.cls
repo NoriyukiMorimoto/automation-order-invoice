@@ -114,6 +114,9 @@ Private Sub Workbook_SheetChange(ByVal Sh As Object, ByVal Target As Range)
     If TypeName(Sh) <> "Worksheet" Then Exit Sub
     If mod_VendorMaster.IsSyncVendorBlocksInProgress() Then Exit Sub
 
+    ' 内訳明細シートの前回迄(I列)/今回(L列)の数量入力で単価列(J/M)を自動入力
+    mod_OrderTpl_Detail.HandleBreakdownQuantityCellChange Sh, Target
+
     If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(Sh) Then
         If Application.Intersect(Target, Sh.Range("B:B,E:F")) Is Nothing Then Exit Sub
 
