@@ -133,12 +133,19 @@ End Sub
 
 Private Sub BuildActionButtons()
     Dim actionsTop As Single
+    Dim gridWidth As Single
+    Dim okWidth As Single
+    Dim cancelWidth As Single
+
     actionsTop = GRID_TOP + 4 * (BTN_H + BTN_GAP) + 6
+    gridWidth = BTN_W * 3 + BTN_GAP * 2
+    okWidth = BTN_W
+    cancelWidth = gridWidth - okWidth - BTN_GAP
 
     AddKeypadButton "cmdKeyOK", OkCaptionText(), "OK", _
-                    GRID_LEFT, actionsTop, BTN_W * 1.5
+                    GRID_LEFT, actionsTop, okWidth
     AddKeypadButton "cmdKeyCancel", CancelCaptionText(), "CANCEL", _
-                    GRID_LEFT + BTN_W * 1.5 + BTN_GAP, actionsTop, BTN_W * 1.5
+                    GRID_LEFT + okWidth + BTN_GAP, actionsTop, cancelWidth
 End Sub
 
 Private Sub AddKeypadButton(ByVal ctrlName As String, ByVal caption As String, ByVal keyCode As String, _
@@ -266,4 +273,13 @@ Private Function ClearKeyText() As String
 End Function
 
 ' "BS"（バックスペース。記号グリフの未対応環境を避けるため半角英字表記とする）
-Private Function BackspaceKeyText() As Str
+Private Function BackspaceKeyText() As String
+    BackspaceKeyText = "BS"
+End Function
+
+' "数値を入力してください。"
+Private Function InvalidNumberText() As String
+    InvalidNumberText = ChrW$(&H6570) & ChrW$(&H5024) & ChrW$(&H3092) & ChrW$(&H5165) & _
+                        ChrW$(&H529B) & ChrW$(&H3057) & ChrW$(&H3066) & ChrW$(&H304F) & _
+                        ChrW$(&H3060) & ChrW$(&H3055) & ChrW$(&H3044) & ChrW$(&H3002)
+End Function

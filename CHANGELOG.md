@@ -607,3 +607,5 @@
   `mod_OrderTpl_Header.HandleBasicInfoHeaderSourceChange`を呼び出し、注文書テンプレート
   各シートのヘッダーへ即時反映されるようにした。
 - `Sheet1.cls`の`Worksheet_BeforeDoubleClick`へ判定・起動呼び出しを追加。
+- frmNumericKeypad.frm の末尾切れによるコンパイルエラー（BackspaceKeyText が As Str で未完、InvalidNumberText 欠落）を修正。
+- frmNumericKeypad のキャンセルボタン幅を拡大し、「キャンセル」が見切れないよう調整。
