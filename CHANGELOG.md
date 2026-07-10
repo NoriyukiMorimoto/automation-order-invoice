@@ -630,3 +630,4 @@
   F9の会社数増減・金額変動に追従し、対象外ブロックの34/35行目は消去する
   （`RefreshVendorBlockTaxRows` 新設）。
 - RefreshVendorBlockTaxRows の対象外ブロック消去を ClearContents+背景復元に変更し、WorkbookOptimize が施工会社34/35行目の UsedRange 伸長で AH 以降の塗りつぶしを消さないよう列別判定に修正。
+- 内訳明細: O2/L5/L6を14pt、集計枠罫線(A:Q)拡張、金額列ゼロ非表示(I12/L12連動含む)を調整。

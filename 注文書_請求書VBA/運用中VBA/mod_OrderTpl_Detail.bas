@@ -19,6 +19,7 @@ Private Const FMT_GROUP_INTEGER As Long = 1
 Private Const FMT_GROUP_DECIMAL As Long = 2
 Private Const SUMMARY_EXTRA_ROWS As Long = 5   ' 値引/計/消費税/合計/罫線用空白
 Private Const SUMMARY_NUMBER_FORMAT As String = "#,##0"
+Private Const SUMMARY_ZERO_HIDE_FORMAT As String = "#,##0;-#,##0;"
 Private Const DETAIL_AMOUNT_NUMBER_FORMAT As String = "#,##0;-#,##0;"            ' 桁区切り・ゼロ非表示
 Private Const DETAIL_QTY_DECIMAL_NUMBER_FORMAT As String = "#,##0.000;-#,##0.000;" ' 小数3桁・ゼロ非表示
 Private Const DETAIL_FONT_SIZE As Double = 10#
@@ -153,6 +154,9 @@ Public Sub ApplyBreakdownDetails(ByVal wsBreakdown As Worksheet, _
             "=RC[-2]*RC[-1]"
     Next formulaColumn
 
+    ApplyDetailAmountColumnFormats wsBreakdown, startRow, subtotalRow - 1
+    CleanupDetailAmountEmptyRows wsBreakdown, startRow, subtotalRow - 1
+
     ApplyDetailFormats wsBreakdown, startRow, endRow, headerLineRows, integerLineRows, decimalLineRows
 
     ' B:C列の結合(11行目～小計行の直前。セクション見出し行はA:D結合のため除く)
@@ -285,10 +289,9 @@ Private Sub BuildSummaryBlock(ByVal wsBreakdown As Worksheet, _
             "=ROUNDDOWN(" & colLetter & (subtotalRow + 2) & "*" & taxRateText & ",0)"
         wsBreakdown.Range(colLetter & (subtotalRow + 4)).Formula = _
             "=" & colLetter & (subtotalRow + 2) & "+" & colLetter & (subtotalRow + 3)
-
-        wsBreakdown.Range(colLetter & subtotalRow & ":" & colLetter & (subtotalRow + 4)).NumberFormat = _
-            SUMMARY_NUMBER_FORMAT
     Next i
+
+    ApplySummaryNumberFormats wsBreakdown, subtotalRow
 
     ' フォント
     wsBreakdown.Range(wsBreakdown.Cells(subtotalRow, 1), _
@@ -362,6 +365,19 @@ Private Sub ApplySummaryBorders(ByVal wsBreakdown As Worksheet, _
             .Weight = xlThin
         End With
     Next c
+
+    ' 小計行の上の行～合計行の1行下(A:Q)の外枠罫線
+    Dim summaryFrameRange As Range
+    Set summaryFrameRange = wsBreakdown.Range(wsBreakdown.Cells(subtotalRow - 1, 1), _
+                                              wsBreakdown.Cells(subtotalRow + SUMMARY_EXTRA_ROWS, 17))
+    With summaryFrameRange
+        .Borders(xlEdgeLeft).LineStyle = xlContinuous
+        .Borders(xlEdgeLeft).Weight = xlThin
+        .Borders(xlEdgeRight).LineStyle = xlContinuous
+        .Borders(xlEdgeRight).Weight = xlThin
+        .Borders(xlInsideHorizontal).LineStyle = xlContinuous
+        .Borders(xlInsideHorizontal).Weight = xlThin
+    End With
 
     With wsBreakdown.Range(wsBreakdown.Cells(subtotalRow, 1), _
                            wsBreakdown.Cells(subtotalRow, 17)).Borders(xlEdgeTop)
@@ -784,6 +800,7 @@ Private Sub MergeDetailNameColumns(ByVal wsBreakdown As Worksheet, _
 End Sub
 
 ' 内訳明細シートの前回迄(I列)/今回(L列)への数量入力を監視し、単価列(J/M)を自動入力する。
+' I12/L12 の入力有無に応じて集計ブロックの K/N 列ゼロ表示も更新する。
 ' ThisWorkbook.Workbook_SheetChange から呼ばれる
 Public Sub HandleBreakdownQuantityCellChange(ByVal sh As Object, ByVal target As Range)
     If TypeName(sh) <> "Worksheet" Then Exit Sub
@@ -798,6 +815,10 @@ Public Sub HandleBreakdownQuantityCellChange(ByVal sh As Object, ByVal target As
     Dim aliasText As String
     If Not mod_OrderTpl_Shared.OrderTplIsGeneratedSheet(ws, baseName, aliasText) Then Exit Sub
     If StrComp(baseName, mod_OrderTpl_Shared.OrderTplBaseNameBreakdownText(), vbTextCompare) <> 0 Then Exit Sub
+
+    If Not Intersect(target, ws.Range("I12:L12")) Is Nothing Then
+        RefreshBreakdownSummaryNumberFormats ws
+    End If
 
     Dim hitRange As Range
     Set hitRange = Intersect(target, Union(ws.Columns(9), ws.Columns(12)))
@@ -839,6 +860,71 @@ Quiet:
     Application.EnableEvents = True
     Err.Clear
 End Sub
+
+' 金額列(H/K/N/Q)へゼロ非表示の表示形式を適用する(小計直前の空行も含む)
+Private Sub ApplyDetailAmountColumnFormats(ByVal wsBreakdown As Worksheet, _
+                                           ByVal startRow As Long, _
+                                           ByVal endRow As Long)
+    Dim colLetter As Variant
+    For Each colLetter In Array("H", "K", "N", "Q")
+        wsBreakdown.Range(CStr(colLetter) & startRow & ":" & CStr(colLetter) & endRow).NumberFormat = _
+            DETAIL_AMOUNT_NUMBER_FORMAT
+    Next colLetter
+End Sub
+
+' A列が空欄の行は金額列の0を表示しない(数式結果をクリア)
+Private Sub CleanupDetailAmountEmptyRows(ByVal wsBreakdown As Worksheet, _
+                                         ByVal startRow As Long, _
+                                         ByVal endRow As Long)
+    Dim r As Long
+    For r = startRow To endRow
+        If Len(Trim$(CommonNzText(wsBreakdown.Cells(r, 1).value))) = 0 Then
+            Dim amountCol As Variant
+            For Each amountCol In Array(8, 11, 14, 17)
+                wsBreakdown.Cells(r, CLng(amountCol)).ClearContents
+            Next amountCol
+        End If
+    Next r
+End Sub
+
+' 集計ブロック(小計～合計)の金額表示形式。K/N列は I12/L12 の入力有無でゼロ表示を切替
+Private Sub ApplySummaryNumberFormats(ByVal wsBreakdown As Worksheet, ByVal subtotalRow As Long)
+    Dim summaryAddress As String
+    summaryAddress = subtotalRow & ":" & (subtotalRow + 4)
+
+    wsBreakdown.Range("H" & summaryAddress).NumberFormat = SUMMARY_ZERO_HIDE_FORMAT
+    wsBreakdown.Range("Q" & summaryAddress).NumberFormat = SUMMARY_ZERO_HIDE_FORMAT
+
+    If BreakdownHeaderQtyCellHasValue(wsBreakdown.Range("I12")) Then
+        wsBreakdown.Range("K" & summaryAddress).NumberFormat = SUMMARY_NUMBER_FORMAT
+    Else
+        wsBreakdown.Range("K" & summaryAddress).NumberFormat = SUMMARY_ZERO_HIDE_FORMAT
+    End If
+
+    If BreakdownHeaderQtyCellHasValue(wsBreakdown.Range("L12")) Then
+        wsBreakdown.Range("N" & summaryAddress).NumberFormat = SUMMARY_NUMBER_FORMAT
+    Else
+        wsBreakdown.Range("N" & summaryAddress).NumberFormat = SUMMARY_ZERO_HIDE_FORMAT
+    End If
+End Sub
+
+Public Sub RefreshBreakdownSummaryNumberFormats(ByVal wsBreakdown As Worksheet)
+    If wsBreakdown Is Nothing Then Exit Sub
+
+    Dim subtotalRow As Long
+    subtotalRow = FindSubtotalRow(wsBreakdown)
+    If subtotalRow = 0 Then Exit Sub
+
+    ApplySummaryNumberFormats wsBreakdown, subtotalRow
+End Sub
+
+Private Function BreakdownHeaderQtyCellHasValue(ByVal targetCell As Range) As Boolean
+    If targetCell Is Nothing Then Exit Function
+
+    Dim valueText As String
+    valueText = Trim$(CommonNzText(targetCell.MergeArea.Cells(1, 1).value))
+    BreakdownHeaderQtyCellHasValue = (Len(valueText) > 0)
+End Function
 
 Private Sub AddTargetKey(ByVal targetKeys As Object, _
                          ByVal nameText As String, _

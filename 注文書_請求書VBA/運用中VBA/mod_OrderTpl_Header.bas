@@ -135,6 +135,8 @@ Private Sub ApplyVendorSheetTabColor(ByVal wsInfo As Worksheet, _
     On Error GoTo 0
 End Sub
 
+Private Const HEADER_DATE_FONT_SIZE As Double = 14#
+
 ' 内訳明細ヘッダー部へ基本情報シートの内容を転記する
 Public Sub ApplyBreakdownHeader(ByVal wsInfo As Worksheet, _
                                 ByVal wsBreakdown As Worksheet, _
@@ -167,9 +169,11 @@ Public Sub ApplyBreakdownHeader(ByVal wsInfo As Worksheet, _
     ' L5/L6: 工期 自/至(基本情報C15/C16、和暦表示)
     WriteHeaderDate wsBreakdown.Range("L5"), wsInfo.Range("C15").value
     WriteHeaderDate wsBreakdown.Range("L6"), wsInfo.Range("C16").value
+    wsBreakdown.Range("L5:L6").Font.Size = HEADER_DATE_FONT_SIZE
 
     ' O2: 作成日(基本情報C2、和暦表示)
     WriteHeaderDate wsBreakdown.Range("O2"), wsInfo.Range("C2").value
+    wsBreakdown.Range("O2").MergeArea.Font.Size = HEADER_DATE_FONT_SIZE
 
     ' O3: 所長名(基本情報F6)
     WriteHeaderValue wsBreakdown.Range("O3"), wsInfo.Range("F6").value, True
