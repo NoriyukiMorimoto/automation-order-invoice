@@ -36,6 +36,10 @@ Private Const MAX_INPUT_LEN As Long = 12
 
 Private WithEvents mDisplay As MSForms.TextBox
 Private mHandlers As Collection
+Private mRosaiHandlers As Collection
+Private mBuildingRosai As Boolean
+Public rosaiKo As Boolean
+Public rosaiOtsu As Boolean
 
 Private Sub UserForm_Initialize()
     confirmed = False
@@ -282,4 +286,121 @@ Private Function InvalidNumberText() As String
     InvalidNumberText = ChrW$(&H6570) & ChrW$(&H5024) & ChrW$(&H3092) & ChrW$(&H5165) & _
                         ChrW$(&H529B) & ChrW$(&H3057) & ChrW$(&H3066) & ChrW$(&H304F) & _
                         ChrW$(&H3060) & ChrW$(&H3055) & ChrW$(&H3044) & ChrW$(&H3002)
+End Function
+
+' ===== 労災保険 加入負担 選択モード (frmNumericKeypad 再利用) =====
+' New 直後に本メソッドを呼ぶと、UserForm_Initialize が生成したテンキーを撤去し、
+' 甲/乙 チェックボックスを上下に並べた選択フォームへ組み替える。
+' どちらかにチェックが入った段階で確定してフォームを閉じる(甲/乙は排他)。
+Public Sub ConfigureLaborInsuranceMode(ByVal koChecked As Boolean, ByVal otsuChecked As Boolean)
+    TearDownKeypadControls
+    Me.Caption = LaborInsuranceCaptionText()
+    Set mRosaiHandlers = New Collection
+    BuildLaborInsuranceCheckboxes koChecked, otsuChecked
+    Me.Width = 210
+    Me.Height = 116
+End Sub
+
+' Initialize が Controls.Add したテンキー系コントロールを撤去する
+Private Sub TearDownKeypadControls()
+    On Error Resume Next
+    Me.Controls.Remove "txtKeypadDisplay"
+    Dim i As Long
+    For i = 0 To 11
+        Me.Controls.Remove "cmdKey" & CStr(i)
+    Next i
+    Me.Controls.Remove "cmdKeyOK"
+    Me.Controls.Remove "cmdKeyCancel"
+    Set mHandlers = Nothing
+    Set mDisplay = Nothing
+    On Error GoTo 0
+End Sub
+
+Private Sub BuildLaborInsuranceCheckboxes(ByVal koChecked As Boolean, ByVal otsuChecked As Boolean)
+    mBuildingRosai = True
+
+    Dim chkKo As MSForms.CheckBox
+    Set chkKo = Me.Controls.Add("Forms.CheckBox.1", "chkRosaiKo", True)
+    With chkKo
+        .Left = 18
+        .Top = 12
+        .Width = 150
+        .Height = 26
+        .Caption = KoText()
+        .Font.Name = FormFontNameText()
+        .Font.Size = FORM_FONT_SIZE
+        .Value = koChecked
+    End With
+
+    Dim chkOtsu As MSForms.CheckBox
+    Set chkOtsu = Me.Controls.Add("Forms.CheckBox.1", "chkRosaiOtsu", True)
+    With chkOtsu
+        .Left = 18
+        .Top = 44
+        .Width = 150
+        .Height = 26
+        .Caption = OtsuText()
+        .Font.Name = FormFontNameText()
+        .Font.Size = FORM_FONT_SIZE
+        .Value = otsuChecked
+    End With
+
+    AddRosaiHandler chkKo, "KO"
+    AddRosaiHandler chkOtsu, "OTSU"
+
+    rosaiKo = koChecked
+    rosaiOtsu = otsuChecked
+    mBuildingRosai = False
+End Sub
+
+Private Sub AddRosaiHandler(ByVal chk As MSForms.CheckBox, ByVal keyCode As String)
+    Dim handler As clsRosaiCheck
+    Set handler = New clsRosaiCheck
+    Set handler.Chk = chk
+    handler.Key = keyCode
+    Set handler.Owner = Me
+    mRosaiHandlers.Add handler
+End Sub
+
+' clsRosaiCheck から呼ばれる。チェックが入った段階で確定してフォームを閉じる。
+' 未チェック(オフ)へ戻す操作では閉じず、状態のみ更新する。
+Public Sub HandleRosaiCheck(ByVal keyCode As String, ByVal isChecked As Boolean)
+    If mBuildingRosai Then Exit Sub
+
+    If Not isChecked Then
+        Select Case keyCode
+            Case "KO": rosaiKo = False
+            Case "OTSU": rosaiOtsu = False
+        End Select
+        Exit Sub
+    End If
+
+    Select Case keyCode
+        Case "KO"
+            rosaiKo = True
+            rosaiOtsu = False
+        Case "OTSU"
+            rosaiKo = False
+            rosaiOtsu = True
+    End Select
+
+    confirmed = True
+    Me.Hide
+End Sub
+
+' "労災保険 加入負担選択"
+Private Function LaborInsuranceCaptionText() As String
+    LaborInsuranceCaptionText = ChrW$(&H52B4) & ChrW$(&H707D) & ChrW$(&H4FDD) & ChrW$(&H967A) & _
+                                " " & ChrW$(&H52A0) & ChrW$(&H5165) & ChrW$(&H8CA0) & ChrW$(&H62C5) & _
+                                ChrW$(&H9078) & ChrW$(&H629E)
+End Function
+
+' "甲"
+Private Function KoText() As String
+    KoText = ChrW$(&H7532)
+End Function
+
+' "乙"
+Private Function OtsuText() As String
+    OtsuText = ChrW$(&H4E59)
 End Function

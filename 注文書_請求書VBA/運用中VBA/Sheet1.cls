@@ -208,6 +208,12 @@ Private Sub Worksheet_BeforeDoubleClick(ByVal target As Range, Cancel As Boolean
         Exit Sub
     End If
 
+    If mod_BasicInfoLaborInsurance.IsLaborInsuranceTarget(Me, target) Then
+        Cancel = True
+        mod_BasicInfoLaborInsurance.RequestLaborInsuranceSelection Me, target
+        Exit Sub
+    End If
+
     Dim vendorNameCell As Range
     Set vendorNameCell = mod_VendorMaster.ResolveVendorNameChangeCell(Me, target)
     If vendorNameCell Is Nothing Then
