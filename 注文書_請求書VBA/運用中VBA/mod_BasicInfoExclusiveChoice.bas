@@ -1,7 +1,7 @@
 Option Explicit
 
 ' 基本情報シート施工会社ブロックの排他2択セル(39/42行目)ダブルクリックで
-' frmNumericKeypad を排他2択モードで表示する共通モジュール。
+' frmSubconSelector を単一選択モードで表示する共通モジュール(適用/キャンセル付き)。
 '   行39: 労災保険 加入負担    → 甲/乙             → 受注者用 H30(甲)/J30(乙)
 '   行42: 建設リサイクル法該当  → 該当する/該当しない → 受注者用 M34(該当する)/R34(該当しない)
 ' 対象列は F9(施工会社数)に応じ F/I/L/O/R/U/X/AA/AD/AG(3列おき・最大10社)。
@@ -162,20 +162,36 @@ Public Sub ShowExclusiveChoice(ByVal wsInfo As Worksheet, ByVal targetCell As Ra
     Dim topInit As Boolean, bottomInit As Boolean
     ParseSelection CommonNzText(anchor.Value), topLabel, bottomLabel, topInit, bottomInit
 
-    Dim f As frmNumericKeypad
-    Set f = New frmNumericKeypad
-    f.ConfigureExclusiveChoiceMode formCaption, topLabel, bottomLabel, topInit, bottomInit
+    Dim items(0 To 1) As String
+    items(0) = topLabel
+    items(1) = bottomLabel
+
+    Dim initSel As Variant
+    If topInit Then
+        initSel = Array(topLabel)
+    ElseIf bottomInit Then
+        initSel = Array(bottomLabel)
+    Else
+        initSel = Empty
+    End If
+
+    Dim f As frmSubconSelector
+    Set f = New frmSubconSelector
+    f.ConfigureSingleSectionMode formCaption, items, False, "", initSel
     f.Show vbModal
 
-    Dim isConfirmed As Boolean, topResult As Boolean, bottomResult As Boolean
+    Dim isConfirmed As Boolean, selected As String
     isConfirmed = f.confirmed
-    topResult = f.choiceTop
-    bottomResult = f.choiceBottom
+    selected = f.resultBottom
 
     Unload f
     Set f = Nothing
 
     If Not isConfirmed Then Exit Sub
+
+    Dim topResult As Boolean, bottomResult As Boolean
+    topResult = (selected = topLabel)
+    bottomResult = (selected = bottomLabel)
 
     WriteExclusiveChoice wsInfo, anchor, topResult, bottomResult, topLabel, bottomLabel, topCell, bottomCell
 End Sub
@@ -209,9 +225,14 @@ End Sub
 
 Private Sub ApplyCheckGlyph(ByVal cell As Range, ByVal checked As Boolean)
     If cell Is Nothing Then Exit Sub
-    cell.Value = CheckGlyph(checked)
-    cell.HorizontalAlignment = xlCenter
-    cell.VerticalAlignment = xlCenter
+    Dim c As Range
+    Set c = cell
+    On Error Resume Next
+    If c.MergeCells Then Set c = c.MergeArea.Cells(1, 1)
+    On Error GoTo 0
+    c.Value = CheckGlyph(checked)
+    c.HorizontalAlignment = xlCenter
+    c.VerticalAlignment = xlCenter
 End Sub
 
 ' 会社列(値列)から業者インデックスを求め、対応する受注者用(略称)シートを解決する
@@ -251,7 +272,8 @@ End Function
 ' 基本情報セル内表示: 「(上字形) 上ラベル (全角空白) (下字形) 下ラベル」
 Private Function BuildCellText(ByVal topChecked As Boolean, ByVal bottomChecked As Boolean, _
                                ByVal topLabel As String, ByVal bottomLabel As String) As String
-    BuildCellText = CheckGlyph(topChecked) & " " & topLabel & ChrW$(&H3000) & _
+    BuildCellText = CheckGlyph(topChecked) & " " & topLabel & _
+                    ChrW$(&H3000) & ChrW$(&H3000) & ChrW$(&H3000) & _
                     CheckGlyph(bottomChecked) & " " & bottomLabel
 End Function
 

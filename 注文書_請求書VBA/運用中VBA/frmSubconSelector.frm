@@ -17,6 +17,7 @@ Private mSCChkHandlers As Collection
 Private mSCBtnHandlers As Collection
 Private mBuildingSC As Boolean
 Private mSCAllowMulti As Boolean
+Private mSCHasTop As Boolean
 Private mSCNoneKey As String
 Private mSCTopKeys As Collection
 Private mSCBottomKeys As Collection
@@ -268,19 +269,33 @@ Private Function SelectPromptText() As String
                        ChrW$(&H3044) & ChrW$(&H3002)
 End Function
 
-' ===== 2セクション選択モード (frmSubconSelector 再利用) =====
-' New 直後に本メソッドを呼ぶと、施工会社選択UIを撤去し、
-' 上段(有償/無償の排他)と下段(マスタ項目)の2セクション選択フォームへ組み替える。
-'   allowMultiBottom=False: 下段は単一選択(行40 支給材料)
-'   allowMultiBottom=True : 下段は複数選択可。ただし noneLabel(なし) は排他(行41 貸与品)
-' 上下ともに選択後、OK で確定する。結果は resultTop / resultBottom(複数は読点連結)。
+' ===== 選択モード (frmSubconSelector 再利用: 単一 / 2セクション) =====
+' New 直後にいずれかの Configure を呼ぶと施工会社選択UIを撤去し、選択フォームへ組み替える。
+'   ConfigureSingleSectionMode: 1リスト単一選択(行39/42: 甲/乙・該当する/該当しない)
+'   ConfigureTwoSectionMode   : 上段(有償/無償 排他)+下段(行40/41: 支給材料/貸与品)
+' 適用(OK)/キャンセルボタンで確定。枠高さは項目数に合わせ縮小(上限超でスクロール)。
+' 結果は resultTop(上段) / resultBottom(下段, 複数は読点連結)。
+Public Sub ConfigureSingleSectionMode(ByVal formCaption As String, ByVal items As Variant, _
+                                      ByVal allowMultiBottom As Boolean, ByVal noneLabel As String, _
+                                      ByVal initSelection As Variant)
+    SCBuild formCaption, False, "", "", items, allowMultiBottom, noneLabel, "", initSelection
+End Sub
+
 Public Sub ConfigureTwoSectionMode(ByVal formCaption As String, _
                                    ByVal topLabel1 As String, ByVal topLabel2 As String, _
                                    ByVal bottomItems As Variant, ByVal allowMultiBottom As Boolean, _
                                    ByVal noneLabel As String, ByVal topInit As String, ByVal bottomInit As Variant)
+    SCBuild formCaption, True, topLabel1, topLabel2, bottomItems, allowMultiBottom, noneLabel, topInit, bottomInit
+End Sub
+
+Private Sub SCBuild(ByVal formCaption As String, ByVal hasTop As Boolean, _
+                    ByVal topLabel1 As String, ByVal topLabel2 As String, _
+                    ByVal bottomItems As Variant, ByVal allowMultiBottom As Boolean, _
+                    ByVal noneLabel As String, ByVal topInit As String, ByVal bottomInit As Variant)
     mBuildingSC = True
     resultTop = ""
     resultBottom = ""
+    mSCHasTop = hasTop
     mSCAllowMulti = allowMultiBottom
     mSCNoneKey = ""
     Set mSCChkHandlers = New Collection
@@ -296,25 +311,26 @@ Public Sub ConfigureTwoSectionMode(ByVal formCaption As String, _
     Dim cw As Single
     cw = Me.Width - 44
 
-    ' --- 上段: 有償/無償 (排他) ---
-    SCAddCheckbox Me, "T1", topLabel1, 12, 8, cw, (topInit = topLabel1)
-    SCAddCheckbox Me, "T2", topLabel2, 12, 34, cw, (topInit = topLabel2)
-    mSCTopKeys.Add "T1"
-    mSCTopKeys.Add "T2"
+    Dim bottomTop As Single
+    bottomTop = 8
+    If hasTop Then
+        SCAddCheckbox Me, "T1", topLabel1, 12, 8, cw, (topInit = topLabel1)
+        SCAddCheckbox Me, "T2", topLabel2, 12, 34, cw, (topInit = topLabel2)
+        mSCTopKeys.Add "T1"
+        mSCTopKeys.Add "T2"
+        bottomTop = 64
+    End If
 
-    ' --- 下段: マスタ項目 (スクロール枠) ---
     Dim fr As MSForms.Frame
     Set fr = Me.Controls.Add("Forms.Frame.1", "fraBottom", True)
     fr.Left = 10
-    fr.Top = 64
+    fr.Top = bottomTop
     fr.Width = Me.Width - 26
-    fr.Height = 150
     fr.Caption = ""
     fr.Font.Name = FormFontNameText()
     fr.Font.Size = FORM_FONT_SIZE
 
-    Dim i As Long
-    Dim itemCount As Long
+    Dim i As Long, itemCount As Long
     itemCount = 0
     If IsArray(bottomItems) Then
         For i = LBound(bottomItems) To UBound(bottomItems)
@@ -333,18 +349,25 @@ Public Sub ConfigureTwoSectionMode(ByVal formCaption As String, _
         Next i
     End If
 
+    ' 枠高さは項目数に合わせて調整(上限を超えたらスクロール)
+    Dim contentH As Single
+    contentH = 6 + itemCount * 26 + 6
+    Dim frameH As Single
+    frameH = contentH
+    If frameH > 260 Then frameH = 260
+    If frameH < 40 Then frameH = 40
+    fr.Height = frameH
     On Error Resume Next
     fr.ScrollBars = fmScrollBarsVertical
-    fr.ScrollHeight = Application.Max(fr.Height, 12 + itemCount * 26)
+    fr.ScrollHeight = contentH
     On Error GoTo 0
 
-    ' --- OK / キャンセル ---
     Dim btnTop As Single
-    btnTop = 64 + 150 + 8
+    btnTop = bottomTop + frameH + 8
     SCAddButton "OK", OkCaptionText(), 12, btnTop, 120
     SCAddButton "CANCEL", CancelCaptionText(), 140, btnTop, 120
 
-    Me.Height = btnTop + 34 + 28
+    Me.Height = btnTop + 34 + 30
     mBuildingSC = False
 End Sub
 
@@ -462,7 +485,7 @@ Private Sub SCSetCheckedRaw(ByVal key As String, ByVal v As Boolean)
     On Error GoTo 0
 End Sub
 
-' clsKeypadBtn から呼ばれる(OK/キャンセル)
+' clsKeypadBtn から呼ばれる(適用/キャンセル)
 Public Sub HandleKeypadKey(ByVal keyCode As String)
     Select Case keyCode
         Case "OK": SCConfirm
@@ -474,11 +497,11 @@ End Sub
 
 Private Sub SCConfirm()
     Dim topSel As String
-    topSel = SCGetTopSelection()
+    If mSCHasTop Then topSel = SCGetTopSelection()
     Dim bottomSel As String
     bottomSel = SCGetBottomSelection()
 
-    If topSel = "" Or bottomSel = "" Then
+    If (mSCHasTop And topSel = "") Or bottomSel = "" Then
         MsgBox SCSelectPromptText(), vbExclamation
         Exit Sub
     End If
@@ -524,11 +547,9 @@ Private Function SCCaption(ByVal key As String) As String
     On Error GoTo 0
 End Function
 
-' "上段と下段をそれぞれ選択してください。"
+' "項目を選択してください。"
 Private Function SCSelectPromptText() As String
-    SCSelectPromptText = ChrW$(&H4E0A) & ChrW$(&H6BB5) & ChrW$(&H3068) & ChrW$(&H4E0B) & _
-                         ChrW$(&H6BB5) & ChrW$(&H3092) & ChrW$(&H305D) & ChrW$(&H308C) & _
-                         ChrW$(&H305E) & ChrW$(&H308C) & ChrW$(&H9078) & ChrW$(&H629E) & _
-                         ChrW$(&H3057) & ChrW$(&H3066) & ChrW$(&H304F) & ChrW$(&H3060) & _
-                         ChrW$(&H3055) & ChrW$(&H3044) & ChrW$(&H3002)
+    SCSelectPromptText = ChrW$(&H9805) & ChrW$(&H76EE) & ChrW$(&H3092) & ChrW$(&H9078) & _
+                         ChrW$(&H629E) & ChrW$(&H3057) & ChrW$(&H3066) & ChrW$(&H304F) & _
+                         ChrW$(&H3060) & ChrW$(&H3055) & ChrW$(&H3044) & ChrW$(&H3002)
 End Function

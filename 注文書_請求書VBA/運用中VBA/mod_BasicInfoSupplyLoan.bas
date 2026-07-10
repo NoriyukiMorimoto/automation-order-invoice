@@ -197,6 +197,10 @@ Private Sub WriteSelection(ByVal wsInfo As Worksheet, ByVal anchor As Range, _
 
     anchor.Value = combined
     anchor.HorizontalAlignment = xlLeft
+    ' 施工会社列セルは幅に収まるよう縮小表示(結合セルは Excel 仕様上無効のため無視)
+    On Error Resume Next
+    anchor.ShrinkToFit = True
+    On Error GoTo CleanExit
 
     Dim ws As Worksheet
     Set ws = ResolveAcceptanceSheetForColumn(wsInfo, anchor.Column)
