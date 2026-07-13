@@ -889,22 +889,23 @@ End Sub
 
 ' 集計ブロック(小計～合計)の金額表示形式。K/N列は I12/L12 の入力有無でゼロ表示を切替
 Private Sub ApplySummaryNumberFormats(ByVal wsBreakdown As Worksheet, ByVal subtotalRow As Long)
-    Dim summaryAddress As String
-    summaryAddress = subtotalRow & ":" & (subtotalRow + 4)
+    Dim r1 As Long, r2 As Long
+    r1 = subtotalRow
+    r2 = subtotalRow + 4
 
-    wsBreakdown.Range("H" & summaryAddress).NumberFormat = SUMMARY_ZERO_HIDE_FORMAT
-    wsBreakdown.Range("Q" & summaryAddress).NumberFormat = SUMMARY_ZERO_HIDE_FORMAT
+    wsBreakdown.Range("H" & r1 & ":H" & r2).NumberFormat = SUMMARY_ZERO_HIDE_FORMAT
+    wsBreakdown.Range("Q" & r1 & ":Q" & r2).NumberFormat = SUMMARY_ZERO_HIDE_FORMAT
 
     If BreakdownHeaderQtyCellHasValue(wsBreakdown.Range("I12")) Then
-        wsBreakdown.Range("K" & summaryAddress).NumberFormat = SUMMARY_NUMBER_FORMAT
+        wsBreakdown.Range("K" & r1 & ":K" & r2).NumberFormat = SUMMARY_NUMBER_FORMAT
     Else
-        wsBreakdown.Range("K" & summaryAddress).NumberFormat = SUMMARY_ZERO_HIDE_FORMAT
+        wsBreakdown.Range("K" & r1 & ":K" & r2).NumberFormat = SUMMARY_ZERO_HIDE_FORMAT
     End If
 
     If BreakdownHeaderQtyCellHasValue(wsBreakdown.Range("L12")) Then
-        wsBreakdown.Range("N" & summaryAddress).NumberFormat = SUMMARY_NUMBER_FORMAT
+        wsBreakdown.Range("N" & r1 & ":N" & r2).NumberFormat = SUMMARY_NUMBER_FORMAT
     Else
-        wsBreakdown.Range("N" & summaryAddress).NumberFormat = SUMMARY_ZERO_HIDE_FORMAT
+        wsBreakdown.Range("N" & r1 & ":N" & r2).NumberFormat = SUMMARY_ZERO_HIDE_FORMAT
     End If
 End Sub
 
@@ -917,6 +918,59 @@ Public Sub RefreshBreakdownSummaryNumberFormats(ByVal wsBreakdown As Worksheet)
 
     ApplySummaryNumberFormats wsBreakdown, subtotalRow
 End Sub
+
+' アクティブな内訳明細シートへ、罫線・A列幅・集計数値書式を手動で再適用する(検証/一括修正用)。
+' 生成済みの内訳明細シートを表示した状態で Alt+F8 から実行する。
+Public Sub ApplyBreakdownFormattingToActiveSheet()
+    Dim ws As Worksheet
+    On Error Resume Next
+    Set ws = ActiveSheet
+    On Error GoTo 0
+    If ws Is Nothing Then Exit Sub
+
+    Dim subtotalRow As Long
+    subtotalRow = FindSubtotalRow(ws)
+    If subtotalRow = 0 Then
+        MsgBox BreakdownSubtotalNotFoundText(), vbExclamation
+        Exit Sub
+    End If
+
+    Dim prevScreen As Boolean
+    prevScreen = Application.ScreenUpdating
+    Application.ScreenUpdating = False
+
+    On Error GoTo Restore
+    ApplySummaryBorders ws, subtotalRow
+    ApplySummaryNumberFormats ws, subtotalRow
+    ws.Columns(1).AutoFit
+
+Restore:
+    Application.ScreenUpdating = prevScreen
+    If Err.Number <> 0 Then
+        MsgBox "Err " & Err.Number & ": " & Err.Description, vbExclamation
+        Exit Sub
+    End If
+    MsgBox BreakdownFormattingDoneText() & vbCrLf & ws.Name & " / subtotalRow=" & subtotalRow, vbInformation
+End Sub
+
+' "小計行が見つかりません。内訳明細シートをアクティブにして実行してください。"
+Private Function BreakdownSubtotalNotFoundText() As String
+    BreakdownSubtotalNotFoundText = ChrW$(&H5C0F) & ChrW$(&H8A08) & ChrW$(&H884C) & ChrW$(&H304C) & _
+        ChrW$(&H898B) & ChrW$(&H3064) & ChrW$(&H304B) & ChrW$(&H308A) & ChrW$(&H307E) & ChrW$(&H305B) & _
+        ChrW$(&H3093) & ChrW$(&H3002) & ChrW$(&H5185) & ChrW$(&H8A33) & ChrW$(&H660E) & ChrW$(&H7D30) & _
+        ChrW$(&H30B7) & ChrW$(&H30FC) & ChrW$(&H30C8) & ChrW$(&H3092) & ChrW$(&H30A2) & ChrW$(&H30AF) & _
+        ChrW$(&H30C6) & ChrW$(&H30A3) & ChrW$(&H30D6) & ChrW$(&H306B) & ChrW$(&H3057) & ChrW$(&H3066) & _
+        ChrW$(&H5B9F) & ChrW$(&H884C) & ChrW$(&H3057) & ChrW$(&H3066) & ChrW$(&H304F) & ChrW$(&H3060) & _
+        ChrW$(&H3055) & ChrW$(&H3044) & ChrW$(&H3002)
+End Function
+
+' "罫線・列幅・書式を再適用しました。"
+Private Function BreakdownFormattingDoneText() As String
+    BreakdownFormattingDoneText = ChrW$(&H7F6B) & ChrW$(&H7DDA) & ChrW$(&H30FB) & ChrW$(&H5217) & _
+        ChrW$(&H5E45) & ChrW$(&H30FB) & ChrW$(&H66F8) & ChrW$(&H5F0F) & ChrW$(&H3092) & ChrW$(&H518D) & _
+        ChrW$(&H9069) & ChrW$(&H7528) & ChrW$(&H3057) & ChrW$(&H307E) & ChrW$(&H3057) & ChrW$(&H305F) & _
+        ChrW$(&H3002)
+End Function
 
 Private Function BreakdownHeaderQtyCellHasValue(ByVal targetCell As Range) As Boolean
     If targetCell Is Nothing Then Exit Function

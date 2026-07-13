@@ -701,3 +701,10 @@
 - 小計～合計の5行フォントは従来どおり BIZ UDゴシック。K/N列の小計以下ゼロ非表示（I12/L12 に値がある場合は表示）も従来どおり。
 - **A列(整理番号)を内容幅に AutoFit** するよう追加。
 
+## 【重要修正】集計数値書式の不正Range参照(1004)で書式・罫線・列幅が一切適用されない不具合
+
+- `ApplySummaryNumberFormats` が `Range("H" & subtotalRow & ":" & subtotalRow+4)` すなわち `Range("H60:64")` のように**列名が片側のみの無効アドレス**を生成しており、実行時エラー1004が発生していた。
+- この呼び出しは `ApplyBreakdownDetails`（`On Error GoTo ErrorHandler`）内の `BuildSummaryBlock` から行われるため、エラーが握りつぶされて以降が中断。結果、**集計フォント・罫線描画(ApplySummaryBorders)・A列AutoFit が一切実行されず**「何も変わらない」状態になっていた（罫線ロジック自体は正常）。
+- 参照を `Range("H" & r1 & ":H" & r2)` のように**列名を両側に付けた正しいアドレス**へ修正。H/Q/K/N すべて同様に修正。これで生成時に集計書式・罫線・列幅が正しく適用される。
+- 併せて手動再適用マクロ `ApplyBreakdownFormattingToActiveSheet` にエラー時の ScreenUpdating 復帰処理を追加。
+
