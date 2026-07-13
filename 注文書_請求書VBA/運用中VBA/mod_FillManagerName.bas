@@ -1,5 +1,8 @@
 Option Explicit
 
+' 受注者用シート転記で使う出張所長リスト行のセッションキャッシュ(パス->行Collection)
+Private mOfficeChiefRowsCache As Object
+
 ' ??????????10?(AH???)?????????AJ(????)???????
 Private Const LIST_BRANCH_COL As String = "AK"
 Private Const LIST_OFFICE_COL As String = "AL"
@@ -731,4 +734,165 @@ Private Function OfficeBranchHeaderText() As String
                  ChrW$(&H652F) & ChrW$(&H6240) & ChrW$(&H540D)
     End If
     OfficeBranchHeaderText = cached
+End Function
+
+' ============================================================
+' 受注者用シート転記用: 出張所長リストの拡張参照(mod_OrderTpl_Header から使用)
+'   支店(B6)・出張所(C6)で出張所長リスト(B列=支店/C列=出張所)を照合し、
+'   住所(H)・役職(E)・氏名(F)・基幹出張所(K)・出張所(C)を返す。
+'   参照ファイルは基本情報 B4 の年で決まる(既存のパス解決を流用)。
+' ============================================================
+Public Function GetOfficeChiefInfo(ByVal branchName As String, ByVal officeName As String, _
+                                   ByRef outAddress As String, ByRef outTitle As String, _
+                                   ByRef outName As String, ByRef outCoreOffice As String, _
+                                   ByRef outOffice As String) As Boolean
+    outAddress = ""
+    outTitle = ""
+    outName = ""
+    outCoreOffice = ""
+    outOffice = ""
+
+    Dim b As String, o As String
+    b = CommonNormalizeText(branchName)
+    o = CommonNormalizeText(officeName)
+    If b = "" Or o = "" Then Exit Function
+
+    Dim wsInfo As Worksheet
+    Set wsInfo = CommonGetBasicInfoWorksheet()
+    If wsInfo Is Nothing Then Exit Function
+
+    Dim yearText As String
+    yearText = CommonExtractYear4Digits(Trim$(CStr(wsInfo.Range("B4").value)))
+    If yearText = "" Then Exit Function
+
+    Dim sourceFilePath As String
+    sourceFilePath = ResolveManagerListFilePathSilent(yearText)
+    If sourceFilePath = "" Then Exit Function
+
+    Dim rows As Collection
+    Set rows = LoadOfficeChiefRows(sourceFilePath)
+    If rows Is Nothing Then Exit Function
+
+    Dim r As Variant
+    For Each r In rows
+        If StrComp(CommonNormalizeText(CStr(r(0))), b, vbTextCompare) = 0 _
+           And StrComp(CommonNormalizeText(CStr(r(1))), o, vbTextCompare) = 0 Then
+            outOffice = CStr(r(1))
+            outTitle = CStr(r(2))
+            outName = CStr(r(3))
+            outAddress = CStr(r(4))
+            outCoreOffice = CStr(r(5))
+            GetOfficeChiefInfo = True
+            Exit Function
+        End If
+    Next r
+End Function
+
+' MsgBox を出さずに出張所長リストのパスを解決する(生成/転記の非対話用)
+Private Function ResolveManagerListFilePathSilent(ByVal yearText As String) As String
+    Dim folderPath As String
+    folderPath = GetManagerListFolderPath()
+    If folderPath = "" Then Exit Function
+    If Right$(folderPath, 1) <> Chr$(92) Then folderPath = folderPath & Chr$(92)
+    If Dir(folderPath, vbDirectory) = "" Then Exit Function
+    ResolveManagerListFilePathSilent = FindManagerListFile(folderPath, yearText)
+End Function
+
+' 出張所長リストを 支店(F2)/出張所(F3)/役職(F5)/氏名(F6)/住所(F8)/基幹出張所(F11) で読込(セッションキャッシュ)
+Private Function LoadOfficeChiefRows(ByVal sourceFilePath As String) As Collection
+    If mOfficeChiefRowsCache Is Nothing Then Set mOfficeChiefRowsCache = CreateObject("Scripting.Dictionary")
+    If mOfficeChiefRowsCache.Exists(sourceFilePath) Then
+        Set LoadOfficeChiefRows = mOfficeChiefRowsCache.Item(sourceFilePath)
+        Exit Function
+    End If
+
+    Dim rows As Collection
+    Set rows = LoadOfficeChiefRowsFromAdo(sourceFilePath)
+    If rows Is Nothing Then Set rows = LoadOfficeChiefRowsFromWorkbook(sourceFilePath)
+    If Not rows Is Nothing Then Set mOfficeChiefRowsCache.Item(sourceFilePath) = rows
+    Set LoadOfficeChiefRows = rows
+End Function
+
+Private Function LoadOfficeChiefRowsFromAdo(ByVal sourceFilePath As String) As Collection
+    Dim cn As Object
+    Set cn = CommonOpenExcelAdoConnection(sourceFilePath)
+    If cn Is Nothing Then Exit Function
+
+    Dim rs As Object
+    On Error GoTo ErrorHandler
+
+    Dim sheetName As String
+    sheetName = GetFirstWorksheetTableName(cn)
+    If sheetName = "" Then GoTo Cleanup
+
+    Set rs = CreateObject("ADODB.Recordset")
+    rs.Open "SELECT [F2], [F3], [F5], [F6], [F8], [F11] FROM [" & sheetName & "]", cn, 0, 1, 1
+
+    Dim rows As Collection
+    Set rows = New Collection
+
+    If Not rs.EOF Then rs.MoveNext
+    Do Until rs.EOF
+        rows.Add Array(CommonNzText(rs.Fields(0).value), _
+                       CommonNzText(rs.Fields(1).value), _
+                       CommonNzText(rs.Fields(2).value), _
+                       CommonNzText(rs.Fields(3).value), _
+                       CommonNzText(rs.Fields(4).value), _
+                       CommonNzText(rs.Fields(5).value))
+        rs.MoveNext
+    Loop
+
+    Set LoadOfficeChiefRowsFromAdo = rows
+
+Cleanup:
+    CommonCloseAdoRecordset rs
+    CommonCloseAdoConnection cn
+    Exit Function
+
+ErrorHandler:
+    mod_DebugLog.Log "[FillMgr] LoadOfficeChiefRowsFromAdo: Err=" & Err.Number & " " & Err.Description
+    Set LoadOfficeChiefRowsFromAdo = Nothing
+    Resume Cleanup
+End Function
+
+Private Function LoadOfficeChiefRowsFromWorkbook(ByVal sourceFilePath As String) As Collection
+    Dim sourceBook As Workbook
+    Dim previousDisplayAlerts As Boolean
+    previousDisplayAlerts = Application.DisplayAlerts
+
+    On Error GoTo ErrorHandler
+    Application.DisplayAlerts = False
+
+    Set sourceBook = Application.Workbooks.Open(fileName:=sourceFilePath, _
+                                                UpdateLinks:=False, ReadOnly:=True, AddToMru:=False)
+    Dim ws As Worksheet
+    Set ws = sourceBook.Worksheets(1)
+
+    Dim rows As Collection
+    Set rows = New Collection
+
+    Dim lastRow As Long
+    lastRow = ws.Cells(ws.rows.Count, 2).End(xlUp).Row
+
+    Dim rr As Long
+    For rr = 2 To lastRow
+        rows.Add Array(CommonNzText(ws.Cells(rr, 2).value), _
+                       CommonNzText(ws.Cells(rr, 3).value), _
+                       CommonNzText(ws.Cells(rr, 5).value), _
+                       CommonNzText(ws.Cells(rr, 6).value), _
+                       CommonNzText(ws.Cells(rr, 8).value), _
+                       CommonNzText(ws.Cells(rr, 11).value))
+    Next rr
+
+    Set LoadOfficeChiefRowsFromWorkbook = rows
+
+Cleanup:
+    If Not sourceBook Is Nothing Then sourceBook.Close SaveChanges:=False
+    Application.DisplayAlerts = previousDisplayAlerts
+    Exit Function
+
+ErrorHandler:
+    mod_DebugLog.Log "[FillMgr] LoadOfficeChiefRowsFromWorkbook: Err=" & Err.Number & " " & Err.Description
+    Set LoadOfficeChiefRowsFromWorkbook = Nothing
+    Resume Cleanup
 End Function

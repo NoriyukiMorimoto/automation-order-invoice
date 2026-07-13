@@ -27,7 +27,7 @@
 | `mod_BasicInfoCellDropdown.bas` | 基本情報 C22/C23 のダブルクリックドロップダウン。 | `[CellDropdown]` |
 | `mod_PrefectureSelector.bas` | 基本情報 C13 の都道府県複数選択（`frmPrefectureSelector`）。 |  |
 | `mod_WorkbookOptimize.bas` | 保存前の余剰セル書式クリーンアップ。 | `[WorkbookOptimize]` |
-| `mod_FillManagerName.bas` | 出張所長名の自動入力／支店・出張所バリデーションの再構築。 | `[FillMgr]` |
+| `mod_FillManagerName.bas` | 出張所長名の自動入力／支店・出張所バリデーションの再構築。受注者用転記用に出張所長リスト拡張参照(住所/役職/氏名/基幹出張所)を提供(`GetOfficeChiefInfo`)。 | `[FillMgr]` |
 | `mod_VendorMaster.bas` | 業者マスタ参照・業者選択。単価展開・ブロック増減は下記2モジュールへ委譲（既存呼び出し互換のスタブを保持）。 | `[VendorMaster]` |
 | `mod_VendorBlockLayout.bas` | 基本情報の業者ブロック増減・レイアウト（`SyncVendorBlocksFromCount` 等、mod_VendorMaster から分割）。 | `[VendorMaster]` |
 | `mod_VendorUnitPrice.bas` | 工事単価シートへの業者別単価展開・装飾（`RefreshAllVendorUnitPricesForBasicInfo` 等、mod_VendorMaster から分割）。 | `[VendorMaster]` |
@@ -46,7 +46,7 @@
 | `mod_subcontractorselector.bas` | 外注業者選択（`frmSubconSelector`）関連の制御。 | |
 | `mod_OrderTpl_Shared.bas` | 注文書テンプレート取込の共通定数・業者マスタ照合(A/P/O列)・部店コード解決・取込元シート探索。 | `[OrderTpl]` |
 | `mod_OrderTpl_Generate.bas` | 施工会社確定時のテンプレート5シート挿入・削除・再作成(`GenerateVendorOrderSheets`/`RefreshAllVendorOrderDetails`)。 | `[OrderTpl]` |
-| `mod_OrderTpl_Header.bas` | 内訳明細ヘッダー部(部店コード・注文番号・工期・外注会社等)の転記。 | `[OrderTpl]` |
+| `mod_OrderTpl_Header.bas` | 内訳明細/受注者用ヘッダー部の転記。受注者用シート(S1/Q2/E9/A13/E20/E22/G24/G26/Q22-24/M10-12)へ基本情報・出張所長リストから転記(`ApplyContractorHeader`)。 | `[OrderTpl]` |
 | `mod_OrderTpl_Detail.bas` | 内訳明細明細部の転記エンジン(セクション構築・ソート・行挿入・書式)。 | `[OrderTpl]` |
 | `ModuleExport.bas` | VBA モジュールのエクスポート用。 | |
 | `mod_BasicInfoOrderNumberKeypad.bas` | 基本情報シート施工会社ブロック27行目(注文番号)セルのダブルクリックで数値入力補助(テンキー)フォームを起動し、値を書き戻す。 | `[OrderNoKeypad]` |
