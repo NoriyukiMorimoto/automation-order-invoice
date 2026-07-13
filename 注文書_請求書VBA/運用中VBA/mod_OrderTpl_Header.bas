@@ -7,6 +7,11 @@ Option Explicit
 
 ' 基本情報のヘッダー転記元セル(全社共通分)。ブロック列(16/27行目)は動的に組み立てる
 Private Const HEADER_SOURCE_COMMON_CELLS As String = "B6,C6,C2,C9,C10,C13,C15:C16,F6"
+Private Const HEADER_DATE_FONT_SIZE As Double = 14#
+' 受注者用シート転記で参照する施工会社ブロック行(基本情報)
+Private Const CONTRACTOR_CONTRACT_AMOUNT_ROW As Long = 33
+Private Const CONTRACTOR_CONSUMPTION_TAX_ROW As Long = 34
+Private Const CONTRACTOR_CONTRACT_TOTAL_ROW As Long = 35
 
 ' 指定ブロックの施工会社に対応するテンプレート5シートへヘッダーを転記する(ディスパッチャ)
 Public Sub ApplyVendorSheetHeaders(ByVal wsInfo As Worksheet, _
@@ -135,7 +140,6 @@ Private Sub ApplyVendorSheetTabColor(ByVal wsInfo As Worksheet, _
     On Error GoTo 0
 End Sub
 
-Private Const HEADER_DATE_FONT_SIZE As Double = 14#
 
 ' 内訳明細ヘッダー部へ基本情報シートの内容を転記する
 Public Sub ApplyBreakdownHeader(ByVal wsInfo As Worksheet, _
@@ -200,11 +204,6 @@ ErrorHandler:
 End Sub
 
 ' 受注者用シートへの転記(転記仕様が確定したらここへ実装する。実装後は自動でライブ反映される)
-' 受注者用シート転記で参照する施工会社ブロック行(基本情報)
-Private Const CONTRACTOR_CONTRACT_AMOUNT_ROW As Long = 33
-Private Const CONTRACTOR_CONSUMPTION_TAX_ROW As Long = 34
-Private Const CONTRACTOR_CONTRACT_TOTAL_ROW As Long = 35
-
 ' 受注者用シートへの転記(注文書テンプレート 受注者用シートの様式に合わせる)
 '   S1:注文番号(27) Q2:作成日C2(西暦) E9:業者コード(16) A13:会社名(11)
 '   E20:工事名C10 E22:都道府県C13 G24:工期自C15(西暦) G26:工期至C16(西暦) …中央
