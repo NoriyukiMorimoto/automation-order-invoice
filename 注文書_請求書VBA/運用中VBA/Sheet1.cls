@@ -1,3 +1,14 @@
+Attribute VB_Name = "Sheet1"
+Attribute VB_Base = "0{00020820-0000-0000-C000-000000000046}"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = False
+Attribute VB_PredeclaredId = True
+Attribute VB_Exposed = True
+Attribute VB_TemplateDerived = False
+Attribute VB_Customizable = True
+Attribute VB_Control = "btnUpdateBilling, 1, 0, MSForms, CommandButton"
+Attribute VB_Control = "btnClearBasicInfo, 2, 1, MSForms, CommandButton"
+Attribute VB_Control = "ComboBox1, 3, 2, MSForms, ComboBox"
 Option Explicit
 
 Private Sub Worksheet_Activate()
@@ -69,7 +80,7 @@ Private Sub Worksheet_Change(ByVal target As Range)
     needComboPrompt = False
 
     If Not Intersect(target, Me.Range("B4,B6")) Is Nothing Then
-        mod_DebugLog.Log "[Sheet1] B4/B6変拗 -> RefreshBranchOfficeValidation(False) 呼び捐し"
+        mod_DebugLog.Log "[Sheet1] B4/B6変更 -> RefreshBranchOfficeValidation(False) 呼び出し"
         needComboPrompt = mod_FillManagerName.RefreshBranchOfficeValidation(False)
         mod_DebugLog.Log "[Sheet1] RefreshBranchOfficeValidation 戻り値 needComboPrompt=" & needComboPrompt
     End If
@@ -82,14 +93,14 @@ Private Sub Worksheet_Change(ByVal target As Range)
         mod_VendorMaster.SyncVendorBlocksFromCount Me
         Set vendorNameRange = mod_VendorMaster.GetVendorNameRange(Me)
         mod_Construction_Order_Import.RefreshBasicInfoConstructionTotals
-        ' 会社摧減擯で対旱外になった喋文搗テンプレ拏トシ拏トを晨撩
+        ' 会社数減少で対象外になった注文書テンプレートシートを削除
         mod_OrderTpl_Generate.RemoveOrphanGeneratedSheets Me
     End If
 
     If Not Intersect(target, Me.Range("B6,C6")) Is Nothing Then
-        mod_DebugLog.Log "[Sheet1] B6/C6変拗 IsSuppressing=" & mod_FillManagerName.IsSuppressingC6Change()
+        mod_DebugLog.Log "[Sheet1] B6/C6変更 IsSuppressing=" & mod_FillManagerName.IsSuppressingC6Change()
         If Not mod_FillManagerName.IsSuppressingC6Change() Then
-            mod_DebugLog.Log "[Sheet1] SilentClearBasicInfo 呼び捐し"
+            mod_DebugLog.Log "[Sheet1] SilentClearBasicInfo 呼び出し"
             mod_BasicInfoUpdate.SilentClearBasicInfo Me
             mod_DebugLog.Log "[Sheet1] SilentClearBasicInfo 完了"
         End If
@@ -119,7 +130,7 @@ Private Sub Worksheet_Change(ByVal target As Range)
 
     If Not Intersect(target, Me.Range("C24")) Is Nothing Then
         mod_MaterialPriceImport.HandleImportedLineNamesCellChange Me, target
-        If Len(Trim$(CStr(Me.Range("C24").MergeArea.Cells(1, 1).value))) > 0 Then
+        If Len(Trim$(CStr(Me.Range("C24").mergeArea.Cells(1, 1).value))) > 0 Then
             mod_MaterialPriceImport.FormatImportedLineNamesCell Me
         End If
         If Not mod_MaterialPriceImport.IsImportingUnitPriceData() Then
@@ -147,7 +158,7 @@ Private Sub Worksheet_Change(ByVal target As Range)
         mod_VendorMaster.HideVendorComboBox Me
         mod_Construction_Order_Import.RefreshBasicInfoConstructionTotals _
             mod_VendorMaster.GetVendorIndexFromValueColumnPublic(changedVendorCell.Column)
-        ' 施扎会社確定に伴う喋文搗テンプレ拏トシ拏トの晧擣/晨撩
+        ' 施工会社確定に伴う注文書テンプレートシートの生成/削除
         mod_OrderTpl_Generate.HandleVendorNameCellChange Me, changedVendorCell
     End If
 
@@ -171,9 +182,9 @@ Private Sub Worksheet_Change(ByVal target As Range)
 
     mod_DebugLog.Log "[Sheet1] needComboPrompt=" & needComboPrompt
     If needComboPrompt Then
-        mod_DebugLog.Log "[Sheet1] PromptOfficeComboBox 呼び捐し前 EnableEvents=" & Application.EnableEvents
+        mod_DebugLog.Log "[Sheet1] PromptOfficeComboBox 呼び出し前 EnableEvents=" & Application.EnableEvents
         mod_FillManagerName.PromptOfficeComboBox
-        mod_DebugLog.Log "[Sheet1] PromptOfficeComboBox 呼び捐し後 EnableEvents=" & Application.EnableEvents
+        mod_DebugLog.Log "[Sheet1] PromptOfficeComboBox 呼び出し後 EnableEvents=" & Application.EnableEvents
     End If
 
 ExitHandler:
@@ -205,6 +216,12 @@ Private Sub Worksheet_BeforeDoubleClick(ByVal target As Range, Cancel As Boolean
     If mod_BasicInfoOrderNumberKeypad.IsOrderNumberKeypadTarget(Me, target) Then
         Cancel = True
         mod_BasicInfoOrderNumberKeypad.RequestOrderNumberKeypad Me, target
+        Exit Sub
+    End If
+
+    If mod_BasicInfoExclusiveChoice.IsPartialPaymentTarget(Me, target) Then
+        Cancel = True
+        mod_BasicInfoExclusiveChoice.RequestPartialPaymentSelection Me, target
         Exit Sub
     End If
 
@@ -263,7 +280,7 @@ Private Function IsUnitPriceImportDoubleClickTarget(ByVal target As Range) As Bo
 
     Dim targetArea As Range
     On Error Resume Next
-    Set targetArea = target.MergeArea
+    Set targetArea = target.mergeArea
     On Error GoTo 0
     If targetArea Is Nothing Then Set targetArea = target
 
@@ -279,11 +296,11 @@ Private Sub Worksheet_SelectionChange(ByVal target As Range)
 
     If Not mod_FillManagerName.IsPromptingOfficeComboBox() Then
         If Intersect(target, Me.Range("C6")) Is Nothing Then
-            mod_DebugLog.Log "[Sheet1] SelectionChange: C6?? -> HideOfficeComboBox"
+            mod_DebugLog.Log "[Sheet1] SelectionChange: C6以外 -> HideOfficeComboBox"
             mod_FillManagerName.HideOfficeComboBox Me
         End If
     Else
-        mod_DebugLog.Log "[Sheet1] SelectionChange: IsPrompting=True -> Hide????"
+        mod_DebugLog.Log "[Sheet1] SelectionChange: IsPrompting=True -> Hide抑制"
     End If
 
     If mod_BasicInfoCellDropdown.IsCellDropdownSessionOpen(Me) Then
@@ -314,8 +331,8 @@ Private Sub ComboBox1_Click()
     mod_FillManagerName.CommitOfficeComboBoxSelection
 End Sub
 
-Private Sub ComboBox1_KeyDown(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift As Integer)
-    If KeyCode = vbKeyReturn Then
+Private Sub ComboBox1_KeyDown(ByVal keyCode As MSForms.ReturnInteger, ByVal Shift As Integer)
+    If keyCode = vbKeyReturn Then
         mod_FillManagerName.CommitOfficeComboBoxSelection
     End If
 End Sub
@@ -333,8 +350,8 @@ Private Sub ComboBoxVendor_Click()
     mod_VendorMaster.CommitVendorComboBoxSelection Me
 End Sub
 
-Private Sub ComboBoxVendor_KeyDown(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift As Integer)
-    If KeyCode = vbKeyReturn Then
+Private Sub ComboBoxVendor_KeyDown(ByVal keyCode As MSForms.ReturnInteger, ByVal Shift As Integer)
+    If keyCode = vbKeyReturn Then
         mod_VendorMaster.CommitVendorComboBoxSelection Me
     End If
 End Sub
@@ -347,8 +364,8 @@ Private Sub ComboBoxCellDropdown_Click()
     mod_BasicInfoCellDropdown.ScheduleDeferredCommitCellDropdownSelection
 End Sub
 
-Private Sub ComboBoxCellDropdown_KeyDown(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift As Integer)
-    If KeyCode = vbKeyReturn Then
+Private Sub ComboBoxCellDropdown_KeyDown(ByVal keyCode As MSForms.ReturnInteger, ByVal Shift As Integer)
+    If keyCode = vbKeyReturn Then
         mod_BasicInfoCellDropdown.ScheduleDeferredCommitCellDropdownSelection
     End If
 End Sub

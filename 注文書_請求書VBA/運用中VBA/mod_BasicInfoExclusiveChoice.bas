@@ -1,17 +1,20 @@
+Attribute VB_Name = "mod_BasicInfoExclusiveChoice"
 Option Explicit
 
-' 基本情報シート施工会社ブロックの排他2択セル(39/42行目)ダブルクリックで
+' 基本情報シート施工会社ブロックの排他2択セル(38/39/42行目)ダブルクリックで
 ' frmSubconSelector を単一選択モードで表示する共通モジュール(適用/キャンセル付き)。
+'   行38: 部分払い費用負担    → 甲/乙             → 受注者用 C30(結合セルC30:E33に「甲・乙 負担」の字形をまとめて表示)
 '   行39: 労災保険 加入負担    → 甲/乙             → 受注者用 H30(甲)/J30(乙)
 '   行42: 建設リサイクル法該当  → 該当する/該当しない → 受注者用 M34(該当する)/R34(該当しない)
 ' 対象列は F9(施工会社数)に応じ F/I/L/O/R/U/X/AA/AD/AG(3列おき・最大10社)。
 ' モーダルをイベント内で表示するとハングするため Application.OnTime で遅延起動する。
-' 選択結果を基本情報セルへ横並びで表示し、対応する受注者用シートの2セルへ
-' 排他(選択=ONの字形 / 非選択=OFFの字形)で中央揃え表示する。
+' 選択結果を基本情報セルへ横並びで表示し、対応する受注者用シートへ
+' 排他(選択=ONの字形 / 非選択=OFFの字形)で表示する(行38は結合1セルへまとめて表示、行39/42は2セルへ個別表示)。
 ' 改修履歴: CHANGELOG.md 参照
 
 Private Const ROSAI_ROW As Long = 39
 Private Const RECYCLE_ROW As Long = 42
+Private Const PARTIAL_PAYMENT_ROW As Long = 38   ' 追加: 部分払い費用負担
 
 Private mScheduled As Boolean
 Private mPendingSheetName As String
@@ -21,6 +24,17 @@ Private mPendingTopLabel As String
 Private mPendingBottomLabel As String
 Private mPendingTopCell As String
 Private mPendingBottomCell As String
+Private mPendingCombinedSuffix As String   ' 追加: 空なら従来どおり2セル表示、値ありなら結合1セル表示
+
+' --- 行38: 部分払いに要する費用の負担 ---------------------------------
+Public Function IsPartialPaymentTarget(ByVal wsInfo As Worksheet, ByVal target As Range) As Boolean
+    IsPartialPaymentTarget = IsRowVendorTarget(wsInfo, target, PARTIAL_PAYMENT_ROW)
+End Function
+
+Public Sub RequestPartialPaymentSelection(ByVal wsInfo As Worksheet, ByVal target As Range)
+    ScheduleChoice wsInfo, target, PartialPaymentCaptionText(), KoText(), OtsuText(), _
+                   "C30", "", PartialPaymentBurdenSuffixText()
+End Sub
 
 ' --- 行39: 労災保険 加入負担 -----------------------------------------
 Public Function IsLaborInsuranceTarget(ByVal wsInfo As Worksheet, ByVal target As Range) As Boolean
@@ -47,13 +61,13 @@ Private Function IsRowVendorTarget(ByVal wsInfo As Worksheet, ByVal target As Ra
 
     Dim targetArea As Range
     On Error Resume Next
-    Set targetArea = target.MergeArea
+    Set targetArea = target.mergeArea
     On Error GoTo 0
     If targetArea Is Nothing Then Set targetArea = target
 
     Dim topLeft As Range
     Set topLeft = targetArea.Cells(1, 1)
-    If topLeft.Row <> rowNo Then Exit Function
+    If topLeft.row <> rowNo Then Exit Function
 
     Dim vendorCount As Long
     vendorCount = mod_Construction_BasicTotals.GetBasicInfoVendorBlockCount(wsInfo)
@@ -70,14 +84,15 @@ End Function
 ' --- OnTime 遅延起動 -------------------------------------------------
 Private Sub ScheduleChoice(ByVal wsInfo As Worksheet, ByVal target As Range, _
                            ByVal formCaption As String, ByVal topLabel As String, ByVal bottomLabel As String, _
-                           ByVal topCell As String, ByVal bottomCell As String)
+                           ByVal topCell As String, ByVal bottomCell As String, _
+                           Optional ByVal combinedSuffix As String = "")
     If wsInfo Is Nothing Then Exit Sub
     If target Is Nothing Then Exit Sub
     If mScheduled Then Exit Sub
 
     Dim targetArea As Range
     On Error Resume Next
-    Set targetArea = target.MergeArea
+    Set targetArea = target.mergeArea
     On Error GoTo 0
     If targetArea Is Nothing Then Set targetArea = target
 
@@ -88,6 +103,7 @@ Private Sub ScheduleChoice(ByVal wsInfo As Worksheet, ByVal target As Range, _
     mPendingBottomLabel = bottomLabel
     mPendingTopCell = topCell
     mPendingBottomCell = bottomCell
+    mPendingCombinedSuffix = combinedSuffix
     mScheduled = True
 
     mod_DebugLog.Log "[ExclChoice] scheduled cell=" & mPendingCellAddress
@@ -122,7 +138,7 @@ Private Sub ShowForPendingCell()
 
     Dim wsInfo As Worksheet
     On Error Resume Next
-    Set wsInfo = ThisWorkbook.Worksheets(mPendingSheetName)
+    Set wsInfo = ThisWorkbook.worksheets(mPendingSheetName)
     On Error GoTo 0
     If wsInfo Is Nothing Then Exit Sub
 
@@ -132,35 +148,37 @@ Private Sub ShowForPendingCell()
     On Error GoTo 0
 
     Dim formCaption As String, topLabel As String, bottomLabel As String
-    Dim topCell As String, bottomCell As String
+    Dim topCell As String, bottomCell As String, combinedSuffix As String
     formCaption = mPendingCaption
     topLabel = mPendingTopLabel
     bottomLabel = mPendingBottomLabel
     topCell = mPendingTopCell
     bottomCell = mPendingBottomCell
+    combinedSuffix = mPendingCombinedSuffix
 
     mPendingSheetName = ""
     mPendingCellAddress = ""
 
     If targetCell Is Nothing Then Exit Sub
 
-    ShowExclusiveChoice wsInfo, targetCell, formCaption, topLabel, bottomLabel, topCell, bottomCell
+    ShowExclusiveChoice wsInfo, targetCell, formCaption, topLabel, bottomLabel, topCell, bottomCell, combinedSuffix
 End Sub
 
 Public Sub ShowExclusiveChoice(ByVal wsInfo As Worksheet, ByVal targetCell As Range, _
                                ByVal formCaption As String, ByVal topLabel As String, ByVal bottomLabel As String, _
-                               ByVal topCell As String, ByVal bottomCell As String)
+                               ByVal topCell As String, ByVal bottomCell As String, _
+                               Optional ByVal combinedSuffix As String = "")
     If wsInfo Is Nothing Then Exit Sub
     If targetCell Is Nothing Then Exit Sub
 
     Dim anchor As Range
     Set anchor = targetCell
     On Error Resume Next
-    If anchor.MergeCells Then Set anchor = anchor.MergeArea.Cells(1, 1)
+    If anchor.MergeCells Then Set anchor = anchor.mergeArea.Cells(1, 1)
     On Error GoTo 0
 
     Dim topInit As Boolean, bottomInit As Boolean
-    ParseSelection CommonNzText(anchor.Value), topLabel, bottomLabel, topInit, bottomInit
+    ParseSelection CommonNzText(anchor.value), topLabel, bottomLabel, topInit, bottomInit
 
     Dim items(0 To 1) As String
     items(0) = topLabel
@@ -193,27 +211,32 @@ Public Sub ShowExclusiveChoice(ByVal wsInfo As Worksheet, ByVal targetCell As Ra
     topResult = (selected = topLabel)
     bottomResult = (selected = bottomLabel)
 
-    WriteExclusiveChoice wsInfo, anchor, topResult, bottomResult, topLabel, bottomLabel, topCell, bottomCell
+    WriteExclusiveChoice wsInfo, anchor, topResult, bottomResult, topLabel, bottomLabel, topCell, bottomCell, combinedSuffix
 End Sub
 
 Private Sub WriteExclusiveChoice(ByVal wsInfo As Worksheet, ByVal anchor As Range, _
                                  ByVal topChecked As Boolean, ByVal bottomChecked As Boolean, _
                                  ByVal topLabel As String, ByVal bottomLabel As String, _
-                                 ByVal topCell As String, ByVal bottomCell As String)
+                                 ByVal topCell As String, ByVal bottomCell As String, _
+                                 Optional ByVal combinedSuffix As String = "")
     Dim prevEvents As Boolean
     prevEvents = Application.EnableEvents
 
     On Error GoTo CleanExit
     Application.EnableEvents = False
 
-    anchor.Value = BuildCellText(topChecked, bottomChecked, topLabel, bottomLabel)
+    anchor.value = BuildCellText(topChecked, bottomChecked, topLabel, bottomLabel)
     anchor.HorizontalAlignment = xlCenter
 
     Dim ws As Worksheet
     Set ws = ResolveAcceptanceSheetForColumn(wsInfo, anchor.Column)
     If Not ws Is Nothing Then
-        ApplyCheckGlyph ws.Range(topCell), topChecked
-        ApplyCheckGlyph ws.Range(bottomCell), bottomChecked
+        If Len(combinedSuffix) > 0 Then
+            ApplyCombinedCheckText ws.Range(topCell), topChecked, bottomChecked, topLabel, bottomLabel, combinedSuffix
+        Else
+            ApplyCheckGlyph ws.Range(topCell), topChecked
+            ApplyCheckGlyph ws.Range(bottomCell), bottomChecked
+        End If
     End If
 
     mod_DebugLog.Log "[ExclChoice] applied cell=" & anchor.Address(False, False) & _
@@ -228,9 +251,25 @@ Private Sub ApplyCheckGlyph(ByVal cell As Range, ByVal checked As Boolean)
     Dim c As Range
     Set c = cell
     On Error Resume Next
-    If c.MergeCells Then Set c = c.MergeArea.Cells(1, 1)
+    If c.MergeCells Then Set c = c.mergeArea.Cells(1, 1)
     On Error GoTo 0
-    c.Value = CheckGlyph(checked)
+    c.value = CheckGlyph(checked)
+    c.HorizontalAlignment = xlCenter
+    c.VerticalAlignment = xlCenter
+End Sub
+
+' 結合セルへ「(上字形)甲・(下字形)乙 (接尾語)」の形式でまとめて表示する(部分払い費用負担など)
+' 例: 甲選択時は甲がON字形・乙がOFF字形 / 乙選択時は甲がOFF字形・乙がON字形(字形はCheckGlyphのChrW参照)
+Private Sub ApplyCombinedCheckText(ByVal cell As Range, ByVal topChecked As Boolean, ByVal bottomChecked As Boolean, _
+                                   ByVal topLabel As String, ByVal bottomLabel As String, ByVal suffixText As String)
+    If cell Is Nothing Then Exit Sub
+    Dim c As Range
+    Set c = cell
+    On Error Resume Next
+    If c.MergeCells Then Set c = c.mergeArea.Cells(1, 1)
+    On Error GoTo 0
+    c.value = CheckGlyph(topChecked) & topLabel & ChrW$(&H30FB) & _
+              CheckGlyph(bottomChecked) & bottomLabel & " " & suffixText
     c.HorizontalAlignment = xlCenter
     c.VerticalAlignment = xlCenter
 End Sub
@@ -246,7 +285,7 @@ Private Function ResolveAcceptanceSheetForColumn(ByVal wsInfo As Worksheet, ByVa
     If companyName = "" Then Exit Function
 
     Dim branchName As String
-    branchName = CommonNormalizeText(CommonNzText(wsInfo.Range(BASIC_INFO_BRANCH_CELL).Value))
+    branchName = CommonNormalizeText(CommonNzText(wsInfo.Range(BASIC_INFO_BRANCH_CELL).value))
 
     Dim vendorName As String, aliasText As String, workText As String
     If Not mod_OrderTpl_Shared.OrderTplResolveVendorMasterInfo(branchName, companyName, vendorName, aliasText, workText) Then Exit Function
@@ -257,7 +296,7 @@ Private Function ResolveAcceptanceSheetForColumn(ByVal wsInfo As Worksheet, ByVa
                     mod_OrderTpl_Shared.OrderTplBaseNameContractorText(), aliasText)
     If Not mod_OrderTpl_Shared.OrderTplSheetExists(sheetName) Then Exit Function
 
-    Set ResolveAcceptanceSheetForColumn = ThisWorkbook.Worksheets(sheetName)
+    Set ResolveAcceptanceSheetForColumn = ThisWorkbook.worksheets(sheetName)
 End Function
 
 ' チェック字形: ON=U+2611 / OFF=U+2610
@@ -300,6 +339,18 @@ Private Function RecycleLawCaptionText() As String
                             ChrW$(&H8C61) & ChrW$(&H5EFA) & ChrW$(&H8A2D) & ChrW$(&H5DE5) & ChrW$(&H4E8B) & _
                             ChrW$(&H306B) & ChrW$(&H8A72) & ChrW$(&H5F53) & ChrW$(&H306E) & ChrW$(&H6709) & _
                             ChrW$(&H7121) & ChrW$(&H9078) & ChrW$(&H629E)
+End Function
+
+' "部分払い費用負担選択"
+Private Function PartialPaymentCaptionText() As String
+    PartialPaymentCaptionText = ChrW$(&H90E8) & ChrW$(&H5206) & ChrW$(&H6255) & ChrW$(&H3044) & _
+                                ChrW$(&H8CBB) & ChrW$(&H7528) & ChrW$(&H8CA0) & ChrW$(&H62C5) & _
+                                ChrW$(&H9078) & ChrW$(&H629E)
+End Function
+
+' "負担"
+Private Function PartialPaymentBurdenSuffixText() As String
+    PartialPaymentBurdenSuffixText = ChrW$(&H8CA0) & ChrW$(&H62C5)
 End Function
 
 ' "甲"
