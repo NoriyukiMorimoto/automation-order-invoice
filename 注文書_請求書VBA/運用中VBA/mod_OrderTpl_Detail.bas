@@ -323,13 +323,19 @@ End Sub
 ' 罫線用空白行の下罫線=中線(A:P)。縦罫線は挿入時に上方セルから継承済み
 Private Sub ApplySummaryBorders(ByVal wsBreakdown As Worksheet, _
                                 ByVal subtotalRow As Long)
-    ' 明細部(11行目～小計行の直前)の横罫線をすべて細線で引き直す(転記の最後に実行)
-    ' 明細部(11行目～小計行の直前)の罫線を入力行数に合わせて引き直す。
-    ' 行の挿入/削除で複写・欠落した罫線をいったんリセットし、
-    ' 外枠(上下左右)＋各行の横罫線(細)＋列区切りの縦罫線(D/G/J/M/P の右)を細線で再描画する。
+    ' 明細部(11行目～小計行の直前)の罫線を注文書テンプレートの様式どおりに引き直す。
+    ' 行の挿入/削除で崩れた罫線をいったんリセットし、
+    '   横罫線=細線 / 明細部の上端=二重線
+    '   縦罫線(中線): 外枠左(A)・外枠右(Q)・金額グループ境界(F/I/L/O の左)
+    '   縦罫線(細線): その他の列境界(E/G/H/J/K/M/N/P/Q の左)
+    ' で再描画する(テンプレート 内訳明細シートと同一構成)。
+    Dim detailFirst As Long, detailLast As Long
+    detailFirst = ORDER_TPL_DETAIL_START_ROW
+    detailLast = subtotalRow - 1
+
     Dim detailRange As Range
-    Set detailRange = wsBreakdown.Range(wsBreakdown.Cells(ORDER_TPL_DETAIL_START_ROW, 1), _
-                                        wsBreakdown.Cells(subtotalRow - 1, 17))
+    Set detailRange = wsBreakdown.Range(wsBreakdown.Cells(detailFirst, 1), _
+                                        wsBreakdown.Cells(detailLast, 17))
 
     detailRange.Borders(xlEdgeLeft).LineStyle = xlNone
     detailRange.Borders(xlEdgeRight).LineStyle = xlNone
@@ -338,26 +344,37 @@ Private Sub ApplySummaryBorders(ByVal wsBreakdown As Worksheet, _
     detailRange.Borders(xlInsideHorizontal).LineStyle = xlNone
     detailRange.Borders(xlInsideVertical).LineStyle = xlNone
 
-    detailRange.Borders(xlEdgeLeft).LineStyle = xlContinuous
-    detailRange.Borders(xlEdgeLeft).Weight = xlThin
-    detailRange.Borders(xlEdgeRight).LineStyle = xlContinuous
-    detailRange.Borders(xlEdgeRight).Weight = xlThin
-    detailRange.Borders(xlEdgeTop).LineStyle = xlContinuous
-    detailRange.Borders(xlEdgeTop).Weight = xlThin
-    detailRange.Borders(xlEdgeBottom).LineStyle = xlContinuous
-    detailRange.Borders(xlEdgeBottom).Weight = xlThin
+    ' 横罫線(細) + 上端(二重) + 下端(細)
     detailRange.Borders(xlInsideHorizontal).LineStyle = xlContinuous
     detailRange.Borders(xlInsideHorizontal).Weight = xlThin
+    detailRange.Borders(xlEdgeTop).LineStyle = xlDouble
+    detailRange.Borders(xlEdgeBottom).LineStyle = xlContinuous
+    detailRange.Borders(xlEdgeBottom).Weight = xlThin
 
-    ' 列区切りの縦罫線(D/G/J/M/P の右)
-    Dim detailVCol As Variant
-    For Each detailVCol In Array(4, 7, 10, 13, 16)
-        With wsBreakdown.Range(wsBreakdown.Cells(ORDER_TPL_DETAIL_START_ROW, CLng(detailVCol)), _
-                               wsBreakdown.Cells(subtotalRow - 1, CLng(detailVCol))).Borders(xlEdgeRight)
+    ' 縦罫線(中線): 外枠左(A) と 金額グループ境界(F/I/L/O の左)
+    Dim mediumCol As Variant
+    For Each mediumCol In Array(1, 6, 9, 12, 15)
+        With wsBreakdown.Range(wsBreakdown.Cells(detailFirst, CLng(mediumCol)), _
+                               wsBreakdown.Cells(detailLast, CLng(mediumCol))).Borders(xlEdgeLeft)
+            .LineStyle = xlContinuous
+            .Weight = xlMedium
+        End With
+    Next mediumCol
+    With wsBreakdown.Range(wsBreakdown.Cells(detailFirst, 17), _
+                           wsBreakdown.Cells(detailLast, 17)).Borders(xlEdgeRight)
+        .LineStyle = xlContinuous
+        .Weight = xlMedium
+    End With
+
+    ' 縦罫線(細線): その他の列境界(E/G/H/J/K/M/N/P/Q の左)
+    Dim thinCol As Variant
+    For Each thinCol In Array(5, 7, 8, 10, 11, 13, 14, 16, 17)
+        With wsBreakdown.Range(wsBreakdown.Cells(detailFirst, CLng(thinCol)), _
+                               wsBreakdown.Cells(detailLast, CLng(thinCol))).Borders(xlEdgeLeft)
             .LineStyle = xlContinuous
             .Weight = xlThin
         End With
-    Next detailVCol
+    Next thinCol
 
     Dim blockRange As Range
     Set blockRange = wsBreakdown.Range(wsBreakdown.Cells(subtotalRow, 1), _
