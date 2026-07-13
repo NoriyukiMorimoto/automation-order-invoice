@@ -168,7 +168,7 @@ Public Sub ShowSelection(ByVal wsInfo As Worksheet, ByVal targetCell As Range, _
 
     Dim f As frmSubconSelector
     Set f = New frmSubconSelector
-    f.ConfigureTwoSectionMode formCaption, PaidText(), FreeText(), items, allowMulti, NoneText(), topInit, bottomInit
+    f.ConfigureTwoSectionMode formCaption, PaidText(), FreeText(), items, allowMulti, NoneText(), topInit, bottomInit, NoneText()
     f.Show vbModal
 
     Dim isConfirmed As Boolean, topSel As String, bottomSel As String
@@ -187,7 +187,11 @@ End Sub
 Private Sub WriteSelection(ByVal wsInfo As Worksheet, ByVal anchor As Range, _
                            ByVal topSel As String, ByVal bottomSel As String, ByVal acceptanceCell As String)
     Dim combined As String
-    combined = ChrW$(&H2611) & topSel & ChrW$(&H3000) & bottomSel
+    If StrComp(topSel, NoneText(), vbTextCompare) = 0 Then
+        combined = NoneText()
+    Else
+        combined = ChrW$(&H2611) & topSel & ChrW$(&H3000) & bottomSel
+    End If
 
     Dim prevEvents As Boolean
     prevEvents = Application.EnableEvents
@@ -199,7 +203,10 @@ Private Sub WriteSelection(ByVal wsInfo As Worksheet, ByVal anchor As Range, _
     anchor.HorizontalAlignment = xlLeft
     ' 施工会社列セルは幅に収まるよう縮小表示(結合セルは Excel 仕様上無効のため無視)
     On Error Resume Next
-    anchor.ShrinkToFit = True
+    anchor.ShrinkToFit = False
+    anchor.WrapText = True
+    anchor.EntireColumn.AutoFit
+    anchor.EntireRow.AutoFit
     On Error GoTo CleanExit
 
     Dim ws As Worksheet
@@ -384,3 +391,31 @@ Private Function MasterEmptyText() As String
                       ChrW$(&H307E) & ChrW$(&H305B) & ChrW$(&H3093) & ChrW$(&H3067) & _
                       ChrW$(&H3057) & ChrW$(&H305F) & ChrW$(&H3002)
 End Function
+
+' 施工会社名の変更/受注者用シート再生成時に、基本情報 F40/F41 の現在値から
+' 受注者用シート F32/F33 へ再転記する(ApplyContractorHeader から呼ぶ)。
+Public Sub ReapplySupplyLoan(ByVal wsInfo As Worksheet, ByVal vendorIndex As Long)
+    If wsInfo Is Nothing Then Exit Sub
+
+    Dim vc As Long
+    vc = mod_Construction_BasicTotals.BasicInfoVendorColumn(vendorIndex)
+
+    Dim ws As Worksheet
+    Set ws = ResolveAcceptanceSheetForColumn(wsInfo, vc)
+    If ws Is Nothing Then Exit Sub
+
+    ReapplyStringCell ws, wsInfo.Cells(SUPPLY_ROW, vc), "F32"
+    ReapplyStringCell ws, wsInfo.Cells(LOAN_ROW, vc), "F33"
+End Sub
+
+Private Sub ReapplyStringCell(ByVal ws As Worksheet, ByVal srcCell As Range, ByVal targetCell As String)
+    Dim cur As String
+    cur = CommonNzText(srcCell.mergeArea.Cells(1, 1).value)
+    Dim c As Range
+    Set c = ws.Range(targetCell)
+    On Error Resume Next
+    If c.MergeCells Then Set c = c.mergeArea.Cells(1, 1)
+    On Error GoTo 0
+    c.value = cur
+    c.HorizontalAlignment = xlLeft
+End Sub

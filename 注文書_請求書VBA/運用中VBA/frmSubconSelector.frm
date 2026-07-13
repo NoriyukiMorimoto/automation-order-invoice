@@ -19,6 +19,7 @@ Private mBuildingSC As Boolean
 Private mSCAllowMulti As Boolean
 Private mSCHasTop As Boolean
 Private mSCNoneKey As String
+Private mSCTopNoneKey As String
 Private mSCTopKeys As Collection
 Private mSCBottomKeys As Collection
 Private mSCCtlByKey As Object
@@ -284,14 +285,16 @@ End Sub
 Public Sub ConfigureTwoSectionMode(ByVal formCaption As String, _
                                    ByVal topLabel1 As String, ByVal topLabel2 As String, _
                                    ByVal bottomItems As Variant, ByVal allowMultiBottom As Boolean, _
-                                   ByVal noneLabel As String, ByVal topInit As String, ByVal bottomInit As Variant)
-    SCBuild formCaption, True, topLabel1, topLabel2, bottomItems, allowMultiBottom, noneLabel, topInit, bottomInit
+                                   ByVal noneLabel As String, ByVal topInit As String, ByVal bottomInit As Variant, _
+                                   Optional ByVal topNoneLabel As String = "")
+    SCBuild formCaption, True, topLabel1, topLabel2, bottomItems, allowMultiBottom, noneLabel, topInit, bottomInit, topNoneLabel
 End Sub
 
 Private Sub SCBuild(ByVal formCaption As String, ByVal hasTop As Boolean, _
                     ByVal topLabel1 As String, ByVal topLabel2 As String, _
                     ByVal bottomItems As Variant, ByVal allowMultiBottom As Boolean, _
-                    ByVal noneLabel As String, ByVal topInit As String, ByVal bottomInit As Variant)
+                    ByVal noneLabel As String, ByVal topInit As String, ByVal bottomInit As Variant, _
+                    Optional ByVal topNoneLabel As String = "")
     mBuildingSC = True
     resultTop = ""
     resultBottom = ""
@@ -313,12 +316,19 @@ Private Sub SCBuild(ByVal formCaption As String, ByVal hasTop As Boolean, _
 
     Dim bottomTop As Single
     bottomTop = 8
+    mSCTopNoneKey = ""
     If hasTop Then
         SCAddCheckbox Me, "T1", topLabel1, 12, 8, cw, (topInit = topLabel1)
         SCAddCheckbox Me, "T2", topLabel2, 12, 34, cw, (topInit = topLabel2)
         mSCTopKeys.Add "T1"
         mSCTopKeys.Add "T2"
         bottomTop = 64
+        If Len(topNoneLabel) > 0 Then
+            SCAddCheckbox Me, "T3", topNoneLabel, 12, 60, cw, (topInit = topNoneLabel)
+            mSCTopKeys.Add "T3"
+            mSCTopNoneKey = "T3"
+            bottomTop = 90
+        End If
     End If
 
     Dim fr As MSForms.Frame
@@ -368,6 +378,10 @@ Private Sub SCBuild(ByVal formCaption As String, ByVal hasTop As Boolean, _
     SCAddButton "CANCEL", CancelCaptionText(), 140, btnTop, 120
 
     Me.Height = btnTop + 34 + 30
+
+    If mSCTopNoneKey <> "" Then
+        If SCIsChecked(mSCTopNoneKey) Then SCSetBottomEnabled False
+    End If
     mBuildingSC = False
 End Sub
 
@@ -449,6 +463,7 @@ Public Sub OnCheckboxClick(ByVal key As String, ByVal isChecked As Boolean)
 
     If Left$(key, 1) = "T" Then
         SCUncheckOthers mSCTopKeys, key
+        If mSCTopNoneKey <> "" Then SCSetBottomEnabled (key <> mSCTopNoneKey)
         Exit Sub
     End If
 
@@ -495,19 +510,42 @@ Public Sub HandleKeypadKey(ByVal keyCode As String)
     End Select
 End Sub
 
+Private Sub SCSetBottomEnabled(ByVal isEnabled As Boolean)
+    Dim k As Variant
+    For Each k In mSCBottomKeys
+        On Error Resume Next
+        If mSCCtlByKey.Exists(CStr(k)) Then
+            mSCCtlByKey.Item(CStr(k)).Enabled = isEnabled
+            If Not isEnabled Then mSCCtlByKey.Item(CStr(k)).Value = False
+        End If
+        On Error GoTo 0
+    Next k
+End Sub
+
 Private Sub SCConfirm()
     Dim topSel As String
     If mSCHasTop Then topSel = SCGetTopSelection()
     Dim bottomSel As String
     bottomSel = SCGetBottomSelection()
 
-    If (mSCHasTop And topSel = "") Or bottomSel = "" Then
+    Dim topIsNone As Boolean
+    topIsNone = (mSCTopNoneKey <> "" And SCIsChecked(mSCTopNoneKey))
+
+    If mSCHasTop And topSel = "" Then
+        MsgBox SCSelectPromptText(), vbExclamation
+        Exit Sub
+    End If
+    If (Not topIsNone) And bottomSel = "" Then
         MsgBox SCSelectPromptText(), vbExclamation
         Exit Sub
     End If
 
     resultTop = topSel
-    resultBottom = bottomSel
+    If topIsNone Then
+        resultBottom = ""
+    Else
+        resultBottom = bottomSel
+    End If
     confirmed = True
     Me.Hide
 End Sub

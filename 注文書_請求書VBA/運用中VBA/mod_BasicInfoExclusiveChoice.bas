@@ -1,4 +1,3 @@
-Attribute VB_Name = "mod_BasicInfoExclusiveChoice"
 Option Explicit
 
 ' 基本情報シート施工会社ブロックの排他2択セル(38/39/42行目)ダブルクリックで
@@ -365,10 +364,54 @@ End Function
 
 ' "該当する"
 Private Function ApplicableText() As String
-    ApplicableText = ChrW$(&H8A72) & ChrW$(&H5F53) & ChrW$(&H3059) & ChrW$(&H308B)
+    ApplicableText = ChrW$(&H8A72) & ChrW$(&H5F53) & ChrW$(&H3042) & ChrW$(&H308A)
 End Function
 
 ' "該当しない"
 Private Function NotApplicableText() As String
-    NotApplicableText = ChrW$(&H8A72) & ChrW$(&H5F53) & ChrW$(&H3057) & ChrW$(&H306A) & ChrW$(&H3044)
+    NotApplicableText = ChrW$(&H8A72) & ChrW$(&H5F53) & ChrW$(&H306A) & ChrW$(&H3057)
 End Function
+
+' 施工会社名の変更/受注者用シート再生成時に、基本情報 F38/F39/F42 の現在値から
+' 受注者用シートへ 甲/乙・該当あり/なし を再転記する(ApplyContractorHeader から呼ぶ)。
+Public Sub ReapplyExclusiveChoices(ByVal wsInfo As Worksheet, ByVal vendorIndex As Long)
+    If wsInfo Is Nothing Then Exit Sub
+
+    Dim vc As Long
+    vc = mod_Construction_BasicTotals.BasicInfoVendorColumn(vendorIndex)
+
+    Dim ws As Worksheet
+    Set ws = ResolveAcceptanceSheetForColumn(wsInfo, vc)
+    If ws Is Nothing Then Exit Sub
+
+    ' 行38: 部分払い 甲/乙 -> C30(結合・接尾「負担」)
+    ReapplyCombinedCell ws, wsInfo.Cells(PARTIAL_PAYMENT_ROW, vc), _
+                        KoText(), OtsuText(), "C30", PartialPaymentBurdenSuffixText()
+    ' 行39: 労災 甲/乙 -> H30/J30
+    ReapplyTwoCell ws, wsInfo.Cells(ROSAI_ROW, vc), KoText(), OtsuText(), "H30", "J30"
+    ' 行42: リサイクル 該当あり/なし -> M34/R34
+    ReapplyTwoCell ws, wsInfo.Cells(RECYCLE_ROW, vc), ApplicableText(), NotApplicableText(), "M34", "R34"
+End Sub
+
+Private Sub ReapplyTwoCell(ByVal ws As Worksheet, ByVal srcCell As Range, _
+                           ByVal topLabel As String, ByVal bottomLabel As String, _
+                           ByVal topCell As String, ByVal bottomCell As String)
+    Dim cur As String
+    cur = CommonNzText(srcCell.mergeArea.Cells(1, 1).value)
+    If Len(Trim$(cur)) = 0 Then Exit Sub
+    Dim topChecked As Boolean, bottomChecked As Boolean
+    ParseSelection cur, topLabel, bottomLabel, topChecked, bottomChecked
+    ApplyCheckGlyph ws.Range(topCell), topChecked
+    ApplyCheckGlyph ws.Range(bottomCell), bottomChecked
+End Sub
+
+Private Sub ReapplyCombinedCell(ByVal ws As Worksheet, ByVal srcCell As Range, _
+                                ByVal topLabel As String, ByVal bottomLabel As String, _
+                                ByVal topCell As String, ByVal suffixText As String)
+    Dim cur As String
+    cur = CommonNzText(srcCell.mergeArea.Cells(1, 1).value)
+    If Len(Trim$(cur)) = 0 Then Exit Sub
+    Dim topChecked As Boolean, bottomChecked As Boolean
+    ParseSelection cur, topLabel, bottomLabel, topChecked, bottomChecked
+    ApplyCombinedCheckText ws.Range(topCell), topChecked, bottomChecked, topLabel, bottomLabel, suffixText
+End Sub

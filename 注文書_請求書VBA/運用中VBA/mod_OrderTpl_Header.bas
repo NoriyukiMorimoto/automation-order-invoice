@@ -117,8 +117,14 @@ Private Function BuildHeaderSourceRange(ByVal wsInfo As Worksheet) As Range
         valueColumn = mod_Construction_BasicTotals.BasicInfoVendorColumn(vendorIndex)
         Set result = Union(result, _
                            wsInfo.Cells(BASIC_INFO_VENDOR_WORK_TYPE_ROW, valueColumn), _
+                           wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, valueColumn), _
                            wsInfo.Cells(ORDER_TPL_BLOCK_VENDOR_CODE_ROW, valueColumn), _
-                           wsInfo.Cells(ORDER_TPL_BLOCK_ORDER_NO_ROW, valueColumn))
+                           wsInfo.Cells(ORDER_TPL_BLOCK_ORDER_NO_ROW, valueColumn), _
+                           wsInfo.Cells(38, valueColumn), _
+                           wsInfo.Cells(39, valueColumn), _
+                           wsInfo.Cells(40, valueColumn), _
+                           wsInfo.Cells(41, valueColumn), _
+                           wsInfo.Cells(42, valueColumn))
     Next vendorIndex
 
     Set BuildHeaderSourceRange = result
@@ -247,18 +253,26 @@ Private Sub ApplyContractorHeader(ByVal wsInfo As Worksheet, _
     ' G26: 工期 至(基本情報C16, 西暦), 中央
     WriteHeaderDateGregorian wsTarget.Range("G26"), wsInfo.Range("C16").value
 
-    ' Q22: 税込金額(施工会社ブロック35行), 右詰
-    WriteHeaderValueRight wsTarget.Range("Q22"), _
-                          wsInfo.Cells(CONTRACTOR_CONTRACT_TOTAL_ROW, valueColumn).value
-    ' Q23: 契約金額 税抜(施工会社ブロック33行), 右詰
-    WriteHeaderValueRight wsTarget.Range("Q23"), _
-                          wsInfo.Cells(CONTRACTOR_CONTRACT_AMOUNT_ROW, valueColumn).value
-    ' Q24: 消費税(施工会社ブロック34行), 右詰
-    WriteHeaderValueRight wsTarget.Range("Q24"), _
-                          wsInfo.Cells(CONTRACTOR_CONSUMPTION_TAX_ROW, valueColumn).value
+    ' Q22/Q23/Q24: 同一グループの内訳明細シート 合計/計/消費税 行(Q列)を参照する生き数式
+    ' (内訳明細の値が更新されると自動で更新される)
+    Dim breakdownName As String
+    breakdownName = ResolveBreakdownSheetNameFromTarget(wsTarget)
+    If Len(breakdownName) > 0 Then
+        WriteHeaderFormulaRight wsTarget.Range("Q22"), BuildBreakdownQFormula(breakdownName, ContractorGrandTotalLabelText())
+        WriteHeaderFormulaRight wsTarget.Range("Q23"), BuildBreakdownQFormula(breakdownName, ContractorNetTotalLabelText())
+        WriteHeaderFormulaRight wsTarget.Range("Q24"), BuildBreakdownQFormula(breakdownName, ContractorTaxLabelText())
+    Else
+        WriteHeaderValueRight wsTarget.Range("Q22"), wsInfo.Cells(CONTRACTOR_CONTRACT_TOTAL_ROW, valueColumn).value
+        WriteHeaderValueRight wsTarget.Range("Q23"), wsInfo.Cells(CONTRACTOR_CONTRACT_AMOUNT_ROW, valueColumn).value
+        WriteHeaderValueRight wsTarget.Range("Q24"), wsInfo.Cells(CONTRACTOR_CONSUMPTION_TAX_ROW, valueColumn).value
+    End If
 
     ' M10/M11/M12: 出張所長リスト参照(発注者 住所/名称/役職氏名)
     ApplyOfficeChiefBlock wsInfo, wsTarget
+
+    ' 行38-42(部分払い/労災/支給材料/貸与品/リサイクル)を基本情報から受注者用へ再転記
+    mod_BasicInfoExclusiveChoice.ReapplyExclusiveChoices wsInfo, vendorIndex
+    mod_BasicInfoSupplyLoan.ReapplySupplyLoan wsInfo, vendorIndex
 
     mod_OrderTpl_Shared.OrderTplLog "ApplyContractorHeader done: " & wsTarget.Name
     Exit Sub
@@ -270,6 +284,16 @@ End Sub
 
 ' M10:住所 / M11:大鉄工業株式会社+全角空白+基幹出張所 / M12:(条件で)役職氏名 を転記
 Private Sub ApplyOfficeChiefBlock(ByVal wsInfo As Worksheet, ByVal wsTarget As Worksheet)
+    ' M10:U → M10:V へ結合し直し、縮小して全体表示に設定(M/13列 ～ V/22列)
+    Dim mergeRow As Long
+    For mergeRow = 10 To 12
+        On Error Resume Next
+        wsTarget.Range(wsTarget.Cells(mergeRow, 13), wsTarget.Cells(mergeRow, 22)).UnMerge
+        wsTarget.Range(wsTarget.Cells(mergeRow, 13), wsTarget.Cells(mergeRow, 22)).Merge
+        wsTarget.Cells(mergeRow, 13).ShrinkToFit = True
+        On Error GoTo 0
+    Next mergeRow
+
     Dim branchName As String, officeName As String
     branchName = CommonNzText(wsInfo.Range(BASIC_INFO_BRANCH_CELL).value)
     officeName = CommonNzText(wsInfo.Range(BASIC_INFO_OFFICE_CELL).value)
@@ -414,3 +438,46 @@ Private Sub ApplyHeaderCellFormat(ByVal target As Range, ByVal centered As Boole
         target.MergeArea.VerticalAlignment = xlCenter
     End If
 End Sub
+
+' 受注者用シートwsTargetと同一グループの内訳明細シート名を解決する
+Private Function ResolveBreakdownSheetNameFromTarget(ByVal wsTarget As Worksheet) As String
+    Dim baseName As String, aliasText As String
+    If Not mod_OrderTpl_Shared.OrderTplIsGeneratedSheet(wsTarget, baseName, aliasText) Then Exit Function
+    If aliasText = "" Then Exit Function
+    Dim nm As String
+    nm = mod_OrderTpl_Shared.OrderTplBuildSheetName(mod_OrderTpl_Shared.OrderTplBaseNameBreakdownText(), aliasText)
+    If mod_OrderTpl_Shared.OrderTplSheetExists(nm) Then ResolveBreakdownSheetNameFromTarget = nm
+End Function
+
+' 内訳明細シートのA列でラベル行を探し、そのQ列を返す生き数式(見つからなければ空)
+Private Function BuildBreakdownQFormula(ByVal sheetName As String, ByVal labelText As String) As String
+    Dim q As String
+    q = "'" & Replace$(sheetName, "'", "''") & "'"
+    BuildBreakdownQFormula = "=IFERROR(INDEX(" & q & "!Q:Q,MATCH(""" & labelText & """," & q & "!A:A,0)),"""")"
+End Function
+
+' 数式(右詰)の転記(BizUDゴシック・桁区切り)
+Private Sub WriteHeaderFormulaRight(ByVal target As Range, ByVal formulaText As String)
+    Dim writeCell As Range
+    Set writeCell = target.MergeArea.Cells(1, 1)
+    writeCell.Formula = formulaText
+    target.MergeArea.Font.Name = BASIC_INFO_REF_FONT_NAME
+    target.MergeArea.NumberFormat = "#,##0;-#,##0;"
+    target.MergeArea.HorizontalAlignment = xlRight
+    target.MergeArea.VerticalAlignment = xlCenter
+End Sub
+
+' "合計"
+Private Function ContractorGrandTotalLabelText() As String
+    ContractorGrandTotalLabelText = ChrW$(&H5408) & ChrW$(&H8A08)
+End Function
+
+' "計"
+Private Function ContractorNetTotalLabelText() As String
+    ContractorNetTotalLabelText = ChrW$(&H8A08)
+End Function
+
+' "消費税"
+Private Function ContractorTaxLabelText() As String
+    ContractorTaxLabelText = ChrW$(&H6D88) & ChrW$(&H8CBB) & ChrW$(&H7A0E)
+End Function

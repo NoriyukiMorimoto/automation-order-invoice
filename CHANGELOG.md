@@ -5,6 +5,13 @@
 
 ---
 
+## mod_OrderTpl_Shared.bas / mod_OrderTpl_Generate.bas / mod_VendorBlockLayout.bas / Sheet1.cls（循環参照の除去）
+
+### #1 注文書テンプレートのプレースホルダー数式を除去
+- 原因: テンプレート取込で生成した **支店控(略称)** に `='支店控(略称)'!E20` 等の**自己参照数式**が残り、F9 操作時の `Application.Calculate` で循環参照ダイアログが出ていた。受注者用/注文請書の支店控ミラー数式・`#REF!` も同様に除去対象。
+- 対象セル例（支店控(竹本)）: E20, E22, Q22, Q23, G24, Q24, G26, F31, F32, F33, M34, R34
+- `OrderTplSanitizePlaceholderFormulas` / `OrderTplRepairAllGeneratedPlaceholderFormulas` を追加。生成直後・基本情報シート Activate 時・F9 同期後の再計算前に実行。
+
 ## mod_Construction_Order_Import.bas?��施工�?示書・施工通知書取込モジュール?�?
 
 ### #1
@@ -703,14 +710,21 @@
 
 ## 【重要修正】集計数値書式の不正Range参照(1004)で書式・罫線・列幅が一切適用されない不具合
 
-- `ApplySummaryNumberFormats` が `Range("H" & subtotalRow & ":" & subtotalRow+4)` すなわち `Range("H60:64")` のように**列名が片側のみの無効アドレス**を生成しており、実行時エラー1004が発生していた。
-- この呼び出しは `ApplyBreakdownDetails`（`On Error GoTo ErrorHandler`）内の `BuildSummaryBlock` から行われるため、エラーが握りつぶされて以降が中断。結果、**集計フォント・罫線描画(ApplySummaryBorders)・A列AutoFit が一切実行されず**「何も変わらない」状態になっていた（罫線ロジック自体は正常）。
-- 参照を `Range("H" & r1 & ":H" & r2)` のように**列名を両側に付けた正しいアドレス**へ修正。H/Q/K/N すべて同様に修正。これで生成時に集計書式・罫線・列幅が正しく適用される。
-- 併せて手動再適用マクロ `ApplyBreakdownFormattingToActiveSheet` にエラー時の ScreenUpdating 復帰処理を追加。
+- `ApplySummaryNumberFormats` が `Range("H" & subtotalRow & ":" & subtotalRow+4)` すなわち `Range("H60:64")` のように**列名が片側のみの無効アドレス**を生成
 
-## 内訳明細のA列幅固定・転記データフォント11pt（mod_OrderTpl_Detail）
+## 受注者用Q22-24の生き数式化・行38-42の監視/再転記・40/41なし選択 ほか
 
-- A列(整理番号)の AutoFit をやめ、列幅を固定値 **7.00** に設定（ページ範囲に収まるよう余白を抑える）。
-- 明細転記範囲（11行目以降・集計ブロック含む）のフォントサイズを **10pt から 11pt** へ変更。
-- 手動再適用マクロ `ApplyBreakdownFormattingToActiveSheet` でも同様に A列幅 7.00 とフォント 11pt を適用。
+### Q22/Q23/Q24（受注者用）
+- 同一グループの内訳明細シートの Q列を `=IFERROR(INDEX('内訳明細(略称)'!Q:Q,MATCH("合計"/"計"/"消費税",'…'!A:A,0)),"")` で参照する生き数式に変更（Q22=合計/Q23=計/Q24=消費税）。内訳明細の値更新で自動追従。
+### M10/M11/M12（受注者用）
+- 結合を M10:U10→**M10:V10**、M11:U11→**M11:V11**、M12:U12→**M12:V12** に変更し、縮小して全体表示(ShrinkToFit)を設定。
+### 行38-42の監視と再転記
+- ヘッダー監視範囲に施工会社列の **11(会社名)/38/39/40/41/42行** を追加。施工会社名変更や各行の値変更で受注者用へ再反映。
+- `ApplyContractorHeader` から `ReapplyExclusiveChoices`(38→C30/39→H30・J30/42→M34・R34) と `ReapplySupplyLoan`(40→F32/41→F33) を呼び、基本情報の現在値から受注者用へ再転記。
+### 行42ラベル
+- 「該当する/該当しない」→ **「該当あり/該当なし」** に変更（該当あり→M34、該当なし→R34）。
+### 行40/41（基本情報セル）
+- 縮小表示をやめ **折り返し表示(WrapText)＋列幅/行高の自動調整** に変更。
+### 行40/41 第1セクションに「なし」追加
+- frmSubconSelector 2セクションモードの上段に **「なし」** を追加（有償/無償/なし の排他）。「なし」選択時は下段(材料/貸与品)を選択不可にし、受注者用 F32/F33 と基本情報セルへ **「なし」** を書込。
 
