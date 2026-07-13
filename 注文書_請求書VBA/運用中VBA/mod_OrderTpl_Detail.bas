@@ -324,13 +324,40 @@ End Sub
 Private Sub ApplySummaryBorders(ByVal wsBreakdown As Worksheet, _
                                 ByVal subtotalRow As Long)
     ' 明細部(11行目～小計行の直前)の横罫線をすべて細線で引き直す(転記の最後に実行)
-    With wsBreakdown.Range(wsBreakdown.Cells(ORDER_TPL_DETAIL_START_ROW, 1), _
-                           wsBreakdown.Cells(subtotalRow - 1, 17))
-        .Borders(xlInsideHorizontal).LineStyle = xlContinuous
-        .Borders(xlInsideHorizontal).Weight = xlThin
-        .Borders(xlEdgeBottom).LineStyle = xlContinuous
-        .Borders(xlEdgeBottom).Weight = xlThin
-    End With
+    ' 明細部(11行目～小計行の直前)の罫線を入力行数に合わせて引き直す。
+    ' 行の挿入/削除で複写・欠落した罫線をいったんリセットし、
+    ' 外枠(上下左右)＋各行の横罫線(細)＋列区切りの縦罫線(D/G/J/M/P の右)を細線で再描画する。
+    Dim detailRange As Range
+    Set detailRange = wsBreakdown.Range(wsBreakdown.Cells(ORDER_TPL_DETAIL_START_ROW, 1), _
+                                        wsBreakdown.Cells(subtotalRow - 1, 17))
+
+    detailRange.Borders(xlEdgeLeft).LineStyle = xlNone
+    detailRange.Borders(xlEdgeRight).LineStyle = xlNone
+    detailRange.Borders(xlEdgeTop).LineStyle = xlNone
+    detailRange.Borders(xlEdgeBottom).LineStyle = xlNone
+    detailRange.Borders(xlInsideHorizontal).LineStyle = xlNone
+    detailRange.Borders(xlInsideVertical).LineStyle = xlNone
+
+    detailRange.Borders(xlEdgeLeft).LineStyle = xlContinuous
+    detailRange.Borders(xlEdgeLeft).Weight = xlThin
+    detailRange.Borders(xlEdgeRight).LineStyle = xlContinuous
+    detailRange.Borders(xlEdgeRight).Weight = xlThin
+    detailRange.Borders(xlEdgeTop).LineStyle = xlContinuous
+    detailRange.Borders(xlEdgeTop).Weight = xlThin
+    detailRange.Borders(xlEdgeBottom).LineStyle = xlContinuous
+    detailRange.Borders(xlEdgeBottom).Weight = xlThin
+    detailRange.Borders(xlInsideHorizontal).LineStyle = xlContinuous
+    detailRange.Borders(xlInsideHorizontal).Weight = xlThin
+
+    ' 列区切りの縦罫線(D/G/J/M/P の右)
+    Dim detailVCol As Variant
+    For Each detailVCol In Array(4, 7, 10, 13, 16)
+        With wsBreakdown.Range(wsBreakdown.Cells(ORDER_TPL_DETAIL_START_ROW, CLng(detailVCol)), _
+                               wsBreakdown.Cells(subtotalRow - 1, CLng(detailVCol))).Borders(xlEdgeRight)
+            .LineStyle = xlContinuous
+            .Weight = xlThin
+        End With
+    Next detailVCol
 
     Dim blockRange As Range
     Set blockRange = wsBreakdown.Range(wsBreakdown.Cells(subtotalRow, 1), _
