@@ -179,8 +179,10 @@ Public Sub GenerateVendorOrderSheets(ByVal wsInfo As Worksheet, ByVal vendorInde
 
     Dim i As Long
     For i = LBound(baseNames) To UBound(baseNames)
-        ThisWorkbook.Sheets(anchorSheet.Index + 1 + i - LBound(baseNames)).Name = _
-            mod_OrderTpl_Shared.OrderTplBuildSheetName(CStr(baseNames(i)), aliasText)
+        Dim wsGenerated As Worksheet
+        Set wsGenerated = ThisWorkbook.Sheets(anchorSheet.Index + 1 + i - LBound(baseNames))
+        wsGenerated.Name = mod_OrderTpl_Shared.OrderTplBuildSheetName(CStr(baseNames(i)), aliasText)
+        mod_OrderTpl_Shared.OrderTplSanitizePlaceholderFormulas wsGenerated
     Next i
 
     If openedHere Then templateWorkbook.Close SaveChanges:=False
@@ -285,6 +287,7 @@ Private Sub RefreshAllVendorOrderDetailsCore(ByVal showCompletionMessage As Bool
     Next vendorIndex
 
     Application.Calculation = prevCalculation
+    mod_OrderTpl_Shared.OrderTplRepairAllGeneratedPlaceholderFormulas
     Application.Calculate
     Application.EnableEvents = prevEnableEvents
     Application.ScreenUpdating = prevScreenUpdating
