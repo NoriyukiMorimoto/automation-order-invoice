@@ -546,6 +546,120 @@ Private Function UnitListContains(ByVal listText As String, ByVal unitText As St
     Next i
 End Function
 
+' 生成済みテンプレート(支店控/受注者用/注文請書)に残るプレースホルダー数式を除去する。
+' テンプレート xlsx の自己参照(例: ='支店控(略称)'!E20)や #REF!、支店控へのミラー数式が
+' ブック再計算時に循環参照ダイアログを出すため、VBA 転記前に値セルへ戻す。
+Public Sub OrderTplRepairAllGeneratedPlaceholderFormulas()
+    Dim ws As Worksheet
+    Dim baseName As String
+    Dim aliasText As String
+
+    For Each ws In ThisWorkbook.Worksheets
+        If OrderTplIsGeneratedSheet(ws, baseName, aliasText) Then
+            OrderTplSanitizePlaceholderFormulas ws
+        End If
+    Next ws
+End Sub
+
+Public Sub OrderTplSanitizePlaceholderFormulas(ByVal ws As Worksheet)
+    If ws Is Nothing Then Exit Sub
+
+    Dim baseName As String
+    Dim aliasText As String
+    If Not OrderTplIsGeneratedSheet(ws, baseName, aliasText) Then Exit Sub
+
+    If baseName <> OrderTplBaseNameBranchCopyText() And _
+       baseName <> OrderTplBaseNameContractorText() And _
+       baseName <> OrderTplBaseNameAcceptanceText() Then Exit Sub
+
+    Dim formulaRange As Range
+    On Error Resume Next
+    Set formulaRange = ws.UsedRange.SpecialCells(xlCellTypeFormulas)
+    On Error GoTo 0
+    If formulaRange Is Nothing Then Exit Sub
+
+    Dim cell As Range
+    For Each cell In formulaRange.Cells
+        If OrderTplShouldClearPlaceholderFormula(ws, baseName, cell) Then
+            OrderTplClearFormulaCell cell
+        End If
+    Next cell
+End Sub
+
+Private Function OrderTplShouldClearPlaceholderFormula(ByVal ws As Worksheet, _
+                                                       ByVal baseName As String, _
+                                                       ByVal cell As Range) As Boolean
+    Dim formulaText As String
+    On Error Resume Next
+    formulaText = CStr(cell.Formula)
+    On Error GoTo 0
+    If Len(formulaText) = 0 Then Exit Function
+    If Left$(formulaText, 1) <> "=" Then Exit Function
+
+    If InStr(1, formulaText, "#REF!", vbTextCompare) > 0 Then
+        OrderTplShouldClearPlaceholderFormula = True
+        Exit Function
+    End If
+
+    If OrderTplFormulaReferencesSameCell(ws, cell, formulaText) Then
+        OrderTplShouldClearPlaceholderFormula = True
+        Exit Function
+    End If
+
+    If baseName = OrderTplBaseNameContractorText() Or _
+       baseName = OrderTplBaseNameAcceptanceText() Then
+        If OrderTplFormulaReferencesBranchCopySheet(formulaText) Then
+            OrderTplShouldClearPlaceholderFormula = True
+        End If
+    End If
+End Function
+
+Private Function OrderTplFormulaReferencesSameCell(ByVal ws As Worksheet, _
+                                                 ByVal cell As Range, _
+                                                 ByVal formulaText As String) As Boolean
+    Dim normalizedFormula As String
+    normalizedFormula = UCase$(Replace$(formulaText, " ", ""))
+
+    Dim quotedSheet As String
+    quotedSheet = "'" & Replace$(ws.Name, "'", "''") & "'!"
+
+    Dim addr As Variant
+    For Each addr In Array(cell.Address(True, False), cell.Address(False, False), _
+                           cell.Address(True, True), cell.Address(False, True))
+        If InStr(1, normalizedFormula, UCase$(quotedSheet & CStr(addr)), vbBinaryCompare) > 0 Then
+            OrderTplFormulaReferencesSameCell = True
+            Exit Function
+        End If
+    Next addr
+
+    If InStr(1, normalizedFormula, "!", vbBinaryCompare) = 0 Then
+        For Each addr In Array(cell.Address(True, False), cell.Address(False, False), _
+                               cell.Address(True, True), cell.Address(False, True))
+            If normalizedFormula = "=" & UCase$(CStr(addr)) Then
+                OrderTplFormulaReferencesSameCell = True
+                Exit Function
+            End If
+        Next addr
+    End If
+End Function
+
+Private Function OrderTplFormulaReferencesBranchCopySheet(ByVal formulaText As String) As Boolean
+    Dim branchBase As String
+    branchBase = OrderTplBaseNameBranchCopyText()
+    If InStr(1, formulaText, "'" & branchBase, vbTextCompare) > 0 Then
+        OrderTplFormulaReferencesBranchCopySheet = True
+    End If
+End Function
+
+Private Sub OrderTplClearFormulaCell(ByVal cell As Range)
+    Dim writeCell As Range
+    Set writeCell = cell
+    On Error Resume Next
+    If writeCell.MergeCells Then Set writeCell = writeCell.MergeArea.Cells(1, 1)
+    On Error GoTo 0
+    writeCell.ClearContents
+End Sub
+
 Public Sub OrderTplLog(ByVal msg As String)
     mod_DebugLog.Log "[OrderTpl] " & msg
 End Sub
