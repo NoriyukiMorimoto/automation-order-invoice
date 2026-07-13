@@ -27,6 +27,7 @@ Private Sub Worksheet_Activate()
     mod_VendorMaster.CleanupLegacyVendorListDebrisInColumnAD Me
     mod_FillManagerName.RefreshBranchOfficeValidation True
     mod_VendorMaster.EnsureVendorCountInputValidation Me
+    mod_OrderTpl_Shared.OrderTplRepairAllGeneratedPlaceholderFormulas
     mod_VendorMaster.InitVendorBlockCountFromSheet Me
     mod_VendorMaster.RefreshVendorListForBasicInfo Me
     mod_MaterialPriceImport.RefreshUnitPriceProjectNameValidation Me
