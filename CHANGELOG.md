@@ -708,3 +708,9 @@
 - 参照を `Range("H" & r1 & ":H" & r2)` のように**列名を両側に付けた正しいアドレス**へ修正。H/Q/K/N すべて同様に修正。これで生成時に集計書式・罫線・列幅が正しく適用される。
 - 併せて手動再適用マクロ `ApplyBreakdownFormattingToActiveSheet` にエラー時の ScreenUpdating 復帰処理を追加。
 
+## 内訳明細のA列幅固定・転記データフォント11pt（mod_OrderTpl_Detail）
+
+- A列(整理番号)の AutoFit をやめ、列幅を固定値 **7.00** に設定（ページ範囲に収まるよう余白を抑える）。
+- 明細転記範囲（11行目以降・集計ブロック含む）のフォントサイズを **10pt から 11pt** へ変更。
+- 手動再適用マクロ `ApplyBreakdownFormattingToActiveSheet` でも同様に A列幅 7.00 とフォント 11pt を適用。
+

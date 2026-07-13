@@ -22,7 +22,8 @@ Private Const SUMMARY_NUMBER_FORMAT As String = "#,##0"
 Private Const SUMMARY_ZERO_HIDE_FORMAT As String = "#,##0;-#,##0;"
 Private Const DETAIL_AMOUNT_NUMBER_FORMAT As String = "#,##0;-#,##0;"            ' 桁区切り・ゼロ非表示
 Private Const DETAIL_QTY_DECIMAL_NUMBER_FORMAT As String = "#,##0.000;-#,##0.000;" ' 小数3桁・ゼロ非表示
-Private Const DETAIL_FONT_SIZE As Double = 10#
+Private Const DETAIL_FONT_SIZE As Double = 11#
+Private Const DETAIL_COL_A_WIDTH As Double = 7#
 
 Private Function DiscountLabelText() As String
     Static cached As String
@@ -164,14 +165,12 @@ Public Sub ApplyBreakdownDetails(ByVal wsBreakdown As Worksheet, _
 
     BuildSummaryBlock wsBreakdown, subtotalRow, totalLines
 
-    ' 11行目以降(集計ブロック含む)のフォントサイズを10ポイントへ統一する
+    ' 11行目以降(集計ブロック含む)のフォントサイズを11ポイントへ統一する
     wsBreakdown.Range(wsBreakdown.Cells(startRow, 1), _
                       wsBreakdown.Cells(subtotalRow + SUMMARY_EXTRA_ROWS, 17)).Font.Size = DETAIL_FONT_SIZE
 
-    ' A列(整理番号)の列幅を内容に合わせて自動調整する
-    On Error Resume Next
-    wsBreakdown.Columns(1).AutoFit
-    On Error GoTo ErrorHandler
+    ' A列(整理番号)の列幅を固定値7.00に設定する
+    wsBreakdown.Columns(1).ColumnWidth = DETAIL_COL_A_WIDTH
 
     mod_OrderTpl_Shared.OrderTplLog "ApplyBreakdownDetails done: " & wsBreakdown.Name & _
         " rows=" & totalLines & " works=" & worksLineCount & " weld=" & weldLineCount
@@ -942,7 +941,9 @@ Public Sub ApplyBreakdownFormattingToActiveSheet()
     On Error GoTo Restore
     ApplySummaryBorders ws, subtotalRow
     ApplySummaryNumberFormats ws, subtotalRow
-    ws.Columns(1).AutoFit
+    ws.Range(ws.Cells(ORDER_TPL_DETAIL_START_ROW, 1), _
+             ws.Cells(subtotalRow + SUMMARY_EXTRA_ROWS, 17)).Font.Size = DETAIL_FONT_SIZE
+    ws.Columns(1).ColumnWidth = DETAIL_COL_A_WIDTH
 
 Restore:
     Application.ScreenUpdating = prevScreen
