@@ -24,6 +24,9 @@ Private Const DETAIL_AMOUNT_NUMBER_FORMAT As String = "#,##0;-#,##0;"           
 Private Const DETAIL_QTY_DECIMAL_NUMBER_FORMAT As String = "#,##0.000;-#,##0.000;" ' 小数3桁・ゼロ非表示
 Private Const DETAIL_FONT_SIZE As Double = 11#
 Private Const DETAIL_COL_A_WIDTH As Double = 7#
+Private Const DETAIL_COL_QTY_4 As Long = 15          ' O列(第4数量列)
+Private Const DETAIL_COL_PRICE_4 As Long = 16        ' P列(第4単価列)
+Private Const DETAIL_COL_PRICE_BASE As Long = 7        ' G列(当初単価)
 
 Private Function DiscountLabelText() As String
     Static cached As String
@@ -120,9 +123,11 @@ Public Sub ApplyBreakdownDetails(ByVal wsBreakdown As Worksheet, _
 
     ' 転記値の組み立て
     Dim valuesAF() As Variant
-    Dim valuesNO() As Variant
+    Dim valuesO() As Variant
+    Dim valuesP() As Variant
     ReDim valuesAF(1 To totalLines, 1 To 7)
-    ReDim valuesNO(1 To totalLines, 1 To 2)
+    ReDim valuesO(1 To totalLines, 1 To 1)
+    ReDim valuesP(1 To totalLines, 1 To 1)
 
     Dim headerLineRows As Collection
     Dim integerLineRows As Collection
@@ -133,10 +138,10 @@ Public Sub ApplyBreakdownDetails(ByVal wsBreakdown As Worksheet, _
 
     Dim lineCursor As Long
     lineCursor = 0
-    WriteBlockLines worksSections, False, lineCursor, valuesAF, valuesNO, _
+    WriteBlockLines worksSections, False, lineCursor, valuesAF, valuesO, valuesP, _
                     headerLineRows, integerLineRows, decimalLineRows
     If worksLineCount > 0 And weldLineCount > 0 Then lineCursor = lineCursor + 2
-    WriteBlockLines weldSections, True, lineCursor, valuesAF, valuesNO, _
+    WriteBlockLines weldSections, True, lineCursor, valuesAF, valuesO, valuesP, _
                     headerLineRows, integerLineRows, decimalLineRows
 
     ' 一括書き込み
@@ -146,7 +151,9 @@ Public Sub ApplyBreakdownDetails(ByVal wsBreakdown As Worksheet, _
     endRow = startRow + totalLines - 1
 
     wsBreakdown.Range(wsBreakdown.Cells(startRow, 1), wsBreakdown.Cells(endRow, 7)).value = valuesAF
-    wsBreakdown.Range(wsBreakdown.Cells(startRow, 15), wsBreakdown.Cells(endRow, 16)).value = valuesNO
+    ' 第4グループ: O列=数量、P列=単価を個別セルへ転記する(2列一括だとP列へ入る単価がO列へずれる場合がある)
+    wsBreakdown.Range(wsBreakdown.Cells(startRow, DETAIL_COL_QTY_4), wsBreakdown.Cells(endRow, DETAIL_COL_QTY_4)).value = valuesO
+    wsBreakdown.Range(wsBreakdown.Cells(startRow, DETAIL_COL_PRICE_4), wsBreakdown.Cells(endRow, DETAIL_COL_PRICE_4)).value = valuesP
 
     ' 金額列(H/K/N/Q)へ数式(数量×単価)を設定する(小計行の直前まで)
     Dim formulaColumn As Variant
@@ -208,9 +215,10 @@ Private Sub ResetDetailArea(ByVal wsBreakdown As Worksheet, ByRef subtotalRow As
 
     With wsBreakdown
         .Range(.Cells(ORDER_TPL_DETAIL_START_ROW, 1), .Cells(clearLastRow, 7)).ClearContents
-        .Range(.Cells(ORDER_TPL_DETAIL_START_ROW, 15), .Cells(clearLastRow, 16)).ClearContents
+        .Range(.Cells(ORDER_TPL_DETAIL_START_ROW, DETAIL_COL_QTY_4), .Cells(clearLastRow, DETAIL_COL_QTY_4)).ClearContents
+        .Range(.Cells(ORDER_TPL_DETAIL_START_ROW, DETAIL_COL_PRICE_4), .Cells(clearLastRow, DETAIL_COL_PRICE_4)).ClearContents
         .Range(.Cells(ORDER_TPL_DETAIL_START_ROW, 6), .Cells(clearLastRow, 7)).NumberFormat = "General"
-        .Range(.Cells(ORDER_TPL_DETAIL_START_ROW, 15), .Cells(clearLastRow, 16)).NumberFormat = "General"
+        .Range(.Cells(ORDER_TPL_DETAIL_START_ROW, DETAIL_COL_QTY_4), .Cells(clearLastRow, DETAIL_COL_PRICE_4)).NumberFormat = "General"
     End With
 End Sub
 
@@ -596,7 +604,8 @@ Private Sub WriteBlockLines(ByVal sections As Collection, _
                             ByVal isWeldingSource As Boolean, _
                             ByRef lineCursor As Long, _
                             ByRef valuesAF() As Variant, _
-                            ByRef valuesNO() As Variant, _
+                            ByRef valuesO() As Variant, _
+                            ByRef valuesP() As Variant, _
                             ByVal headerLineRows As Collection, _
                             ByVal integerLineRows As Collection, _
                             ByVal decimalLineRows As Collection)
@@ -623,8 +632,8 @@ Private Sub WriteBlockLines(ByVal sections As Collection, _
             valuesAF(lineCursor, 5) = dataRow(SRC_FIELD_UNIT - 1)
             valuesAF(lineCursor, 6) = NumericOrValue(dataRow(SRC_FIELD_QTY - 1))
             valuesAF(lineCursor, 7) = NumericOrValue(dataRow(SRC_FIELD_PRICE - 1))
-            valuesNO(lineCursor, 1) = valuesAF(lineCursor, 6)
-            valuesNO(lineCursor, 2) = valuesAF(lineCursor, 7)
+            valuesO(lineCursor, 1) = valuesAF(lineCursor, 6)
+            valuesP(lineCursor, 1) = valuesAF(lineCursor, 7)
 
             Select Case QuantityFormatGroup(CommonNzText(dataRow(SRC_FIELD_UNIT - 1)), isWeldingSource)
                 Case FMT_GROUP_INTEGER
@@ -798,7 +807,7 @@ Private Sub MergeDetailNameColumns(ByVal wsBreakdown As Worksheet, _
     Next r
 End Sub
 
-' 内訳明細シートの前回迄(I列)/今回(L列)への数量入力を監視し、単価列(J/M)を自動入力する。
+' 内訳明細シートの前回迄(I列)/今回(L列)/第4数量(O列)への数量入力を監視し、単価列(J/M/P)を自動入力する。
 ' I12/L12 の入力有無に応じて集計ブロックの K/N 列ゼロ表示も更新する。
 ' ThisWorkbook.Workbook_SheetChange から呼ばれる
 Public Sub HandleBreakdownQuantityCellChange(ByVal sh As Object, ByVal target As Range)
@@ -820,7 +829,7 @@ Public Sub HandleBreakdownQuantityCellChange(ByVal sh As Object, ByVal target As
     End If
 
     Dim hitRange As Range
-    Set hitRange = Intersect(target, Union(ws.Columns(9), ws.Columns(12)))
+    Set hitRange = Intersect(target, Union(ws.Columns(9), ws.Columns(12), ws.Columns(DETAIL_COL_QTY_4)))
     If hitRange Is Nothing Then Exit Sub
 
     Dim subtotalRow As Long
@@ -828,7 +837,7 @@ Public Sub HandleBreakdownQuantityCellChange(ByVal sh As Object, ByVal target As
     If subtotalRow = 0 Then Exit Sub
 
     Set hitRange = Intersect(hitRange, _
-        ws.Range(ws.Cells(ORDER_TPL_DETAIL_START_ROW, 9), ws.Cells(subtotalRow - 1, 12)))
+        ws.Range(ws.Cells(ORDER_TPL_DETAIL_START_ROW, 1), ws.Cells(subtotalRow - 1, DETAIL_COL_PRICE_4)))
     If hitRange Is Nothing Then Exit Sub
 
     Dim prevEnableEvents As Boolean
@@ -837,7 +846,7 @@ Public Sub HandleBreakdownQuantityCellChange(ByVal sh As Object, ByVal target As
 
     Dim changedCell As Range
     For Each changedCell In hitRange.Cells
-        If changedCell.Column = 9 Or changedCell.Column = 12 Then
+        If changedCell.Column = 9 Or changedCell.Column = 12 Or changedCell.Column = DETAIL_COL_QTY_4 Then
             Dim priceCell As Range
             Set priceCell = ws.Cells(changedCell.Row, changedCell.Column + 1)
 
@@ -845,7 +854,7 @@ Public Sub HandleBreakdownQuantityCellChange(ByVal sh As Object, ByVal target As
             quantityValue = changedCell.value
             If IsNumeric(quantityValue) And Len(Trim$(CStr(quantityValue))) > 0 Then
                 ' 単価は当初単価(G列=会社別単価)と同値を入力する
-                priceCell.value = ws.Cells(changedCell.Row, 7).value
+                priceCell.value = ws.Cells(changedCell.Row, DETAIL_COL_PRICE_BASE).value
             Else
                 priceCell.ClearContents
             End If
