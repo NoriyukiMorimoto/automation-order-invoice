@@ -242,7 +242,7 @@ Public Sub FillPurchaseUnitPrices(ByVal ws As Worksheet)
 
     With ws.Range(ws.Cells(2, PURCHASE_NOTICE_AUTO_PRICE_COL), _
                   ws.Cells(lastRow, PURCHASE_NOTICE_AUTO_AMOUNT_COL))
-        .NumberFormatLocal = "#,##0;[ê‘]-#,##0"
+        .NumberFormatLocal = mod_Construction_OutputFormat.ConstructionIntegerNumberFormat()
     End With
     ws.Range(ws.Cells(1, PURCHASE_NOTICE_PRICE_COMPARE_COL), _
              ws.Cells(lastRow, PURCHASE_NOTICE_PRICE_COMPARE_COL)).HorizontalAlignment = xlCenter
