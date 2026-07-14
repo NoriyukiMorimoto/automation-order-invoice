@@ -73,6 +73,7 @@
 | `Sheet*.cls` | 各ワークシートのシートモジュール群（線区別シート 等）。 |
 | `clsKeypadBtn.cls` | frmNumericKeypad が実行時生成するボタンのクリック中継用クラス(WithEvents)。 |
 | `clsCheckboxRelay.cls` | frmSubconSelector が動的生成するチェックボックスのクリック中継クラス(WithEvents)。単一/2セクション両モードで共用。 |
+| `clsPerfGuard.cls` | 重い処理の前後で画面更新/計算方式/イベントを退避・抑制し、スコープ終了で確実に復元するガードクラス(`Suspend`/`Restore`)。save/set/restore の定型を集約。 |
 
 ## VBA 同期スクリプト（`注文書_請求書VBA/VBA同期/`）
 

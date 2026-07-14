@@ -15,6 +15,7 @@ Public Const ORDER_TPL_VENDOR_ADO_ALIAS_FIELD As Long = 15    ' ‹ÆÒƒ}ƒXƒ^ P—ñ —
 
 Private mVendorInfoCache As Object       ' x“X|‰ïĞ–¼ ¨ Array(‹ÆÒ–¼, —ªÌ, ’S“–H–)
 Private mBranchOfficeCodeCache As Object ' x“X|o’£Š ¨ •”“XƒR[ƒh
+Private mPlaceholderRepairDone As Boolean ' ƒZƒbƒVƒ‡ƒ““à‚Å–hŒä“I‚ÈˆêŠ‡•âC‚ğÀ{Ï‚İ‚©(Activate–ˆ‚Ì‘S‘–¸‚ğ‰ñ”ğ)
 
 ' ƒeƒ“ƒvƒŒ[ƒgƒtƒ@ƒCƒ‹–¼
 Public Function OrderTplTemplateFileNameText() As String
@@ -549,7 +550,13 @@ End Function
 ' ¶¬Ï‚İƒeƒ“ƒvƒŒ[ƒg(x“XT/ó’Ò—p/’•¶¿‘)‚Éc‚éƒvƒŒ[ƒXƒzƒ‹ƒ_[”®‚ğœ‹‚·‚éB
 ' ƒeƒ“ƒvƒŒ[ƒg xlsx ‚Ì©ŒÈQÆ(—á: ='x“XT(—ªÌ)'!E20)‚â #REF!Ax“XT‚Ö‚Ìƒ~ƒ‰[”®‚ª
 ' ƒuƒbƒNÄŒvZ‚ÉzŠÂQÆƒ_ƒCƒAƒƒO‚ğo‚·‚½‚ßAVBA “]‹L‘O‚É’lƒZƒ‹‚Ö–ß‚·B
-Public Sub OrderTplRepairAllGeneratedPlaceholderFormulas()
+' ¶¬Ï‚İƒeƒ“ƒvƒŒ[ƒg(x“XT/ó’Ò—p/’•¶¿‘)‚ÌƒvƒŒ[ƒXƒzƒ‹ƒ_[”®‚ğˆêŠ‡•âC‚·‚éB
+' ¶¬(GenerateVendorOrderSheets)EÄ“]‹LEF9ƒŒƒCƒAƒEƒg•ÏX‚ÍŠeƒV[ƒg‚ªŒÂ•Ê‚É•âCÏ‚İ‚Ì‚½‚ßA
+' –¾¦ŒÄ‚Ño‚µ‚Í Force:=True ‚Å•K‚¸Às‚µAŠî–{î•ñƒV[ƒg‚Ì Activate ‚©‚ç‚Ì–hŒä“IŒÄ‚Ño‚µ(ForceÈ—ª)‚Í
+' ƒZƒbƒVƒ‡ƒ“‰‰ñ‚Ì‚İÀs‚µ‚ÄAƒV[ƒgØ‘Ö‚Ì“s“x‚Ì‘S‘–¸(‘ÌŠ´ƒtƒŠ[ƒY‚Ìˆêˆö)‚ğ‰ñ”ğ‚·‚éB
+Public Sub OrderTplRepairAllGeneratedPlaceholderFormulas(Optional ByVal Force As Boolean = False)
+    If Not Force And mPlaceholderRepairDone Then Exit Sub
+
     Dim ws As Worksheet
     Dim baseName As String
     Dim aliasText As String
@@ -559,6 +566,8 @@ Public Sub OrderTplRepairAllGeneratedPlaceholderFormulas()
             OrderTplSanitizePlaceholderFormulas ws
         End If
     Next ws
+
+    mPlaceholderRepairDone = True
 End Sub
 
 Public Sub OrderTplSanitizePlaceholderFormulas(ByVal ws As Worksheet)
@@ -591,24 +600,24 @@ Public Sub OrderTplSanitizePlaceholderFormulas(ByVal ws As Worksheet)
         If processed.Exists(repKey) Then GoTo ContinueCell
         processed.Add repKey, True
 
-        If OrderTplShouldClearPlaceholderFormula(ws, baseName, repCell) Then
+        ' ‘ã•\ƒZƒ‹(Œ‹‡‚Ì¶ã)‚©‚ç”®‚ğ1‰ñ‚¾‚¯æ“¾‚µ”»’è‚Ö“n‚·(MergeArea‰•œ‚Ìd•¡‚ğ‰ñ”ğ)
+        Dim formulaText As String
+        formulaText = ""
+        On Error Resume Next
+        formulaText = CStr(repCell.Formula)
+        On Error GoTo 0
+
+        If OrderTplShouldClearPlaceholderFormula(ws, baseName, repCell, formulaText) Then
             OrderTplClearFormulaCell repCell
         End If
 ContinueCell:
     Next cell
 End Sub
 
-Private Function OrderTplGetFormulaText(ByVal cell As Range) As String
-    On Error Resume Next
-    OrderTplGetFormulaText = CStr(cell.MergeArea.Cells(1, 1).Formula)
-    On Error GoTo 0
-End Function
-
 Private Function OrderTplShouldClearPlaceholderFormula(ByVal ws As Worksheet, _
                                                        ByVal baseName As String, _
-                                                       ByVal cell As Range) As Boolean
-    Dim formulaText As String
-    formulaText = OrderTplGetFormulaText(cell)
+                                                       ByVal cell As Range, _
+                                                       ByVal formulaText As String) As Boolean
     If Len(formulaText) = 0 Then Exit Function
     If Left$(formulaText, 1) <> "=" Then Exit Function
 

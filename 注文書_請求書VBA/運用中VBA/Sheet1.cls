@@ -12,14 +12,10 @@ Attribute VB_Control = "ComboBox1, 3, 2, MSForms, ComboBox"
 Option Explicit
 
 Private Sub Worksheet_Activate()
-    Dim prevCalc As XlCalculation, prevScreen As Boolean
-    prevScreen = Application.ScreenUpdating
-    prevCalc = Application.Calculation
+    Dim g As New clsPerfGuard
+    g.Suspend
 
     On Error GoTo ExitHandler
-    Application.EnableEvents = False
-    Application.ScreenUpdating = False
-    Application.Calculation = xlCalculationManual
 
     mod_VendorMaster.ClearVendorRowsCache
     mod_FillManagerName.HideOfficeComboBox Me
@@ -35,9 +31,7 @@ Private Sub Worksheet_Activate()
     mod_BasicInfoGuide.InitBasicInfoGuide Me
 
 ExitHandler:
-    Application.Calculation = prevCalc
-    Application.ScreenUpdating = prevScreen
-    Application.EnableEvents = True
+    g.Restore
 End Sub
 
 Private Sub Worksheet_Change(ByVal target As Range)
@@ -68,14 +62,10 @@ Private Sub Worksheet_Change(ByVal target As Range)
         End If
     End If
 
-    Dim prevCalc As XlCalculation, prevScreen As Boolean
-    prevScreen = Application.ScreenUpdating
-    prevCalc = Application.Calculation
+    Dim g As New clsPerfGuard
+    g.Suspend
 
     On Error GoTo ExitHandler
-    Application.EnableEvents = False
-    Application.ScreenUpdating = False
-    Application.Calculation = xlCalculationManual
 
     Dim needComboPrompt As Boolean
     needComboPrompt = False
@@ -190,9 +180,7 @@ Private Sub Worksheet_Change(ByVal target As Range)
 
 ExitHandler:
     mod_DebugLog.Log "[Sheet1] Worksheet_Change done EnableEvents=" & Application.EnableEvents
-    Application.Calculation = prevCalc
-    Application.ScreenUpdating = prevScreen
-    Application.EnableEvents = True
+    g.Restore
 End Sub
 
 Private Sub Worksheet_BeforeDoubleClick(ByVal target As Range, Cancel As Boolean)

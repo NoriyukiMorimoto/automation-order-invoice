@@ -5,6 +5,32 @@
 
 ---
 
+## 改善着手 段階② A-2 プレースホルダー補修の MergeArea 往復を削減
+
+### #1 判定用の数式取得を1回化（OrderTplGetFormulaText を廃止）
+- `OrderTplSanitizePlaceholderFormulas` は全数式セルに対し `.MergeArea` 参照を重複実行していた（数式取得・判定・クリアで最大3回）。
+- 代表セル(結合の左上)を解決した後、そのセルから数式を1回だけ取得し、`OrderTplShouldClearPlaceholderFormula(..., formulaText)` へ引数で渡す形へ変更。判定内での再取得(`OrderTplGetFormulaText` 経由の `.MergeArea` 読み)を撤去し、同関数を削除。
+- 全数式セルあたりの `.MergeArea` COM往復を削減。挙動は等価（SpecialCells が返すのは結合の左上セルのため、取得元は従来と同一）。強制実行(再転記/F9)時と初回Activate時の1回コストを軽量化。
+
+## 改善着手 段階② A-1 プレースホルダー一括補修のActivate毎全走査を回避
+
+### #1 OrderTplRepairAllGeneratedPlaceholderFormulas に Force 引数を追加しゲート化
+- 従来、基本情報シートを表示する度に全ワークシートを走査し、生成シート(支店控/受注者用/注文請書)の数式を1セルずつ点検していた（シート切替の待ちの主因）。
+- 生成時(`GenerateVendorOrderSheets` の個別 `OrderTplSanitizePlaceholderFormulas`)・再転記時・F9レイアウト変更時に各シートは既に補修済みのため、Activateからの呼び出しは防御的な重複だった。
+- 署名を `OrderTplRepairAllGeneratedPlaceholderFormulas(Optional ByVal Force As Boolean = False)` に変更。明示呼び出し(再転記末尾=`mod_OrderTpl_Generate`、F9レイアウト=`mod_VendorBlockLayout`)は `True` で従来どおり必ず実行。`Sheet1.Worksheet_Activate` からの呼び出しは省略のままで、**セッション初回のみ実行**し以降の切替では全走査をスキップする。
+- 効果: 基本情報シートへの切替時の待ちを短縮。挙動は等価（変更時は明示呼び出しで確実に補修、初回は従来どおり実施）。
+
+## 改善着手 段階① clsPerfGuard 導入 / mod_common CP932是正
+
+### #1 clsPerfGuard クラスを新設（画面更新/計算方式/イベントの退避・復元を集約）
+- 各所に散在していた `ScreenUpdating/Calculation/EnableEvents` の save/set/restore 定型を集約するガードクラス `clsPerfGuard` を追加。
+- `Suspend`(退避＋抑制) / `Restore`(復元) を提供し、`Class_Terminate` でスコープ終了時に確実に復元。エラー経路での復元漏れ（手動計算・イベント無効のまま＝体感フリーズ）を構造的に防止する。
+- 第1弾として基本情報シートのイベント `Sheet1.Worksheet_Activate` / `Worksheet_Change` を本クラスへ置換（挙動は等価、`prevCalc`/`prevScreen` の手動退避を廃止）。残モジュールへは順次適用予定。
+
+### #2 mod_common.bas の CP932 不正バイトを是正
+- `_verify_vba_integrity.py` が検出していた CP932 厳格デコード不可（byte 9528 付近、`CommonGetProjectStatusDataFolderPath` 上部のコメント）を、意味を保ったコメントへ書き直して解消。
+- 検査の要修正は 3件→2件（残りは分割済み `*.pre_split` 残置に起因、別途整理予定）。
+
 ## ThisWorkbook.cls（施行指示書/通知書の明細変更を内訳明細へ自動反映）
 
 ### #1 転記元シートの明細データ列の変更を監視対象に追加

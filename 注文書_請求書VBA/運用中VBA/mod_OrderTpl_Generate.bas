@@ -291,7 +291,7 @@ Private Sub RefreshAllVendorOrderDetailsCore(ByVal showCompletionMessage As Bool
     Next vendorIndex
 
     Application.Calculation = prevCalculation
-    mod_OrderTpl_Shared.OrderTplRepairAllGeneratedPlaceholderFormulas
+    mod_OrderTpl_Shared.OrderTplRepairAllGeneratedPlaceholderFormulas True
     Application.Calculate
     Application.EnableEvents = prevEnableEvents
     Application.ScreenUpdating = prevScreenUpdating

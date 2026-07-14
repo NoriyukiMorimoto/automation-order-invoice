@@ -709,7 +709,7 @@ Public Sub SyncVendorBlocksFromCount(ByVal wsInfo As Worksheet)
     RestoreVendorBlockValueColumnRightBorders wsInfo, vendorCount
 
     If vendorBlocksEnsured Or vendorCount <> previousCount Or needWeldingRefresh Then
-        mod_OrderTpl_Shared.OrderTplRepairAllGeneratedPlaceholderFormulas
+        mod_OrderTpl_Shared.OrderTplRepairAllGeneratedPlaceholderFormulas True
         On Error Resume Next
         Application.Calculate
         On Error GoTo ExitHandler
