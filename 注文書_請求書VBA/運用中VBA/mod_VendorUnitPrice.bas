@@ -64,8 +64,8 @@ Public Function BuildVendorUnitPriceFormulaR1C1(ByVal isDayColumn As Boolean, _
 End Function
 
 Public Function BuildVendorUnitPriceHeaderText(ByVal wsInfo As Worksheet) As String
-    BuildVendorUnitPriceHeaderText = Trim$(CStr(wsInfo.Range(BASIC_INFO_BILLING_COUNT_CELL).value)) & _
-                                     CommonExtractYear4Digits(CStr(wsInfo.Range(BASIC_INFO_YEAR_CELL).value)) & _
+    ' 年度4桁 + 外注単価（請求回数は付けない。例: 2026外注単価）
+    BuildVendorUnitPriceHeaderText = CommonExtractYear4Digits(CStr(wsInfo.Range(BASIC_INFO_YEAR_CELL).value)) & _
                                      VendorUnitPriceOutsourceLabelText()
 End Function
 
@@ -1517,9 +1517,10 @@ Public Sub RefreshVendorUnitPriceForValueColumn(ByVal wsInfo As Worksheet, ByVal
         If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) And mod_MaterialPriceImport.IsCurrentImportBatchUnitPriceSheet(wsUnitPrice) Then
             If ShouldApplyVendorUnitPriceBlock(wsInfo, valueColumn) Then
                 If IsVendorUnitPriceBlockAlreadyBuilt(wsUnitPrice, dayCol, nightCol) Then
-                    ' 既構築ブロックは名称見出しと外注比率表示のみ更新する。
+                    ' 既構築ブロックは名称見出し・外注ヘッダー・外注比率表示のみ更新する。
                     ' 単価数式は比率セルの絶対参照で業者名に依存せず、数式行/グレー行の判定も
                     ' 単価シート行属性依存のため、業者名変更では全再構築は不要(結果は等価)。
+                    ApplyVendorUnitPriceMergedHeader wsUnitPrice, dayCol, nightCol, BuildVendorUnitPriceHeaderText(wsInfo)
                     ApplyVendorUnitPriceMergedVendorName wsUnitPrice, dayCol, nightCol, _
                         ResolveVendorUnitPriceName(vendorUnitPriceNameMap, _
                                                    CStr(wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, valueColumn).value))

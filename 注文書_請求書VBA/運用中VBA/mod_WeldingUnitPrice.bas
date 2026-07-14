@@ -14,7 +14,7 @@ Private Const BASIC_INFO_WELDING_FLAG_ROW As Long = 23        ' 溶接工事有無フラ
 Private Const BASIC_INFO_WELDING_FLAG_COL As Long = 3         ' C列
 Private Const MAX_VENDOR_BLOCK_COUNT As Long = 10
 Private Const WUP_RATIO_ROW As Long = 1           ' 外注比率表示行
-Private Const WUP_HEADER_ROW As Long = 4          ' 「(回数)(年度)外注単価」結合ヘッダー行
+Private Const WUP_HEADER_ROW As Long = 4          ' 「(年度)外注単価」結合ヘッダー行
 Private Const WUP_NAME_ROW As Long = 5            ' 会社名結合行
 Private Const WUP_LABEL_ROW As Long = 6           ' 昼間/夜間ラベル行
 Private Const WUP_DATA_START_ROW As Long = 7
@@ -340,8 +340,8 @@ Private Function BuildWeldingUnitPriceHeaderText(ByVal wsInfo As Worksheet, _
         labelText = WeldingTemotoUnitPriceLabelText()
     End If
 
-    BuildWeldingUnitPriceHeaderText = Trim$(CStr(wsInfo.Range(BASIC_INFO_BILLING_COUNT_CELL).Value)) & _
-                                      CommonExtractYear4Digits(CStr(wsInfo.Range(BASIC_INFO_YEAR_CELL).Value)) & _
+    ' 年度4桁 + 外注単価/溶接手元単価（請求回数は付けない。例: 2026外注単価）
+    BuildWeldingUnitPriceHeaderText = CommonExtractYear4Digits(CStr(wsInfo.Range(BASIC_INFO_YEAR_CELL).Value)) & _
                                       labelText
 End Function
 
@@ -385,7 +385,7 @@ Private Function CollectWeldingUnitPriceSheets(ByVal targetBook As Workbook) As 
     Set CollectWeldingUnitPriceSheets = result
 End Function
 
-' (回数)(年度4桁)外注単価 / 軌道会社列は(回数)(年度4桁)溶接手元単価
+' (年度4桁)外注単価 / 軌道会社列は(年度4桁)溶接手元単価
 
 Private Function CollectionContainsLongWUP(ByVal values As Collection, ByVal targetValue As Long) As Boolean
     Dim item As Variant
@@ -1581,7 +1581,8 @@ Private Sub ApplyWeldingVendorUnitPricesToSheetColumns(ByVal wsWelding As Worksh
                                         ResolveVendorUnitPriceNameWUP(vendorUnitPriceNameMap, weldingBlocks(wIdx).vendorName)
             Else
                 UpdateWeldingVendorDisplayNameOnly wsWelding, weldingDayCol, _
-                    ResolveVendorUnitPriceNameWUP(vendorUnitPriceNameMap, weldingBlocks(wIdx).vendorName)
+                    ResolveVendorUnitPriceNameWUP(vendorUnitPriceNameMap, weldingBlocks(wIdx).vendorName), _
+                    outsourceHeaderText
             End If
         End If
     Next wIdx
@@ -1820,6 +1821,11 @@ Private Sub SyncWeldingVendorBlocksLayoutOnSheet(ByVal wsWelding As Worksheet, _
     lastRow = wsWelding.Cells(wsWelding.Rows.Count, WUP_SEIRI_COL).End(xlUp).Row
     If lastRow < WUP_DATA_START_ROW Then lastRow = WUP_DATA_START_ROW + 200
 
+    Dim outsourceHeaderText As String
+    Dim railHeaderText As String
+    outsourceHeaderText = BuildWeldingUnitPriceHeaderText(wsInfo, True)
+    railHeaderText = BuildWeldingUnitPriceHeaderText(wsInfo, False)
+
     ClearLegacyOutsourcePatternSelector wsWelding
 
     Dim wIdx As Long
@@ -1828,7 +1834,8 @@ Private Sub SyncWeldingVendorBlocksLayoutOnSheet(ByVal wsWelding As Worksheet, _
         weldingDayCol = GetWeldingDayColByIndex(wIdx)
         If ShouldShowWeldingVendorBlock(weldingBlocks(wIdx)) Then
             UpdateWeldingVendorDisplayNameOnly wsWelding, weldingDayCol, _
-                ResolveVendorUnitPriceNameWUP(vendorUnitPriceNameMap, weldingBlocks(wIdx).vendorName)
+                ResolveVendorUnitPriceNameWUP(vendorUnitPriceNameMap, weldingBlocks(wIdx).vendorName), _
+                outsourceHeaderText
         Else
             ClearWeldingVendorBlock wsWelding, lastRow, weldingDayCol
         End If
@@ -1845,7 +1852,8 @@ Private Sub SyncWeldingVendorBlocksLayoutOnSheet(ByVal wsWelding As Worksheet, _
         If ShouldShowWeldingVendorBlock(railBlocks(railIndex)) Then
             ApplyRailPatternRow wsWelding, wsInfo, railDayCol, railBlocks(railIndex).valueColumn
             UpdateWeldingVendorDisplayNameOnly wsWelding, railDayCol, _
-                ResolveVendorUnitPriceNameWUP(vendorUnitPriceNameMap, railBlocks(railIndex).vendorName)
+                ResolveVendorUnitPriceNameWUP(vendorUnitPriceNameMap, railBlocks(railIndex).vendorName), _
+                railHeaderText
         Else
             ClearRailPatternBlock wsWelding, railDayCol
             ClearWeldingVendorBlock wsWelding, lastRow, railDayCol
@@ -1866,7 +1874,11 @@ End Sub
 
 Private Sub UpdateWeldingVendorDisplayNameOnly(ByVal wsWelding As Worksheet, _
                                                ByVal dayCol As Long, _
-                                               ByVal displayName As String)
+                                               ByVal displayName As String, _
+                                               Optional ByVal headerText As String = "")
+    If Len(Trim$(headerText)) > 0 Then
+        ApplyMergedCell wsWelding, WUP_HEADER_ROW, dayCol, dayCol + 1, headerText, False
+    End If
     ApplyMergedCell wsWelding, WUP_NAME_ROW, dayCol, dayCol + 1, displayName, True
 End Sub
 
