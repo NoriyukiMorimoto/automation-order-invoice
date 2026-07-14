@@ -126,7 +126,7 @@ Private Function OrderTplIntegerUnitListText() As String
     OrderTplIntegerUnitListText = cached
 End Function
 
-' 小数3桁の単位一覧
+' 小数2桁の単位一覧
 Private Function OrderTplDecimalUnitListText() As String
     Static cached As String
     If cached = "" Then
@@ -525,7 +525,7 @@ Public Function OrderTplIsIntegerUnit(ByVal unitText As String) As Boolean
     OrderTplIsIntegerUnit = UnitListContains(OrderTplIntegerUnitListText(), unitText)
 End Function
 
-' 数量の単位が小数3桁対象か判定する
+' 数量の単位が小数2桁対象か判定する
 Public Function OrderTplIsDecimalUnit(ByVal unitText As String) As Boolean
     OrderTplIsDecimalUnit = UnitListContains(OrderTplDecimalUnitListText(), unitText)
 End Function

@@ -11,39 +11,36 @@ Attribute VB_Control = "btnClearBasicInfo, 2, 1, MSForms, CommandButton"
 Attribute VB_Control = "ComboBox1, 3, 2, MSForms, ComboBox"
 Option Explicit
 
+' 基本情報シートのActivate時、重い再構築(入力規則の再構築・合計再計算・レガシー掃除)は
+' セッション初回のみ実行するためのフラグ。2回目以降の切替では省略する(各処理は対応する
+' セル変更イベント/取込処理側で維持されるため、切替の都度やり直す必要がない)。
+Private mBasicInfoActivateInitialized As Boolean
+
 Private Sub Worksheet_Activate()
     Dim g As New clsPerfGuard
     g.Suspend
 
     On Error GoTo ExitHandler
 
-    ' [計測用] 各処理の所要時間を [ActT] としてログへ記録する(犯人特定後に撤去予定)
-    Dim t As Double
-    t = Timer
+    ' 毎回必要な軽量処理(キャッシュ初期化・UI後始末・件数初期化・入力ガイド)
     mod_VendorMaster.ClearVendorRowsCache
-    mod_DebugLog.LogPersist "[ActT] ClearVendorRowsCache=" & Format$((Timer - t) * 1000, "0") & "ms": t = Timer
     mod_FillManagerName.HideOfficeComboBox Me
-    mod_DebugLog.LogPersist "[ActT] HideOfficeComboBox=" & Format$((Timer - t) * 1000, "0") & "ms": t = Timer
-    mod_FillManagerName.CleanupLegacyBasicInfoValidationListDebris Me
-    mod_DebugLog.LogPersist "[ActT] CleanupLegacyBasicInfoValidationListDebris=" & Format$((Timer - t) * 1000, "0") & "ms": t = Timer
-    mod_VendorMaster.CleanupLegacyVendorListDebrisInColumnAD Me
-    mod_DebugLog.LogPersist "[ActT] CleanupLegacyVendorListDebrisInColumnAD=" & Format$((Timer - t) * 1000, "0") & "ms": t = Timer
-    mod_FillManagerName.RefreshBranchOfficeValidation True
-    mod_DebugLog.LogPersist "[ActT] RefreshBranchOfficeValidation=" & Format$((Timer - t) * 1000, "0") & "ms": t = Timer
     mod_VendorMaster.EnsureVendorCountInputValidation Me
-    mod_DebugLog.LogPersist "[ActT] EnsureVendorCountInputValidation=" & Format$((Timer - t) * 1000, "0") & "ms": t = Timer
     mod_OrderTpl_Shared.OrderTplRepairAllGeneratedPlaceholderFormulas
-    mod_DebugLog.LogPersist "[ActT] OrderTplRepairAllGeneratedPlaceholderFormulas=" & Format$((Timer - t) * 1000, "0") & "ms": t = Timer
     mod_VendorMaster.InitVendorBlockCountFromSheet Me
-    mod_DebugLog.LogPersist "[ActT] InitVendorBlockCountFromSheet=" & Format$((Timer - t) * 1000, "0") & "ms": t = Timer
-    mod_VendorMaster.RefreshVendorListForBasicInfo Me
-    mod_DebugLog.LogPersist "[ActT] RefreshVendorListForBasicInfo=" & Format$((Timer - t) * 1000, "0") & "ms": t = Timer
-    mod_MaterialPriceImport.RefreshUnitPriceProjectNameValidation Me
-    mod_DebugLog.LogPersist "[ActT] RefreshUnitPriceProjectNameValidation=" & Format$((Timer - t) * 1000, "0") & "ms": t = Timer
-    mod_Construction_Order_Import.RefreshBasicInfoConstructionTotals
-    mod_DebugLog.LogPersist "[ActT] RefreshBasicInfoConstructionTotals=" & Format$((Timer - t) * 1000, "0") & "ms": t = Timer
     mod_BasicInfoGuide.InitBasicInfoGuide Me
-    mod_DebugLog.LogPersist "[ActT] InitBasicInfoGuide=" & Format$((Timer - t) * 1000, "0") & "ms": t = Timer
+
+    ' 重い再構築(レガシー掃除・入力規則の再構築・合計再計算)はセッション初回のみ実行する。
+    ' 2回目以降の切替では省略(いずれも対応するセル変更イベント/取込処理側で最新に維持される)。
+    If Not mBasicInfoActivateInitialized Then
+        mod_FillManagerName.CleanupLegacyBasicInfoValidationListDebris Me
+        mod_VendorMaster.CleanupLegacyVendorListDebrisInColumnAD Me
+        mod_FillManagerName.RefreshBranchOfficeValidation True
+        mod_VendorMaster.RefreshVendorListForBasicInfo Me
+        mod_MaterialPriceImport.RefreshUnitPriceProjectNameValidation Me
+        mod_Construction_Order_Import.RefreshBasicInfoConstructionTotals
+        mBasicInfoActivateInitialized = True
+    End If
 
 ExitHandler:
     g.Restore

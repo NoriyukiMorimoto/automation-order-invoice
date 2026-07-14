@@ -21,7 +21,7 @@ Private Const SUMMARY_EXTRA_ROWS As Long = 5   ' 値引/計/消費税/合計/罫線用空白
 Private Const SUMMARY_NUMBER_FORMAT As String = "#,##0"
 Private Const SUMMARY_ZERO_HIDE_FORMAT As String = "#,##0;-#,##0;"
 Private Const DETAIL_AMOUNT_NUMBER_FORMAT As String = "#,##0;-#,##0;"            ' 桁区切り・ゼロ非表示
-Private Const DETAIL_QTY_DECIMAL_NUMBER_FORMAT As String = "#,##0.000;-#,##0.000;" ' 小数3桁・ゼロ非表示
+Private Const DETAIL_QTY_DECIMAL_NUMBER_FORMAT As String = "#,##0.00;-#,##0.00;" ' 小数2桁・ゼロ非表示
 Private Const DETAIL_FONT_SIZE As Double = 11#
 Private Const DETAIL_COL_A_WIDTH As Double = 7#
 Private Const DETAIL_COL_QTY_4 As Long = 15          ' O列(第4数量列)
@@ -645,7 +645,7 @@ Private Sub WriteBlockLines(ByVal sections As Collection, _
     Next sectionItem
 End Sub
 
-' 数量の表示形式: 溶接は桁切りなし(General)、工事は単位に応じて整数(0)/小数3桁(0.000)
+' 数量の表示形式: 溶接は桁切りなし(General)、工事は単位に応じて整数(0)/小数2桁(0.00)
 Private Function QuantityFormatGroup(ByVal unitText As String, ByVal isWeldingSource As Boolean) As Long
     If isWeldingSource Then
         QuantityFormatGroup = FMT_GROUP_GENERAL
@@ -708,7 +708,7 @@ Private Sub ApplyDetailFormats(ByVal wsBreakdown As Worksheet, _
         End With
     Next lineIndex
 
-    ' 数量列(F/I/L/O): 単位が小数3桁対象(m/m3/M/㎡/t)の行を小数3桁表示へ上書き
+    ' 数量列(F/I/L/O): 単位が小数2桁対象(m/m3/M/㎡/t)の行を小数2桁表示へ上書き
     ApplyNumberFormatToLineRows wsBreakdown, startRow, 6, decimalLineRows, DETAIL_QTY_DECIMAL_NUMBER_FORMAT
     ApplyNumberFormatToLineRows wsBreakdown, startRow, 9, decimalLineRows, DETAIL_QTY_DECIMAL_NUMBER_FORMAT
     ApplyNumberFormatToLineRows wsBreakdown, startRow, 12, decimalLineRows, DETAIL_QTY_DECIMAL_NUMBER_FORMAT

@@ -12,6 +12,16 @@
 - 原因: 小数単位一覧は半角 `m|M|t` で定義されているが、施工指示書の単位は全角英字（U+FF4D 等）で転記される。`UnitListContains` が完全一致のみで半角化していなかった。`㎡`（U+33A1）は一覧とデータが同一文字のためのみ一致していた。
 - 修正: 照合前に `StrConv(..., vbNarrow)` で半角化。整数単位判定も同関数経由のため同時に改善。
 
+## 改善着手 A-1 基本情報シートActivateの応答なし短縮（計測に基づく本対応）
+
+### #1 重い再構築をセッション初回のみに絞る（Sheet1.Worksheet_Activate）
+- 目的: 基本情報シートへフォーカスを移した時（Activate）の「応答なし」時間の短縮。
+- 計測（各処理の所要ms を一時ログ `[ActT]` で採取）の結果、2回目以降の切替でも毎回 約1.3〜2.5秒かかっており、内訳は `RefreshBasicInfoConstructionTotals`（合計再計算, 457〜910ms）、`RefreshBranchOfficeValidation`（出張所長の入力規則, 281〜508ms）、`RefreshVendorListForBasicInfo`（業者リスト入力規則, 176〜242ms）、`RefreshUnitPriceProjectNameValidation`（55〜102ms）、`CleanupLegacyVendorListDebrisInColumnAD`（残骸掃除, 148〜215ms）が主因。
+- これらはいずれも対応するセル変更イベント／取込処理側で最新に維持される（例: `RefreshBasicInfoConstructionTotals` は取込・F9・会社変更・単価更新の各経路で呼ばれる）ため、Activate時の再実行は冗長。
+- 対応: モジュールフラグ `mBasicInfoActivateInitialized` を追加し、上記の重い再構築＋レガシー掃除を**セッション初回のActivateのみ**実行。2回目以降は省略。軽量処理（キャッシュ初期化・コンボ後始末・件数初期化・入力ガイド・プレースホルダー補修=既に初回のみ）は毎回実行。
+- 効果（実測ベースの見込み）: 2回目以降の切替が 約1.3〜2.5秒 → 約0.2〜0.4秒。初回の切替のみ従来どおり全処理を実行。
+- 注意: マスタファイルをセッション途中で外部変更した場合、入力規則の再構築は次回起動まで反映されない（データ自体はセル変更イベントで正しく維持される）。計測用の一時ログ `[ActT]` は撤去済み。
+
 ## 改善着手 B-1 PerfGuard 横展開（安全な等価変換分）
 
 ### #1 3プロシージャを clsPerfGuard へ変換（挙動等価）
