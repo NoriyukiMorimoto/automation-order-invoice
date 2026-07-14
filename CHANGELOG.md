@@ -5,6 +5,15 @@
 
 ---
 
+## 改善着手 段階③ 単価展開の高速化（施工会社名変更時の全再構築を回避）
+
+### #1 工事単価: 既構築ブロックは名称＋比率のみ更新（mod_VendorUnitPrice）
+- 施工会社名を変更すると、その列について各工事単価シートでブロック全体（全行の数式・グレー塗り・罫線・フォント・見出し・名称・比率）を再構築しており、実測で最大のフリーズ要因だった（1社入力あたり約21秒）。
+- 単価数式は `=ROUND(RC[offset]*(比率セルの絶対参照),…)` で業者名に依存せず、数式行/グレー行の判定も単価シート行属性（元単価・工種）依存で業者非依存。比率は絶対参照のため値変更はExcel再計算で反映される。よって名称変更時にブロック全再構築は不要。
+- `RefreshVendorUnitPriceForValueColumn` を、既存の軽量処理 `RefreshVendorUnitPriceOutsourceRatioOnlyForValueColumn` と同じ構造へ変更。`IsVendorUnitPriceBlockAlreadyBuilt`＝True の既構築ブロックは `ApplyVendorUnitPriceMergedVendorName`（名称見出し）＋ `ApplyVendorUnitPriceOutsourceRatioRow`（比率表示）のみ更新。未構築（新規業者・初回）は従来どおり `ApplyVendorUnitPriceBlockToSheet` で全展開（フォールバック）。
+- 効果: 名称変更時の工事単価展開が「全行再構築×全単価シート」から「見出し＋比率行の更新」へ。結果（単価・金額）は等価。
+- 溶接側（`mod_WeldingUnitPrice`）は既に対象外列を `UpdateWeldingVendorDisplayNameOnly` で名称のみ更新済み。残る対象列の全再構築（約12秒）も同様に軽量化可能だが、軌道パターン行・hasRatio 分岐があるため、工事単価側の実機検証後に別途対応予定。
+
 ## 改善着手 段階② A-2 プレースホルダー補修の MergeArea 往復を削減
 
 ### #1 判定用の数式取得を1回化（OrderTplGetFormulaText を廃止）

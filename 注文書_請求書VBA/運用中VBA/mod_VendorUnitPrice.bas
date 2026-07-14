@@ -1516,7 +1516,17 @@ Public Sub RefreshVendorUnitPriceForValueColumn(ByVal wsInfo As Worksheet, ByVal
     For Each wsUnitPrice In targetBook.worksheets
         If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) And mod_MaterialPriceImport.IsCurrentImportBatchUnitPriceSheet(wsUnitPrice) Then
             If ShouldApplyVendorUnitPriceBlock(wsInfo, valueColumn) Then
-                ApplyVendorUnitPriceBlockToSheet wsUnitPrice, wsInfo, valueColumn, vendorUnitPriceNameMap
+                If IsVendorUnitPriceBlockAlreadyBuilt(wsUnitPrice, dayCol, nightCol) Then
+                    ' 既構築ブロックは名称見出しと外注比率表示のみ更新する。
+                    ' 単価数式は比率セルの絶対参照で業者名に依存せず、数式行/グレー行の判定も
+                    ' 単価シート行属性依存のため、業者名変更では全再構築は不要(結果は等価)。
+                    ApplyVendorUnitPriceMergedVendorName wsUnitPrice, dayCol, nightCol, _
+                        ResolveVendorUnitPriceName(vendorUnitPriceNameMap, _
+                                                   CStr(wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, valueColumn).value))
+                    ApplyVendorUnitPriceOutsourceRatioRow wsUnitPrice, wsInfo, valueColumn, dayCol, nightCol
+                Else
+                    ApplyVendorUnitPriceBlockToSheet wsUnitPrice, wsInfo, valueColumn, vendorUnitPriceNameMap
+                End If
             ElseIf IsRailConstructionVendorBlock(wsInfo, valueColumn) And _
                    HasVendorName(wsInfo, valueColumn) Then
                 ' 11行目のみ入力済み。29行目入力待ちの間は既存列を消さない
