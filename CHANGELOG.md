@@ -5,6 +5,16 @@
 
 ---
 
+## ThisWorkbook.cls（施行指示書/通知書の明細変更を内訳明細へ自動反映）
+
+### #1 転記元シートの明細データ列の変更を監視対象に追加
+- 従来、施行指示書/施行通知書(工事・溶接)シートでは **施工会社選択列**（工事:A列/溶接:A・B列）の変更時のみ内訳明細への遅延再転記(`ScheduleOrderDetailRefresh`)が発火していた。
+- 内訳明細の明細部(`ApplyBreakdownDetails`)は整理番号・種別・昼夜・単位・数量・線区・管理室を転記元にしているため、これらの列を編集しても反映されない問題があった。
+- `Workbook_SheetChange` の監視範囲を **施工会社列＋明細データ列(整理番号～管理室)** に拡張。溶接シートは列オフセット(+1)を考慮。該当変更で全確定会社の内訳明細を遅延一括再転記する。
+- 施工会社別単価の再計算(`RefreshSubcontractorPriceColumns`)は、価格ルックアップに影響する **施工会社列・整理番号列** の変更時のみ実行（数量等の編集では無駄な再計算をしない）。業者名列の`AutoFit`も施工会社列変更時のみ。
+- 実装: `GetOrderDetailMonitorColumns`／`GetPriceLookupColumns`／`CollectMonitorChangeRows` を追加し、旧 `CollectVendorChangeRows` を置換。適用方式は既存の遅延自動適用(約1秒デバウンス→`RefreshAllVendorOrderDetailsSilent`)を流用。
+- 備考: 基本情報シートのヘッダー転記元変更は従来どおり `HandleBasicInfoHeaderSourceChange`→`RefreshAllVendorSheetHeaders` で受注者用/注文請書/支店控へ反映済み（本改修は転記元シート側のギャップを補完）。
+
 ## 基本情報 その他入力事項(37-42行)の施工会社数連動コピー
 
 - F9(施工会社数)に応じ、1社目の37-42行(その他入力事項)のラベル・書式を2社目以降へコピーする。

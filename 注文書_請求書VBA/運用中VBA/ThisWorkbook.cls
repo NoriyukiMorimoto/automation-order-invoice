@@ -133,21 +133,34 @@ UnitPriceCleanup:
     End If
 
     If Not IsSubconSheet(Sh) Then Exit Sub
-    If Application.Intersect(Target, GetVendorSelectionColumns(Sh)) Is Nothing Then Exit Sub
+
+    ' ŠÄŽ‹‘ÎÛ: Ž{H‰ïŽÐ—ñ + “à–ó–¾×‚Ö‚Ì“]‹LŒ³ƒf[ƒ^—ñ(®—”Ô†`ŠÇ—Žº)
+    Dim monitorCols As Range
+    Set monitorCols = GetOrderDetailMonitorColumns(Sh)
+    If Application.Intersect(Target, monitorCols) Is Nothing Then Exit Sub
 
     Dim prevEE As Boolean
     prevEE = Application.EnableEvents
     On Error GoTo Cleanup
     Application.EnableEvents = False
 
-    If Sh.AutoFilterMode Then
-        mod_Construction_Order_Import.RefreshSubcontractorPriceColumns Sh
-    Else
-        mod_Construction_Order_Import.RefreshSubcontractorPriceColumns Sh, CollectVendorChangeRows(Sh, Target)
+    ' Ž{H‰ïŽÐ—ñE®—”Ô†—ñ‚Ì•ÏXŽž‚ÍŽ{H‰ïŽÐ•Ê’P‰¿—ñ‚ðÄŒvŽZ‚·‚é
+    Dim priceHit As Range
+    Set priceHit = Application.Intersect(Target, GetPriceLookupColumns(Sh))
+    If Not priceHit Is Nothing Then
+        If Sh.AutoFilterMode Then
+            mod_Construction_Order_Import.RefreshSubcontractorPriceColumns Sh
+        Else
+            mod_Construction_Order_Import.RefreshSubcontractorPriceColumns Sh, CollectMonitorChangeRows(Sh, priceHit)
+        End If
     End If
-    GetVendorSelectionColumns(Sh).AutoFit
 
-    ' Ž{H‰ïŽÐ—ñ‚Ì•ÏX‚ðŠeŽÐ‚Ì“à–ó–¾×‚ÖŽ©“®”½‰f(’x‰„—\–ñ)
+    ' Ž{H‰ïŽÐ—ñ‚Ì•ÏXŽž‚Ì‚Ý‹ÆŽÒ–¼—ñ‚Ì•‚ðŽ©“®’²®‚·‚é
+    If Not Application.Intersect(Target, GetVendorSelectionColumns(Sh)) Is Nothing Then
+        GetVendorSelectionColumns(Sh).AutoFit
+    End If
+
+    ' Ž{H‰ïŽÐ—ñE–¾×ƒf[ƒ^—ñ(®—”Ô†`ŠÇ—Žº)‚Ì•ÏX‚ðŠeŽÐ‚Ì“à–ó–¾×‚ÖŽ©“®”½‰f(’x‰„—\–ñ)
     mod_OrderTpl_Generate.ScheduleOrderDetailRefresh
 
 Cleanup:
@@ -157,12 +170,35 @@ Public Sub RunScheduledSubcontractorSelection()
     mod_subcontractorselector.RunScheduledSubcontractorSelection
 End Sub
 
-Private Function CollectVendorChangeRows(ByVal ws As Worksheet, ByVal Target As Range) As Collection
+' “à–ó–¾×‚Ö‚Ì“]‹L‚É‰e‹¿‚·‚éŠÄŽ‹‘ÎÛ—ñ
+' (Ž{H‰ïŽÐ—ñ + –¾×ƒf[ƒ^—ñ ®—”Ô†`ŠÇ—Žº)B—nÚƒV[ƒg‚Í—ñƒIƒtƒZƒbƒg+1B
+Private Function GetOrderDetailMonitorColumns(ByVal Sh As Object) As Range
+    Dim lastCol As Long
+    If mod_Construction_Order_Import.IsWeldingOutputSheet(Sh) Then
+        lastCol = COL_MGR + WELDING_OUTPUT_COL_OFFSET
+    Else
+        lastCol = COL_MGR
+    End If
+    Set GetOrderDetailMonitorColumns = Sh.Range(Sh.Columns(1), Sh.Columns(lastCol))
+End Function
+
+' Ž{H‰ïŽÐ•Ê’P‰¿‚ÌÄŒvŽZ‚ª•K—v‚È—ñ(Ž{H‰ïŽÐ—ñ + ®—”Ô†—ñ)B
+Private Function GetPriceLookupColumns(ByVal Sh As Object) As Range
+    Dim seiriCol As Long
+    If mod_Construction_Order_Import.IsWeldingOutputSheet(Sh) Then
+        seiriCol = COL_SEIRI + WELDING_OUTPUT_COL_OFFSET
+    Else
+        seiriCol = COL_SEIRI
+    End If
+    Set GetPriceLookupColumns = Application.Union(GetVendorSelectionColumns(Sh), Sh.Columns(seiriCol))
+End Function
+
+' •ÏXƒZƒ‹‚©‚çd•¡‚ðœ‚¢‚½s”Ô†ƒRƒŒƒNƒVƒ‡ƒ“‚ð•Ô‚·
+' (hitRange ‚Í Intersect(Target, ŠÄŽ‹—ñ) Ï‚Ý‚Ì”ÍˆÍ)
+Private Function CollectMonitorChangeRows(ByVal ws As Worksheet, ByVal hitRange As Range) As Collection
     Dim result As New Collection
-    Dim vendorHit As Range
-    Set vendorHit = Application.Intersect(Target, GetVendorSelectionColumns(ws))
-    If vendorHit Is Nothing Then
-        Set CollectVendorChangeRows = result
+    If hitRange Is Nothing Then
+        Set CollectMonitorChangeRows = result
         Exit Function
     End If
 
@@ -171,7 +207,7 @@ Private Function CollectVendorChangeRows(ByVal ws As Worksheet, ByVal Target As 
     seen.CompareMode = vbTextCompare
 
     Dim c As Range
-    For Each c In vendorHit.Cells
+    For Each c In hitRange.Cells
         If c.Row >= SUBCON_DATA_START_ROW Then
             Dim rowKey As String
             rowKey = CStr(c.Row)
@@ -182,7 +218,7 @@ Private Function CollectVendorChangeRows(ByVal ws As Worksheet, ByVal Target As 
         End If
     Next c
 
-    Set CollectVendorChangeRows = result
+    Set CollectMonitorChangeRows = result
 End Function
 
 Private Function SubconHeaderVendorText() As String
