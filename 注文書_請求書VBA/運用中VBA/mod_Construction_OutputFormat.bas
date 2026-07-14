@@ -337,15 +337,11 @@ Public Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
 End Sub
 
 Public Sub RefreshConstructionReferenceUnitPricesOnExistingSheetsCore()
-    Dim prevScreen As Boolean
-    Dim prevCalc As XlCalculation
-    prevScreen = Application.ScreenUpdating
-    prevCalc = Application.Calculation
+    Dim g As New clsPerfGuard
     mod_Construction_LineMapping.ClearProjectLineNameAliasCache
 
     On Error GoTo Cleanup
-    Application.ScreenUpdating = False
-    Application.Calculation = xlCalculationManual
+    g.Suspend DisableEvents:=False
 
     Dim ws As Worksheet
     Dim refreshedCount As Long
@@ -367,8 +363,7 @@ Public Sub RefreshConstructionReferenceUnitPricesOnExistingSheetsCore()
     LogCI "既存施工指示書等シートの参照単価再読込: 対象=" & refreshedCount
 
 Cleanup:
-    Application.Calculation = prevCalc
-    Application.ScreenUpdating = prevScreen
+    g.Restore
 End Sub
 
 Public Sub RefreshConstructionReferencePricesForUnitPriceChangeCore( _

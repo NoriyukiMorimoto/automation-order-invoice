@@ -1643,16 +1643,12 @@ Public Sub SyncVendorUnitPriceBlocksAfterCountChange(ByVal wsInfo As Worksheet, 
     Dim targetBook As Workbook
     Dim vendorUnitPriceNameMap As Object
     Dim wsUnitPrice As Worksheet
-    Dim previousScreenUpdating As Boolean
-    Dim previousCalculation As XlCalculation
+    Dim g As New clsPerfGuard
 
     Set targetBook = wsInfo.Parent
-    previousScreenUpdating = Application.screenUpdating
-    previousCalculation = Application.Calculation
-    Application.screenUpdating = False
-    Application.Calculation = xlCalculationManual
 
     On Error GoTo SyncCleanup
+    g.Suspend DisableEvents:=False
 
     If previousCount <= 0 Or vendorCount = previousCount Then
         Set vendorUnitPriceNameMap = BuildVendorUnitPriceNameMap(wsInfo)
@@ -1693,8 +1689,7 @@ SyncCleanup:
                          Err.Number & ": " & Err.Description
         Err.Clear
     End If
-    Application.screenUpdating = previousScreenUpdating
-    Application.Calculation = previousCalculation
+    g.Restore
 End Sub
 
 ' 単価シート1枚分の全社ブロック再展開＋装飾(罫線・桁区切り・塗り)。

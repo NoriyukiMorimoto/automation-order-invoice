@@ -32,17 +32,9 @@ End Sub
 Private Sub OptimizeWorkbookInternal(ByVal wb As Workbook, ByVal showResult As Boolean)
     If wb Is Nothing Then Set wb = ThisWorkbook
 
-    Dim prevScreen As Boolean
-    Dim prevEvents As Boolean
-    Dim prevCalc As XlCalculation
-    prevScreen = Application.screenUpdating
-    prevEvents = Application.EnableEvents
-    prevCalc = Application.Calculation
-
+    Dim g As New clsPerfGuard
     On Error GoTo CleanExit
-    Application.screenUpdating = False
-    Application.EnableEvents = False
-    Application.Calculation = xlCalculationManual
+    g.Suspend
 
     Dim basicInfoName As String
     basicInfoName = CommonGetBasicInfoSheetName(wb)
@@ -68,9 +60,7 @@ CleanExit:
         mod_DebugLog.Log "[WorkbookOptimize] error " & Err.Number & ": " & Err.Description
         Err.Clear
     End If
-    Application.Calculation = prevCalc
-    Application.EnableEvents = prevEvents
-    Application.screenUpdating = prevScreen
+    g.Restore
 End Sub
 
 ' 基本情報シート: 業者ブロック使用範囲(AG=33列)より右の空セル書式のみクリア

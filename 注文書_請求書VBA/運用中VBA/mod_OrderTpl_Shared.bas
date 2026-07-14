@@ -534,6 +534,8 @@ Private Function UnitListContains(ByVal listText As String, ByVal unitText As St
     Dim normalizedUnit As String
     normalizedUnit = CommonRemoveAllSpaces(CommonNormalizeText(unitText))
     If normalizedUnit = "" Then Exit Function
+    ' ’P‰¿•\E{Hw¦‘‚Ì’PˆÊ‚Í‘SŠp‰pš(‚/‚l/‚”)‚Å“ü‚é‚±‚Æ‚ª‚ ‚é‚½‚ß”¼Šp‚Ö³‹K‰»‚µ‚ÄÆ‡‚·‚é
+    normalizedUnit = StrConv(normalizedUnit, vbNarrow)
 
     Dim items As Variant
     items = Split(listText, "|")

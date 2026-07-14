@@ -5,6 +5,24 @@
 
 ---
 
+## 不具合修正 内訳明細の数量列小数書式が m/M/t で適用されない
+
+### #1 単位照合前に全角英字を半角へ正規化（mod_OrderTpl_Shared.UnitListContains）
+- 現象: 内訳明細の F/I/L/O 列で、E 列が `ｍ`/`Ｍ`/`ｔ`（全角）の行は小数3桁書式が付かず、`㎡` のみ `#,##0.000` になる。
+- 原因: 小数単位一覧は半角 `m|M|t` で定義されているが、施工指示書の単位は全角英字（U+FF4D 等）で転記される。`UnitListContains` が完全一致のみで半角化していなかった。`㎡`（U+33A1）は一覧とデータが同一文字のためのみ一致していた。
+- 修正: 照合前に `StrConv(..., vbNarrow)` で半角化。整数単位判定も同関数経由のため同時に改善。
+
+## 改善着手 B-1 PerfGuard 横展開（安全な等価変換分）
+
+### #1 3プロシージャを clsPerfGuard へ変換（挙動等価）
+- `mod_WorkbookOptimize.OptimizeWorkbookInternal`（画面/計算/イベント）、`mod_Construction_OutputFormat.RefreshConstructionReferenceUnitPricesOnExistingSheetsCore`（画面/計算）、`mod_VendorUnitPrice.SyncVendorUnitPriceBlocksAfterCountChange`（画面/計算）の save/set/restore を `clsPerfGuard`（`Suspend`/`Restore`）へ集約。復元後の `Application.Calculate` や処理順序は保持し挙動等価。
+- 画面/計算のみ管理する箇所は `Suspend DisableEvents:=False` で等価変換。
+
+### #2 意図的に変換しない箇所（金額保護のため据え置き）
+- `mod_OrderTpl_Generate.RefreshAllVendorOrderDetailsCore`：計算モードを先に戻し補修・再計算した後にイベント/画面を戻す「分割復元」。
+- `mod_Construction_SubconPrice.RefreshSubcontractorPriceColumnsCore`：復元中に条件付き再計算を含む。
+- いずれも PerfGuard の一括復元だと順序が壊れ再計算（＝金額）に影響するため据え置き。
+
 ## 改善着手 段階③b 溶接単価: 名称変更時の対象列の全再構築を条件軽量化
 
 ### #1 既展開ブロックは比率＋名称のみ更新（mod_WeldingUnitPrice / mod_VendorMaster）
