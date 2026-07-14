@@ -786,7 +786,7 @@ Public Sub NotifyVendorBasicInfoBlockChanged(ByVal wsInfo As Worksheet, _
             Dim weldingNameChangeCols As Collection
             Set weldingNameChangeCols = New Collection
             weldingNameChangeCols.Add valueColumn
-            mod_WeldingUnitPrice.ApplyWeldingVendorUnitPricesForBasicInfoColumns wsInfo, weldingNameChangeCols, valueColumn
+            mod_WeldingUnitPrice.ApplyWeldingVendorUnitPricesForBasicInfoColumns wsInfo, weldingNameChangeCols, valueColumn, nameChangeOnly:=True
         ElseIf Len(prevWorkType) = 0 And Len(currentWorkType) > 0 Then
             Dim firstFillCols As Collection
             Set firstFillCols = New Collection

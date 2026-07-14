@@ -1546,6 +1546,36 @@ Private Sub ApplyWeldingVendorUnitPricesToSheet(ByVal wsWelding As Worksheet, _
     CopyWeldingVendorHeaderToLineSections wsWelding, weldingBlockCount, railBlockCount, lastRow
 End Sub
 
+' 指定ブロック(dayCol)のデータ行に単価(数式/値)が既に存在するか判定する。
+' 名称変更時に、既展開ブロックの明細再構築を省くための軽量判定(価格セルを確認)。
+Private Function IsWeldingBlockPricesBuilt(ByVal wsWelding As Worksheet, _
+                                          ByVal dayCol As Long, _
+                                          ByVal lastRow As Long) As Boolean
+    On Error GoTo ExitHandler
+    If dayCol <= 0 Then Exit Function
+    If lastRow < WUP_DATA_START_ROW Then Exit Function
+
+    Dim arr As Variant
+    arr = wsWelding.Range(wsWelding.Cells(WUP_DATA_START_ROW, dayCol), _
+                          wsWelding.Cells(lastRow, dayCol)).Formula
+
+    Dim i As Long
+    If IsArray(arr) Then
+        For i = LBound(arr, 1) To UBound(arr, 1)
+            If Len(Trim$(CStr(arr(i, 1)))) > 0 Then
+                IsWeldingBlockPricesBuilt = True
+                Exit Function
+            End If
+        Next i
+    Else
+        IsWeldingBlockPricesBuilt = (Len(Trim$(CStr(arr))) > 0)
+    End If
+    Exit Function
+
+ExitHandler:
+    IsWeldingBlockPricesBuilt = False
+End Function
+
 Private Sub ApplyWeldingVendorUnitPricesToSheetColumns(ByVal wsWelding As Worksheet, _
                                                        ByVal wsInfo As Worksheet, _
                                                        ByRef weldingBlocks() As WeldingVendorBlock, _
@@ -1554,7 +1584,8 @@ Private Sub ApplyWeldingVendorUnitPricesToSheetColumns(ByVal wsWelding As Worksh
                                                        ByVal railBlockCount As Long, _
                                                        ByVal temotoMap As Object, _
                                                        ByVal missingSeiriMap As Object, _
-                                                       ByVal targetValueColumns As Collection)
+                                                       ByVal targetValueColumns As Collection, _
+                                                       Optional ByVal nameChangeOnly As Boolean = False)
     Dim lastRow As Long
     lastRow = wsWelding.Cells(wsWelding.Rows.Count, WUP_SEIRI_COL).End(xlUp).Row
     If lastRow < WUP_DATA_START_ROW Then Exit Sub
@@ -1576,9 +1607,16 @@ Private Sub ApplyWeldingVendorUnitPricesToSheetColumns(ByVal wsWelding As Worksh
         weldingDayCol = GetWeldingDayColByIndex(wIdx)
         If weldingBlocks(wIdx).hasRatio Then
             If CollectionContainsLongWUP(targetValueColumns, weldingBlocks(wIdx).valueColumn) Then
-                ApplyWeldingVendorBlock wsWelding, lastRow, weldingDayCol, weldingBlocks(wIdx), True, _
-                                        outsourceHeaderText, vendorUnitPriceNameMap, temotoMap, missingSeiriMap, _
-                                        ResolveVendorUnitPriceNameWUP(vendorUnitPriceNameMap, weldingBlocks(wIdx).vendorName)
+                If nameChangeOnly And IsWeldingBlockPricesBuilt(wsWelding, weldingDayCol, lastRow) Then
+                    ' 既に単価展開済み: 外注比率(値)と会社名のみ更新し、明細行/フォント/罫線の再構築を省く
+                    ApplyOutsourceRatioRow wsWelding, weldingDayCol, weldingDayCol + 1, weldingBlocks(wIdx).ratioPercent
+                    UpdateWeldingVendorDisplayNameOnly wsWelding, weldingDayCol, _
+                        ResolveVendorUnitPriceNameWUP(vendorUnitPriceNameMap, weldingBlocks(wIdx).vendorName)
+                Else
+                    ApplyWeldingVendorBlock wsWelding, lastRow, weldingDayCol, weldingBlocks(wIdx), True, _
+                                            outsourceHeaderText, vendorUnitPriceNameMap, temotoMap, missingSeiriMap, _
+                                            ResolveVendorUnitPriceNameWUP(vendorUnitPriceNameMap, weldingBlocks(wIdx).vendorName)
+                End If
             Else
                 UpdateWeldingVendorDisplayNameOnly wsWelding, weldingDayCol, _
                     ResolveVendorUnitPriceNameWUP(vendorUnitPriceNameMap, weldingBlocks(wIdx).vendorName), _
@@ -1595,8 +1633,15 @@ Private Sub ApplyWeldingVendorUnitPricesToSheetColumns(ByVal wsWelding As Worksh
             If railBlocks(railIndex).hasRatio Then
                 railBlocks(railIndex).patternAddress = BuildRailPatternSheetRef(wsWelding, railDayCol)
                 ApplyRailPatternRow wsWelding, wsInfo, railDayCol, railBlocks(railIndex).valueColumn
-                ApplyWeldingVendorBlock wsWelding, lastRow, railDayCol, railBlocks(railIndex), False, _
-                                        railHeaderText, vendorUnitPriceNameMap, temotoMap, missingSeiriMap
+                If nameChangeOnly And IsWeldingBlockPricesBuilt(wsWelding, railDayCol, lastRow) Then
+                    ' 既に単価展開済み: 外注比率(数式)と会社名のみ更新し、明細行の再構築を省く
+                    ApplyRailMarkupRatioRow wsWelding, railDayCol, railDayCol + 1, railBlocks(railIndex).ratioAddress
+                    UpdateWeldingVendorDisplayNameOnly wsWelding, railDayCol, _
+                        ResolveVendorUnitPriceNameWUP(vendorUnitPriceNameMap, railBlocks(railIndex).vendorName)
+                Else
+                    ApplyWeldingVendorBlock wsWelding, lastRow, railDayCol, railBlocks(railIndex), False, _
+                                            railHeaderText, vendorUnitPriceNameMap, temotoMap, missingSeiriMap
+                End If
             Else
                 ClearRailPatternBlock wsWelding, railDayCol
                 ClearWeldingVendorBlock wsWelding, lastRow, railDayCol
@@ -2030,7 +2075,8 @@ End Sub
 Public Sub ApplyWeldingVendorUnitPricesForBasicInfoColumns(ByVal wsInfo As Worksheet, _
                                                            ByVal targetValueColumns As Collection, _
                                                            Optional ByVal preferredRatioColumn As Long = 0, _
-                                                           Optional ByVal deferCalculation As Boolean = False)
+                                                           Optional ByVal deferCalculation As Boolean = False, _
+                                                           Optional ByVal nameChangeOnly As Boolean = False)
     If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet()
     If wsInfo Is Nothing Then Exit Sub
     If targetValueColumns Is Nothing Then Exit Sub
@@ -2078,7 +2124,7 @@ Public Sub ApplyWeldingVendorUnitPricesForBasicInfoColumns(ByVal wsInfo As Works
     Dim wsWelding As Variant
     For Each wsWelding In weldingSheets
         ApplyWeldingVendorUnitPricesToSheetColumns wsWelding, wsInfo, weldingBlocks, weldingBlockCount, _
-            railBlocks, railBlockCount, temotoMap, missingSeiriMap, targetValueColumns
+            railBlocks, railBlockCount, temotoMap, missingSeiriMap, targetValueColumns, nameChangeOnly
     Next wsWelding
 
 Cleanup:
@@ -2227,4 +2273,3 @@ End Sub
 
 ' F9(施工会社数)減少時: 旧レイアウトとの差分だけ処理し、全列×全行の二重クリア/再展開を避ける。
 ' oldWelding/oldRail は mod_VendorBlockLayout.ClearUnusedVendorBlocks 前に GetVendorBlockLayoutCountsForLimit で取得すること。
-
