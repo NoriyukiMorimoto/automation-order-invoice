@@ -14,6 +14,8 @@ Option Explicit
 Private Const ROSAI_ROW As Long = 39
 Private Const RECYCLE_ROW As Long = 42
 Private Const PARTIAL_PAYMENT_ROW As Long = 38   ' 追加: 部分払い費用負担
+Private Const EXCL_VENDOR_COL_WIDTH As Double = 42.5
+Private Const EXCL_BASE_ROW_HEIGHT As Double = 24#
 
 Private mScheduled As Boolean
 Private mPendingSheetName As String
@@ -199,16 +201,25 @@ Public Sub ShowExclusiveChoice(ByVal wsInfo As Worksheet, ByVal targetCell As Ra
 
     Dim isConfirmed As Boolean, selected As String
     isConfirmed = f.confirmed
-    selected = f.resultBottom
+    selected = Trim$(CStr(f.resultBottom))
+    If Len(selected) = 0 Then selected = Trim$(CStr(f.resultTop))
 
     Unload f
     Set f = Nothing
 
     If Not isConfirmed Then Exit Sub
+    If Len(selected) = 0 Then
+        mod_DebugLog.Log "[ExclChoice] confirmed but selection empty cell=" & anchor.Address(False, False)
+        Exit Sub
+    End If
 
     Dim topResult As Boolean, bottomResult As Boolean
-    topResult = (selected = topLabel)
-    bottomResult = (selected = bottomLabel)
+    topResult = (StrComp(selected, topLabel, vbBinaryCompare) = 0)
+    bottomResult = (StrComp(selected, bottomLabel, vbBinaryCompare) = 0)
+    If (Not topResult) And (Not bottomResult) Then
+        mod_DebugLog.Log "[ExclChoice] selection unmatched selected=[" & selected & "]"
+        Exit Sub
+    End If
 
     WriteExclusiveChoice wsInfo, anchor, topResult, bottomResult, topLabel, bottomLabel, topCell, bottomCell, combinedSuffix
 End Sub
@@ -221,28 +232,59 @@ Private Sub WriteExclusiveChoice(ByVal wsInfo As Worksheet, ByVal anchor As Rang
     Dim prevEvents As Boolean
     prevEvents = Application.EnableEvents
 
-    On Error GoTo CleanExit
+    On Error GoTo WriteFailed
     Application.EnableEvents = False
 
-    anchor.value = BuildCellText(topChecked, bottomChecked, topLabel, bottomLabel)
+    Dim cellText As String
+    cellText = BuildCellText(topChecked, bottomChecked, topLabel, bottomLabel)
+    anchor.Value = cellText
     anchor.HorizontalAlignment = xlCenter
+    ApplyExclusiveChoiceCellLayout anchor
+    mod_DebugLog.Log "[ExclChoice] wrote basic cell=" & anchor.Address(False, False) & " value=[" & cellText & "]"
 
+    Dim mirroredSheets As Collection
+    Set mirroredSheets = ResolveMirroredSheetsForColumn(wsInfo, anchor.Column)
     Dim ws As Worksheet
-    Set ws = ResolveAcceptanceSheetForColumn(wsInfo, anchor.Column)
-    If Not ws Is Nothing Then
+    For Each ws In mirroredSheets
         If Len(combinedSuffix) > 0 Then
             ApplyCombinedCheckText ws.Range(topCell), topChecked, bottomChecked, topLabel, bottomLabel, combinedSuffix
         Else
             ApplyCheckGlyph ws.Range(topCell), topChecked
             ApplyCheckGlyph ws.Range(bottomCell), bottomChecked
         End If
-    End If
+    Next ws
 
     mod_DebugLog.Log "[ExclChoice] applied cell=" & anchor.Address(False, False) & _
                      " top=" & topChecked & " bottom=" & bottomChecked
+    GoTo CleanExit
+
+WriteFailed:
+    mod_DebugLog.Log "[ExclChoice] write error " & Err.Number & ": " & Err.Description
 
 CleanExit:
     Application.EnableEvents = prevEvents
+End Sub
+
+' 基本情報セルの文字色を白にし、行42は折り返し行高を優先(不要時は24)
+Private Sub ApplyExclusiveChoiceCellLayout(ByVal anchor As Range)
+    If anchor Is Nothing Then Exit Sub
+
+    On Error Resume Next
+    anchor.Font.Color = &HFFFFFF
+    anchor.VerticalAlignment = xlCenter
+    anchor.ShrinkToFit = False
+
+    ' 行42(該当する/該当しない)は文字数が多く折り返し行高を優先する
+    If anchor.Row = RECYCLE_ROW Then
+        anchor.WrapText = True
+        anchor.Worksheet.Columns(anchor.Column).ColumnWidth = EXCL_VENDOR_COL_WIDTH
+        anchor.EntireRow.AutoFit
+        If anchor.RowHeight < EXCL_BASE_ROW_HEIGHT Then
+            anchor.RowHeight = EXCL_BASE_ROW_HEIGHT
+        End If
+        anchor.WrapText = True
+    End If
+    On Error GoTo 0
 End Sub
 
 Private Sub ApplyCheckGlyph(ByVal cell As Range, ByVal checked As Boolean)
@@ -273,8 +315,14 @@ Private Sub ApplyCombinedCheckText(ByVal cell As Range, ByVal topChecked As Bool
     c.VerticalAlignment = xlCenter
 End Sub
 
-' 会社列(値列)から業者インデックスを求め、対応する受注者用(略称)シートを解決する
-Private Function ResolveAcceptanceSheetForColumn(ByVal wsInfo As Worksheet, ByVal valueColumn As Long) As Worksheet
+' 会社列(値列)から業者インデックスを求め、対応する 受注者用/注文請書/支店控(略称) シートを
+' まとめて返す(存在するものだけ)。行20-34はこの3シートともセル構成が完全一致しているため、
+' 甲乙/該当有無の表示は3シートすべてへ同じロジックで適用する。
+Private Function ResolveMirroredSheetsForColumn(ByVal wsInfo As Worksheet, ByVal valueColumn As Long) As Collection
+    Dim result As Collection
+    Set result = New Collection
+    Set ResolveMirroredSheetsForColumn = result
+
     Dim vendorIndex As Long
     vendorIndex = mod_VendorMaster.GetVendorIndexFromValueColumnPublic(valueColumn)
     If vendorIndex < 1 Then Exit Function
@@ -290,12 +338,19 @@ Private Function ResolveAcceptanceSheetForColumn(ByVal wsInfo As Worksheet, ByVa
     If Not mod_OrderTpl_Shared.OrderTplResolveVendorMasterInfo(branchName, companyName, vendorName, aliasText, workText) Then Exit Function
     If aliasText = "" Then Exit Function
 
-    Dim sheetName As String
-    sheetName = mod_OrderTpl_Shared.OrderTplBuildSheetName( _
-                    mod_OrderTpl_Shared.OrderTplBaseNameContractorText(), aliasText)
-    If Not mod_OrderTpl_Shared.OrderTplSheetExists(sheetName) Then Exit Function
+    Dim baseNameList As Variant
+    baseNameList = Array(mod_OrderTpl_Shared.OrderTplBaseNameContractorText(), _
+                         mod_OrderTpl_Shared.OrderTplBaseNameAcceptanceText(), _
+                         mod_OrderTpl_Shared.OrderTplBaseNameBranchCopyText())
 
-    Set ResolveAcceptanceSheetForColumn = ThisWorkbook.worksheets(sheetName)
+    Dim i As Long
+    Dim sheetName As String
+    For i = LBound(baseNameList) To UBound(baseNameList)
+        sheetName = mod_OrderTpl_Shared.OrderTplBuildSheetName(CStr(baseNameList(i)), aliasText)
+        If mod_OrderTpl_Shared.OrderTplSheetExists(sheetName) Then
+            result.Add ThisWorkbook.worksheets(sheetName)
+        End If
+    Next i
 End Function
 
 ' チェック字形: ON=U+2611 / OFF=U+2610
@@ -316,13 +371,31 @@ Private Function BuildCellText(ByVal topChecked As Boolean, ByVal bottomChecked 
 End Function
 
 ' 既存セル値から上/下の現在状態を復元する(フォーム初期表示用)
+' 行42の旧表示「該当あり/該当なし」も読み取れるようにする。
 Private Sub ParseSelection(ByVal current As String, ByVal topLabel As String, ByVal bottomLabel As String, _
                            ByRef topChecked As Boolean, ByRef bottomChecked As Boolean)
     Dim onGlyph As String
     onGlyph = ChrW$(&H2611)
     topChecked = (InStr(current, onGlyph & " " & topLabel) > 0)
     bottomChecked = (InStr(current, onGlyph & " " & bottomLabel) > 0)
+
+    If (Not topChecked) And (Not bottomChecked) Then
+        If StrComp(topLabel, ApplicableText(), vbBinaryCompare) = 0 Then
+            topChecked = (InStr(current, onGlyph & " " & ApplicableLegacyText()) > 0)
+            bottomChecked = (InStr(current, onGlyph & " " & NotApplicableLegacyText()) > 0)
+        End If
+    End If
 End Sub
+
+' "該当あり"(旧表記)
+Private Function ApplicableLegacyText() As String
+    ApplicableLegacyText = ChrW$(&H8A72) & ChrW$(&H5F53) & ChrW$(&H3042) & ChrW$(&H308A)
+End Function
+
+' "該当なし"(旧表記)
+Private Function NotApplicableLegacyText() As String
+    NotApplicableLegacyText = ChrW$(&H8A72) & ChrW$(&H5F53) & ChrW$(&H306A) & ChrW$(&H3057)
+End Function
 
 ' "労災保険 加入負担選択"
 Private Function LaborInsuranceCaptionText() As String
@@ -364,33 +437,36 @@ End Function
 
 ' "該当する"
 Private Function ApplicableText() As String
-    ApplicableText = ChrW$(&H8A72) & ChrW$(&H5F53) & ChrW$(&H3042) & ChrW$(&H308A)
+    ApplicableText = ChrW$(&H8A72) & ChrW$(&H5F53) & ChrW$(&H3059) & ChrW$(&H308B)
 End Function
 
 ' "該当しない"
 Private Function NotApplicableText() As String
-    NotApplicableText = ChrW$(&H8A72) & ChrW$(&H5F53) & ChrW$(&H306A) & ChrW$(&H3057)
+    NotApplicableText = ChrW$(&H8A72) & ChrW$(&H5F53) & ChrW$(&H3057) & ChrW$(&H306A) & ChrW$(&H3044)
 End Function
 
 ' 施工会社名の変更/受注者用シート再生成時に、基本情報 F38/F39/F42 の現在値から
-' 受注者用シートへ 甲/乙・該当あり/なし を再転記する(ApplyContractorHeader から呼ぶ)。
+' 受注者用シートへ 甲/乙・該当する/該当しない を再転記する(ApplyContractorHeader から呼ぶ)。
 Public Sub ReapplyExclusiveChoices(ByVal wsInfo As Worksheet, ByVal vendorIndex As Long)
     If wsInfo Is Nothing Then Exit Sub
 
     Dim vc As Long
     vc = mod_Construction_BasicTotals.BasicInfoVendorColumn(vendorIndex)
 
-    Dim ws As Worksheet
-    Set ws = ResolveAcceptanceSheetForColumn(wsInfo, vc)
-    If ws Is Nothing Then Exit Sub
+    Dim mirroredSheets As Collection
+    Set mirroredSheets = ResolveMirroredSheetsForColumn(wsInfo, vc)
+    If mirroredSheets.Count = 0 Then Exit Sub
 
-    ' 行38: 部分払い 甲/乙 -> C30(結合・接尾「負担」)
-    ReapplyCombinedCell ws, wsInfo.Cells(PARTIAL_PAYMENT_ROW, vc), _
-                        KoText(), OtsuText(), "C30", PartialPaymentBurdenSuffixText()
-    ' 行39: 労災 甲/乙 -> H30/J30
-    ReapplyTwoCell ws, wsInfo.Cells(ROSAI_ROW, vc), KoText(), OtsuText(), "H30", "J30"
-    ' 行42: リサイクル 該当あり/なし -> M34/R34
-    ReapplyTwoCell ws, wsInfo.Cells(RECYCLE_ROW, vc), ApplicableText(), NotApplicableText(), "M34", "R34"
+    Dim ws As Worksheet
+    For Each ws In mirroredSheets
+        ' 行38: 部分払い 甲/乙 -> C30(結合・接尾「負担」)
+        ReapplyCombinedCell ws, wsInfo.Cells(PARTIAL_PAYMENT_ROW, vc), _
+                            KoText(), OtsuText(), "C30", PartialPaymentBurdenSuffixText()
+        ' 行39: 労災 甲/乙 -> H30/J30
+        ReapplyTwoCell ws, wsInfo.Cells(ROSAI_ROW, vc), KoText(), OtsuText(), "H30", "J30"
+        ' 行42: リサイクル 該当する/該当しない -> M34/R34
+        ReapplyTwoCell ws, wsInfo.Cells(RECYCLE_ROW, vc), ApplicableText(), NotApplicableText(), "M34", "R34"
+    Next ws
 End Sub
 
 Private Sub ReapplyTwoCell(ByVal ws As Worksheet, ByVal srcCell As Range, _

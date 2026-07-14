@@ -12,6 +12,9 @@ Private Const HEADER_DATE_FONT_SIZE As Double = 14#
 Private Const CONTRACTOR_CONTRACT_AMOUNT_ROW As Long = 33
 Private Const CONTRACTOR_CONSUMPTION_TAX_ROW As Long = 34
 Private Const CONTRACTOR_CONTRACT_TOTAL_ROW As Long = 35
+' 基本情報 施工会社ブロック: 代表者名(12行目)・住所(14行目)
+Private Const CONTRACTOR_REPRESENTATIVE_ROW As Long = 12
+Private Const CONTRACTOR_ADDRESS_ROW As Long = 14
 
 ' 指定ブロックの施工会社に対応するテンプレート5シートへヘッダーを転記する(ディスパッチャ)
 Public Sub ApplyVendorSheetHeaders(ByVal wsInfo As Worksheet, _
@@ -209,12 +212,12 @@ ErrorHandler:
     Err.Clear
 End Sub
 
-' 受注者用シートへの転記(転記仕様が確定したらここへ実装する。実装後は自動でライブ反映される)
-' 受注者用シートへの転記(注文書テンプレート 受注者用シートの様式に合わせる)
-'   S1:注文番号(27) Q2:作成日C2(西暦) E9:業者コード(16) A13:会社名(11)
-'   E20:工事名C10 E22:都道府県C13 G24:工期自C15(西暦) G26:工期至C16(西暦) …中央
-'   Q22:税込(35) Q23:税抜(33) Q24:消費税(34) …右詰
-'   M10:発注者住所 M11:大鉄工業株式会社+基幹出張所 M12:役職氏名(出張所長リスト参照)
+' 受注者用/注文請書/支店控 共通: S1:U1 注文番号(27) / Q2:V2 作成日C2(西暦) /
+'   行20-34(E20:工事名C10 E22:都道府県C13 G24:工期自C15(西暦) G26:工期至C16(西暦)、
+'   Q22:税込(35) Q23:税抜(33) Q24:消費税(34)、C30/H30/J30/M34/R34/F32/F33 は Reapply系経由)は
+'   ApplyContractorStyleCommonFields で、3シートとも同一ロジックを適用する。
+' 受注者用シート固有: E9:業者コード(16) A13:会社名(11) M10:発注者住所
+'   M11:大鉄工業株式会社+基幹出張所 M12:役職氏名(出張所長リスト参照)
 Private Sub ApplyContractorHeader(ByVal wsInfo As Worksheet, _
                                   ByVal wsTarget As Worksheet, _
                                   ByVal vendorIndex As Long)
@@ -226,12 +229,7 @@ Private Sub ApplyContractorHeader(ByVal wsInfo As Worksheet, _
     Dim valueColumn As Long
     valueColumn = mod_Construction_BasicTotals.BasicInfoVendorColumn(vendorIndex)
 
-    ' S1: 注文番号(施工会社ブロック27行), 中央
-    WriteHeaderValue wsTarget.Range("S1"), _
-                     wsInfo.Cells(ORDER_TPL_BLOCK_ORDER_NO_ROW, valueColumn).value, True
-
-    ' Q2: 作成日(基本情報C2, 西暦), 中央
-    WriteHeaderDateGregorian wsTarget.Range("Q2"), wsInfo.Range("C2").value
+    ApplyContractorStyleCommonFields wsInfo, wsTarget, valueColumn
 
     ' E9: 業者コード(施工会社ブロック16行), 中央
     WriteHeaderValue wsTarget.Range("E9"), _
@@ -240,6 +238,36 @@ Private Sub ApplyContractorHeader(ByVal wsInfo As Worksheet, _
     ' A13: 会社名(施工会社ブロック11行), 中央
     WriteHeaderValue wsTarget.Range("A13"), _
                      wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, valueColumn).value, True
+
+    ' M10/M11/M12: 出張所長リスト参照(発注者 住所/名称/役職氏名)
+    ApplyOfficeChiefBlock wsInfo, wsTarget
+
+    ' 行38-42(部分払い/労災/支給材料/貸与品/リサイクル)を基本情報から
+    ' 受注者用・注文請書・支店控へ再転記(Reapply側で全ての生成済シートへ適用)
+    mod_BasicInfoExclusiveChoice.ReapplyExclusiveChoices wsInfo, vendorIndex
+    mod_BasicInfoSupplyLoan.ReapplySupplyLoan wsInfo, vendorIndex
+
+    mod_OrderTpl_Shared.OrderTplLog "ApplyContractorHeader done: " & wsTarget.Name
+    Exit Sub
+
+ErrorHandler:
+    mod_OrderTpl_Shared.OrderTplLog "ApplyContractorHeader error: " & Err.Number & " " & Err.Description
+    Err.Clear
+    Exit Sub
+End Sub
+
+' 受注者用/注文請書/支店控で共通の転記(S1:U1 注文番号 / Q2:V2 作成日(西暦) /
+' 行20-34: E20 工事名・E22 都道府県・G24/G26 工期自至(西暦)・Q22-24 内訳明細参照)。
+' 、3シートともセル構成が完全一致しているため、同一ロジックをそれぞれ適用する。
+Private Sub ApplyContractorStyleCommonFields(ByVal wsInfo As Worksheet, _
+                                             ByVal wsTarget As Worksheet, _
+                                             ByVal valueColumn As Long)
+    ' S1:U1: 注文番号(施工会社ブロック27行), 中央
+    WriteHeaderValue wsTarget.Range("S1"), _
+                     wsInfo.Cells(ORDER_TPL_BLOCK_ORDER_NO_ROW, valueColumn).value, True
+
+    ' Q2:V2: 作成日(基本情報C2, 西暦), 中央
+    WriteHeaderDateGregorian wsTarget.Range("Q2"), wsInfo.Range("C2").value
 
     ' E20: 工事名(基本情報C10), 中央
     WriteHeaderValue wsTarget.Range("E20"), wsInfo.Range("C10").value, True
@@ -266,20 +294,41 @@ Private Sub ApplyContractorHeader(ByVal wsInfo As Worksheet, _
         WriteHeaderValueRight wsTarget.Range("Q23"), wsInfo.Cells(CONTRACTOR_CONTRACT_AMOUNT_ROW, valueColumn).value
         WriteHeaderValueRight wsTarget.Range("Q24"), wsInfo.Cells(CONTRACTOR_CONSUMPTION_TAX_ROW, valueColumn).value
     End If
+End Sub
 
-    ' M10/M11/M12: 出張所長リスト参照(発注者 住所/名称/役職氏名)
-    ApplyOfficeChiefBlock wsInfo, wsTarget
+' wsTarget(生成済テンプレートシート)と同一グループの受注者用(略称)シートを解決する
+Private Function ResolveContractorSheetFromTarget(ByVal wsTarget As Worksheet) As Worksheet
+    Dim baseName As String, aliasText As String
+    If Not mod_OrderTpl_Shared.OrderTplIsGeneratedSheet(wsTarget, baseName, aliasText) Then Exit Function
+    If aliasText = "" Then Exit Function
+    Dim nm As String
+    nm = mod_OrderTpl_Shared.OrderTplBuildSheetName(mod_OrderTpl_Shared.OrderTplBaseNameContractorText(), aliasText)
+    If mod_OrderTpl_Shared.OrderTplSheetExists(nm) Then Set ResolveContractorSheetFromTarget = ThisWorkbook.Worksheets(nm)
+End Function
 
-    ' 行38-42(部分払い/労災/支給材料/貸与品/リサイクル)を基本情報から受注者用へ再転記
-    mod_BasicInfoExclusiveChoice.ReapplyExclusiveChoices wsInfo, vendorIndex
-    mod_BasicInfoSupplyLoan.ReapplySupplyLoan wsInfo, vendorIndex
+' 受注者用シートの結合セルから値を取得する(存在しない/空なら空文字)
+Private Function MirroredContractorText(ByVal wsContractor As Worksheet, ByVal address As String) As String
+    If wsContractor Is Nothing Then Exit Function
+    MirroredContractorText = CommonNzText(wsContractor.Range(address).MergeArea.Cells(1, 1).value)
+End Function
 
-    mod_OrderTpl_Shared.OrderTplLog "ApplyContractorHeader done: " & wsTarget.Name
-    Exit Sub
+' 受注者用 M10:V 行の結合をテンプレート(M:U)から安全に拡張する
+Private Sub EnsureOfficeChiefRowMerge(ByVal wsTarget As Worksheet, ByVal rowNo As Long)
+    Const OFFICE_COL_START As Long = 13  ' M
+    Const OFFICE_COL_END As Long = 22    ' V
 
-ErrorHandler:
-    mod_OrderTpl_Shared.OrderTplLog "ApplyContractorHeader error: " & Err.Number & " " & Err.Description
-    Err.Clear
+    Dim mergeRange As Range
+    Set mergeRange = wsTarget.Range(wsTarget.Cells(rowNo, OFFICE_COL_START), _
+                                    wsTarget.Cells(rowNo, OFFICE_COL_END))
+    mod_VendorBlockLayout.SafeUnmergeRange mergeRange
+    On Error Resume Next
+    mergeRange.Merge
+    On Error GoTo 0
+    With mergeRange.Cells(1, 1)
+        .ShrinkToFit = True
+        .HorizontalAlignment = xlLeft
+        .VerticalAlignment = xlCenter
+    End With
 End Sub
 
 ' M10:住所 / M11:大鉄工業株式会社+全角空白+基幹出張所 / M12:(条件で)役職氏名 を転記
@@ -287,11 +336,7 @@ Private Sub ApplyOfficeChiefBlock(ByVal wsInfo As Worksheet, ByVal wsTarget As W
     ' M10:U → M10:V へ結合し直し、縮小して全体表示に設定(M/13列 ～ V/22列)
     Dim mergeRow As Long
     For mergeRow = 10 To 12
-        On Error Resume Next
-        wsTarget.Range(wsTarget.Cells(mergeRow, 13), wsTarget.Cells(mergeRow, 22)).UnMerge
-        wsTarget.Range(wsTarget.Cells(mergeRow, 13), wsTarget.Cells(mergeRow, 22)).Merge
-        wsTarget.Cells(mergeRow, 13).ShrinkToFit = True
-        On Error GoTo 0
+        EnsureOfficeChiefRowMerge wsTarget, mergeRow
     Next mergeRow
 
     Dim branchName As String, officeName As String
@@ -338,9 +383,25 @@ Private Sub WriteHeaderValueRight(ByVal target As Range, ByVal value As Variant)
     Else
         writeCell.value = value
     End If
-    target.MergeArea.Font.Name = BASIC_INFO_REF_FONT_NAME
-    target.MergeArea.HorizontalAlignment = xlRight
-    target.MergeArea.VerticalAlignment = xlCenter
+    writeCell.Font.Name = BASIC_INFO_REF_FONT_NAME
+    writeCell.HorizontalAlignment = xlRight
+    writeCell.VerticalAlignment = xlCenter
+End Sub
+
+' 左詰の値転記(BizUDゴシック適用)
+Private Sub WriteHeaderValueLeft(ByVal target As Range, ByVal value As Variant)
+    Dim writeCell As Range
+    Set writeCell = target.MergeArea.Cells(1, 1)
+    If IsError(value) Then
+        writeCell.ClearContents
+    ElseIf Len(Trim$(CStr(value))) = 0 Then
+        writeCell.ClearContents
+    Else
+        writeCell.value = value
+    End If
+    writeCell.Font.Name = BASIC_INFO_REF_FONT_NAME
+    writeCell.HorizontalAlignment = xlLeft
+    writeCell.VerticalAlignment = xlCenter
 End Sub
 
 ' 西暦日付の転記(yyyy年m月d日・中央)
@@ -360,18 +421,102 @@ Private Sub WriteHeaderDateGregorian(ByVal target As Range, ByVal value As Varia
     ApplyHeaderCellFormat target, True
 End Sub
 
-' 注文請書シートへの転記(転記仕様が確定したらここへ実装する)
+' 注文請書シートへの転記。共通部(S1:U1/Q2:V2/行20-34)は ApplyContractorStyleCommonFields。
+'   G8:K9 業者コード(受注者用E9・中央) / B12:K12 住所(基本情報14行目・左詰め) /
+'   B14:K14 会社名(基本情報11行目・左詰め) / C15:I16 代表者名(基本情報12行目・右詰め) /
+'   M9:V9 住所(受注者用M10・左詰め) / M10:V10 大鉄工業株式会社+基幹出張所(受注者用M11・左詰め) /
+'   M11:V11 役職氏名(受注者用M12)+「　　殿」(・右詰め)
 Private Sub ApplyAcceptanceHeader(ByVal wsInfo As Worksheet, _
                                   ByVal wsTarget As Worksheet, _
                                   ByVal vendorIndex As Long)
-    ' 転記仕様 未指定(コピーのみ)
+    If wsInfo Is Nothing Then Exit Sub
+    If wsTarget Is Nothing Then Exit Sub
+
+    On Error GoTo ErrorHandler
+
+    Dim valueColumn As Long
+    valueColumn = mod_Construction_BasicTotals.BasicInfoVendorColumn(vendorIndex)
+
+    ApplyContractorStyleCommonFields wsInfo, wsTarget, valueColumn
+
+    Dim wsContractor As Worksheet
+    Set wsContractor = ResolveContractorSheetFromTarget(wsTarget)
+
+    ' G8:K9: 業者コード(受注者用E9), 中央
+    WriteHeaderValue wsTarget.Range("G8"), MirroredContractorText(wsContractor, "E9"), True
+
+    ' B12:K12: 住所(基本情報 施工会社ブロック14行目), 左詰め
+    WriteHeaderValueLeft wsTarget.Range("B12"), wsInfo.Cells(CONTRACTOR_ADDRESS_ROW, valueColumn).value
+
+    ' B14:K14: 会社名(基本情報 施工会社ブロック11行目), 左詰め
+    WriteHeaderValueLeft wsTarget.Range("B14"), wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, valueColumn).value
+
+    ' C15:I16: 代表者名(基本情報 施工会社ブロック12行目), 右詰め
+    WriteHeaderValueRight wsTarget.Range("C15"), wsInfo.Cells(CONTRACTOR_REPRESENTATIVE_ROW, valueColumn).value
+
+    ' M9:V9: 住所(受注者用M10), 左詰め
+    WriteHeaderValueLeft wsTarget.Range("M9"), MirroredContractorText(wsContractor, "M10")
+
+    ' M10:V10: 大鉄工業株式会社+基幹出張所(受注者用M11), 左詰め
+    WriteHeaderValueLeft wsTarget.Range("M10"), MirroredContractorText(wsContractor, "M11")
+
+    ' M11:V11: 役職氏名(受注者用M12) + 「　　殿」, 右詰め
+    Dim chiefText As String
+    chiefText = MirroredContractorText(wsContractor, "M12")
+    If Len(chiefText) > 0 Then chiefText = chiefText & ContractorHonorificSuffixText()
+    WriteHeaderValueRight wsTarget.Range("M11"), chiefText
+
+    mod_OrderTpl_Shared.OrderTplLog "ApplyAcceptanceHeader done: " & wsTarget.Name
+    Exit Sub
+
+ErrorHandler:
+    mod_OrderTpl_Shared.OrderTplLog "ApplyAcceptanceHeader error: " & Err.Number & " " & Err.Description
+    Err.Clear
+    Exit Sub
 End Sub
 
-' 支店控シートへの転記(転記仕様が確定したらここへ実装する)
+' 支店控シートへの転記。共通部(S1:U1/Q2:V2/行20-34)は ApplyContractorStyleCommonFields。
+'   E9:I10 業者コード(受注者用E9・中央) / A13:I15 会社名(受注者用A13・中央) /
+'   M8:V8 住所(受注者用M10・左詰め) / M9:V9 大鉄工業株式会社+基幹出張所(受注者用M11・左詰め) /
+'   M10:V10 役職氏名(受注者用M12・右詰め)
 Private Sub ApplyBranchCopyHeader(ByVal wsInfo As Worksheet, _
                                   ByVal wsTarget As Worksheet, _
                                   ByVal vendorIndex As Long)
-    ' 転記仕様 未指定(コピーのみ)
+    If wsInfo Is Nothing Then Exit Sub
+    If wsTarget Is Nothing Then Exit Sub
+
+    On Error GoTo ErrorHandler
+
+    Dim valueColumn As Long
+    valueColumn = mod_Construction_BasicTotals.BasicInfoVendorColumn(vendorIndex)
+
+    ApplyContractorStyleCommonFields wsInfo, wsTarget, valueColumn
+
+    Dim wsContractor As Worksheet
+    Set wsContractor = ResolveContractorSheetFromTarget(wsTarget)
+
+    ' E9:I10: 業者コード(受注者用E9), 中央
+    WriteHeaderValue wsTarget.Range("E9"), MirroredContractorText(wsContractor, "E9"), True
+
+    ' A13:I15: 会社名(受注者用A13), 中央
+    WriteHeaderValue wsTarget.Range("A13"), MirroredContractorText(wsContractor, "A13"), True
+
+    ' M8:V8: 住所(受注者用M10), 左詰め
+    WriteHeaderValueLeft wsTarget.Range("M8"), MirroredContractorText(wsContractor, "M10")
+
+    ' M9:V9: 大鉄工業株式会社+基幹出張所(受注者用M11), 左詰め
+    WriteHeaderValueLeft wsTarget.Range("M9"), MirroredContractorText(wsContractor, "M11")
+
+    ' M10:V10: 役職氏名(受注者用M12), 右詰め
+    WriteHeaderValueRight wsTarget.Range("M10"), MirroredContractorText(wsContractor, "M12")
+
+    mod_OrderTpl_Shared.OrderTplLog "ApplyBranchCopyHeader done: " & wsTarget.Name
+    Exit Sub
+
+ErrorHandler:
+    mod_OrderTpl_Shared.OrderTplLog "ApplyBranchCopyHeader error: " & Err.Number & " " & Err.Description
+    Err.Clear
+    Exit Sub
 End Sub
 
 ' 別紙Ⅲシートへの転記(転記仕様が確定したらここへ実装する)
@@ -461,10 +606,10 @@ Private Sub WriteHeaderFormulaRight(ByVal target As Range, ByVal formulaText As 
     Dim writeCell As Range
     Set writeCell = target.MergeArea.Cells(1, 1)
     writeCell.Formula = formulaText
-    target.MergeArea.Font.Name = BASIC_INFO_REF_FONT_NAME
-    target.MergeArea.NumberFormat = "#,##0;-#,##0;"
-    target.MergeArea.HorizontalAlignment = xlRight
-    target.MergeArea.VerticalAlignment = xlCenter
+    writeCell.Font.Name = BASIC_INFO_REF_FONT_NAME
+    writeCell.NumberFormat = "#,##0;-#,##0;"
+    writeCell.HorizontalAlignment = xlRight
+    writeCell.VerticalAlignment = xlCenter
 End Sub
 
 ' "合計"
@@ -480,4 +625,13 @@ End Function
 ' "消費税"
 Private Function ContractorTaxLabelText() As String
     ContractorTaxLabelText = ChrW$(&H6D88) & ChrW$(&H8CBB) & ChrW$(&H7A0E)
+End Function
+
+' "　　殿"(全角空白2つ + 殿。注文請書 M11:V11 の末尾へ付帯する)
+Private Function ContractorHonorificSuffixText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = ChrW$(&H3000) & ChrW$(&H3000) & ChrW$(&H6BBF)
+    End If
+    ContractorHonorificSuffixText = cached
 End Function

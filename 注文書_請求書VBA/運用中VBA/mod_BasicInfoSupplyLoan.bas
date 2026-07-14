@@ -2,17 +2,21 @@ Option Explicit
 
 ' 基本情報シート施工会社ブロックの2セクション選択セル(40/41行目)ダブルクリックで
 ' frmSubconSelector を2セクションモードで表示する。
-'   行40: 有償/無償 + 支給材料(単一選択)   → 受注者用 F32(F32:V32 結合)
-'   行41: 有償/無償 + 貸与品(なし排他の複数可) → 受注者用 F33(F33:V33 結合)
+'   行40: 有償/無償/なし + 支給材料(単一選択)   → 受注者用 F32(F32:V32 結合)
+'   行41: 有償/無償/なし + 貸与品(複数可)       → 受注者用 F33(F33:V33 結合)
 ' 下段の候補は出張所別_単価適用線区.xlsx の各シートA列(ヘッダー除く)を ADO で読み込む。
+' 第2セクションの「なし」は表示しない(第1セクションの「なし」のみ)。
 ' 対象列は F9(施工会社数)に応じ F/I/L/O/R/U/X/AA/AD/AG(3列おき・最大10社)。
 ' モーダルをイベント内で表示するとハングするため Application.OnTime で遅延起動する。
 ' 確定内容は「(ONの字形)有償/無償 + 全角空白 + 下段選択(複数は読点連結)」を
 ' 基本情報セルと受注者用シートの結合セルへ左詰めで書き込む。
+' 基本情報セルは折り返し表示を維持し、行高は内容に応じて拡大(不要時は24)・列幅42.5を維持する。
 ' 改修履歴: CHANGELOG.md 参照
 
 Private Const SUPPLY_ROW As Long = 40
 Private Const LOAN_ROW As Long = 41
+Private Const VENDOR_VALUE_COL_WIDTH As Double = 42.5
+Private Const SUPPLY_LOAN_ROW_HEIGHT As Double = 24#
 
 Private mScheduled As Boolean
 Private mPendingSheetName As String
@@ -156,6 +160,7 @@ Public Sub ShowSelection(ByVal wsInfo As Worksheet, ByVal targetCell As Range, _
         MsgBox MasterEmptyText(), vbExclamation
         Exit Sub
     End If
+    items = FilterOutNoneItem(items)
 
     Dim anchor As Range
     Set anchor = targetCell
@@ -168,7 +173,8 @@ Public Sub ShowSelection(ByVal wsInfo As Worksheet, ByVal targetCell As Range, _
 
     Dim f As frmSubconSelector
     Set f = New frmSubconSelector
-    f.ConfigureTwoSectionMode formCaption, PaidText(), FreeText(), items, allowMulti, NoneText(), topInit, bottomInit, NoneText()
+    ' 第2セクションの「なし」は出さない。第1セクション(有償/無償/なし)のみ残す。
+    f.ConfigureTwoSectionMode formCaption, PaidText(), FreeText(), items, allowMulti, "", topInit, bottomInit, NoneText()
     f.Show vbModal
 
     Dim isConfirmed As Boolean, topSel As String, bottomSel As String
@@ -201,29 +207,74 @@ Private Sub WriteSelection(ByVal wsInfo As Worksheet, ByVal anchor As Range, _
 
     anchor.Value = combined
     anchor.HorizontalAlignment = xlLeft
-    ' 施工会社列セルは幅に収まるよう縮小表示(結合セルは Excel 仕様上無効のため無視)
-    On Error Resume Next
-    anchor.ShrinkToFit = False
-    anchor.WrapText = True
-    anchor.EntireColumn.AutoFit
-    anchor.EntireRow.AutoFit
-    On Error GoTo CleanExit
+    ApplyWrappedVendorCellLayout anchor
 
+    Dim mirroredSheets As Collection
+    Set mirroredSheets = ResolveMirroredSheetsForColumn(wsInfo, anchor.Column)
     Dim ws As Worksheet
-    Set ws = ResolveAcceptanceSheetForColumn(wsInfo, anchor.Column)
-    If Not ws Is Nothing Then
+    For Each ws In mirroredSheets
         Dim cell As Range
         Set cell = ws.Range(acceptanceCell)
         If cell.MergeCells Then Set cell = cell.MergeArea.Cells(1, 1)
         cell.Value = combined
         cell.HorizontalAlignment = xlLeft
-    End If
+    Next ws
 
     mod_DebugLog.Log "[SupplyLoan] applied cell=" & anchor.Address(False, False) & " value=" & combined
 
 CleanExit:
     Application.EnableEvents = prevEvents
 End Sub
+
+' 折り返し表示を維持し、必要時は行高を広げ、不要時は24・列幅42.5を維持する
+Private Sub ApplyWrappedVendorCellLayout(ByVal anchor As Range)
+    If anchor Is Nothing Then Exit Sub
+
+    On Error Resume Next
+    anchor.ShrinkToFit = False
+    anchor.WrapText = True
+    anchor.VerticalAlignment = xlCenter
+    anchor.Font.Color = &HFFFFFF
+    anchor.Worksheet.Columns(anchor.Column).ColumnWidth = VENDOR_VALUE_COL_WIDTH
+    anchor.EntireRow.AutoFit
+    If anchor.RowHeight < SUPPLY_LOAN_ROW_HEIGHT Then
+        anchor.RowHeight = SUPPLY_LOAN_ROW_HEIGHT
+    End If
+    ' 折り返しは解除しない(長い貸与品リスト等の表示を優先)
+    anchor.WrapText = True
+    On Error GoTo 0
+End Sub
+
+' マスタ候補から第2セクション用の「なし」を除外する
+Private Function FilterOutNoneItem(ByVal items As Variant) As Variant
+    If Not IsArray(items) Then
+        FilterOutNoneItem = items
+        Exit Function
+    End If
+
+    Dim noneLabel As String
+    noneLabel = NoneText()
+
+    Dim kept As Collection
+    Set kept = New Collection
+    Dim i As Long
+    Dim nm As String
+    For i = LBound(items) To UBound(items)
+        nm = Trim$(CStr(items(i)))
+        If nm <> "" Then
+            If StrComp(nm, noneLabel, vbTextCompare) <> 0 Then kept.Add nm
+        End If
+    Next i
+
+    If kept.Count = 0 Then Exit Function
+
+    Dim arr() As String
+    ReDim arr(0 To kept.Count - 1)
+    For i = 1 To kept.Count
+        arr(i - 1) = CStr(kept(i))
+    Next i
+    FilterOutNoneItem = arr
+End Function
 
 ' 既存セル値から上段(有償/無償)と下段(配列)を復元する
 Private Sub ParseCurrent(ByVal current As String, ByRef topInit As String, ByRef bottomInit As Variant)
@@ -246,8 +297,14 @@ Private Sub ParseCurrent(ByVal current As String, ByRef topInit As String, ByRef
     If rightPart <> "" Then bottomInit = Split(rightPart, ChrW$(&H3001))
 End Sub
 
-' 会社列(値列)から業者インデックスを求め、対応する受注者用(略称)シートを解決する
-Private Function ResolveAcceptanceSheetForColumn(ByVal wsInfo As Worksheet, ByVal valueColumn As Long) As Worksheet
+' 会社列(値列)から業者インデックスを求め、対応する 受注者用/注文請書/支店控(略称) シートを
+' まとめて返す(存在するものだけ)。行20-34はこの3シートともセル構成が完全一致しているため、
+' 支給材料/貸与品の表示は3シートすべてへ同じロジックで適用する。
+Private Function ResolveMirroredSheetsForColumn(ByVal wsInfo As Worksheet, ByVal valueColumn As Long) As Collection
+    Dim result As Collection
+    Set result = New Collection
+    Set ResolveMirroredSheetsForColumn = result
+
     Dim vendorIndex As Long
     vendorIndex = mod_VendorMaster.GetVendorIndexFromValueColumnPublic(valueColumn)
     If vendorIndex < 1 Then Exit Function
@@ -263,12 +320,19 @@ Private Function ResolveAcceptanceSheetForColumn(ByVal wsInfo As Worksheet, ByVa
     If Not mod_OrderTpl_Shared.OrderTplResolveVendorMasterInfo(branchName, companyName, vendorName, aliasText, workText) Then Exit Function
     If aliasText = "" Then Exit Function
 
-    Dim sheetName As String
-    sheetName = mod_OrderTpl_Shared.OrderTplBuildSheetName( _
-                    mod_OrderTpl_Shared.OrderTplBaseNameContractorText(), aliasText)
-    If Not mod_OrderTpl_Shared.OrderTplSheetExists(sheetName) Then Exit Function
+    Dim baseNameList As Variant
+    baseNameList = Array(mod_OrderTpl_Shared.OrderTplBaseNameContractorText(), _
+                         mod_OrderTpl_Shared.OrderTplBaseNameAcceptanceText(), _
+                         mod_OrderTpl_Shared.OrderTplBaseNameBranchCopyText())
 
-    Set ResolveAcceptanceSheetForColumn = ThisWorkbook.Worksheets(sheetName)
+    Dim i As Long
+    Dim sheetName As String
+    For i = LBound(baseNameList) To UBound(baseNameList)
+        sheetName = mod_OrderTpl_Shared.OrderTplBuildSheetName(CStr(baseNameList(i)), aliasText)
+        If mod_OrderTpl_Shared.OrderTplSheetExists(sheetName) Then
+            result.Add ThisWorkbook.Worksheets(sheetName)
+        End If
+    Next i
 End Function
 
 ' 出張所別_単価適用線区.xlsx の指定シートA列(ヘッダー除く・重複除去)を配列で返す
@@ -400,12 +464,15 @@ Public Sub ReapplySupplyLoan(ByVal wsInfo As Worksheet, ByVal vendorIndex As Lon
     Dim vc As Long
     vc = mod_Construction_BasicTotals.BasicInfoVendorColumn(vendorIndex)
 
-    Dim ws As Worksheet
-    Set ws = ResolveAcceptanceSheetForColumn(wsInfo, vc)
-    If ws Is Nothing Then Exit Sub
+    Dim mirroredSheets As Collection
+    Set mirroredSheets = ResolveMirroredSheetsForColumn(wsInfo, vc)
+    If mirroredSheets.Count = 0 Then Exit Sub
 
-    ReapplyStringCell ws, wsInfo.Cells(SUPPLY_ROW, vc), "F32"
-    ReapplyStringCell ws, wsInfo.Cells(LOAN_ROW, vc), "F33"
+    Dim ws As Worksheet
+    For Each ws In mirroredSheets
+        ReapplyStringCell ws, wsInfo.Cells(SUPPLY_ROW, vc), "F32"
+        ReapplyStringCell ws, wsInfo.Cells(LOAN_ROW, vc), "F33"
+    Next ws
 End Sub
 
 Private Sub ReapplyStringCell(ByVal ws As Worksheet, ByVal srcCell As Range, ByVal targetCell As String)
