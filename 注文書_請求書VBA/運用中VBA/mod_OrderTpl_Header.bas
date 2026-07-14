@@ -1,22 +1,22 @@
 Option Explicit
 
-' ’•¶‘ƒeƒ“ƒvƒŒ[ƒgŠeƒV[ƒg‚Ö‚ÌŠî–{î•ñƒwƒbƒ_[“]‹LB
-' ¶¬‚É‰Á‚¦AŠî–{î•ñƒV[ƒg‚Ì“]‹LŒ³ƒZƒ‹•ÏX‚É‚àÄ“]‹L‚³‚ê‚é(ƒ‰ƒCƒu”½‰f)B
-' “]‹L‘ÎÛƒV[ƒg‚Ì’Ç‰Á‚Í ApplyVendorSheetHeaders ‚ÌƒfƒBƒXƒpƒbƒ`‚ÖÀ‘•‚ğ·‚µ‚ŞB
-' ‰üC—š—ğ: CHANGELOG.md QÆ
+' ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½eï¿½ï¿½ï¿½vï¿½ï¿½ï¿½[ï¿½gï¿½eï¿½Vï¿½[ï¿½gï¿½Ö‚ÌŠï¿½{ï¿½ï¿½ï¿½wï¿½bï¿½_ï¿½[ï¿½]ï¿½Lï¿½B
+' ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É‰ï¿½ï¿½ï¿½ï¿½Aï¿½ï¿½{ï¿½ï¿½ï¿½Vï¿½[ï¿½gï¿½Ì“]ï¿½Lï¿½ï¿½ï¿½Zï¿½ï¿½ï¿½ÏXï¿½ï¿½ï¿½É‚ï¿½ï¿½Ä“]ï¿½Lï¿½ï¿½ï¿½ï¿½ï¿½(ï¿½ï¿½ï¿½Cï¿½uï¿½ï¿½ï¿½f)ï¿½B
+' ï¿½]ï¿½Lï¿½ÎÛƒVï¿½[ï¿½gï¿½Ì’Ç‰ï¿½ï¿½ï¿½ ApplyVendorSheetHeaders ï¿½Ìƒfï¿½Bï¿½Xï¿½pï¿½bï¿½`ï¿½Öï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ŞB
+' ï¿½ï¿½ï¿½Cï¿½ï¿½ï¿½ï¿½: CHANGELOG.md ï¿½Qï¿½ï¿½
 
-' Šî–{î•ñ‚Ìƒwƒbƒ_[“]‹LŒ³ƒZƒ‹(‘SĞ‹¤’Ê•ª)BƒuƒƒbƒN—ñ(16/27s–Ú)‚Í“®“I‚É‘g‚İ—§‚Ä‚é
+' ï¿½ï¿½{ï¿½ï¿½ï¿½Ìƒwï¿½bï¿½_ï¿½[ï¿½]ï¿½Lï¿½ï¿½ï¿½Zï¿½ï¿½(ï¿½Sï¿½Ğ‹ï¿½ï¿½Ê•ï¿½)ï¿½Bï¿½uï¿½ï¿½ï¿½bï¿½Nï¿½ï¿½(16/27ï¿½sï¿½ï¿½)ï¿½Í“ï¿½ï¿½Iï¿½É‘gï¿½İ—ï¿½ï¿½Ä‚ï¿½
 Private Const HEADER_SOURCE_COMMON_CELLS As String = "B6,C6,C2,C9,C10,C13,C15:C16,F6"
 Private Const HEADER_DATE_FONT_SIZE As Double = 14#
-' ó’Ò—pƒV[ƒg“]‹L‚ÅQÆ‚·‚é{H‰ïĞƒuƒƒbƒNs(Šî–{î•ñ)
+' ï¿½ó’Ò—pï¿½Vï¿½[ï¿½gï¿½]ï¿½Lï¿½ÅQï¿½Æ‚ï¿½ï¿½ï¿½{ï¿½Hï¿½ï¿½Ğƒuï¿½ï¿½ï¿½bï¿½Nï¿½s(ï¿½ï¿½{ï¿½ï¿½ï¿½)
 Private Const CONTRACTOR_CONTRACT_AMOUNT_ROW As Long = 33
 Private Const CONTRACTOR_CONSUMPTION_TAX_ROW As Long = 34
 Private Const CONTRACTOR_CONTRACT_TOTAL_ROW As Long = 35
-' Šî–{î•ñ {H‰ïĞƒuƒƒbƒN: ‘ã•\Ò–¼(12s–Ú)EZŠ(14s–Ú)
+' ï¿½ï¿½{ï¿½ï¿½ï¿½ ï¿½{ï¿½Hï¿½ï¿½Ğƒuï¿½ï¿½ï¿½bï¿½N: ï¿½ï¿½\ï¿½Ò–ï¿½(12ï¿½sï¿½ï¿½)ï¿½Eï¿½Zï¿½ï¿½(14ï¿½sï¿½ï¿½)
 Private Const CONTRACTOR_REPRESENTATIVE_ROW As Long = 12
 Private Const CONTRACTOR_ADDRESS_ROW As Long = 14
 
-' w’èƒuƒƒbƒN‚Ì{H‰ïĞ‚É‘Î‰‚·‚éƒeƒ“ƒvƒŒ[ƒg5ƒV[ƒg‚Öƒwƒbƒ_[‚ğ“]‹L‚·‚é(ƒfƒBƒXƒpƒbƒ`ƒƒ)
+' ï¿½wï¿½ï¿½uï¿½ï¿½ï¿½bï¿½Nï¿½Ì{ï¿½Hï¿½ï¿½Ğ‚É‘Î‰ï¿½ï¿½ï¿½ï¿½ï¿½eï¿½ï¿½ï¿½vï¿½ï¿½ï¿½[ï¿½g5ï¿½Vï¿½[ï¿½gï¿½Öƒwï¿½bï¿½_ï¿½[ï¿½ï¿½]ï¿½Lï¿½ï¿½ï¿½ï¿½(ï¿½fï¿½Bï¿½Xï¿½pï¿½bï¿½`ï¿½ï¿½)
 Public Sub ApplyVendorSheetHeaders(ByVal wsInfo As Worksheet, _
                                    ByVal vendorIndex As Long, _
                                    ByVal aliasText As String)
@@ -47,7 +47,7 @@ Public Sub ApplyVendorSheetHeaders(ByVal wsInfo As Worksheet, _
     Next i
 End Sub
 
-' ‘SŠm’è‰ïĞ‚Ìƒeƒ“ƒvƒŒ[ƒgƒV[ƒg‚Öƒwƒbƒ_[‚ğÄ“]‹L‚·‚é
+' ï¿½Sï¿½mï¿½ï¿½ï¿½Ğ‚Ìƒeï¿½ï¿½ï¿½vï¿½ï¿½ï¿½[ï¿½gï¿½Vï¿½[ï¿½gï¿½Öƒwï¿½bï¿½_ï¿½[ï¿½ï¿½ï¿½Ä“]ï¿½Lï¿½ï¿½ï¿½ï¿½
 Public Sub RefreshAllVendorSheetHeaders(Optional ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet()
     If wsInfo Is Nothing Then Exit Sub
@@ -80,8 +80,8 @@ Quiet:
     Err.Clear
 End Sub
 
-' Sheet1(Šî–{î•ñ)‚ÌWorksheet_Change‚©‚çŒÄ‚Î‚ê‚é“üŒûB
-' ƒwƒbƒ_[“]‹LŒ³ƒZƒ‹(B6/C6/C2/C9/C10/C15:C16/F6AŠeƒuƒƒbƒN‚Ì16/27s–Ú)‚Ì•ÏX‚ğŠeĞƒV[ƒg‚Ö”½‰f‚·‚é
+' Sheet1(ï¿½ï¿½{ï¿½ï¿½ï¿½)ï¿½ï¿½Worksheet_Changeï¿½ï¿½ï¿½ï¿½Ä‚Î‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½B
+' ï¿½wï¿½bï¿½_ï¿½[ï¿½]ï¿½Lï¿½ï¿½ï¿½Zï¿½ï¿½(B6/C6/C2/C9/C10/C15:C16/F6ï¿½Aï¿½eï¿½uï¿½ï¿½ï¿½bï¿½Nï¿½ï¿½16/27ï¿½sï¿½ï¿½)ï¿½Ì•ÏXï¿½ï¿½ï¿½eï¿½ĞƒVï¿½[ï¿½gï¿½Ö”ï¿½ï¿½fï¿½ï¿½ï¿½ï¿½
 Public Sub HandleBasicInfoHeaderSourceChange(ByVal wsInfo As Worksheet, ByVal target As Range)
     If wsInfo Is Nothing Then Exit Sub
     If target Is Nothing Then Exit Sub
@@ -100,13 +100,13 @@ Quiet:
     Err.Clear
 End Sub
 
-' ƒwƒbƒ_[“]‹LŒ³ƒZƒ‹‚ÌŠÄ‹”ÍˆÍ‚ğ•Ô‚·ŒöŠJƒ‰ƒbƒp[(Sheet1‚Ì•ÏXƒQ[ƒg\’z—p)
+' ï¿½wï¿½bï¿½_ï¿½[ï¿½]ï¿½Lï¿½ï¿½ï¿½Zï¿½ï¿½ï¿½ÌŠÄï¿½ï¿½ÍˆÍ‚ï¿½Ô‚ï¿½ï¿½ï¿½ï¿½Jï¿½ï¿½ï¿½bï¿½pï¿½[(Sheet1ï¿½Ì•ÏXï¿½Qï¿½[ï¿½gï¿½\ï¿½zï¿½p)
 Public Function GetBasicInfoHeaderSourceMonitorRange(ByVal wsInfo As Worksheet) As Range
     If wsInfo Is Nothing Then Exit Function
     Set GetBasicInfoHeaderSourceMonitorRange = BuildHeaderSourceRange(wsInfo)
 End Function
 
-' ƒwƒbƒ_[“]‹LŒ³ƒZƒ‹‚ÌŠÄ‹”ÍˆÍ(‹¤’ÊƒZƒ‹ + ŠeƒuƒƒbƒN‚Ì‹ÆÒƒR[ƒh16s–Ú/’•¶”Ô†27s–Ú)
+' ï¿½wï¿½bï¿½_ï¿½[ï¿½]ï¿½Lï¿½ï¿½ï¿½Zï¿½ï¿½ï¿½ÌŠÄï¿½ï¿½Íˆï¿½(ï¿½ï¿½ï¿½ÊƒZï¿½ï¿½ + ï¿½eï¿½uï¿½ï¿½ï¿½bï¿½Nï¿½Ì‹ÆÒƒRï¿½[ï¿½h16ï¿½sï¿½ï¿½/ï¿½ï¿½ï¿½ï¿½ï¿½Ôï¿½27ï¿½sï¿½ï¿½)
 Private Function BuildHeaderSourceRange(ByVal wsInfo As Worksheet) As Range
     Dim result As Range
     Set result = wsInfo.Range(HEADER_SOURCE_COMMON_CELLS)
@@ -133,7 +133,7 @@ Private Function BuildHeaderSourceRange(ByVal wsInfo As Worksheet) As Range
     Set BuildHeaderSourceRange = result
 End Function
 
-' ƒV[ƒgŒ©o‚µ(ƒ^ƒu)F: H–‹æ•ª(Šî–{î•ñ10s–Ú)ƒZƒ‹‚Ì“h‚è‚Â‚Ô‚µF‚ğ“K—p‚·‚é
+' ï¿½Vï¿½[ï¿½gï¿½ï¿½ï¿½oï¿½ï¿½(ï¿½^ï¿½u)ï¿½F: ï¿½Hï¿½ï¿½ï¿½æ•ª(ï¿½ï¿½{ï¿½ï¿½ï¿½10ï¿½sï¿½ï¿½)ï¿½Zï¿½ï¿½ï¿½Ì“hï¿½ï¿½Â‚Ô‚ï¿½ï¿½Fï¿½ï¿½Kï¿½pï¿½ï¿½ï¿½ï¿½
 Private Sub ApplyVendorSheetTabColor(ByVal wsInfo As Worksheet, _
                                      ByVal wsTarget As Worksheet, _
                                      ByVal vendorIndex As Long)
@@ -150,7 +150,7 @@ Private Sub ApplyVendorSheetTabColor(ByVal wsInfo As Worksheet, _
 End Sub
 
 
-' “à–ó–¾×ƒwƒbƒ_[•”‚ÖŠî–{î•ñƒV[ƒg‚Ì“à—e‚ğ“]‹L‚·‚é
+' ï¿½ï¿½ï¿½ó–¾×ƒwï¿½bï¿½_ï¿½[ï¿½ï¿½ï¿½ÖŠï¿½{ï¿½ï¿½ï¿½Vï¿½[ï¿½gï¿½Ì“ï¿½ï¿½eï¿½ï¿½]ï¿½Lï¿½ï¿½ï¿½ï¿½
 Public Sub ApplyBreakdownHeader(ByVal wsInfo As Worksheet, _
                                 ByVal wsBreakdown As Worksheet, _
                                 ByVal vendorIndex As Long)
@@ -162,44 +162,46 @@ Public Sub ApplyBreakdownHeader(ByVal wsInfo As Worksheet, _
     Dim valueColumn As Long
     valueColumn = mod_Construction_BasicTotals.BasicInfoVendorColumn(vendorIndex)
 
-    ' C2: •”“XƒR[ƒh(o’£Š•Ê_’P‰¿“K—pü‹æ‚Ì’P‰¿“K—pü‹æƒV[ƒg B/C—ñÆ‡ ¨ G—ñ)
+    ' C2: ï¿½ï¿½ï¿½Xï¿½Rï¿½[ï¿½h(ï¿½oï¿½ï¿½ï¿½ï¿½ï¿½ï¿½_ï¿½Pï¿½ï¿½ï¿½Kï¿½pï¿½ï¿½ï¿½ï¿½Ì’Pï¿½ï¿½ï¿½Kï¿½pï¿½ï¿½ï¿½ï¿½Vï¿½[ï¿½g B/Cï¿½ï¿½Æï¿½ ï¿½ï¿½ Gï¿½ï¿½)
     Dim branchOfficeCode As String
     branchOfficeCode = mod_OrderTpl_Shared.OrderTplResolveBranchOfficeCode( _
         CommonNzText(wsInfo.Range(BASIC_INFO_BRANCH_CELL).value), _
         CommonNzText(wsInfo.Range(BASIC_INFO_OFFICE_CELL).value))
     WriteHeaderText wsBreakdown.Range("C2"), branchOfficeCode, False
 
-    ' C3: ’•¶”Ô†({H‰ïĞƒuƒƒbƒN27s–Ú)
+    ' C3: ï¿½ï¿½ï¿½ï¿½ï¿½Ôï¿½(ï¿½{ï¿½Hï¿½ï¿½Ğƒuï¿½ï¿½ï¿½bï¿½N27ï¿½sï¿½ï¿½)
     WriteHeaderValue wsBreakdown.Range("C3"), _
                      wsInfo.Cells(ORDER_TPL_BLOCK_ORDER_NO_ROW, valueColumn).value, False
 
-    ' B6: H–”Ô†(Šî–{î•ñC9)
+    ' B6: ï¿½Hï¿½ï¿½ï¿½Ôï¿½(ï¿½ï¿½{ï¿½ï¿½ï¿½C9)
     WriteHeaderValue wsBreakdown.Range("B6"), wsInfo.Range("C9").value, False
 
-    ' D6: H––¼Ì(Šî–{î•ñC10AŒ‹‡ƒZƒ‹‚Ì‚½‚ß’†‰›‘µ‚¦)
+    ' D6: ï¿½Hï¿½ï¿½ï¿½ï¿½ï¿½ï¿½(ï¿½ï¿½{ï¿½ï¿½ï¿½C10ï¿½Aï¿½ï¿½ï¿½ï¿½ï¿½Zï¿½ï¿½ï¿½Ì‚ï¿½ï¿½ß’ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
     WriteHeaderValue wsBreakdown.Range("D6"), wsInfo.Range("C10").value, True
 
-    ' L5/L6: HŠú ©/Š(Šî–{î•ñC15/C16A˜a—ï•\¦)
+    ' L5/L6: ï¿½Hï¿½ï¿½ ï¿½ï¿½/ï¿½ï¿½(ï¿½ï¿½{ï¿½ï¿½ï¿½C15/C16ï¿½Aï¿½aï¿½ï¿½\ï¿½ï¿½)
     WriteHeaderDate wsBreakdown.Range("L5"), wsInfo.Range("C15").value
     WriteHeaderDate wsBreakdown.Range("L6"), wsInfo.Range("C16").value
     wsBreakdown.Range("L5:L6").Font.Size = HEADER_DATE_FONT_SIZE
 
-    ' O2: ì¬“ú(Šî–{î•ñC2A˜a—ï•\¦)
-    WriteHeaderDate wsBreakdown.Range("O2"), wsInfo.Range("C2").value
-    wsBreakdown.Range("O2").MergeArea.Font.Size = HEADER_DATE_FONT_SIZE
+    ' O2: ï¿½ì¬ï¿½ï¿½(ï¿½ï¿½{ï¿½ï¿½ï¿½C2ï¿½Aï¿½aï¿½ï¿½\ï¿½ï¿½)
+    WriteHeaderDate wsBreakdown.Range("P2"), wsInfo.Range("C2").value
+    wsBreakdown.Range("P2").MergeArea.Font.Size = HEADER_DATE_FONT_SIZE
+    wsBreakdown.Range("O2").MergeArea.Cells(1, 1).ClearContents
 
-    ' O3: Š’·–¼(Šî–{î•ñF6)
-    WriteHeaderValue wsBreakdown.Range("O3"), wsInfo.Range("F6").value, True
+    ' O3: ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½(ï¿½ï¿½{ï¿½ï¿½ï¿½F6)
+    WriteHeaderValue wsBreakdown.Range("P3"), wsInfo.Range("F6").value, True
+    wsBreakdown.Range("O3").MergeArea.Cells(1, 1).ClearContents
 
-    ' P5: ŠO’‰ïĞ–¼({H‰ïĞƒuƒƒbƒN11s–Ú)
+    ' P5: ï¿½Oï¿½ï¿½ï¿½ï¿½Ğ–ï¿½(ï¿½{ï¿½Hï¿½ï¿½Ğƒuï¿½ï¿½ï¿½bï¿½N11ï¿½sï¿½ï¿½)
     WriteHeaderValue wsBreakdown.Range("P5"), _
                      wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, valueColumn).value, True
 
-    ' P6: ‹ÆÒƒR[ƒh({H‰ïĞƒuƒƒbƒN16s–Ú)
+    ' P6: ï¿½ÆÒƒRï¿½[ï¿½h(ï¿½{ï¿½Hï¿½ï¿½Ğƒuï¿½ï¿½ï¿½bï¿½N16ï¿½sï¿½ï¿½)
     WriteHeaderValue wsBreakdown.Range("P6"), _
                      wsInfo.Cells(ORDER_TPL_BLOCK_VENDOR_CODE_ROW, valueColumn).value, True
 
-    ' •¡”ƒy[ƒWˆóü—p‚Éƒwƒbƒ_[s(7:10s–Ú)‚ğƒ^ƒCƒgƒ‹s‚Éİ’è‚·‚é
+    ' ï¿½ï¿½ï¿½ï¿½ï¿½yï¿½[ï¿½Wï¿½ï¿½ï¿½ï¿½pï¿½Éƒwï¿½bï¿½_ï¿½[ï¿½s(7:10ï¿½sï¿½ï¿½)ï¿½ï¿½ï¿½^ï¿½Cï¿½gï¿½ï¿½ï¿½sï¿½Éİ’è‚·ï¿½ï¿½
     On Error Resume Next
     wsBreakdown.PageSetup.PrintTitleRows = ORDER_TPL_PRINT_TITLE_ROWS
     On Error GoTo ErrorHandler
@@ -212,12 +214,12 @@ ErrorHandler:
     Err.Clear
 End Sub
 
-' ó’Ò—p/’•¶¿‘/x“XT ‹¤’Ê: S1:U1 ’•¶”Ô†(27) / Q2:V2 ì¬“úC2(¼—ï) /
-'   s20-34(E20:H––¼C10 E22:“s“¹•{Œ§C13 G24:HŠú©C15(¼—ï) G26:HŠúŠC16(¼—ï)A
-'   Q22:Å(35) Q23:Å”²(33) Q24:Á”ïÅ(34)AC30/H30/J30/M34/R34/F32/F33 ‚Í ReapplyŒnŒo—R)‚Í
-'   ApplyContractorStyleCommonFields ‚ÅA3ƒV[ƒg‚Æ‚à“¯ˆêƒƒWƒbƒN‚ğ“K—p‚·‚éB
-' ó’Ò—pƒV[ƒgŒÅ—L: E9:‹ÆÒƒR[ƒh(16) A13:‰ïĞ–¼(11) M10:”­’ÒZŠ
-'   M11:‘å“SH‹ÆŠ”®‰ïĞ+ŠîŠ²o’£Š M12:–ğE–¼(o’£Š’·ƒŠƒXƒgQÆ)
+' ï¿½ó’Ò—p/ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½/ï¿½xï¿½Xï¿½T ï¿½ï¿½ï¿½ï¿½: S1:U1 ï¿½ï¿½ï¿½ï¿½ï¿½Ôï¿½(27) / Q2:V2 ï¿½ì¬ï¿½ï¿½C2(ï¿½ï¿½ï¿½ï¿½) /
+'   ï¿½s20-34(E20:ï¿½Hï¿½ï¿½ï¿½ï¿½C10 E22:ï¿½sï¿½ï¿½ï¿½{ï¿½ï¿½C13 G24:ï¿½Hï¿½ï¿½ï¿½ï¿½C15(ï¿½ï¿½ï¿½ï¿½) G26:ï¿½Hï¿½ï¿½ï¿½ï¿½C16(ï¿½ï¿½ï¿½ï¿½)ï¿½A
+'   Q22:ï¿½Åï¿½(35) Q23:ï¿½Å”ï¿½(33) Q24:ï¿½ï¿½ï¿½ï¿½ï¿½(34)ï¿½AC30/H30/J30/M34/R34/F32/F33 ï¿½ï¿½ Reapplyï¿½nï¿½oï¿½R)ï¿½ï¿½
+'   ApplyContractorStyleCommonFields ï¿½ÅA3ï¿½Vï¿½[ï¿½gï¿½Æ‚ï¿½ï¿½ï¿½ï¿½êƒï¿½Wï¿½bï¿½Nï¿½ï¿½Kï¿½pï¿½ï¿½ï¿½ï¿½B
+' ï¿½ó’Ò—pï¿½Vï¿½[ï¿½gï¿½Å—L: E9:ï¿½ÆÒƒRï¿½[ï¿½h(16) A13:ï¿½ï¿½Ğ–ï¿½(11) M10:ï¿½ï¿½ï¿½ï¿½ï¿½ÒZï¿½ï¿½
+'   M11:ï¿½ï¿½Sï¿½Hï¿½ÆŠï¿½ï¿½ï¿½ï¿½ï¿½ï¿½+ï¿½îŠ²ï¿½oï¿½ï¿½ï¿½ï¿½ M12:ï¿½ï¿½Eï¿½ï¿½ï¿½ï¿½(ï¿½oï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Xï¿½gï¿½Qï¿½ï¿½)
 Private Sub ApplyContractorHeader(ByVal wsInfo As Worksheet, _
                                   ByVal wsTarget As Worksheet, _
                                   ByVal vendorIndex As Long)
@@ -231,19 +233,19 @@ Private Sub ApplyContractorHeader(ByVal wsInfo As Worksheet, _
 
     ApplyContractorStyleCommonFields wsInfo, wsTarget, valueColumn
 
-    ' E9: ‹ÆÒƒR[ƒh({H‰ïĞƒuƒƒbƒN16s), ’†‰›
+    ' E9: ï¿½ÆÒƒRï¿½[ï¿½h(ï¿½{ï¿½Hï¿½ï¿½Ğƒuï¿½ï¿½ï¿½bï¿½N16ï¿½s), ï¿½ï¿½ï¿½ï¿½
     WriteHeaderValue wsTarget.Range("E9"), _
                      wsInfo.Cells(ORDER_TPL_BLOCK_VENDOR_CODE_ROW, valueColumn).value, True
 
-    ' A13: ‰ïĞ–¼({H‰ïĞƒuƒƒbƒN11s), ’†‰›
+    ' A13: ï¿½ï¿½Ğ–ï¿½(ï¿½{ï¿½Hï¿½ï¿½Ğƒuï¿½ï¿½ï¿½bï¿½N11ï¿½s), ï¿½ï¿½ï¿½ï¿½
     WriteHeaderValue wsTarget.Range("A13"), _
                      wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, valueColumn).value, True
 
-    ' M10/M11/M12: o’£Š’·ƒŠƒXƒgQÆ(”­’Ò ZŠ/–¼Ì/–ğE–¼)
+    ' M10/M11/M12: ï¿½oï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Xï¿½gï¿½Qï¿½ï¿½(ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Zï¿½ï¿½/ï¿½ï¿½ï¿½ï¿½/ï¿½ï¿½Eï¿½ï¿½ï¿½ï¿½)
     ApplyOfficeChiefBlock wsInfo, wsTarget
 
-    ' s38-42(•”•ª•¥‚¢/˜JĞ/x‹‹Ş—¿/‘İ—^•i/ƒŠƒTƒCƒNƒ‹)‚ğŠî–{î•ñ‚©‚ç
-    ' ó’Ò—pE’•¶¿‘Ex“XT‚ÖÄ“]‹L(Reapply‘¤‚Å‘S‚Ä‚Ì¶¬ÏƒV[ƒg‚Ö“K—p)
+    ' ï¿½s38-42(ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½/ï¿½Jï¿½ï¿½/ï¿½xï¿½ï¿½ï¿½Ş—ï¿½/ï¿½İ—^ï¿½i/ï¿½ï¿½ï¿½Tï¿½Cï¿½Nï¿½ï¿½)ï¿½ï¿½ï¿½ï¿½{ï¿½ï¿½ñ‚©‚ï¿½
+    ' ï¿½ó’Ò—pï¿½Eï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Eï¿½xï¿½Xï¿½Tï¿½ÖÄ“]ï¿½L(Reapplyï¿½ï¿½ï¿½Å‘Sï¿½Ä‚Ìï¿½ï¿½ï¿½ï¿½ÏƒVï¿½[ï¿½gï¿½Ö“Kï¿½p)
     mod_BasicInfoExclusiveChoice.ReapplyExclusiveChoices wsInfo, vendorIndex
     mod_BasicInfoSupplyLoan.ReapplySupplyLoan wsInfo, vendorIndex
 
@@ -256,33 +258,33 @@ ErrorHandler:
     Exit Sub
 End Sub
 
-' ó’Ò—p/’•¶¿‘/x“XT‚Å‹¤’Ê‚Ì“]‹L(S1:U1 ’•¶”Ô† / Q2:V2 ì¬“ú(¼—ï) /
-' s20-34: E20 H––¼EE22 “s“¹•{Œ§EG24/G26 HŠú©Š(¼—ï)EQ22-24 “à–ó–¾×QÆ)B
-' A3ƒV[ƒg‚Æ‚àƒZƒ‹\¬‚ªŠ®‘Sˆê’v‚µ‚Ä‚¢‚é‚½‚ßA“¯ˆêƒƒWƒbƒN‚ğ‚»‚ê‚¼‚ê“K—p‚·‚éB
+' ï¿½ó’Ò—p/ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½/ï¿½xï¿½Xï¿½Tï¿½Å‹ï¿½ï¿½Ê‚Ì“]ï¿½L(S1:U1 ï¿½ï¿½ï¿½ï¿½ï¿½Ôï¿½ / Q2:V2 ï¿½ì¬ï¿½ï¿½(ï¿½ï¿½ï¿½ï¿½) /
+' ï¿½s20-34: E20 ï¿½Hï¿½ï¿½ï¿½ï¿½ï¿½EE22 ï¿½sï¿½ï¿½ï¿½{ï¿½ï¿½ï¿½EG24/G26 ï¿½Hï¿½ï¿½ï¿½ï¿½ï¿½ï¿½(ï¿½ï¿½ï¿½ï¿½)ï¿½EQ22-24 ï¿½ï¿½ï¿½ó–¾×Qï¿½ï¿½)ï¿½B
+' ï¿½A3ï¿½Vï¿½[ï¿½gï¿½Æ‚ï¿½ï¿½Zï¿½ï¿½ï¿½\ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Sï¿½ï¿½vï¿½ï¿½ï¿½Ä‚ï¿½ï¿½é‚½ï¿½ßAï¿½ï¿½ï¿½êƒï¿½Wï¿½bï¿½Nï¿½ï¿½ï¿½ï¿½ï¿½ê‚¼ï¿½ï¿½Kï¿½pï¿½ï¿½ï¿½ï¿½B
 Private Sub ApplyContractorStyleCommonFields(ByVal wsInfo As Worksheet, _
                                              ByVal wsTarget As Worksheet, _
                                              ByVal valueColumn As Long)
-    ' S1:U1: ’•¶”Ô†({H‰ïĞƒuƒƒbƒN27s), ’†‰›
+    ' S1:U1: ï¿½ï¿½ï¿½ï¿½ï¿½Ôï¿½(ï¿½{ï¿½Hï¿½ï¿½Ğƒuï¿½ï¿½ï¿½bï¿½N27ï¿½s), ï¿½ï¿½ï¿½ï¿½
     WriteHeaderValue wsTarget.Range("S1"), _
                      wsInfo.Cells(ORDER_TPL_BLOCK_ORDER_NO_ROW, valueColumn).value, True
 
-    ' Q2:V2: ì¬“ú(Šî–{î•ñC2, ¼—ï), ’†‰›
+    ' Q2:V2: ï¿½ì¬ï¿½ï¿½(ï¿½ï¿½{ï¿½ï¿½ï¿½C2, ï¿½ï¿½ï¿½ï¿½), ï¿½ï¿½ï¿½ï¿½
     WriteHeaderDateGregorian wsTarget.Range("Q2"), wsInfo.Range("C2").value
 
-    ' E20: H––¼(Šî–{î•ñC10), ’†‰›
+    ' E20: ï¿½Hï¿½ï¿½ï¿½ï¿½(ï¿½ï¿½{ï¿½ï¿½ï¿½C10), ï¿½ï¿½ï¿½ï¿½
     WriteHeaderValue wsTarget.Range("E20"), wsInfo.Range("C10").value, True
 
-    ' E22: “s“¹•{Œ§(Šî–{î•ñC13), ’†‰›
+    ' E22: ï¿½sï¿½ï¿½ï¿½{ï¿½ï¿½(ï¿½ï¿½{ï¿½ï¿½ï¿½C13), ï¿½ï¿½ï¿½ï¿½
     WriteHeaderValue wsTarget.Range("E22"), wsInfo.Range("C13").value, True
 
-    ' G24: HŠú ©(Šî–{î•ñC15, ¼—ï), ’†‰›
+    ' G24: ï¿½Hï¿½ï¿½ ï¿½ï¿½(ï¿½ï¿½{ï¿½ï¿½ï¿½C15, ï¿½ï¿½ï¿½ï¿½), ï¿½ï¿½ï¿½ï¿½
     WriteHeaderDateGregorian wsTarget.Range("G24"), wsInfo.Range("C15").value
 
-    ' G26: HŠú Š(Šî–{î•ñC16, ¼—ï), ’†‰›
+    ' G26: ï¿½Hï¿½ï¿½ ï¿½ï¿½(ï¿½ï¿½{ï¿½ï¿½ï¿½C16, ï¿½ï¿½ï¿½ï¿½), ï¿½ï¿½ï¿½ï¿½
     WriteHeaderDateGregorian wsTarget.Range("G26"), wsInfo.Range("C16").value
 
-    ' Q22/Q23/Q24: “¯ˆêƒOƒ‹[ƒv‚Ì“à–ó–¾×ƒV[ƒg ‡Œv/Œv/Á”ïÅ s(Q—ñ)‚ğQÆ‚·‚é¶‚«”®
-    ' (“à–ó–¾×‚Ì’l‚ªXV‚³‚ê‚é‚Æ©“®‚ÅXV‚³‚ê‚é)
+    ' Q22/Q23/Q24: ï¿½ï¿½ï¿½ï¿½Oï¿½ï¿½ï¿½[ï¿½vï¿½Ì“ï¿½ï¿½ó–¾×ƒVï¿½[ï¿½g ï¿½ï¿½ï¿½v/ï¿½v/ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½s(Qï¿½ï¿½)ï¿½ï¿½ï¿½Qï¿½Æ‚ï¿½ï¿½é¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    ' (ï¿½ï¿½ï¿½ó–¾×‚Ì’lï¿½ï¿½ï¿½Xï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½Æï¿½ï¿½ï¿½ï¿½ÅXï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½)
     Dim breakdownName As String
     breakdownName = ResolveBreakdownSheetNameFromTarget(wsTarget)
     If Len(breakdownName) > 0 Then
@@ -296,7 +298,7 @@ Private Sub ApplyContractorStyleCommonFields(ByVal wsInfo As Worksheet, _
     End If
 End Sub
 
-' wsTarget(¶¬Ïƒeƒ“ƒvƒŒ[ƒgƒV[ƒg)‚Æ“¯ˆêƒOƒ‹[ƒv‚Ìó’Ò—p(—ªÌ)ƒV[ƒg‚ğ‰ğŒˆ‚·‚é
+' wsTarget(ï¿½ï¿½ï¿½ï¿½ï¿½Ïƒeï¿½ï¿½ï¿½vï¿½ï¿½ï¿½[ï¿½gï¿½Vï¿½[ï¿½g)ï¿½Æ“ï¿½ï¿½ï¿½Oï¿½ï¿½ï¿½[ï¿½vï¿½Ìó’Ò—p(ï¿½ï¿½ï¿½ï¿½)ï¿½Vï¿½[ï¿½gï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 Private Function ResolveContractorSheetFromTarget(ByVal wsTarget As Worksheet) As Worksheet
     Dim baseName As String, aliasText As String
     If Not mod_OrderTpl_Shared.OrderTplIsGeneratedSheet(wsTarget, baseName, aliasText) Then Exit Function
@@ -306,13 +308,13 @@ Private Function ResolveContractorSheetFromTarget(ByVal wsTarget As Worksheet) A
     If mod_OrderTpl_Shared.OrderTplSheetExists(nm) Then Set ResolveContractorSheetFromTarget = ThisWorkbook.Worksheets(nm)
 End Function
 
-' ó’Ò—pƒV[ƒg‚ÌŒ‹‡ƒZƒ‹‚©‚ç’l‚ğæ“¾‚·‚é(‘¶İ‚µ‚È‚¢/‹ó‚È‚ç‹ó•¶š)
+' ï¿½ó’Ò—pï¿½Vï¿½[ï¿½gï¿½ÌŒï¿½ï¿½ï¿½ï¿½Zï¿½ï¿½ï¿½ï¿½ï¿½ï¿½lï¿½ï¿½ï¿½æ“¾ï¿½ï¿½ï¿½ï¿½(ï¿½ï¿½ï¿½İ‚ï¿½ï¿½È‚ï¿½/ï¿½ï¿½È‚ï¿½ó•¶ï¿½)
 Private Function MirroredContractorText(ByVal wsContractor As Worksheet, ByVal address As String) As String
     If wsContractor Is Nothing Then Exit Function
     MirroredContractorText = CommonNzText(wsContractor.Range(address).MergeArea.Cells(1, 1).value)
 End Function
 
-' ó’Ò—p M10:V s‚ÌŒ‹‡‚ğƒeƒ“ƒvƒŒ[ƒg(M:U)‚©‚çˆÀ‘S‚ÉŠg’£‚·‚é
+' ï¿½ó’Ò—p M10:V ï¿½sï¿½ÌŒï¿½ï¿½ï¿½ï¿½ï¿½ï¿½eï¿½ï¿½ï¿½vï¿½ï¿½ï¿½[ï¿½g(M:U)ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Sï¿½ÉŠgï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 Private Sub EnsureOfficeChiefRowMerge(ByVal wsTarget As Worksheet, ByVal rowNo As Long)
     Const OFFICE_COL_START As Long = 13  ' M
     Const OFFICE_COL_END As Long = 22    ' V
@@ -331,9 +333,9 @@ Private Sub EnsureOfficeChiefRowMerge(ByVal wsTarget As Worksheet, ByVal rowNo A
     End With
 End Sub
 
-' M10:ZŠ / M11:‘å“SH‹ÆŠ”®‰ïĞ+‘SŠp‹ó”’+ŠîŠ²o’£Š / M12:(ğŒ‚Å)–ğE–¼ ‚ğ“]‹L
+' M10:ï¿½Zï¿½ï¿½ / M11:ï¿½ï¿½Sï¿½Hï¿½ÆŠï¿½ï¿½ï¿½ï¿½ï¿½ï¿½+ï¿½Sï¿½pï¿½ï¿½+ï¿½îŠ²ï¿½oï¿½ï¿½ï¿½ï¿½ / M12:(ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)ï¿½ï¿½Eï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½]ï¿½L
 Private Sub ApplyOfficeChiefBlock(ByVal wsInfo As Worksheet, ByVal wsTarget As Worksheet)
-    ' M10:U ¨ M10:V ‚ÖŒ‹‡‚µ’¼‚µAk¬‚µ‚Ä‘S‘Ì•\¦‚Éİ’è(M/13—ñ ` V/22—ñ)
+    ' M10:U ï¿½ï¿½ M10:V ï¿½ÖŒï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Aï¿½kï¿½ï¿½ï¿½ï¿½ï¿½Ä‘Sï¿½Ì•\ï¿½ï¿½ï¿½Éİ’ï¿½(M/13ï¿½ï¿½ ï¿½` V/22ï¿½ï¿½)
     Dim mergeRow As Long
     For mergeRow = 10 To 12
         EnsureOfficeChiefRowMerge wsTarget, mergeRow
@@ -356,23 +358,23 @@ Private Sub ApplyOfficeChiefBlock(ByVal wsInfo As Worksheet, ByVal wsTarget As W
     Dim fw As String
     fw = ChrW$(&H3000)
 
-    ' M10: ZŠ
+    ' M10: ï¿½Zï¿½ï¿½
     WriteHeaderValue wsTarget.Range("M10"), addr, False
 
-    ' M11: ‘å“SH‹ÆŠ”®‰ïĞ + ‘SŠp‹ó”’ + ŠîŠ²o’£Š
+    ' M11: ï¿½ï¿½Sï¿½Hï¿½ÆŠï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ + ï¿½Sï¿½pï¿½ï¿½ + ï¿½îŠ²ï¿½oï¿½ï¿½ï¿½ï¿½
     WriteHeaderValue wsTarget.Range("M11"), CommonCompanyNameText() & fw & coreOffice, False
 
-    ' M12: o’£Š=ŠîŠ²o’£Š‚È‚çu–ğE –¼vA•sˆê’v‚È‚çuo’£Š –ğE –¼v
+    ' M12: ï¿½oï¿½ï¿½ï¿½ï¿½=ï¿½îŠ²ï¿½oï¿½ï¿½ï¿½ï¿½ï¿½È‚ï¿½uï¿½ï¿½E ï¿½ï¿½ï¿½ï¿½ï¿½vï¿½Aï¿½sï¿½ï¿½vï¿½È‚ï¿½uï¿½oï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½E ï¿½ï¿½ï¿½ï¿½ï¿½v
     Dim m12 As String
     If StrComp(CommonNormalizeText(matchedOffice), CommonNormalizeText(coreOffice), vbTextCompare) = 0 Then
         m12 = title & fw & chiefName
     Else
         m12 = matchedOffice & fw & title & fw & chiefName
     End If
-    WriteHeaderValue wsTarget.Range("M12"), m12, False
+    WriteHeaderValueRight wsTarget.Range("M12"), m12
 End Sub
 
-' ‰E‹l‚Ì’l“]‹L(BizUDƒSƒVƒbƒN“K—p)
+' ï¿½Eï¿½lï¿½Ì’lï¿½]ï¿½L(BizUDï¿½Sï¿½Vï¿½bï¿½Nï¿½Kï¿½p)
 Private Sub WriteHeaderValueRight(ByVal target As Range, ByVal value As Variant)
     Dim writeCell As Range
     Set writeCell = target.MergeArea.Cells(1, 1)
@@ -388,7 +390,7 @@ Private Sub WriteHeaderValueRight(ByVal target As Range, ByVal value As Variant)
     writeCell.VerticalAlignment = xlCenter
 End Sub
 
-' ¶‹l‚Ì’l“]‹L(BizUDƒSƒVƒbƒN“K—p)
+' ï¿½ï¿½ï¿½lï¿½Ì’lï¿½]ï¿½L(BizUDï¿½Sï¿½Vï¿½bï¿½Nï¿½Kï¿½p)
 Private Sub WriteHeaderValueLeft(ByVal target As Range, ByVal value As Variant)
     Dim writeCell As Range
     Set writeCell = target.MergeArea.Cells(1, 1)
@@ -404,7 +406,7 @@ Private Sub WriteHeaderValueLeft(ByVal target As Range, ByVal value As Variant)
     writeCell.VerticalAlignment = xlCenter
 End Sub
 
-' ¼—ï“ú•t‚Ì“]‹L(yyyy”NmŒd“úE’†‰›)
+' ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½tï¿½Ì“]ï¿½L(yyyyï¿½Nmï¿½ï¿½dï¿½ï¿½ï¿½Eï¿½ï¿½ï¿½ï¿½)
 Private Sub WriteHeaderDateGregorian(ByVal target As Range, ByVal value As Variant)
     Dim writeCell As Range
     Set writeCell = target.MergeArea.Cells(1, 1)
@@ -421,11 +423,11 @@ Private Sub WriteHeaderDateGregorian(ByVal target As Range, ByVal value As Varia
     ApplyHeaderCellFormat target, True
 End Sub
 
-' ’•¶¿‘ƒV[ƒg‚Ö‚Ì“]‹LB‹¤’Ê•”(S1:U1/Q2:V2/s20-34)‚Í ApplyContractorStyleCommonFieldsB
-'   G8:K9 ‹ÆÒƒR[ƒh(ó’Ò—pE9E’†‰›) / B12:K12 ZŠ(Šî–{î•ñ14s–ÚE¶‹l‚ß) /
-'   B14:K14 ‰ïĞ–¼(Šî–{î•ñ11s–ÚE¶‹l‚ß) / C15:I16 ‘ã•\Ò–¼(Šî–{î•ñ12s–ÚE‰E‹l‚ß) /
-'   M9:V9 ZŠ(ó’Ò—pM10E¶‹l‚ß) / M10:V10 ‘å“SH‹ÆŠ”®‰ïĞ+ŠîŠ²o’£Š(ó’Ò—pM11E¶‹l‚ß) /
-'   M11:V11 –ğE–¼(ó’Ò—pM12)+u@@“av(E‰E‹l‚ß)
+' ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Vï¿½[ï¿½gï¿½Ö‚Ì“]ï¿½Lï¿½Bï¿½ï¿½ï¿½Ê•ï¿½(S1:U1/Q2:V2/ï¿½s20-34)ï¿½ï¿½ ApplyContractorStyleCommonFieldsï¿½B
+'   G8:K9 ï¿½ÆÒƒRï¿½[ï¿½h(ï¿½ó’Ò—pE9ï¿½Eï¿½ï¿½ï¿½ï¿½) / B12:K12 ï¿½Zï¿½ï¿½(ï¿½ï¿½{ï¿½ï¿½ï¿½14ï¿½sï¿½ÚEï¿½ï¿½ï¿½lï¿½ï¿½) /
+'   B14:K14 ï¿½ï¿½Ğ–ï¿½(ï¿½ï¿½{ï¿½ï¿½ï¿½11ï¿½sï¿½ÚEï¿½ï¿½ï¿½lï¿½ï¿½) / C15:I16 ï¿½ï¿½\ï¿½Ò–ï¿½(ï¿½ï¿½{ï¿½ï¿½ï¿½12ï¿½sï¿½ÚEï¿½Eï¿½lï¿½ï¿½) /
+'   M9:V9 ï¿½Zï¿½ï¿½(ï¿½ó’Ò—pM10ï¿½Eï¿½ï¿½ï¿½lï¿½ï¿½) / M10:V10 ï¿½ï¿½Sï¿½Hï¿½ÆŠï¿½ï¿½ï¿½ï¿½ï¿½ï¿½+ï¿½îŠ²ï¿½oï¿½ï¿½ï¿½ï¿½(ï¿½ó’Ò—pM11ï¿½Eï¿½ï¿½ï¿½lï¿½ï¿½) /
+'   M11:V11 ï¿½ï¿½Eï¿½ï¿½ï¿½ï¿½(ï¿½ó’Ò—pM12)+ï¿½uï¿½@ï¿½@ï¿½aï¿½v(ï¿½Eï¿½Eï¿½lï¿½ï¿½)
 Private Sub ApplyAcceptanceHeader(ByVal wsInfo As Worksheet, _
                                   ByVal wsTarget As Worksheet, _
                                   ByVal vendorIndex As Long)
@@ -442,25 +444,25 @@ Private Sub ApplyAcceptanceHeader(ByVal wsInfo As Worksheet, _
     Dim wsContractor As Worksheet
     Set wsContractor = ResolveContractorSheetFromTarget(wsTarget)
 
-    ' G8:K9: ‹ÆÒƒR[ƒh(ó’Ò—pE9), ’†‰›
+    ' G8:K9: ï¿½ÆÒƒRï¿½[ï¿½h(ï¿½ó’Ò—pE9), ï¿½ï¿½ï¿½ï¿½
     WriteHeaderValue wsTarget.Range("G8"), MirroredContractorText(wsContractor, "E9"), True
 
-    ' B12:K12: ZŠ(Šî–{î•ñ {H‰ïĞƒuƒƒbƒN14s–Ú), ¶‹l‚ß
+    ' B12:K12: ï¿½Zï¿½ï¿½(ï¿½ï¿½{ï¿½ï¿½ï¿½ ï¿½{ï¿½Hï¿½ï¿½Ğƒuï¿½ï¿½ï¿½bï¿½N14ï¿½sï¿½ï¿½), ï¿½ï¿½ï¿½lï¿½ï¿½
     WriteHeaderValueLeft wsTarget.Range("B12"), wsInfo.Cells(CONTRACTOR_ADDRESS_ROW, valueColumn).value
 
-    ' B14:K14: ‰ïĞ–¼(Šî–{î•ñ {H‰ïĞƒuƒƒbƒN11s–Ú), ¶‹l‚ß
+    ' B14:K14: ï¿½ï¿½Ğ–ï¿½(ï¿½ï¿½{ï¿½ï¿½ï¿½ ï¿½{ï¿½Hï¿½ï¿½Ğƒuï¿½ï¿½ï¿½bï¿½N11ï¿½sï¿½ï¿½), ï¿½ï¿½ï¿½lï¿½ï¿½
     WriteHeaderValueLeft wsTarget.Range("B14"), wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, valueColumn).value
 
-    ' C15:I16: ‘ã•\Ò–¼(Šî–{î•ñ {H‰ïĞƒuƒƒbƒN12s–Ú), ‰E‹l‚ß
+    ' C15:I16: ï¿½ï¿½\ï¿½Ò–ï¿½(ï¿½ï¿½{ï¿½ï¿½ï¿½ ï¿½{ï¿½Hï¿½ï¿½Ğƒuï¿½ï¿½ï¿½bï¿½N12ï¿½sï¿½ï¿½), ï¿½Eï¿½lï¿½ï¿½
     WriteHeaderValueRight wsTarget.Range("C15"), wsInfo.Cells(CONTRACTOR_REPRESENTATIVE_ROW, valueColumn).value
 
-    ' M9:V9: ZŠ(ó’Ò—pM10), ¶‹l‚ß
+    ' M9:V9: ï¿½Zï¿½ï¿½(ï¿½ó’Ò—pM10), ï¿½ï¿½ï¿½lï¿½ï¿½
     WriteHeaderValueLeft wsTarget.Range("M9"), MirroredContractorText(wsContractor, "M10")
 
-    ' M10:V10: ‘å“SH‹ÆŠ”®‰ïĞ+ŠîŠ²o’£Š(ó’Ò—pM11), ¶‹l‚ß
+    ' M10:V10: ï¿½ï¿½Sï¿½Hï¿½ÆŠï¿½ï¿½ï¿½ï¿½ï¿½ï¿½+ï¿½îŠ²ï¿½oï¿½ï¿½ï¿½ï¿½(ï¿½ó’Ò—pM11), ï¿½ï¿½ï¿½lï¿½ï¿½
     WriteHeaderValueLeft wsTarget.Range("M10"), MirroredContractorText(wsContractor, "M11")
 
-    ' M11:V11: –ğE–¼(ó’Ò—pM12) + u@@“av, ‰E‹l‚ß
+    ' M11:V11: ï¿½ï¿½Eï¿½ï¿½ï¿½ï¿½(ï¿½ó’Ò—pM12) + ï¿½uï¿½@ï¿½@ï¿½aï¿½v, ï¿½Eï¿½lï¿½ï¿½
     Dim chiefText As String
     chiefText = MirroredContractorText(wsContractor, "M12")
     If Len(chiefText) > 0 Then chiefText = chiefText & ContractorHonorificSuffixText()
@@ -475,10 +477,10 @@ ErrorHandler:
     Exit Sub
 End Sub
 
-' x“XTƒV[ƒg‚Ö‚Ì“]‹LB‹¤’Ê•”(S1:U1/Q2:V2/s20-34)‚Í ApplyContractorStyleCommonFieldsB
-'   E9:I10 ‹ÆÒƒR[ƒh(ó’Ò—pE9E’†‰›) / A13:I15 ‰ïĞ–¼(ó’Ò—pA13E’†‰›) /
-'   M8:V8 ZŠ(ó’Ò—pM10E¶‹l‚ß) / M9:V9 ‘å“SH‹ÆŠ”®‰ïĞ+ŠîŠ²o’£Š(ó’Ò—pM11E¶‹l‚ß) /
-'   M10:V10 –ğE–¼(ó’Ò—pM12E‰E‹l‚ß)
+' ï¿½xï¿½Xï¿½Tï¿½Vï¿½[ï¿½gï¿½Ö‚Ì“]ï¿½Lï¿½Bï¿½ï¿½ï¿½Ê•ï¿½(S1:U1/Q2:V2/ï¿½s20-34)ï¿½ï¿½ ApplyContractorStyleCommonFieldsï¿½B
+'   E9:I10 ï¿½ÆÒƒRï¿½[ï¿½h(ï¿½ó’Ò—pE9ï¿½Eï¿½ï¿½ï¿½ï¿½) / A13:I15 ï¿½ï¿½Ğ–ï¿½(ï¿½ó’Ò—pA13ï¿½Eï¿½ï¿½ï¿½ï¿½) /
+'   M8:V8 ï¿½Zï¿½ï¿½(ï¿½ó’Ò—pM10ï¿½Eï¿½ï¿½ï¿½lï¿½ï¿½) / M9:V9 ï¿½ï¿½Sï¿½Hï¿½ÆŠï¿½ï¿½ï¿½ï¿½ï¿½ï¿½+ï¿½îŠ²ï¿½oï¿½ï¿½ï¿½ï¿½(ï¿½ó’Ò—pM11ï¿½Eï¿½ï¿½ï¿½lï¿½ï¿½) /
+'   M10:V10 ï¿½ï¿½Eï¿½ï¿½ï¿½ï¿½(ï¿½ó’Ò—pM12ï¿½Eï¿½Eï¿½lï¿½ï¿½)
 Private Sub ApplyBranchCopyHeader(ByVal wsInfo As Worksheet, _
                                   ByVal wsTarget As Worksheet, _
                                   ByVal vendorIndex As Long)
@@ -495,19 +497,19 @@ Private Sub ApplyBranchCopyHeader(ByVal wsInfo As Worksheet, _
     Dim wsContractor As Worksheet
     Set wsContractor = ResolveContractorSheetFromTarget(wsTarget)
 
-    ' E9:I10: ‹ÆÒƒR[ƒh(ó’Ò—pE9), ’†‰›
+    ' E9:I10: ï¿½ÆÒƒRï¿½[ï¿½h(ï¿½ó’Ò—pE9), ï¿½ï¿½ï¿½ï¿½
     WriteHeaderValue wsTarget.Range("E9"), MirroredContractorText(wsContractor, "E9"), True
 
-    ' A13:I15: ‰ïĞ–¼(ó’Ò—pA13), ’†‰›
+    ' A13:I15: ï¿½ï¿½Ğ–ï¿½(ï¿½ó’Ò—pA13), ï¿½ï¿½ï¿½ï¿½
     WriteHeaderValue wsTarget.Range("A13"), MirroredContractorText(wsContractor, "A13"), True
 
-    ' M8:V8: ZŠ(ó’Ò—pM10), ¶‹l‚ß
+    ' M8:V8: ï¿½Zï¿½ï¿½(ï¿½ó’Ò—pM10), ï¿½ï¿½ï¿½lï¿½ï¿½
     WriteHeaderValueLeft wsTarget.Range("M8"), MirroredContractorText(wsContractor, "M10")
 
-    ' M9:V9: ‘å“SH‹ÆŠ”®‰ïĞ+ŠîŠ²o’£Š(ó’Ò—pM11), ¶‹l‚ß
+    ' M9:V9: ï¿½ï¿½Sï¿½Hï¿½ÆŠï¿½ï¿½ï¿½ï¿½ï¿½ï¿½+ï¿½îŠ²ï¿½oï¿½ï¿½ï¿½ï¿½(ï¿½ó’Ò—pM11), ï¿½ï¿½ï¿½lï¿½ï¿½
     WriteHeaderValueLeft wsTarget.Range("M9"), MirroredContractorText(wsContractor, "M11")
 
-    ' M10:V10: –ğE–¼(ó’Ò—pM12), ‰E‹l‚ß
+    ' M10:V10: ï¿½ï¿½Eï¿½ï¿½ï¿½ï¿½(ï¿½ó’Ò—pM12), ï¿½Eï¿½lï¿½ï¿½
     WriteHeaderValueRight wsTarget.Range("M10"), MirroredContractorText(wsContractor, "M12")
 
     mod_OrderTpl_Shared.OrderTplLog "ApplyBranchCopyHeader done: " & wsTarget.Name
@@ -519,14 +521,14 @@ ErrorHandler:
     Exit Sub
 End Sub
 
-' •Ê†‡VƒV[ƒg‚Ö‚Ì“]‹L(“]‹Ld—l‚ªŠm’è‚µ‚½‚ç‚±‚±‚ÖÀ‘•‚·‚é)
+' ï¿½Êï¿½ï¿½Vï¿½Vï¿½[ï¿½gï¿½Ö‚Ì“]ï¿½L(ï¿½]ï¿½Lï¿½dï¿½lï¿½ï¿½ï¿½mï¿½è‚µï¿½ï¿½ï¿½ç‚±ï¿½ï¿½ï¿½Öï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
 Private Sub ApplyAttachment3Header(ByVal wsInfo As Worksheet, _
                                    ByVal wsTarget As Worksheet, _
                                    ByVal vendorIndex As Long)
-    ' “]‹Ld—l –¢w’è(ƒRƒs[‚Ì‚İ)
+    ' ï¿½]ï¿½Lï¿½dï¿½l ï¿½ï¿½ï¿½wï¿½ï¿½(ï¿½Rï¿½sï¿½[ï¿½Ì‚ï¿½)
 End Sub
 
-' Œ‹‡ƒZƒ‹‘Î‰‚Ì’l“]‹L(ƒtƒHƒ“ƒg“K—pA•K—v‚É‰‚¶‚Äã‰º¶‰E’†‰›‘µ‚¦)
+' ï¿½ï¿½ï¿½ï¿½ï¿½Zï¿½ï¿½ï¿½Î‰ï¿½ï¿½Ì’lï¿½]ï¿½L(ï¿½tï¿½Hï¿½ï¿½ï¿½gï¿½Kï¿½pï¿½Aï¿½Kï¿½vï¿½É‰ï¿½ï¿½ï¿½ï¿½Äã‰ºï¿½ï¿½ï¿½Eï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
 Private Sub WriteHeaderValue(ByVal target As Range, ByVal value As Variant, ByVal centered As Boolean)
     Dim writeCell As Range
     Set writeCell = target.MergeArea.Cells(1, 1)
@@ -542,7 +544,7 @@ Private Sub WriteHeaderValue(ByVal target As Range, ByVal value As Variant, ByVa
     ApplyHeaderCellFormat target, centered
 End Sub
 
-' •¶š—ñ‚Æ‚µ‚Ä‚Ì“]‹L(•”“XƒR[ƒh“™A“ú•tŒë•ÏŠ·‚ğ–h‚®)
+' ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ‚ï¿½ï¿½Ä‚Ì“]ï¿½L(ï¿½ï¿½ï¿½Xï¿½Rï¿½[ï¿½hï¿½ï¿½ï¿½Aï¿½ï¿½ï¿½tï¿½ï¿½ÏŠï¿½ï¿½ï¿½hï¿½ï¿½)
 Private Sub WriteHeaderText(ByVal target As Range, ByVal textValue As String, ByVal centered As Boolean)
     Dim writeCell As Range
     Set writeCell = target.MergeArea.Cells(1, 1)
@@ -557,7 +559,7 @@ Private Sub WriteHeaderText(ByVal target As Range, ByVal textValue As String, By
     ApplyHeaderCellFormat target, centered
 End Sub
 
-' “ú•t‚Ì“]‹L(˜a—ï•\¦Œ`®AŒ‹‡ƒZƒ‹‚Ì‚½‚ß’†‰›‘µ‚¦)
+' ï¿½ï¿½ï¿½tï¿½Ì“]ï¿½L(ï¿½aï¿½ï¿½\ï¿½ï¿½ï¿½`ï¿½ï¿½ï¿½Aï¿½ï¿½ï¿½ï¿½ï¿½Zï¿½ï¿½ï¿½Ì‚ï¿½ï¿½ß’ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
 Private Sub WriteHeaderDate(ByVal target As Range, ByVal value As Variant)
     Dim writeCell As Range
     Set writeCell = target.MergeArea.Cells(1, 1)
@@ -584,7 +586,7 @@ Private Sub ApplyHeaderCellFormat(ByVal target As Range, ByVal centered As Boole
     End If
 End Sub
 
-' ó’Ò—pƒV[ƒgwsTarget‚Æ“¯ˆêƒOƒ‹[ƒv‚Ì“à–ó–¾×ƒV[ƒg–¼‚ğ‰ğŒˆ‚·‚é
+' ï¿½ó’Ò—pï¿½Vï¿½[ï¿½gwsTargetï¿½Æ“ï¿½ï¿½ï¿½Oï¿½ï¿½ï¿½[ï¿½vï¿½Ì“ï¿½ï¿½ó–¾×ƒVï¿½[ï¿½gï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 Private Function ResolveBreakdownSheetNameFromTarget(ByVal wsTarget As Worksheet) As String
     Dim baseName As String, aliasText As String
     If Not mod_OrderTpl_Shared.OrderTplIsGeneratedSheet(wsTarget, baseName, aliasText) Then Exit Function
@@ -594,14 +596,14 @@ Private Function ResolveBreakdownSheetNameFromTarget(ByVal wsTarget As Worksheet
     If mod_OrderTpl_Shared.OrderTplSheetExists(nm) Then ResolveBreakdownSheetNameFromTarget = nm
 End Function
 
-' “à–ó–¾×ƒV[ƒg‚ÌA—ñ‚Åƒ‰ƒxƒ‹s‚ğ’T‚µA‚»‚ÌQ—ñ‚ğ•Ô‚·¶‚«”®(Œ©‚Â‚©‚ç‚È‚¯‚ê‚Î‹ó)
+' ï¿½ï¿½ï¿½ó–¾×ƒVï¿½[ï¿½gï¿½ï¿½Aï¿½ï¿½Åƒï¿½ï¿½xï¿½ï¿½ï¿½sï¿½ï¿½Tï¿½ï¿½ï¿½Aï¿½ï¿½ï¿½ï¿½Qï¿½ï¿½ï¿½Ô‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½(ï¿½ï¿½ï¿½Â‚ï¿½ï¿½ï¿½È‚ï¿½ï¿½ï¿½Î‹ï¿½)
 Private Function BuildBreakdownQFormula(ByVal sheetName As String, ByVal labelText As String) As String
     Dim q As String
     q = "'" & Replace$(sheetName, "'", "''") & "'"
     BuildBreakdownQFormula = "=IFERROR(INDEX(" & q & "!Q:Q,MATCH(""" & labelText & """," & q & "!A:A,0)),"""")"
 End Function
 
-' ”®(‰E‹l)‚Ì“]‹L(BizUDƒSƒVƒbƒNEŒ…‹æØ‚è)
+' ï¿½ï¿½ï¿½ï¿½(ï¿½Eï¿½l)ï¿½Ì“]ï¿½L(BizUDï¿½Sï¿½Vï¿½bï¿½Nï¿½Eï¿½ï¿½ï¿½ï¿½Ø‚ï¿½)
 Private Sub WriteHeaderFormulaRight(ByVal target As Range, ByVal formulaText As String)
     Dim writeCell As Range
     Set writeCell = target.MergeArea.Cells(1, 1)
@@ -612,22 +614,22 @@ Private Sub WriteHeaderFormulaRight(ByVal target As Range, ByVal formulaText As 
     writeCell.VerticalAlignment = xlCenter
 End Sub
 
-' "‡Œv"
+' "ï¿½ï¿½ï¿½v"
 Private Function ContractorGrandTotalLabelText() As String
     ContractorGrandTotalLabelText = ChrW$(&H5408) & ChrW$(&H8A08)
 End Function
 
-' "Œv"
+' "ï¿½v"
 Private Function ContractorNetTotalLabelText() As String
     ContractorNetTotalLabelText = ChrW$(&H8A08)
 End Function
 
-' "Á”ïÅ"
+' "ï¿½ï¿½ï¿½ï¿½ï¿½"
 Private Function ContractorTaxLabelText() As String
     ContractorTaxLabelText = ChrW$(&H6D88) & ChrW$(&H8CBB) & ChrW$(&H7A0E)
 End Function
 
-' "@@“a"(‘SŠp‹ó”’2‚Â + “aB’•¶¿‘ M11:V11 ‚Ì––”ö‚Ö•t‘Ñ‚·‚é)
+' "ï¿½@ï¿½@ï¿½a"(ï¿½Sï¿½pï¿½ï¿½2ï¿½ï¿½ + ï¿½aï¿½Bï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ M11:V11 ï¿½Ì–ï¿½ï¿½ï¿½ï¿½Ö•tï¿½Ñ‚ï¿½ï¿½ï¿½)
 Private Function ContractorHonorificSuffixText() As String
     Static cached As String
     If cached = "" Then
