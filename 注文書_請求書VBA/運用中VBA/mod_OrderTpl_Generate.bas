@@ -175,6 +175,7 @@ Public Sub GenerateVendorOrderSheets(ByVal wsInfo As Worksheet, ByVal vendorInde
     baseNames = mod_OrderTpl_Shared.OrderTplTemplateSheetBaseNames()
 
     Application.DisplayAlerts = False
+    mod_OrderTpl_Shared.OrderTplLog "step: copy template after=" & anchorSheet.Name
     templateWorkbook.Worksheets(baseNames).Copy After:=anchorSheet
 
     Dim i As Long
@@ -182,6 +183,7 @@ Public Sub GenerateVendorOrderSheets(ByVal wsInfo As Worksheet, ByVal vendorInde
         Dim wsGenerated As Worksheet
         Set wsGenerated = ThisWorkbook.Sheets(anchorSheet.Index + 1 + i - LBound(baseNames))
         wsGenerated.Name = mod_OrderTpl_Shared.OrderTplBuildSheetName(CStr(baseNames(i)), aliasText)
+        mod_OrderTpl_Shared.OrderTplLog "step: sanitize " & wsGenerated.Name
         mod_OrderTpl_Shared.OrderTplSanitizePlaceholderFormulas wsGenerated
     Next i
 
@@ -198,7 +200,9 @@ Public Sub GenerateVendorOrderSheets(ByVal wsInfo As Worksheet, ByVal vendorInde
                      mod_Construction_BasicTotals.BasicInfoVendorColumn(vendorIndex)).value))
     If workTypeText = "" Then workTypeText = workText
 
+    mod_OrderTpl_Shared.OrderTplLog "step: apply headers alias=" & aliasText
     mod_OrderTpl_Header.ApplyVendorSheetHeaders wsInfo, vendorIndex, aliasText
+    mod_OrderTpl_Shared.OrderTplLog "step: apply breakdown " & wsBreakdown.Name
     mod_OrderTpl_Detail.ApplyBreakdownDetails wsBreakdown, vendorName, companyName, branchName, workTypeText
 
     mod_OrderTpl_Shared.OrderTplLog "GenerateVendorOrderSheets done alias=" & aliasText

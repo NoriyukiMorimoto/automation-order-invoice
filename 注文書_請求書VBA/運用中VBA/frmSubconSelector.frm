@@ -84,6 +84,12 @@ Private Sub txtSearch_Change()
 End Sub
 
 Private Sub cmdOK_Click()
+    ' 選択モード(単一/2セクション)中は動的ボタン以外に Default の cmdOK が
+    ' Enter で発火し得るため、SCConfirm へ振り分ける。
+    If IsSelectionChoiceMode() Then
+        SCConfirm
+        Exit Sub
+    End If
     ConfirmSelection
 End Sub
 
@@ -379,11 +385,22 @@ Private Sub SCBuild(ByVal formCaption As String, ByVal hasTop As Boolean, _
 
     Me.Height = btnTop + 34 + 30
 
+    ' 元の cmdOK が Default のまま残ると Enter で会社選択 Confirm が走るため解除する
+    On Error Resume Next
+    Me.Controls("cmdOK").Default = False
+    Me.Controls("cmdCancel").Cancel = False
+    On Error GoTo 0
+
     If mSCTopNoneKey <> "" Then
         If SCIsChecked(mSCTopNoneKey) Then SCSetBottomEnabled False
     End If
     mBuildingSC = False
 End Sub
+
+Private Function IsSelectionChoiceMode() As Boolean
+    If mSCChkHandlers Is Nothing Then Exit Function
+    IsSelectionChoiceMode = (mSCChkHandlers.Count > 0)
+End Function
 
 ' 施工会社選択UIを含む既存コントロールをすべて隠す
 Private Sub SCHideAllControls()
@@ -391,6 +408,10 @@ Private Sub SCHideAllControls()
     For Each ctrl In Me.Controls
         On Error Resume Next
         ctrl.Visible = False
+        If TypeName(ctrl) = "CommandButton" Then
+            ctrl.Default = False
+            ctrl.Cancel = False
+        End If
         On Error GoTo 0
     Next ctrl
 End Sub
@@ -434,6 +455,8 @@ Private Sub SCAddButton(ByVal key As String, ByVal caption As String, _
         .Caption = caption
         .Font.Name = FormFontNameText()
         .Font.Size = FORM_FONT_SIZE
+        If key = "OK" Then .Default = True
+        If key = "CANCEL" Then .Cancel = True
     End With
 
     Dim handler As clsKeypadBtn

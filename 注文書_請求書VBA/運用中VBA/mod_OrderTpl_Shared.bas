@@ -578,21 +578,37 @@ Public Sub OrderTplSanitizePlaceholderFormulas(ByVal ws As Worksheet)
     On Error GoTo 0
     If formulaRange Is Nothing Then Exit Sub
 
+    Dim processed As Object
+    Set processed = CreateObject("Scripting.Dictionary")
+
     Dim cell As Range
     For Each cell In formulaRange.Cells
-        If OrderTplShouldClearPlaceholderFormula(ws, baseName, cell) Then
-            OrderTplClearFormulaCell cell
+        Dim repCell As Range
+        Set repCell = cell.MergeArea.Cells(1, 1)
+
+        Dim repKey As String
+        repKey = repCell.Address(True, True)
+        If processed.Exists(repKey) Then GoTo ContinueCell
+        processed.Add repKey, True
+
+        If OrderTplShouldClearPlaceholderFormula(ws, baseName, repCell) Then
+            OrderTplClearFormulaCell repCell
         End If
+ContinueCell:
     Next cell
 End Sub
+
+Private Function OrderTplGetFormulaText(ByVal cell As Range) As String
+    On Error Resume Next
+    OrderTplGetFormulaText = CStr(cell.MergeArea.Cells(1, 1).Formula)
+    On Error GoTo 0
+End Function
 
 Private Function OrderTplShouldClearPlaceholderFormula(ByVal ws As Worksheet, _
                                                        ByVal baseName As String, _
                                                        ByVal cell As Range) As Boolean
     Dim formulaText As String
-    On Error Resume Next
-    formulaText = CStr(cell.Formula)
-    On Error GoTo 0
+    formulaText = OrderTplGetFormulaText(cell)
     If Len(formulaText) = 0 Then Exit Function
     If Left$(formulaText, 1) <> "=" Then Exit Function
 
@@ -653,11 +669,12 @@ End Function
 
 Private Sub OrderTplClearFormulaCell(ByVal cell As Range)
     Dim writeCell As Range
-    Set writeCell = cell
     On Error Resume Next
-    If writeCell.MergeCells Then Set writeCell = writeCell.MergeArea.Cells(1, 1)
-    On Error GoTo 0
+    Set writeCell = cell.MergeArea.Cells(1, 1)
+    If writeCell Is Nothing Then Set writeCell = cell
+    On Error Resume Next
     writeCell.ClearContents
+    On Error GoTo 0
 End Sub
 
 Public Sub OrderTplLog(ByVal msg As String)
