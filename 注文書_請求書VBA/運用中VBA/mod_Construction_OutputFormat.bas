@@ -3,6 +3,16 @@ Option Explicit
 ' ????: CHANGELOG.md ??
 ' mod_Construction_OutputFormat (split from mod_Construction_Order_Import)
 
+'  ConstructionIntegerNumberFormat
+'  Integer display format (negative values in red). ChrW builds [aka].
+Public Function ConstructionIntegerNumberFormat() As String
+    Static cached As String
+    If Len(cached) = 0 Then
+        cached = "#,##0;[" & ChrW$(&H8D64) & "]-#,##0"
+    End If
+    ConstructionIntegerNumberFormat = cached
+End Function
+
 Public Sub ApplySanpaiRowRestrictionsCore(ByVal ws As Worksheet)
     If ws Is Nothing Then Exit Sub
 
@@ -61,7 +71,7 @@ Public Sub WriteTotalCells(ByVal ws As Worksheet, ByVal totalRow As Long, _
         Else
             .FormulaR1C1 = "=ROUNDDOWN(SUM(R2C:R" & sumLastRow & "C),0)"
         End If
-        .NumberFormatLocal = "#,##0;[��]-#,##0"
+        .NumberFormatLocal = ConstructionIntegerNumberFormat()
     End With
 
     DrawDoubleBorder ws.Cells(totalRow, labelColumn), RGB(0, 0, 0)
@@ -332,7 +342,7 @@ Public Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
         "=IF(OR(RC[" & (autoPriceColumn - autoAmountColumn) & "]="""",RC[" & (qtyColumn - autoAmountColumn) & "]=""""),"""",RC[" & (autoPriceColumn - autoAmountColumn) & "]*RC[" & (qtyColumn - autoAmountColumn) & "])"
 
     With ws.Range(ws.Cells(2, autoPriceColumn), ws.Cells(lastRow, autoAmountColumn))
-        .NumberFormatLocal = "#,##0;[��]-#,##0"
+        .NumberFormatLocal = ConstructionIntegerNumberFormat()
     End With
     ws.Range(ws.Cells(1, compareColumn), ws.Cells(lastRow, compareColumn)).HorizontalAlignment = xlCenter
 
@@ -498,7 +508,7 @@ Public Sub RefreshConstructionReferencePricesOnSheet( _
     Next r
 
     ws.Range(ws.Cells(2, autoPriceColumn), _
-             ws.Cells(lastRow, autoAmountColumn)).NumberFormatLocal = "#,##0;[��]-#,##0"
+             ws.Cells(lastRow, autoAmountColumn)).NumberFormatLocal = ConstructionIntegerNumberFormat()
     ws.Range(ws.Cells(1, comparisonColumn), _
              ws.Cells(lastRow, comparisonColumn)).HorizontalAlignment = xlCenter
     ApplyPriceGuidanceColumnLayoutAtColumns ws, comparisonColumn, guidanceColumn
