@@ -780,6 +780,13 @@ Public Sub NotifyVendorBasicInfoBlockChanged(ByVal wsInfo As Worksheet, _
 
         If StrComp(prevWorkType, currentWorkType, vbTextCompare) = 0 Then
             mod_WeldingUnitPrice.UpdateWeldingVendorDisplayNamesForBasicInfo wsInfo, valueColumn
+            ' ‰ïŽÐ–¼‚Ì‚Ý•ÏX(HŽ–‹æ•ª‚Í•s•Ï)‚Å‚àA“–ŠY—ñ‚Ì—nÚ’P‰¿/‹O“¹‰ïŽÐ‚Ì—nÚŽèŒ³’P‰¿‚ª
+            ' –¢“WŠJ‚Ì‚Ü‚ÜŽc‚é‚±‚Æ‚ª‚ ‚é‚½‚ßA‘ÎÛ—ñ‚¾‚¯’P‰¿“WŠJ‚ð•ÛØ‚·‚éB
+            ' (—nÚ”Ž®‚ÍŽèŒ³”ä—¦=®—”Ô†ƒL[EŠO’”ä—¦=â‘ÎŽQÆ‚Å‹ÆŽÒ”ñˆË‘¶BŠù“WŠJ‚È‚çŒ‹‰Ê‚Í“™‰¿)
+            Dim weldingNameChangeCols As Collection
+            Set weldingNameChangeCols = New Collection
+            weldingNameChangeCols.Add valueColumn
+            mod_WeldingUnitPrice.ApplyWeldingVendorUnitPricesForBasicInfoColumns wsInfo, weldingNameChangeCols, valueColumn
         ElseIf Len(prevWorkType) = 0 And Len(currentWorkType) > 0 Then
             Dim firstFillCols As Collection
             Set firstFillCols = New Collection

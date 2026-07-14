@@ -5,6 +5,14 @@
 
 ---
 
+## 不具合修正 施工会社名変更時に軌道会社の溶接手元単価が展開されない
+
+### #1 名称のみ変更でも対象列の溶接単価展開を保証（mod_VendorMaster.NotifyVendorBasicInfoBlockChanged）
+- 症状: 基本情報の施工会社列11行目(会社名)を変更すると、溶接単価シートへ軌道工事会社(溶接手元)の単価が取り込まれない。溶接単価パターン・外注比率は入力済み。
+- 原因: 会社名のみ変更(工事区分=10行目は不変)の場合、`NotifyVendorBasicInfoBlockChanged` が溶接側を `UpdateWeldingVendorDisplayNamesForBasicInfo`(=`SyncWeldingVendorBlocksLayoutOnSheet` によるレイアウト/名称同期のみ)に回し、単価計算を行っていなかった。未展開の軌道会社ブロックは空欄のまま残る(既存不具合。工事単価側 mod_VendorUnitPrice の最適化とは別系統)。
+- 修正: 名称のみ変更の分岐で、従来の名称同期に加え、対象列に対して `ApplyWeldingVendorUnitPricesForBasicInfoColumns wsInfo, {valueColumn}, valueColumn` を呼び、当該列の溶接単価/溶接手元単価の展開を保証。溶接数式は手元比率(整理番号キー)・外注比率(絶対参照)で業者非依存のため、既展開時の結果は等価。
+- 備考: 名称変更時に対象列の溶接展開が走るため僅かなコスト増となる。既構築時は名称のみ更新で足りるため、段階③b(#11)で『既構築なら軽量、未構築なら展開』の条件化により速度を回収予定。
+
 ## 改善着手 段階③ 単価展開の高速化（施工会社名変更時の全再構築を回避）
 
 ### #1 工事単価: 既構築ブロックは名称＋比率のみ更新（mod_VendorUnitPrice）
