@@ -18,6 +18,10 @@ Private Const CONTRACTOR_ADDRESS_ROW As Long = 14
 Private Const CONDITION_CHECKBOX_D_COL As Long = 4
 Private Const CONDITION_CHECKBOX_X_COL As Long = 24
 Private Const CONDITION_CHECKBOX_E_COL As Long = 5
+Private Const CONDITION_CHECKBOX_LEFT_MAX_COL As Long = 12
+Private Const CONDITION_CHECKBOX_RIGHT_MIN_COL As Long = 20
+Private Const CONDITION_ROW38_BAND_MIN_ROW As Long = 37
+Private Const CONDITION_ROW38_BAND_MAX_ROW As Long = 39
 
 ' �w��u���b�N�̎{�H��ЂɑΉ�����e���v���[�g5�V�[�g�փw�b�_�[��]�L����(�f�B�X�p�b�`��)
 Public Sub ApplyVendorSheetHeaders(ByVal wsInfo As Worksheet, _
@@ -307,8 +311,24 @@ Private Function IsConditionEVerticalPairRow(ByVal rowIndex As Long) As Boolean
     IsConditionEVerticalPairRow = (rowIndex = 34) Or (rowIndex = 35)
 End Function
 
-Private Function IsConditionDxCheckboxColumn(ByVal colIndex As Long) As Boolean
-    IsConditionDxCheckboxColumn = (colIndex = CONDITION_CHECKBOX_D_COL Or colIndex = CONDITION_CHECKBOX_X_COL)
+Private Function IsConditionDxLeftSideColumn(ByVal colIndex As Long) As Boolean
+    IsConditionDxLeftSideColumn = (colIndex > 0 And colIndex <= CONDITION_CHECKBOX_LEFT_MAX_COL)
+End Function
+
+Private Function IsConditionDxRightSideColumn(ByVal colIndex As Long) As Boolean
+    IsConditionDxRightSideColumn = (colIndex >= CONDITION_CHECKBOX_RIGHT_MIN_COL)
+End Function
+
+Private Function IsConditionDxSideCheckbox(ByVal cb As Object) As Boolean
+    Dim colIndex As Long
+    colIndex = cb.TopLeftCell.Column
+    IsConditionDxSideCheckbox = IsConditionDxLeftSideColumn(colIndex) Or _
+                                IsConditionDxRightSideColumn(colIndex)
+End Function
+
+Private Function IsConditionRow38BandRow(ByVal rowIndex As Long) As Boolean
+    IsConditionRow38BandRow = (rowIndex >= CONDITION_ROW38_BAND_MIN_ROW And _
+                               rowIndex <= CONDITION_ROW38_BAND_MAX_ROW)
 End Function
 
 Private Function IsConditionExclusiveCheckbox(ByVal cb As Object) As Boolean
@@ -322,19 +342,13 @@ Private Function IsConditionExclusiveCheckbox(ByVal cb As Object) As Boolean
         Exit Function
     End If
 
-    If IsConditionDxExclusiveRow(rowIndex) Then
-        IsConditionExclusiveCheckbox = IsConditionDxCheckboxColumn(colIndex)
-    ElseIf rowIndex = 39 And IsConditionDxCheckboxColumn(colIndex) Then
-        ' Row-38 control may anchor to row 39
-        IsConditionExclusiveCheckbox = True
-    End If
-End Function
+    If Not IsConditionDxSideCheckbox(cb) Then Exit Function
 
-Private Function ConditionDxPairTargetColumn(ByVal clickedCol As Long) As Long
-    If clickedCol <= CONDITION_CHECKBOX_D_COL Then
-        ConditionDxPairTargetColumn = CONDITION_CHECKBOX_X_COL
-    ElseIf clickedCol >= CONDITION_CHECKBOX_X_COL Then
-        ConditionDxPairTargetColumn = CONDITION_CHECKBOX_D_COL
+    If IsConditionDxExclusiveRow(rowIndex) Then
+        IsConditionExclusiveCheckbox = True
+    ElseIf IsConditionRow38BandRow(rowIndex) Then
+        ' Row-38 controls may anchor to rows 37-39.
+        IsConditionExclusiveCheckbox = True
     End If
 End Function
 
@@ -354,6 +368,7 @@ Public Sub SetupConditionCheckboxExclusivity(ByVal wsCondition As Worksheet)
         End If
     Next cb
     On Error GoTo 0
+    NormalizeConditionCheckboxPairs wsCondition
 End Sub
 
 ' Checkbox click handler: flip paired control to opposite state.
@@ -371,13 +386,18 @@ Public Sub ConditionCheckboxExclusiveClick()
     Set pair = FindConditionCheckboxPair(ws, clicked)
     If pair Is Nothing Then Exit Sub
 
+    Application.EnableEvents = False
     If clicked.Value = xlOn Then
         pair.Value = xlOff
     Else
         pair.Value = xlOn
     End If
+    Application.EnableEvents = True
 
 Done:
+    On Error Resume Next
+    Application.EnableEvents = True
+    On Error GoTo 0
 End Sub
 
 ' Return paired checkbox (D/X: opposite col + nearest Top / E34-E35: other row)
@@ -390,9 +410,10 @@ Private Function FindConditionCheckboxPair(ByVal ws As Worksheet, ByVal clicked 
         Exit Function
     End If
 
-    If IsConditionDxExclusiveRow(rowIndex) Or _
-       (rowIndex = 39 And IsConditionDxCheckboxColumn(clicked.TopLeftCell.Column)) Then
-        Set FindConditionCheckboxPair = FindConditionDxCheckboxPair(ws, clicked)
+    If IsConditionDxSideCheckbox(clicked) Then
+        If IsConditionDxExclusiveRow(rowIndex) Or IsConditionRow38BandRow(rowIndex) Then
+            Set FindConditionCheckboxPair = FindConditionDxCheckboxPair(ws, clicked)
+        End If
     End If
 End Function
 
@@ -420,18 +441,29 @@ End Function
 
 Private Function FindConditionDxCheckboxPair(ByVal ws As Worksheet, ByVal clicked As Object) As Object
     Dim clickedCol As Long
-    clickedCol = clicked.TopLeftCell.Column
-    Dim pairCol As Long
-    pairCol = ConditionDxPairTargetColumn(clickedCol)
-    If pairCol = 0 Then Exit Function
-
     Dim clickedRow As Long
+    Dim clickedTop As Double
+    clickedCol = clicked.TopLeftCell.Column
     clickedRow = clicked.TopLeftCell.Row
-    Dim rowTolerance As Long
-    If clickedRow = 38 Or clickedRow = 39 Then
-        rowTolerance = 1
+    clickedTop = clicked.Top
+
+    Dim clickedIsLeft As Boolean
+    If IsConditionDxLeftSideColumn(clickedCol) Then
+        clickedIsLeft = True
+    ElseIf IsConditionDxRightSideColumn(clickedCol) Then
+        clickedIsLeft = False
     Else
-        rowTolerance = 0
+        Exit Function
+    End If
+
+    Dim rowMin As Long
+    Dim rowMax As Long
+    If clickedRow = 38 Or clickedRow = 39 Then
+        rowMin = CONDITION_ROW38_BAND_MIN_ROW
+        rowMax = CONDITION_ROW38_BAND_MAX_ROW
+    Else
+        rowMin = clickedRow
+        rowMax = clickedRow
     End If
 
     Dim bestCb As Object
@@ -441,10 +473,23 @@ Private Function FindConditionDxCheckboxPair(ByVal ws As Worksheet, ByVal clicke
     Dim cb As Object
     For Each cb In ws.CheckBoxes
         If cb.Name <> clicked.Name Then
-            If cb.TopLeftCell.Column = pairCol Then
-                If Abs(cb.TopLeftCell.Row - clickedRow) <= rowTolerance Then
+            If cb.TopLeftCell.Row >= rowMin And cb.TopLeftCell.Row <= rowMax Then
+                Dim cbCol As Long
+                cbCol = cb.TopLeftCell.Column
+                Dim cbIsLeft As Boolean
+                Dim hasSide As Boolean
+                hasSide = False
+                If IsConditionDxLeftSideColumn(cbCol) Then
+                    cbIsLeft = True
+                    hasSide = True
+                ElseIf IsConditionDxRightSideColumn(cbCol) Then
+                    cbIsLeft = False
+                    hasSide = True
+                End If
+
+                If hasSide And (cbIsLeft <> clickedIsLeft) Then
                     Dim topDist As Double
-                    topDist = Abs(cb.Top - clicked.Top)
+                    topDist = Abs(cb.Top - clickedTop)
                     If bestCb Is Nothing Or topDist < bestTopDist Then
                         Set bestCb = cb
                         bestTopDist = topDist
@@ -456,6 +501,41 @@ Private Function FindConditionDxCheckboxPair(ByVal ws As Worksheet, ByVal clicke
 
     Set FindConditionDxCheckboxPair = bestCb
 End Function
+
+Private Sub NormalizeConditionCheckboxPairs(ByVal ws As Worksheet)
+    If ws Is Nothing Then Exit Sub
+
+    On Error Resume Next
+    Dim processed As Object
+    Set processed = CreateObject("Scripting.Dictionary")
+    processed.CompareMode = vbTextCompare
+
+    Dim cb As Object
+    For Each cb In ws.CheckBoxes
+        If IsConditionExclusiveCheckbox(cb) Then
+            If Not processed.Exists(cb.Name) Then
+                Dim pair As Object
+                Set pair = FindConditionCheckboxPair(ws, cb)
+                If Not pair Is Nothing Then
+                    processed.Add cb.Name, True
+                    processed.Add pair.Name, True
+
+                    If cb.Value = xlOn And pair.Value = xlOn Then
+                        pair.Value = xlOff
+                    ElseIf cb.Value <> xlOn And pair.Value <> xlOn Then
+                        If IsConditionDxLeftSideColumn(cb.TopLeftCell.Column) Or _
+                           IsConditionEVerticalPairRow(cb.TopLeftCell.Row) Then
+                            cb.Value = xlOn
+                        Else
+                            pair.Value = xlOn
+                        End If
+                    End If
+                End If
+            End If
+        End If
+    Next cb
+    On Error GoTo 0
+End Sub
 
 ' �󒍎җp/��������/�x�X�T ����: S1:U1 �����ԍ�(27) / Q2:V2 �쐬��C2(����) /
 '   �s20-34(E20:�H����C10 E22:�s���{��C13 G24:�H����C15(����) G26:�H����C16(����)�A
