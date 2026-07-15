@@ -1,12 +1,12 @@
 Option Explicit
 
-' {H‰ïĞŠm’è‚É’•¶‘ƒeƒ“ƒvƒŒ[ƒg5ƒV[ƒg(“à–ó–¾×/ó’Ò—p/’•¶¿‘/x“XT/•Ê†‡V)‚ğ
-' w“ü[“–w¦(’Ê’m)ƒV[ƒg‚Ì‰E‘¤‚Ö‰ïĞ‚²‚Æ‚É‘}“üEíœ‚·‚éB
-' ‰üC—š—ğ: CHANGELOG.md QÆ
+' ï¿½{ï¿½Hï¿½ï¿½ĞŠmï¿½èï¿½É’ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½eï¿½ï¿½ï¿½vï¿½ï¿½ï¿½[ï¿½g5ï¿½Vï¿½[ï¿½g(ï¿½ï¿½ï¿½ó–¾ï¿½/ï¿½ó’Ò—p/ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½/ï¿½xï¿½Xï¿½T/ï¿½Êï¿½ï¿½V)ï¿½ï¿½
+' ï¿½wï¿½ï¿½ï¿½[ï¿½ï¿½ï¿½wï¿½ï¿½(ï¿½Ê’m)ï¿½Vï¿½[ï¿½gï¿½Ì‰Eï¿½ï¿½ï¿½Ö‰ï¿½Ğ‚ï¿½ï¿½Æ‚É‘}ï¿½ï¿½ï¿½Eï¿½íœï¿½ï¿½ï¿½ï¿½B
+' ï¿½ï¿½ï¿½Cï¿½ï¿½ï¿½ï¿½: CHANGELOG.md ï¿½Qï¿½ï¿½
 
 Private mGenerating As Boolean
 Private mDetailRefreshScheduledTime As Date
-Private mPendingVendorIndexes As Object        ' ’x‰„¶¬‘Ò‚¿‚ÌƒuƒƒbƒN”Ô†(Dictionary)
+Private mPendingVendorIndexes As Object        ' ï¿½xï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò‚ï¿½ï¿½Ìƒuï¿½ï¿½ï¿½bï¿½Nï¿½Ôï¿½(Dictionary)
 Private mVendorGenScheduledTime As Date
 
 Private Function GenerateErrorText() As String
@@ -29,8 +29,8 @@ Private Function RefreshErrorText() As String
     RefreshErrorText = cached
 End Function
 
-' Sheet1(Šî–{î•ñ)‚ÌWorksheet_Change‚©‚çŒÄ‚Î‚ê‚é“üŒûB
-' 11s–Ú({H‰ïĞ)‚ÌŠm’è‚Åƒeƒ“ƒvƒŒ[ƒgƒV[ƒg‚ğÄì¬‚µAƒNƒŠƒA‚ÍŒÇ™ƒV[ƒg‚ğíœ‚·‚éB
+' Sheet1(ï¿½ï¿½{ï¿½ï¿½ï¿½)ï¿½ï¿½Worksheet_Changeï¿½ï¿½ï¿½ï¿½Ä‚Î‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½B
+' 11ï¿½sï¿½ï¿½(ï¿½{ï¿½Hï¿½ï¿½ï¿½)ï¿½ÌŠmï¿½ï¿½Åƒeï¿½ï¿½ï¿½vï¿½ï¿½ï¿½[ï¿½gï¿½Vï¿½[ï¿½gï¿½ï¿½ï¿½Äì¬ï¿½ï¿½ï¿½Aï¿½Nï¿½ï¿½ï¿½Aï¿½ï¿½ï¿½ÍŒÇï¿½ï¿½Vï¿½[ï¿½gï¿½ï¿½ï¿½íœï¿½ï¿½ï¿½ï¿½B
 Public Sub HandleVendorNameCellChange(ByVal wsInfo As Worksheet, ByVal changedCell As Range)
     If wsInfo Is Nothing Then Exit Sub
     If changedCell Is Nothing Then Exit Sub
@@ -40,13 +40,13 @@ Public Sub HandleVendorNameCellChange(ByVal wsInfo As Worksheet, ByVal changedCe
     vendorIndex = mod_VendorMaster.GetVendorIndexFromValueColumnPublic(changedCell.Column)
     If vendorIndex < 1 Then Exit Sub
 
-    ' ActiveXƒRƒ“ƒ{“™‚ÌƒRƒ“ƒgƒ[ƒ‹ƒCƒxƒ“ƒg“à‚©‚ç Worksheets.Copy ‚ğÀs‚·‚é‚Æ
-    ' ÀsƒGƒ‰[1004(‚±‚ÌƒV[ƒg‚ğƒRƒs[‚Å‚«‚Ü‚¹‚ñ‚Å‚µ‚½)‚É‚È‚é‚½‚ßA
-    ' OnTime ‚ÅƒCƒxƒ“ƒgŠ®—¹Œã(ƒtƒH[ƒJƒX³í‰»Œã)‚É’x‰„Às‚·‚é
+    ' ActiveXï¿½Rï¿½ï¿½ï¿½{ï¿½ï¿½ï¿½ÌƒRï¿½ï¿½ï¿½gï¿½ï¿½ï¿½[ï¿½ï¿½ï¿½Cï¿½xï¿½ï¿½ï¿½gï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Worksheets.Copy ï¿½ï¿½ï¿½ï¿½ï¿½sï¿½ï¿½ï¿½ï¿½ï¿½
+    ' ï¿½ï¿½ï¿½sï¿½ï¿½ï¿½Gï¿½ï¿½ï¿½[1004(ï¿½ï¿½ï¿½ÌƒVï¿½[ï¿½gï¿½ï¿½ï¿½Rï¿½sï¿½[ï¿½Å‚ï¿½ï¿½Ü‚ï¿½ï¿½ï¿½Å‚ï¿½ï¿½ï¿½)ï¿½É‚È‚é‚½ï¿½ßA
+    ' OnTime ï¿½ÅƒCï¿½xï¿½ï¿½ï¿½gï¿½ï¿½ï¿½ï¿½ï¿½ï¿½(ï¿½tï¿½Hï¿½[ï¿½Jï¿½Xï¿½ï¿½ï¿½í‰»ï¿½ï¿½)ï¿½É’xï¿½ï¿½ï¿½ï¿½ï¿½sï¿½ï¿½ï¿½ï¿½
     ScheduleVendorSheetGeneration vendorIndex
 End Sub
 
-' w’èƒuƒƒbƒN‚ÌƒV[ƒg¶¬‚ğ’x‰„—\–ñ‚·‚é(•¡”ƒuƒƒbƒN‚Ì—\–ñ‚Í‚Ü‚Æ‚ß‚ÄÀs‚³‚ê‚é)
+' ï¿½wï¿½ï¿½uï¿½ï¿½ï¿½bï¿½Nï¿½ÌƒVï¿½[ï¿½gï¿½ï¿½ï¿½ï¿½ï¿½ï¿½xï¿½ï¿½ï¿½\ï¿½ñ‚·‚ï¿½(ï¿½ï¿½ï¿½ï¿½ï¿½uï¿½ï¿½ï¿½bï¿½Nï¿½Ì—\ï¿½ï¿½Í‚Ü‚Æ‚ß‚Äï¿½ï¿½sï¿½ï¿½ï¿½ï¿½ï¿½)
 Public Sub ScheduleVendorSheetGeneration(ByVal vendorIndex As Long)
     If mPendingVendorIndexes Is Nothing Then
         Set mPendingVendorIndexes = CreateObject("Scripting.Dictionary")
@@ -75,7 +75,7 @@ Public Sub CancelScheduledVendorSheetGeneration()
     mVendorGenScheduledTime = 0
 End Sub
 
-' Application.OnTime ‚©‚çŒÄ‚Î‚ê‚é’x‰„¶¬‚ÌÀs•”
+' Application.OnTime ï¿½ï¿½ï¿½ï¿½Ä‚Î‚ï¿½ï¿½xï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ìï¿½ï¿½sï¿½ï¿½
 Public Sub RunScheduledVendorSheetGeneration()
     mVendorGenScheduledTime = 0
     If mPendingVendorIndexes Is Nothing Then Exit Sub
@@ -85,7 +85,7 @@ Public Sub RunScheduledVendorSheetGeneration()
     Set wsInfo = CommonGetBasicInfoWorksheet()
     If wsInfo Is Nothing Then Exit Sub
 
-    ' Às‘O‚É—\–ñƒŠƒXƒg‚ğ‘Ş”ğ‚µ‚ÄƒNƒŠƒA‚·‚é(Às’†‚ÌÄ—\–ñ‚ÆÕ“Ë‚³‚¹‚È‚¢)
+    ' ï¿½ï¿½ï¿½sï¿½Oï¿½É—\ï¿½ñƒŠƒXï¿½gï¿½ï¿½Ş”ï¿½ï¿½ï¿½ï¿½ÄƒNï¿½ï¿½ï¿½Aï¿½ï¿½ï¿½ï¿½(ï¿½ï¿½ï¿½sï¿½ï¿½ï¿½ÌÄ—\ï¿½ï¿½ÆÕ“Ë‚ï¿½ï¿½ï¿½ï¿½È‚ï¿½)
     Dim pendingKeys As Variant
     pendingKeys = mPendingVendorIndexes.Keys
     mPendingVendorIndexes.RemoveAll
@@ -99,10 +99,13 @@ Public Sub RunScheduledVendorSheetGeneration()
         GenerateVendorOrderSheets wsInfo, CLng(pendingKeys(i))
     Next i
 
+    ' ç”Ÿæˆã—ãŸå†…è¨³æ˜ç´°ã®ã€Œè¨ˆã€ã‚’åŸºæœ¬æƒ…å ±33è¡Œã¸åæ˜ ã™ã‚‹
+    mod_Construction_Order_Import.RefreshBasicInfoConstructionTotals
+
     Application.EnableEvents = prevEnableEvents
 End Sub
 
-' w’èƒuƒƒbƒN‚Ì{H‰ïĞ‚Ìƒeƒ“ƒvƒŒ[ƒg5ƒV[ƒg‚ğíœ‚µ‚ÄÄì¬‚µA“à–ó–¾×‚Ö“]‹L‚·‚é
+' ï¿½wï¿½ï¿½uï¿½ï¿½ï¿½bï¿½Nï¿½Ì{ï¿½Hï¿½ï¿½Ğ‚Ìƒeï¿½ï¿½ï¿½vï¿½ï¿½ï¿½[ï¿½g5ï¿½Vï¿½[ï¿½gï¿½ï¿½ï¿½íœï¿½ï¿½ï¿½ÄÄì¬ï¿½ï¿½ï¿½Aï¿½ï¿½ï¿½ó–¾×‚Ö“]ï¿½Lï¿½ï¿½ï¿½ï¿½
 Public Sub GenerateVendorOrderSheets(ByVal wsInfo As Worksheet, ByVal vendorIndex As Long)
     If wsInfo Is Nothing Then Exit Sub
     If mGenerating Then Exit Sub
@@ -187,18 +190,37 @@ Public Sub GenerateVendorOrderSheets(ByVal wsInfo As Worksheet, ByVal vendorInde
         mod_OrderTpl_Shared.OrderTplSanitizePlaceholderFormulas wsGenerated
     Next i
 
+    ' å·¥äº‹åŒºåˆ†(åŸºæœ¬æƒ…å ±10è¡Œ)ã«å¿œã˜ãŸæ¡ä»¶æ›¸ã‚’1ç¨®å–ã‚Šè¾¼ã¿ã€æ”¯åº—æ§ã®å³(åˆ¥ç´™IIIã®å·¦)ã¸é…ç½®ã™ã‚‹
+    Dim workTypeText As String
+    workTypeText = CommonNormalizeText(CommonNzText( _
+        wsInfo.Cells(BASIC_INFO_VENDOR_WORK_TYPE_ROW, _
+                     mod_Construction_BasicTotals.BasicInfoVendorColumn(vendorIndex)).value))
+    If workTypeText = "" Then workTypeText = workText
+
+    Dim condTemplateSheet As Worksheet
+    Set condTemplateSheet = mod_OrderTpl_Shared.OrderTplFindConditionTemplateSheet(templateWorkbook, workTypeText)
+    If Not condTemplateSheet Is Nothing Then
+        Dim wsBranchCopy As Worksheet
+        Set wsBranchCopy = ThisWorkbook.Worksheets( _
+            mod_OrderTpl_Shared.OrderTplBuildSheetName(mod_OrderTpl_Shared.OrderTplBaseNameBranchCopyText(), aliasText))
+        condTemplateSheet.Copy After:=wsBranchCopy
+        Dim wsCondition As Worksheet
+        Set wsCondition = ThisWorkbook.Sheets(wsBranchCopy.Index + 1)
+        wsCondition.Name = mod_OrderTpl_Shared.OrderTplBuildSheetName( _
+            mod_OrderTpl_Shared.OrderTplBaseNameConditionText(), aliasText)
+        mod_OrderTpl_Shared.OrderTplLog "step: condition sheet " & wsCondition.Name & " from " & condTemplateSheet.Name
+        mod_OrderTpl_Header.ApplyConditionSheetHeader wsInfo, wsCondition, vendorIndex
+        mod_OrderTpl_Header.SetupConditionCheckboxExclusivity wsCondition
+    Else
+        mod_OrderTpl_Shared.OrderTplLog "condition template not found for workType=[" & workTypeText & "]"
+    End If
+
     If openedHere Then templateWorkbook.Close SaveChanges:=False
     Application.DisplayAlerts = prevDisplayAlerts
 
     Dim wsBreakdown As Worksheet
     Set wsBreakdown = ThisWorkbook.Worksheets( _
         mod_OrderTpl_Shared.OrderTplBuildSheetName(CStr(baseNames(LBound(baseNames))), aliasText))
-
-    Dim workTypeText As String
-    workTypeText = CommonNormalizeText(CommonNzText( _
-        wsInfo.Cells(BASIC_INFO_VENDOR_WORK_TYPE_ROW, _
-                     mod_Construction_BasicTotals.BasicInfoVendorColumn(vendorIndex)).value))
-    If workTypeText = "" Then workTypeText = workText
 
     mod_OrderTpl_Shared.OrderTplLog "step: apply headers alias=" & aliasText
     mod_OrderTpl_Header.ApplyVendorSheetHeaders wsInfo, vendorIndex, aliasText
@@ -222,12 +244,12 @@ ErrorHandler:
     Resume Cleanup
 End Sub
 
-' ‘SŠm’è‰ïĞ‚Ì“à–ó–¾×‚ğÄ“]‹L‚·‚é({Hw¦‘“™‚ÌæŒã‚Éè“®Às‚·‚éŒöŠJƒ}ƒNƒ)
+' ï¿½Sï¿½mï¿½ï¿½ï¿½Ğ‚Ì“ï¿½ï¿½ó–¾×‚ï¿½ï¿½Ä“]ï¿½Lï¿½ï¿½ï¿½ï¿½(ï¿½{ï¿½Hï¿½wï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ìæï¿½ï¿½Éè“®ï¿½ï¿½ï¿½sï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Jï¿½}ï¿½Nï¿½ï¿½)
 Public Sub RefreshAllVendorOrderDetails()
     RefreshAllVendorOrderDetailsCore True
 End Sub
 
-' ‘SŠm’è‰ïĞ‚Ì“à–ó–¾×‚ğÄ“]‹L‚·‚é(Š®—¹ƒƒbƒZ[ƒW‚È‚µB©“®”½‰f—p)
+' ï¿½Sï¿½mï¿½ï¿½ï¿½Ğ‚Ì“ï¿½ï¿½ó–¾×‚ï¿½ï¿½Ä“]ï¿½Lï¿½ï¿½ï¿½ï¿½(ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½bï¿½Zï¿½[ï¿½Wï¿½È‚ï¿½ï¿½Bï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½fï¿½p)
 Public Sub RefreshAllVendorOrderDetailsSilent()
     RefreshAllVendorOrderDetailsCore False
 End Sub
@@ -281,6 +303,16 @@ Private Sub RefreshAllVendorOrderDetailsCore(ByVal showCompletionMessage As Bool
 
                     mod_OrderTpl_Header.ApplyVendorSheetHeaders wsInfo, vendorIndex, aliasText
                     mod_OrderTpl_Detail.ApplyBreakdownDetails wsBreakdown, vendorName, companyName, branchName, workTypeText
+
+                    Dim condSheetName As String
+                    condSheetName = mod_OrderTpl_Shared.OrderTplBuildSheetName( _
+                        mod_OrderTpl_Shared.OrderTplBaseNameConditionText(), aliasText)
+                    If mod_OrderTpl_Shared.OrderTplSheetExists(condSheetName) Then
+                        mod_OrderTpl_Header.ApplyConditionSheetHeader wsInfo, _
+                            ThisWorkbook.Worksheets(condSheetName), vendorIndex
+                        mod_OrderTpl_Header.SetupConditionCheckboxExclusivity _
+                            ThisWorkbook.Worksheets(condSheetName)
+                    End If
                 Else
                     GenerateVendorOrderSheets wsInfo, vendorIndex
                 End If
@@ -293,6 +325,8 @@ Private Sub RefreshAllVendorOrderDetailsCore(ByVal showCompletionMessage As Bool
     Application.Calculation = prevCalculation
     mod_OrderTpl_Shared.OrderTplRepairAllGeneratedPlaceholderFormulas True
     Application.Calculate
+    ' å†…è¨³æ˜ç´°ã®ã€Œè¨ˆã€ã‚’åŸºæœ¬æƒ…å ±33è¡Œã¸åæ˜ ã™ã‚‹(å†…è¨³æ˜ç´°ã®å†æ§‹ç¯‰å¾Œ)
+    mod_Construction_Order_Import.RefreshBasicInfoConstructionTotals
     Application.EnableEvents = prevEnableEvents
     Application.ScreenUpdating = prevScreenUpdating
 
@@ -311,8 +345,8 @@ ErrorHandler:
     End If
 End Sub
 
-' {sw¦‘E{s’Ê’m‘ƒV[ƒg‚Ì{H‰ïĞ—ñ(H–:A—ñ/—nÚ:AEB—ñ)•ÏX‚ÉA
-' ’x‰„Às‚Å‘SĞÄ“]‹L‚ğ—\–ñ‚·‚é(ThisWorkbook.Workbook_SheetChange ‚©‚çŒÄ‚Î‚ê‚é)
+' ï¿½{ï¿½sï¿½wï¿½ï¿½ï¿½ï¿½ï¿½Eï¿½{ï¿½sï¿½Ê’mï¿½ï¿½ï¿½Vï¿½[ï¿½gï¿½Ì{ï¿½Hï¿½ï¿½Ğ—ï¿½(ï¿½Hï¿½ï¿½:Aï¿½ï¿½/ï¿½nï¿½ï¿½:Aï¿½EBï¿½ï¿½)ï¿½ÏXï¿½ï¿½ï¿½ÉA
+' ï¿½xï¿½ï¿½ï¿½ï¿½ï¿½sï¿½Å‘Sï¿½ĞÄ“]ï¿½Lï¿½ï¿½\ï¿½ñ‚·‚ï¿½(ThisWorkbook.Workbook_SheetChange ï¿½ï¿½ï¿½ï¿½Ä‚Î‚ï¿½ï¿½)
 Public Sub HandleSourceSheetVendorCellChange(ByVal sh As Object, ByVal target As Range)
     If mGenerating Then Exit Sub
     If TypeName(sh) <> "Worksheet" Then Exit Sub
@@ -341,7 +375,7 @@ Quiet:
     Err.Clear
 End Sub
 
-' ‘SĞÄ“]‹L‚Ì’x‰„Às‚ğ—\–ñ‚·‚é(˜A‘±•ÏX‚ğ1‰ñ‚É‚Ü‚Æ‚ß‚é)
+' ï¿½Sï¿½ĞÄ“]ï¿½Lï¿½Ì’xï¿½ï¿½ï¿½ï¿½ï¿½sï¿½ï¿½\ï¿½ñ‚·‚ï¿½(ï¿½Aï¿½ï¿½ï¿½ÏXï¿½ï¿½1ï¿½ï¿½É‚Ü‚Æ‚ß‚ï¿½)
 Public Sub ScheduleOrderDetailRefresh()
     CancelScheduledOrderDetailRefresh
 
@@ -364,13 +398,13 @@ Public Sub CancelScheduledOrderDetailRefresh()
     mDetailRefreshScheduledTime = 0
 End Sub
 
-' Application.OnTime ‚©‚çŒÄ‚Î‚ê‚é’x‰„Ä“]‹L‚ÌÀs•”
+' Application.OnTime ï¿½ï¿½ï¿½ï¿½Ä‚Î‚ï¿½ï¿½xï¿½ï¿½ï¿½Ä“]ï¿½Lï¿½Ìï¿½ï¿½sï¿½ï¿½
 Public Sub RunScheduledOrderDetailRefresh()
     mDetailRefreshScheduledTime = 0
     RefreshAllVendorOrderDetailsCore False
 End Sub
 
-' ¶¬Ï‚İ‚Ìƒeƒ“ƒvƒŒ[ƒgƒV[ƒg‚ğ‚·‚×‚Äíœ‚·‚é(Šî–{î•ñƒNƒŠƒA‚ÌŒãn––—p)
+' ï¿½ï¿½ï¿½ï¿½ï¿½Ï‚İ‚Ìƒeï¿½ï¿½ï¿½vï¿½ï¿½ï¿½[ï¿½gï¿½Vï¿½[ï¿½gï¿½ï¿½ï¿½ï¿½ï¿½×‚Äíœï¿½ï¿½ï¿½ï¿½(ï¿½ï¿½{ï¿½ï¿½ï¿½Nï¿½ï¿½ï¿½Aï¿½ï¿½ï¿½ÌŒï¿½nï¿½ï¿½ï¿½p)
 Public Sub RemoveAllGeneratedOrderTemplateSheets()
     Dim sheetNamesToDelete As Collection
     Set sheetNamesToDelete = New Collection
@@ -387,7 +421,7 @@ Public Sub RemoveAllGeneratedOrderTemplateSheets()
     DeleteSheetsByNameList sheetNamesToDelete
 End Sub
 
-' w’è—ªÌ‚Ìƒeƒ“ƒvƒŒ[ƒg5ƒV[ƒg‚ğíœ‚·‚é
+' ï¿½wï¿½è—ªï¿½Ì‚Ìƒeï¿½ï¿½ï¿½vï¿½ï¿½ï¿½[ï¿½g5ï¿½Vï¿½[ï¿½gï¿½ï¿½ï¿½íœï¿½ï¿½ï¿½ï¿½
 Public Sub RemoveGeneratedSheetsByAlias(ByVal aliasText As String)
     Dim normalizedAlias As String
     normalizedAlias = mod_Construction_Import_Load.NormalizeSheetNameParentheses(CommonNormalizeText(aliasText))
@@ -410,7 +444,7 @@ Public Sub RemoveGeneratedSheetsByAlias(ByVal aliasText As String)
     DeleteSheetsByNameList sheetNamesToDelete
 End Sub
 
-' Šî–{î•ñ‚ÌŠm’è‰ïĞ‚É‘Î‰‚µ‚È‚¢¶¬Ï‚İƒV[ƒg‚ğíœ‚·‚é
+' ï¿½ï¿½{ï¿½ï¿½ï¿½ÌŠmï¿½ï¿½ï¿½Ğ‚É‘Î‰ï¿½ï¿½ï¿½ï¿½È‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï‚İƒVï¿½[ï¿½gï¿½ï¿½ï¿½íœï¿½ï¿½ï¿½ï¿½
 Public Sub RemoveOrphanGeneratedSheets(ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Exit Sub
 
@@ -439,7 +473,7 @@ Public Sub RemoveOrphanGeneratedSheets(ByVal wsInfo As Worksheet)
                     If Not expectedAliases.Exists(aliasKey) Then expectedAliases.Add aliasKey, True
                 End If
             Else
-                ' ƒ}ƒXƒ^–¢‰ğŒˆ‚ÌŠm’è‰ïĞ‚ª‚ ‚éê‡‚ÍŒëíœ‚ğ”ğ‚¯‚é‚½‚ßŒãn––‚ğ’†~‚·‚é
+                ' ï¿½}ï¿½Xï¿½^ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÌŠmï¿½ï¿½ï¿½Ğ‚ï¿½ï¿½ï¿½ï¿½ï¿½ê‡ï¿½ÍŒï¿½íœï¿½ï¿½ï¿½ï¿½ï¿½ï¿½é‚½ï¿½ßŒï¿½nï¿½ï¿½ï¿½ğ’†~ï¿½ï¿½ï¿½ï¿½
                 mod_OrderTpl_Shared.OrderTplLog "RemoveOrphan skipped (unresolved): " & companyName
                 Exit Sub
             End If
@@ -480,7 +514,7 @@ Private Sub DeleteSheetsByNameList(ByVal sheetNames As Collection)
     Application.DisplayAlerts = prevDisplayAlerts
 End Sub
 
-' “¯‚¶—ªÌ‚ª‘¼‚ÌŠm’èƒuƒƒbƒN‚É‘¶İ‚·‚é‚©
+' ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì‚ï¿½ï¿½ï¿½ï¿½ÌŠmï¿½ï¿½uï¿½ï¿½ï¿½bï¿½Nï¿½É‘ï¿½ï¿½İ‚ï¿½ï¿½é‚©
 Private Function DuplicateAliasExists(ByVal wsInfo As Worksheet, _
                                       ByVal vendorIndex As Long, _
                                       ByVal branchName As String, _
@@ -508,7 +542,7 @@ Private Function DuplicateAliasExists(ByVal wsInfo As Worksheet, _
     Next i
 End Function
 
-' ‘}“üˆÊ’u‚ÌŒˆ’è: ’¼‘OƒuƒƒbƒN‚Ì•Ê†‡V(—ªÌ) ¨ w“ü[“–w¦/’Ê’m ¨ æÏ‚İÅ‰EƒV[ƒg ¨ Šî–{î•ñ
+' ï¿½}ï¿½ï¿½ï¿½Ê’uï¿½ÌŒï¿½ï¿½ï¿½: ï¿½ï¿½ï¿½Oï¿½uï¿½ï¿½ï¿½bï¿½Nï¿½Ì•Êï¿½ï¿½V(ï¿½ï¿½ï¿½ï¿½) ï¿½ï¿½ ï¿½wï¿½ï¿½ï¿½[ï¿½ï¿½ï¿½wï¿½ï¿½/ï¿½Ê’m ï¿½ï¿½ ï¿½æï¿½Ï‚İÅ‰Eï¿½Vï¿½[ï¿½g ï¿½ï¿½ ï¿½ï¿½{ï¿½ï¿½ï¿½
 Private Function ResolveInsertAnchor(ByVal wsInfo As Worksheet, _
                                      ByVal vendorIndex As Long, _
                                      ByVal branchName As String) As Worksheet

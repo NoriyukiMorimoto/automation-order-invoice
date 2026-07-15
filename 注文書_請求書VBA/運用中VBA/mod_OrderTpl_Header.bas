@@ -214,6 +214,144 @@ ErrorHandler:
     Err.Clear
 End Sub
 
+' 軌道工事(条件書(軌道工事)のみH25:U25転記の判定用)
+Private Function ConditionRailWorkTypeText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = CommonTextFromChars(&H8ECC, &H9053, &H5DE5, &H4E8B)
+    End If
+    ConditionRailWorkTypeText = cached
+End Function
+
+' 条件書シートへ基本情報/当該施工会社の内容を転記する。
+' 4条件書共通の10項目 + 条件書(軌道工事)のみ H25:U25 <- 当該業者41行(左詰め)。
+Public Sub ApplyConditionSheetHeader(ByVal wsInfo As Worksheet, _
+                                     ByVal wsCondition As Worksheet, _
+                                     ByVal vendorIndex As Long)
+    If wsInfo Is Nothing Then Exit Sub
+    If wsCondition Is Nothing Then Exit Sub
+
+    On Error GoTo ErrorHandler
+
+    Dim valueColumn As Long
+    valueColumn = mod_Construction_BasicTotals.BasicInfoVendorColumn(vendorIndex)
+
+    ' S1:X1 作成日(基本情報C2、グレゴリオ暦 yyyy年m月d日、中央)
+    WriteHeaderDateGregorian wsCondition.Range("S1"), wsInfo.Range("C2").value
+    wsCondition.Range("S1").MergeArea.Cells(1, 1).HorizontalAlignment = xlCenter
+
+    ' P3:S3 支店(B6) / T3:X3 出張所(C6) / T4:X4 所長名(F6)  中央
+    WriteHeaderValue wsCondition.Range("P3"), wsInfo.Range("B6").value, True
+    WriteHeaderValue wsCondition.Range("T3"), wsInfo.Range("C6").value, True
+    WriteHeaderValue wsCondition.Range("T4"), wsInfo.Range("F6").value, True
+
+    ' B5:C6 施工会社名(当該業者11行), 中央
+    WriteHeaderValue wsCondition.Range("B5"), _
+        wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, valueColumn).value, True
+
+    ' F9:I9 工事番号(C9) / L9:X9 工事件名(C10)  中央
+    WriteHeaderValue wsCondition.Range("F9"), wsInfo.Range("C9").value, True
+    WriteHeaderValue wsCondition.Range("L9"), wsInfo.Range("C10").value, True
+
+    ' F11:L11 工期自(C15) / R11:X11 工期至(C16)  中央
+    WriteHeaderValue wsCondition.Range("F11"), wsInfo.Range("C15").value, True
+    WriteHeaderValue wsCondition.Range("R11"), wsInfo.Range("C16").value, True
+
+    ' D16:X16 施工場所(C13), 中央
+    WriteHeaderValue wsCondition.Range("D16"), wsInfo.Range("C13").value, True
+
+    ' 条件書(軌道工事)のみ: H25:U25 <- 当該業者41行(左詰め)
+    Dim workType As String
+    workType = CommonNormalizeText(CommonNzText( _
+        wsInfo.Cells(BASIC_INFO_VENDOR_WORK_TYPE_ROW, valueColumn).value))
+    If StrComp(workType, ConditionRailWorkTypeText(), vbTextCompare) = 0 Then
+        WriteHeaderValueLeft wsCondition.Range("H25"), wsInfo.Cells(41, valueColumn).value
+    End If
+
+    mod_OrderTpl_Shared.OrderTplLog "ApplyConditionSheetHeader done: " & wsCondition.Name
+    Exit Sub
+
+ErrorHandler:
+    mod_OrderTpl_Shared.OrderTplLog "ApplyConditionSheetHeader error: " & Err.Number & " " & Err.Description
+    Err.Clear
+End Sub
+
+' ===== 条件書チェックボックスの排他グループ化 =====
+' 各行D/X(10行/18-33行/38行)と E34/E35 のペアで、片方をONにするともう片方をOFFにする。
+' フォームコントロールのチェックボックスに OnAction を割り当てて実現する(生成時に設定)。
+
+' 排他ペアの対象行かどうか(D/X: 10,18-33,38 / E縦ペア: 34,35)
+Private Function IsConditionExclusiveRow(ByVal r As Long) As Boolean
+    IsConditionExclusiveRow = (r = 10) Or (r >= 18 And r <= 33) Or (r = 38) Or _
+                              (r = 34) Or (r = 35)
+End Function
+
+' 条件書シートの対象チェックボックスに排他クリックのマクロを割り当てる
+Public Sub SetupConditionCheckboxExclusivity(ByVal wsCondition As Worksheet)
+    If wsCondition Is Nothing Then Exit Sub
+    On Error Resume Next
+    Dim cb As Object
+    For Each cb In wsCondition.CheckBoxes
+        If IsConditionExclusiveRow(cb.TopLeftCell.Row) Then
+            cb.OnAction = "'" & ThisWorkbook.Name & "'!ConditionCheckboxExclusiveClick"
+        End If
+    Next cb
+    On Error GoTo 0
+End Sub
+
+' チェックボックスクリック時に呼ばれる。ONになった時だけペアの相手をOFFにする。
+Public Sub ConditionCheckboxExclusiveClick()
+    On Error GoTo Done
+    Dim ws As Worksheet
+    Set ws = ActiveSheet
+    If ws Is Nothing Then Exit Sub
+
+    Dim clicked As Object
+    Set clicked = ws.CheckBoxes(Application.Caller)
+    If clicked Is Nothing Then Exit Sub
+
+    ' ONにした時だけ相手をOFFにする(自分をOFFにした時は相手を触らない)
+    If clicked.Value <> xlOn Then Exit Sub
+
+    Dim pair As Object
+    Set pair = FindConditionCheckboxPair(ws, clicked)
+    If Not pair Is Nothing Then pair.Value = xlOff
+
+Done:
+End Sub
+
+' クリックされたチェックボックスのペアを返す(D/X=同一行のもう片方 / E34-E35=行34と35)
+Private Function FindConditionCheckboxPair(ByVal ws As Worksheet, ByVal clicked As Object) As Object
+    Dim r As Long
+    r = clicked.TopLeftCell.Row
+
+    Dim byRowPair As Boolean
+    Dim targetRow As Long
+    byRowPair = False
+    If r = 34 Then
+        targetRow = 35
+        byRowPair = True
+    ElseIf r = 35 Then
+        targetRow = 34
+        byRowPair = True
+    End If
+
+    Dim cb As Object
+    For Each cb In ws.CheckBoxes
+        If cb.Name <> clicked.Name Then
+            If byRowPair Then
+                If cb.TopLeftCell.Row = targetRow Then
+                    Set FindConditionCheckboxPair = cb
+                    Exit Function
+                End If
+            ElseIf cb.TopLeftCell.Row = r Then
+                Set FindConditionCheckboxPair = cb
+                Exit Function
+            End If
+        End If
+    Next cb
+End Function
+
 ' �󒍎җp/��������/�x�X�T ����: S1:U1 �����ԍ�(27) / Q2:V2 �쐬��C2(����) /
 '   �s20-34(E20:�H����C10 E22:�s���{��C13 G24:�H����C15(����) G26:�H����C16(����)�A
 '   Q22:�ō�(35) Q23:�Ŕ�(33) Q24:�����(34)�AC30/H30/J30/M34/R34/F32/F33 �� Reapply�n�o�R)��

@@ -240,6 +240,46 @@ Private Function FindSubtotalRow(ByVal wsBreakdown As Worksheet) As Long
     Next r
 End Function
 
+' 当該業者の内訳明細シートの「計」行(小計+2)のQ列値を返す。存在しなければ Empty。
+' 基本情報33行(契約金額税抜)を内訳明細「計」に一致させるために使う。
+Public Function OrderTplGetBreakdownNetTotalQForVendor(ByVal wsInfo As Worksheet, _
+                                                       ByVal vendorIndex As Long) As Variant
+    On Error GoTo Done
+    If wsInfo Is Nothing Then Exit Function
+
+    Dim branchName As String
+    branchName = CommonNormalizeText(CommonNzText(wsInfo.Range(BASIC_INFO_BRANCH_CELL).value))
+
+    Dim companyName As String
+    companyName = mod_OrderTpl_Shared.OrderTplGetVendorCompanyName(wsInfo, vendorIndex)
+    If companyName = "" Then Exit Function
+
+    Dim vendorName As String, aliasText As String, workText As String
+    If Not mod_OrderTpl_Shared.OrderTplResolveVendorMasterInfo(branchName, companyName, _
+            vendorName, aliasText, workText) Then Exit Function
+    If aliasText = "" Then Exit Function
+
+    Dim sheetName As String
+    sheetName = mod_OrderTpl_Shared.OrderTplBuildSheetName( _
+        mod_OrderTpl_Shared.OrderTplBaseNameBreakdownText(), aliasText)
+    If Not mod_OrderTpl_Shared.OrderTplSheetExists(sheetName) Then Exit Function
+
+    Dim wsBreakdown As Worksheet
+    Set wsBreakdown = ThisWorkbook.Worksheets(sheetName)
+
+    Dim subtotalRow As Long
+    subtotalRow = FindSubtotalRow(wsBreakdown)
+    If subtotalRow = 0 Then Exit Function
+
+    ' 「計」行の数式(=小計+値引き)を最新化してからQ値を取得する
+    On Error Resume Next
+    wsBreakdown.Calculate
+    On Error GoTo Done
+    OrderTplGetBreakdownNetTotalQForVendor = wsBreakdown.Range("Q" & (subtotalRow + 2)).value
+
+Done:
+End Function
+
 ' ���v�s���u�ŏI�f�[�^�s����2�s�󂯂��ʒu�v�ֈړ�����(�s���͍s�}���A�]��͍s�폜)
 Private Sub PositionSubtotalRow(ByVal wsBreakdown As Worksheet, _
                                 ByRef subtotalRow As Long, _

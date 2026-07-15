@@ -13,6 +13,18 @@ Public Function ConstructionIntegerNumberFormat() As String
     ConstructionIntegerNumberFormat = cached
 End Function
 
+' NumberFormatLocal を安全に設定する。結合セルにまたがる範囲や保護セル等で
+' 実行時エラー1004が出ても、取込全体を止めずスキップ(表示書式のみの影響)する。
+Public Sub SafeSetRangeNumberFormatLocal(ByVal target As Range, ByVal formatText As String)
+    On Error Resume Next
+    target.NumberFormatLocal = formatText
+    If Err.Number <> 0 Then
+        LogCI "NumberFormatLocal設定をスキップ(結合/保護セル?): Err " & Err.Number & " " & Err.Description
+        Err.Clear
+    End If
+    On Error GoTo 0
+End Sub
+
 Public Sub ApplySanpaiRowRestrictionsCore(ByVal ws As Worksheet)
     If ws Is Nothing Then Exit Sub
 
@@ -71,8 +83,8 @@ Public Sub WriteTotalCells(ByVal ws As Worksheet, ByVal totalRow As Long, _
         Else
             .FormulaR1C1 = "=ROUNDDOWN(SUM(R2C:R" & sumLastRow & "C),0)"
         End If
-        .NumberFormatLocal = ConstructionIntegerNumberFormat()
     End With
+    SafeSetRangeNumberFormatLocal ws.Cells(totalRow, sumColumn), ConstructionIntegerNumberFormat()
 
     DrawDoubleBorder ws.Cells(totalRow, labelColumn), RGB(0, 0, 0)
     DrawDoubleBorder ws.Cells(totalRow, sumColumn), RGB(255, 0, 0)
@@ -341,9 +353,7 @@ Public Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
     ws.Range(ws.Cells(2, autoAmountColumn), ws.Cells(lastRow, autoAmountColumn)).FormulaR1C1 = _
         "=IF(OR(RC[" & (autoPriceColumn - autoAmountColumn) & "]="""",RC[" & (qtyColumn - autoAmountColumn) & "]=""""),"""",RC[" & (autoPriceColumn - autoAmountColumn) & "]*RC[" & (qtyColumn - autoAmountColumn) & "])"
 
-    With ws.Range(ws.Cells(2, autoPriceColumn), ws.Cells(lastRow, autoAmountColumn))
-        .NumberFormatLocal = ConstructionIntegerNumberFormat()
-    End With
+    SafeSetRangeNumberFormatLocal ws.Range(ws.Cells(2, autoPriceColumn), ws.Cells(lastRow, autoAmountColumn)), ConstructionIntegerNumberFormat()
     ws.Range(ws.Cells(1, compareColumn), ws.Cells(lastRow, compareColumn)).HorizontalAlignment = xlCenter
 
     LogCI "�Q�ƒP����v=" & matchedCount & _
@@ -507,8 +517,8 @@ Public Sub RefreshConstructionReferencePricesOnSheet( _
         End If
     Next r
 
-    ws.Range(ws.Cells(2, autoPriceColumn), _
-             ws.Cells(lastRow, autoAmountColumn)).NumberFormatLocal = ConstructionIntegerNumberFormat()
+    SafeSetRangeNumberFormatLocal ws.Range(ws.Cells(2, autoPriceColumn), _
+             ws.Cells(lastRow, autoAmountColumn)), ConstructionIntegerNumberFormat()
     ws.Range(ws.Cells(1, comparisonColumn), _
              ws.Cells(lastRow, comparisonColumn)).HorizontalAlignment = xlCenter
     ApplyPriceGuidanceColumnLayoutAtColumns ws, comparisonColumn, guidanceColumn

@@ -40,9 +40,9 @@ Public Function GetVendorBlockCount(ByVal wsInfo As Worksheet) As Long
     GetVendorBlockCount = countValue
 End Function
 
-' F9({H‰ïĞ”)‚É‘z’èŠO‚Ì’l(65‚È‚Ç)‚ª“ü—Í‚³‚ê‚é‚ÆSyncVendorBlocksFromCount‚ª
-' ‘å—ÊƒuƒƒbƒN‚ÌˆêŠ‡¶¬‚ğ‚İ‚Ä’·ŠÔ‰“š‚È‚µ‚É‚È‚é‚½‚ßA1`MAX_VENDOR_BLOCK_COUNT‚Ì
-' ®”‚Ì‚İ‹–‰Â‚·‚é“ü—Í‹K‘¥‚ğ‚ ‚ç‚©‚¶‚ßİ’è‚µ‚Ä‚¨‚­BWorksheet_Activate‚©‚çŒÄ‚Ño‚·‘z’èB
+' F9(ï¿½{ï¿½Hï¿½ï¿½Ğï¿½)ï¿½É‘zï¿½ï¿½Oï¿½Ì’l(65ï¿½È‚ï¿½)ï¿½ï¿½ï¿½ï¿½ï¿½Í‚ï¿½ï¿½ï¿½ï¿½ï¿½SyncVendorBlocksFromCountï¿½ï¿½
+' ï¿½ï¿½Êƒuï¿½ï¿½ï¿½bï¿½Nï¿½ÌˆêŠ‡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½İ‚Ä’ï¿½ï¿½ï¿½ï¿½Ô‰ï¿½ï¿½ï¿½ï¿½È‚ï¿½ï¿½É‚È‚é‚½ï¿½ßA1ï¿½`MAX_VENDOR_BLOCK_COUNTï¿½ï¿½
+' ï¿½ï¿½ï¿½ï¿½ï¿½Ì‚İ‹ï¿½ï¿½Â‚ï¿½ï¿½ï¿½ï¿½ï¿½Í‹Kï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ç‚©ï¿½ï¿½ï¿½ßİ’è‚µï¿½Ä‚ï¿½ï¿½ï¿½ï¿½BWorksheet_Activateï¿½ï¿½ï¿½ï¿½Ä‚Ñoï¿½ï¿½ï¿½zï¿½ï¿½B
 
 Public Function VendorBlockNeedsPresentationRestore(ByVal wsInfo As Worksheet, ByVal vendorIndex As Long) As Boolean
     If wsInfo Is Nothing Then Exit Function
@@ -80,11 +80,11 @@ Public Function VendorCountValidationErrorText() As String
                                      ChrW$(&H304F) & ChrW$(&H3060) & ChrW$(&H3055) & ChrW$(&H3044) & "."
 End Function
 
-' ‹ŒVENDOR_LIST_COL("AD")‚Éæ‚èc‚³‚ê‚½‹ÆÒ–¼ƒhƒƒbƒvƒ_ƒEƒ“ˆê——‚ÌcŠ[‚ğœ‹‚·‚éˆê‘Î‰B
-' AD—ñ‚Í9Ğ–Ú(‹ÆÒî•ñ-9)‚Ì’l—ñ‚ÆŒ“—p‚³‚ê‚Ä‚¢‚½‚½‚ßAˆê——‚ª‘‚«‚Ü‚ê‚Ä‚¢‚½
-' VENDOR_LIST_START_ROW`‹ÆÒƒuƒƒbƒN‰º’[(Œ_–ñ‹àŠz‡Œvs)‚Ü‚Å‚ğ‘ÎÛ‚ÉƒNƒŠƒA‚µA
-' 9Ğ–ÚƒuƒƒbƒN‚ğ–¢“ü—Íó‘Ô(ÎüƒKƒCƒh)‚Ö®‚¦’¼‚·Bˆê“xÀs‚·‚ê‚Î\•ª‚ÅA
-' ¡Œã‚Íã‹L‚ÌVENDOR_LIST_COL•ÏX(AJ—ñ)‚É‚æ‚èAD—ñ‚Éˆê——‚ª‘‚«‚Ü‚ê‚é‚±‚Æ‚Í‚È‚¢B
+' ï¿½ï¿½VENDOR_LIST_COL("AD")ï¿½Éï¿½ï¿½cï¿½ï¿½ï¿½ê‚½ï¿½ÆÒ–ï¿½ï¿½hï¿½ï¿½ï¿½bï¿½vï¿½_ï¿½Eï¿½ï¿½ï¿½ê——ï¿½Ìcï¿½[ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½êï¿½Î‰ï¿½ï¿½B
+' ADï¿½ï¿½ï¿½9ï¿½Ğ–ï¿½(ï¿½ÆÒï¿½ï¿½-9)ï¿½Ì’lï¿½ï¿½ÆŒï¿½ï¿½pï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ßAï¿½ê——ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ü‚ï¿½Ä‚ï¿½ï¿½ï¿½
+' VENDOR_LIST_START_ROWï¿½`ï¿½ÆÒƒuï¿½ï¿½ï¿½bï¿½Nï¿½ï¿½ï¿½[(ï¿½_ï¿½ï¿½ï¿½ï¿½zï¿½ï¿½ï¿½vï¿½s)ï¿½Ü‚Å‚ï¿½ÎÛ‚ÉƒNï¿½ï¿½ï¿½Aï¿½ï¿½ï¿½A
+' 9ï¿½Ğ–Úƒuï¿½ï¿½ï¿½bï¿½Nï¿½ğ–¢“ï¿½ï¿½Íï¿½ï¿½(ï¿½Îï¿½ï¿½Kï¿½Cï¿½h)ï¿½Öï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Bï¿½ï¿½xï¿½ï¿½ï¿½sï¿½ï¿½ï¿½ï¿½Î\ï¿½ï¿½ï¿½ÅA
+' ï¿½ï¿½ï¿½ï¿½Íï¿½Lï¿½ï¿½VENDOR_LIST_COLï¿½ÏX(AJï¿½ï¿½)ï¿½É‚ï¿½ï¿½ADï¿½ï¿½Éˆê——ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ü‚ï¿½é‚±ï¿½Æ‚Í‚È‚ï¿½ï¿½B
 
 Public Function VendorCountValidationInputText() As String
     VendorCountValidationInputText = "1" & ChrW$(&H301C) & CStr(MAX_VENDOR_BLOCK_COUNT) & _
@@ -163,7 +163,7 @@ Public Sub ClearVendorBlockColumns(ByVal wsInfo As Worksheet, ByVal vendorIndex 
     clearRange.Interior.Color = RGB(6, 17, 29)
     clearRange.Borders.LineStyle = xlNone
 
-    ' ‚»‚Ì‘¼“ü—Í–€(37-42s)‚à–¢g—pƒuƒƒbƒN‚©‚çœ‹‚·‚é
+    ' ï¿½ï¿½ï¿½Ì‘ï¿½ï¿½ï¿½ï¿½Íï¿½ï¿½ï¿½(37-42ï¿½s)ï¿½ï¿½ï¿½ï¿½ï¿½gï¿½pï¿½uï¿½ï¿½ï¿½bï¿½Nï¿½ï¿½ï¿½çœï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     ClearOtherInputBlockColumns wsInfo, vendorIndex
 End Sub
 
@@ -182,6 +182,13 @@ Public Sub ClearOtherInputBlockColumns(ByVal wsInfo As Worksheet, ByVal vendorIn
     clearRange.ClearContents
     clearRange.Interior.Color = RGB(6, 17, 29)
     clearRange.Borders.LineStyle = xlNone
+
+    ' æœªä½¿ç”¨ãƒ–ãƒ­ãƒƒã‚¯ã®å·¦éš£(ç›´å‰ãƒ–ãƒ­ãƒƒã‚¯ã®å³ç«¯)ã«æ®‹ã‚‹ç½«ç·šãŒã€æœªå…¥åŠ›ã®38-42è¡Œã«ç·šã¨ã—ã¦
+    ' è¦‹ãˆã¦ã—ã¾ã†ãŸã‚é™¤å»ã™ã‚‹(ä¾‹: 2ç¤¾æ™‚ã® K38-K42 ã®å·¦ç½«ç·š = 2ç¤¾ç›®ã‚¹ãƒšãƒ¼ã‚µåˆ—ã®å³ç½«ç·š)
+    If labelCol > VendorLabelColumnByIndex(1) Then
+        wsInfo.Range(wsInfo.Cells(38, labelCol - 1), _
+                     wsInfo.Cells(BASIC_INFO_OTHER_INPUT_BOTTOM_ROW, labelCol - 1)).Borders(xlEdgeRight).LineStyle = xlNone
+    End If
 End Sub
 
 Public Sub ClearVendorWorkTypeWhenCompanyEmpty(ByVal wsInfo As Worksheet, Optional ByVal vendorCount As Long = 0)
@@ -323,11 +330,11 @@ End Sub
 Public Sub EnsureVendorBlockFromTemplate(ByVal wsInfo As Worksheet, ByVal destVendorIndex As Long)
     CopyVendorBlockFromTemplate wsInfo, destVendorIndex
     RestoreVendorBlockPresentationFromTemplate wsInfo, destVendorIndex
-    ' ‚»‚Ì‘¼“ü—Í‚ª–¢ì¬‚Ì‚Æ‚«‚¾‚¯’l—ñ‚ğ‹ó‚É‚·‚é(Šù‘¶“ü—Í‚Í•Û)
+    ' ï¿½ï¿½ï¿½Ì‘ï¿½ï¿½ï¿½ï¿½Í‚ï¿½ï¿½ï¿½ï¿½ì¬ï¿½Ì‚Æ‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½lï¿½ï¿½ï¿½ï¿½ï¿½É‚ï¿½ï¿½ï¿½(ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í‚Í•Ûï¿½)
     EnsureOtherInputBlockFromTemplate wsInfo, destVendorIndex, OtherInputBlockNeedsRestore(wsInfo, destVendorIndex)
 End Sub
 
-' ‚»‚Ì‘¼“ü—Í–€(37-42s): 1Ğ–Ú‚ğ—Œ`‚Éƒ‰ƒxƒ‹E‘®(Œrü/“hF/ƒtƒHƒ“ƒg/Ü‚è•Ô‚µ“™)‚ğƒRƒs[‚·‚é
+' ï¿½ï¿½ï¿½Ì‘ï¿½ï¿½ï¿½ï¿½Íï¿½ï¿½ï¿½(37-42ï¿½s): 1ï¿½Ğ–Ú‚ğ—Œ`ï¿½Éƒï¿½ï¿½xï¿½ï¿½ï¿½Eï¿½ï¿½ï¿½ï¿½(ï¿½rï¿½ï¿½/ï¿½hï¿½F/ï¿½tï¿½Hï¿½ï¿½ï¿½g/ï¿½Ü‚ï¿½Ô‚ï¿½ï¿½ï¿½)ï¿½ï¿½ï¿½Rï¿½sï¿½[ï¿½ï¿½ï¿½ï¿½
 Public Function OtherInputBlockNeedsRestore(ByVal wsInfo As Worksheet, ByVal vendorIndex As Long) As Boolean
     If wsInfo Is Nothing Then Exit Function
     If vendorIndex < 2 Then Exit Function
@@ -356,13 +363,13 @@ Public Sub EnsureOtherInputBlockFromTemplate(ByVal wsInfo As Worksheet, _
 
     Dim sourceRange As Range
     Dim destRange As Range
-    ' ƒ‰ƒxƒ‹—ñ`ƒXƒy[ƒT—ñ(3—ñ)‚ğ‘ÎÛ‚ÉAŒrüE“hFEƒtƒHƒ“ƒgEÜ‚è•Ô‚µ“™‚ğŠÜ‚Ş‘®‚ğ•¡»‚·‚é
+    ' ï¿½ï¿½ï¿½xï¿½ï¿½ï¿½ï¿½`ï¿½Xï¿½yï¿½[ï¿½Tï¿½ï¿½(3ï¿½ï¿½)ï¿½ï¿½ÎÛ‚ÉAï¿½rï¿½ï¿½ï¿½Eï¿½hï¿½Fï¿½Eï¿½tï¿½Hï¿½ï¿½ï¿½gï¿½Eï¿½Ü‚ï¿½Ô‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ü‚Şï¿½ï¿½ï¿½ï¿½ğ•¡ï¿½ï¿½ï¿½ï¿½ï¿½
     Set sourceRange = wsInfo.Range(wsInfo.Cells(BASIC_INFO_OTHER_INPUT_TOP_ROW, srcLabelCol), _
                                    wsInfo.Cells(BASIC_INFO_OTHER_INPUT_BOTTOM_ROW, srcSpacerCol))
     Set destRange = wsInfo.Range(wsInfo.Cells(BASIC_INFO_OTHER_INPUT_TOP_ROW, dstLabelCol), _
                                  wsInfo.Cells(BASIC_INFO_OTHER_INPUT_BOTTOM_ROW, dstSpacerCol))
 
-    ' Šù‘¶“ü—Í’l‚ğ‘Ş”ğ(‘®Ä“K—p‚É•Û‚·‚é)
+    ' ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í’lï¿½ï¿½Ş”ï¿½(ï¿½ï¿½ï¿½ï¿½ï¿½Ä“Kï¿½pï¿½ï¿½ï¿½É•Ûï¿½ï¿½ï¿½ï¿½ï¿½)
     Dim savedValues(BASIC_INFO_OTHER_INPUT_TOP_ROW To BASIC_INFO_OTHER_INPUT_BOTTOM_ROW) As Variant
     Dim rowIndex As Long
     If Not clearValues Then
@@ -386,7 +393,7 @@ Public Sub EnsureOtherInputBlockFromTemplate(ByVal wsInfo As Worksheet, _
         wsInfo.Cells(rowIndex, dstLabelCol).value = wsInfo.Cells(rowIndex, srcLabelCol).value
 
         If clearValues Then
-            ' ’l—ñ‚Í‰ïĞ‚²‚Æ‚É“ü—Í‚·‚é‚½‚ß—Œ`‚Ì’l‚ÍƒRƒs[‚µ‚È‚¢(‘®‚ÍPasteSpecial‚ÅˆÛ)
+            ' ï¿½lï¿½ï¿½Í‰ï¿½Ğ‚ï¿½ï¿½Æ‚É“ï¿½ï¿½Í‚ï¿½ï¿½é‚½ï¿½ßï¿½ï¿½`ï¿½Ì’lï¿½ÍƒRï¿½sï¿½[ï¿½ï¿½ï¿½È‚ï¿½(ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½PasteSpecialï¿½ÅˆÛï¿½)
             wsInfo.Cells(rowIndex, dstValueCol).ClearContents
         Else
             wsInfo.Cells(rowIndex, dstValueCol).value = savedValues(rowIndex)
@@ -394,7 +401,7 @@ Public Sub EnsureOtherInputBlockFromTemplate(ByVal wsInfo As Worksheet, _
     Next rowIndex
 End Sub
 
-' ‚»‚Ì‘¼“ü—Í–€ƒuƒƒbƒN‚ÌŒ‹‡ƒZƒ‹‚ğ1Ğ–Ú‚©‚ç•¡»‚·‚é
+' ï¿½ï¿½ï¿½Ì‘ï¿½ï¿½ï¿½ï¿½Íï¿½ï¿½ï¿½ï¿½uï¿½ï¿½ï¿½bï¿½Nï¿½ÌŒï¿½ï¿½ï¿½ï¿½Zï¿½ï¿½ï¿½ï¿½1ï¿½Ğ–Ú‚ï¿½ï¿½ç•¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 Public Sub CopyOtherInputMergeAreasFromTemplate(ByVal wsInfo As Worksheet, ByVal destVendorIndex As Long)
     If wsInfo Is Nothing Then Exit Sub
     If destVendorIndex < 2 Then Exit Sub
@@ -437,7 +444,7 @@ Public Sub RefreshOtherInputBlocks(ByVal wsInfo As Worksheet, Optional ByVal ven
 
     Dim i As Long
     For i = 2 To vendorCount
-        ' Šù‘¶ƒuƒƒbƒN‚à‘®‚ğ—Œ`‚Ö‘µ‚¦‚éB’l‚Í–¢ì¬‚Ì‚İƒNƒŠƒAB
+        ' ï¿½ï¿½ï¿½ï¿½ï¿½uï¿½ï¿½ï¿½bï¿½Nï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ğ—Œ`ï¿½Ö‘ï¿½ï¿½ï¿½ï¿½ï¿½Bï¿½lï¿½Í–ï¿½ï¿½ì¬ï¿½ï¿½ï¿½Ì‚İƒNï¿½ï¿½ï¿½Aï¿½B
         EnsureOtherInputBlockFromTemplate wsInfo, i, OtherInputBlockNeedsRestore(wsInfo, i)
     Next i
 
@@ -545,7 +552,7 @@ Public Sub CleanupLegacyVendorListDebrisInColumnAD(Optional ByVal wsInfo As Work
     clearRange.ClearContents
     On Error GoTo 0
 
-    ' 9Ğ–ÚƒuƒƒbƒN(’l—ñAD=30—ñ–Ú)‚ÌŒ©‚½–Ú‚ğ–¢“ü—Íó‘Ô‚Ö®‚¦’¼‚·
+    ' 9ï¿½Ğ–Úƒuï¿½ï¿½ï¿½bï¿½N(ï¿½lï¿½ï¿½AD=30ï¿½ï¿½ï¿½)ï¿½ÌŒï¿½ï¿½ï¿½ï¿½Ú‚ğ–¢“ï¿½ï¿½Íï¿½Ô‚Öï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     Dim vendorIndex9 As Long
     vendorIndex9 = mod_VendorUnitPrice.GetVendorIndexFromValueColumn(30)
     If vendorIndex9 >= 1 Then
@@ -586,8 +593,8 @@ Public Sub InitVendorBlockCountFromSheet(Optional ByVal wsInfo As Worksheet)
     Dim existingBlockCount As Long
     existingBlockCount = CountExistingVendorBlocks(wsInfo)
 
-    ' F9Œ”‚É‘Î‚µ‹ÆÒî•ñƒuƒƒbƒN‚ª•s‘«‚µ‚Ä‚¢‚é‚Æ‚«‚¾‚¯ƒtƒ‹“¯Šú‚·‚éB
-    ' –ˆ‰ñ SyncVendorBlocksFromCount ‚ğŒÄ‚Ô‚Æ—nÚ’P‰¿“WŠJ“™‚Å Activate ‚ªŒÅ‚Ü‚éB
+    ' F9ï¿½ï¿½ï¿½ï¿½ï¿½É‘Î‚ï¿½ï¿½ÆÒï¿½ï¿½uï¿½ï¿½ï¿½bï¿½Nï¿½ï¿½ï¿½sï¿½ï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½ï¿½Æ‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½tï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½B
+    ' ï¿½ï¿½ï¿½ï¿½ SyncVendorBlocksFromCount ï¿½ï¿½ï¿½Ä‚Ô‚Æ—nï¿½Ú’Pï¿½ï¿½ï¿½Wï¿½Jï¿½ï¿½ï¿½ï¿½ Activate ï¿½ï¿½ï¿½Å‚Ü‚ï¿½B
     If vendorCount > existingBlockCount Then
         mLastVendorBlockCount = existingBlockCount
         If mLastVendorBlockCount < 1 Then mLastVendorBlockCount = 1
@@ -665,7 +672,7 @@ Public Sub SyncVendorBlocksFromCount(ByVal wsInfo As Worksheet)
 
     ClearUnusedVendorBlocks wsInfo, vendorCount + 1
 
-    ' ‚»‚Ì‘¼“ü—Í–€(37-42s)‚ğ{H‰ïĞ”•ª‚¾‚¯—pˆÓ/œ‹‚·‚é
+    ' ï¿½ï¿½ï¿½Ì‘ï¿½ï¿½ï¿½ï¿½Íï¿½ï¿½ï¿½(37-42ï¿½s)ï¿½ï¿½ï¿½{ï¿½Hï¿½ï¿½Ğï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½pï¿½ï¿½/ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     RefreshOtherInputBlocks wsInfo, vendorCount
 
     ClearVendorWorkTypeWhenCompanyEmpty wsInfo, vendorCount
@@ -680,7 +687,7 @@ Public Sub SyncVendorBlocksFromCount(ByVal wsInfo As Worksheet)
     mod_VendorUnitPrice.SyncVendorUnitPriceBlocksAfterCountChange wsInfo, vendorCount, previousCount, True
 
     If vendorCount > previousCount Then
-        ' ’Ç‰ÁƒuƒƒbƒN‚Í‹ó‚Ì‚½‚ß—nÚ’P‰¿‚ÌÄ“WŠJ‚Í•s—v
+        ' ï¿½Ç‰ï¿½ï¿½uï¿½ï¿½ï¿½bï¿½Nï¿½Í‹ï¿½Ì‚ï¿½ï¿½ß—nï¿½Ú’Pï¿½ï¿½ï¿½ÌÄ“Wï¿½Jï¿½Í•sï¿½v
     ElseIf vendorCount < previousCount Then
         mod_WeldingUnitPrice.RefreshWeldingAfterVendorCountDecrease wsInfo, vendorCount, _
             oldWeldingBlockCount, oldRailBlockCount, True
@@ -689,8 +696,8 @@ Public Sub SyncVendorBlocksFromCount(ByVal wsInfo As Worksheet)
     End If
     mLastVendorBlockCount = vendorCount
 
-    ' ‰ïĞ”‚ª•Ï‚í‚Á‚½ƒuƒƒbƒN‚Í32/33s–Ú(Œ_–ñ‹àŠz‡Œv)‚ªƒeƒ“ƒvƒŒ[ƒg—R—ˆ‚Ì‹ó—“‚Ì‚Ü‚Ü
-    ' c‚é‚½‚ßA‚±‚±‚Å–¾¦“I‚É‡Œv‚ğÄŒvZE‘‚İ‚·‚é(V‹K’Ç‰ÁƒuƒƒbƒN‚Ì0‰~‰Šú‰»‚ğŠÜ‚Ş)B
+    ' ï¿½ï¿½Ğï¿½ï¿½ï¿½ï¿½Ï‚ï¿½ï¿½ï¿½ï¿½ï¿½uï¿½ï¿½ï¿½bï¿½Nï¿½ï¿½32/33ï¿½sï¿½ï¿½(ï¿½_ï¿½ï¿½ï¿½ï¿½zï¿½ï¿½ï¿½v)ï¿½ï¿½ï¿½eï¿½ï¿½ï¿½vï¿½ï¿½ï¿½[ï¿½gï¿½Rï¿½ï¿½ï¿½Ì‹ó—“‚Ì‚Ü‚ï¿½
+    ' ï¿½cï¿½é‚½ï¿½ßAï¿½ï¿½ï¿½ï¿½ï¿½Å–ï¿½ï¿½ï¿½ï¿½Iï¿½Éï¿½ï¿½vï¿½ï¿½ï¿½ÄŒvï¿½Zï¿½Eï¿½ï¿½ï¿½ï¿½ï¿½İ‚ï¿½ï¿½ï¿½(ï¿½Vï¿½Kï¿½Ç‰ï¿½ï¿½uï¿½ï¿½ï¿½bï¿½Nï¿½ï¿½0ï¿½~ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ü‚ï¿½)ï¿½B
     If vendorCount <> previousCount Then
         On Error Resume Next
         mod_Construction_Order_Import.RefreshBasicInfoConstructionTotals
@@ -715,9 +722,9 @@ Public Sub SyncVendorBlocksFromCount(ByVal wsInfo As Worksheet)
         On Error GoTo ExitHandler
     End If
 
-    ' ³íI—¹‚à ExitHandler ‚Ö—‚Æ‚µA“¯Šú’†ƒtƒ‰ƒO‚Ì‰ğœ‚Æó‘Ô•œŒ³‚ğ•K‚¸s‚¤B
-    ' (‹ŒÀ‘•‚Í Exit Sub ‚Åƒtƒ‰ƒO‚ª‰ğœ‚³‚ê‚¸A’¼Œã‚Ì‰ïĞ–¼‘I‘ğ“™‚Ì•ÏXƒCƒxƒ“ƒg‚ª
-    '  Sheet1 ‘¤‚ÌƒK[ƒh‚Å–³‹‚³‚êAƒV[ƒgÄƒAƒNƒeƒBƒu‚Ü‚Å“]‹L‚³‚ê‚È‚¢•s‹ï‡‚ª‚ ‚Á‚½)
+    ' ï¿½ï¿½ï¿½ï¿½Iï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ExitHandler ï¿½Ö—ï¿½ï¿½Æ‚ï¿½ï¿½Aï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½tï¿½ï¿½ï¿½Oï¿½Ì‰ï¿½ï¿½ï¿½ï¿½Æï¿½Ô•ï¿½ï¿½ï¿½ï¿½ï¿½Kï¿½ï¿½ï¿½sï¿½ï¿½ï¿½B
+    ' (ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Exit Sub ï¿½Åƒtï¿½ï¿½ï¿½Oï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ê‚¸ï¿½Aï¿½ï¿½ï¿½ï¿½Ì‰ï¿½Ğ–ï¿½ï¿½Iï¿½ğ“™‚Ì•ÏXï¿½Cï¿½xï¿½ï¿½ï¿½gï¿½ï¿½
+    '  Sheet1 ï¿½ï¿½ï¿½ÌƒKï¿½[ï¿½hï¿½Å–ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Aï¿½Vï¿½[ï¿½gï¿½ÄƒAï¿½Nï¿½eï¿½Bï¿½uï¿½Ü‚Å“]ï¿½Lï¿½ï¿½ï¿½ï¿½È‚ï¿½ï¿½sï¿½ï‡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
 
 ExitHandler:
     If Err.Number <> 0 Then
