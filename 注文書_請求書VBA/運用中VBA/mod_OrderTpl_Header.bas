@@ -291,8 +291,8 @@ ErrorHandler:
 End Sub
 
 ' ===== 条件書チェックボックスの排他グループ化 =====
-' 各行D/X(10行/18-33行/38行)と E34/E35 のペアで、片方をONにするともう片方をOFFにする。
-' フォームコントロールのチェックボックスに OnAction を割り当てて実現する(生成時に設定)。
+' 各行D/X(10行/18-33行/38行)と E34/E35 のペアで、常にどちらか一方だけONになる。
+' 片方をONにするともう片方をOFF、片方をOFFにするともう片方をONにする。
 
 ' 排他ペアの対象行かどうか(D/X: 10,18-33,38 / E縦ペア: 34,35)
 Private Function IsConditionExclusiveRow(ByVal r As Long) As Boolean
@@ -313,7 +313,7 @@ Public Sub SetupConditionCheckboxExclusivity(ByVal wsCondition As Worksheet)
     On Error GoTo 0
 End Sub
 
-' チェックボックスクリック時に呼ばれる。ONになった時だけペアの相手をOFFにする。
+' チェックボックスクリック時に呼ばれる。ペアの相手を反対状態にする。
 Public Sub ConditionCheckboxExclusiveClick()
     On Error GoTo Done
     Dim ws As Worksheet
@@ -324,12 +324,15 @@ Public Sub ConditionCheckboxExclusiveClick()
     Set clicked = ws.CheckBoxes(Application.Caller)
     If clicked Is Nothing Then Exit Sub
 
-    ' ONにした時だけ相手をOFFにする(自分をOFFにした時は相手を触らない)
-    If clicked.Value <> xlOn Then Exit Sub
-
     Dim pair As Object
     Set pair = FindConditionCheckboxPair(ws, clicked)
-    If Not pair Is Nothing Then pair.Value = xlOff
+    If pair Is Nothing Then Exit Sub
+
+    If clicked.Value = xlOn Then
+        pair.Value = xlOff
+    Else
+        pair.Value = xlOn
+    End If
 
 Done:
 End Sub
