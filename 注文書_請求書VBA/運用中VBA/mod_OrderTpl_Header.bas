@@ -45,6 +45,13 @@ Public Sub ApplyVendorSheetHeaders(ByVal wsInfo As Worksheet, _
             End Select
         End If
     Next i
+
+    Dim condSheetName As String
+    condSheetName = mod_OrderTpl_Shared.OrderTplBuildSheetName( _
+        mod_OrderTpl_Shared.OrderTplBaseNameConditionText(), aliasText)
+    If mod_OrderTpl_Shared.OrderTplSheetExists(condSheetName) Then
+        ApplyVendorSheetTabColor wsInfo, ThisWorkbook.Worksheets(condSheetName), vendorIndex
+    End If
 End Sub
 
 ' �S�m���Ђ̃e���v���[�g�V�[�g�փw�b�_�[���ē]�L����
