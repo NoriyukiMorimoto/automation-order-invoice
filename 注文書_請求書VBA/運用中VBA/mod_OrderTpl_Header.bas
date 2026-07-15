@@ -77,6 +77,13 @@ Public Sub RefreshAllVendorSheetHeaders(Optional ByVal wsInfo As Worksheet)
             Dim workText As String
             If mod_OrderTpl_Shared.OrderTplResolveVendorMasterInfo(branchName, companyName, vendorName, aliasText, workText) Then
                 ApplyVendorSheetHeaders wsInfo, vendorIndex, aliasText
+
+                Dim condSheetName As String
+                condSheetName = mod_OrderTpl_Shared.OrderTplBuildSheetName( _
+                    mod_OrderTpl_Shared.OrderTplBaseNameConditionText(), aliasText)
+                If mod_OrderTpl_Shared.OrderTplSheetExists(condSheetName) Then
+                    ApplyConditionSheetHeader wsInfo, ThisWorkbook.Worksheets(condSheetName), vendorIndex
+                End If
             End If
         End If
     Next vendorIndex
@@ -247,22 +254,22 @@ Public Sub ApplyConditionSheetHeader(ByVal wsInfo As Worksheet, _
     WriteHeaderDateGregorian wsCondition.Range("S1"), wsInfo.Range("C2").value
     wsCondition.Range("S1").MergeArea.Cells(1, 1).HorizontalAlignment = xlCenter
 
-    ' P3:S3 支店(B6) / T3:X3 出張所(C6) / T4:X4 所長名(F6)  中央
-    WriteHeaderValue wsCondition.Range("P3"), wsInfo.Range("B6").value, True
-    WriteHeaderValue wsCondition.Range("T3"), wsInfo.Range("C6").value, True
-    WriteHeaderValue wsCondition.Range("T4"), wsInfo.Range("F6").value, True
+    ' P3:S3 支店(B6) / T3:X3 出張所(C6) / T4:X4 所長名(F6)  下詰め
+    WriteHeaderValueBottom wsCondition.Range("P3"), wsInfo.Range("B6").value
+    WriteHeaderValueBottom wsCondition.Range("T3"), wsInfo.Range("C6").value
+    WriteHeaderValueBottom wsCondition.Range("T4"), wsInfo.Range("F6").value
 
-    ' B5:C6 施工会社名(当該業者11行), 中央
-    WriteHeaderValue wsCondition.Range("B5"), _
-        wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, valueColumn).value, True
+    ' B5:C6 施工会社名(当該業者11行), 下詰め
+    WriteHeaderValueBottom wsCondition.Range("B5"), _
+        wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, valueColumn).value
 
     ' F9:I9 工事番号(C9) / L9:X9 工事件名(C10)  中央
     WriteHeaderValue wsCondition.Range("F9"), wsInfo.Range("C9").value, True
     WriteHeaderValue wsCondition.Range("L9"), wsInfo.Range("C10").value, True
 
-    ' F11:L11 工期自(C15) / R11:X11 工期至(C16)  中央
-    WriteHeaderValue wsCondition.Range("F11"), wsInfo.Range("C15").value, True
-    WriteHeaderValue wsCondition.Range("R11"), wsInfo.Range("C16").value, True
+    ' F11:L11 工期自(C15) / R11:X11 工期至(C16)  グレゴリオ暦 yyyy年m月d日
+    WriteHeaderDateGregorian wsCondition.Range("F11"), wsInfo.Range("C15").value
+    WriteHeaderDateGregorian wsCondition.Range("R11"), wsInfo.Range("C16").value
 
     ' D16:X16 施工場所(C13), 中央
     WriteHeaderValue wsCondition.Range("D16"), wsInfo.Range("C13").value, True
@@ -552,6 +559,23 @@ Private Sub WriteHeaderValueLeft(ByVal target As Range, ByVal value As Variant)
 End Sub
 
 ' ������t�̓]�L(yyyy�Nm��d���E����)
+Private Sub WriteHeaderValueBottom(ByVal target As Range, ByVal value As Variant)
+    Dim writeCell As Range
+    Set writeCell = target.MergeArea.Cells(1, 1)
+
+    If IsError(value) Then
+        writeCell.ClearContents
+    ElseIf Len(Trim$(CStr(value))) = 0 Then
+        writeCell.ClearContents
+    Else
+        writeCell.value = value
+    End If
+
+    target.MergeArea.Font.Name = BASIC_INFO_REF_FONT_NAME
+    target.MergeArea.HorizontalAlignment = xlCenter
+    target.MergeArea.VerticalAlignment = xlBottom
+End Sub
+
 Private Sub WriteHeaderDateGregorian(ByVal target As Range, ByVal value As Variant)
     Dim writeCell As Range
     Set writeCell = target.MergeArea.Cells(1, 1)
