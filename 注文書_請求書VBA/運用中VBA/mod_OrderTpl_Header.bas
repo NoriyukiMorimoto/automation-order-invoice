@@ -206,13 +206,13 @@ Public Sub ApplyBreakdownHeader(ByVal wsInfo As Worksheet, _
     wsBreakdown.Range("L5:L6").Font.Size = HEADER_DATE_FONT_SIZE
 
     ' O2: �쐬��(��{���C2�A�a��\��)
+    ' P2:Q2 created date from C2. O2 keeps template label.
     WriteHeaderDate wsBreakdown.Range("P2"), wsInfo.Range("C2").value
     wsBreakdown.Range("P2").MergeArea.Font.Size = HEADER_DATE_FONT_SIZE
-    wsBreakdown.Range("O2").MergeArea.Cells(1, 1).ClearContents
 
     ' O3: ������(��{���F6)
+    ' P3:Q3 branch chief from F6. O3 keeps template label.
     WriteHeaderValue wsBreakdown.Range("P3"), wsInfo.Range("F6").value, True
-    wsBreakdown.Range("O3").MergeArea.Cells(1, 1).ClearContents
 
     ' P5: �O����Ж�(�{�H��Ѓu���b�N11�s��)
     WriteHeaderValue wsBreakdown.Range("P5"), _
