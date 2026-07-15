@@ -13,13 +13,29 @@ Public Function ConstructionIntegerNumberFormat() As String
     ConstructionIntegerNumberFormat = cached
 End Function
 
-' NumberFormatLocal ã‚’å®‰å…¨ã«è¨­å®šã™ã‚‹ã€‚çµåˆã‚»ãƒ«ã«ã¾ãŸãŒã‚‹ç¯„å›²ã‚„ä¿è­·ã‚»ãƒ«ç­‰ã§
-' å®Ÿè¡Œæ™‚ã‚¨ãƒ©ãƒ¼1004ãŒå‡ºã¦ã‚‚ã€å–è¾¼å…¨ä½“ã‚’æ­¢ã‚ãšã‚¹ã‚­ãƒƒãƒ—(è¡¨ç¤ºæ›¸å¼ã®ã¿ã®å½±éŸ¿)ã™ã‚‹ã€‚
+Public Function ConstructionTotalSuffixText() As String
+    Static cached As String
+    If Len(cached) = 0 Then
+        cached = CommonTextFromChars(&H5408, &H8A08)
+    End If
+    ConstructionTotalSuffixText = cached
+End Function
+
+Public Function ConstructionJrTotalLabelText() As String
+    Static cached As String
+    If Len(cached) = 0 Then
+        cached = "JR" & ConstructionTotalSuffixText()
+    End If
+    ConstructionJrTotalLabelText = cached
+End Function
+
+' NumberFormatLocal ã‚’å®‰å?¨ã«è¨­å®šã™ã‚‹ã€‚çµåˆã‚»ãƒ«ã«ã¾ãŸãŒã‚‹ç¯?å›²ã‚?ä¿è­·ã‚»ãƒ«ç­‰ã§
+' å®Ÿè¡Œæ™‚ã‚¨ãƒ©ãƒ¼1004ãŒå?ºã¦ã‚‚ã€å–è¾¼å…¨ä½“ã‚’æ­¢ã‚ãšã‚¹ã‚­ãƒ?ãƒ?(è¡¨ç¤ºæ›¸å¼ã?®ã¿ã®å½±éŸ¿)ã™ã‚‹ã€?
 Public Sub SafeSetRangeNumberFormatLocal(ByVal target As Range, ByVal formatText As String)
     On Error Resume Next
     target.NumberFormatLocal = formatText
     If Err.Number <> 0 Then
-        LogCI "NumberFormatLocalè¨­å®šã‚’ã‚¹ã‚­ãƒƒãƒ—(çµåˆ/ä¿è­·ã‚»ãƒ«?): Err " & Err.Number & " " & Err.Description
+        LogCI "NumberFormatLocalè¨­å®šã‚’ã‚¹ã‚­ãƒ?ãƒ?(çµåˆ/ä¿è­·ã‚»ãƒ«?): Err " & Err.Number & " " & Err.Description
         Err.Clear
     End If
     On Error GoTo 0
@@ -53,8 +69,8 @@ Public Sub ApplySanpaiRowRestrictionsCore(ByVal ws As Worksheet)
                         .IgnoreBlank = True
                         .InCellDropdown = False
                         .ShowInput = False
-                        .ErrorTitle = "ï¿½ï¿½ï¿½Í•sï¿½ï¿½"
-                        .ErrorMessage = "ï¿½Yï¿½pï¿½ï¿½ï¿½ï¿½ï¿½Ìsï¿½Í{ï¿½Hï¿½ï¿½Ğ‚ï¿½ï¿½ï¿½Í‚Å‚ï¿½ï¿½Ü‚ï¿½ï¿½ï¿½B"
+                        .ErrorTitle = "?¿½?¿½?¿½Í•s?¿½?¿½"
+                        .ErrorMessage = "?¿½Y?¿½p?¿½?¿½?¿½?¿½?¿½Ìs?¿½Í{?¿½H?¿½?¿½Ğ‚ï¿½?¿½?¿½Í‚Å‚ï¿½?¿½Ü‚ï¿½?¿½?¿½B"
                         .ShowError = True
                     End With
                 End With
@@ -63,7 +79,7 @@ Public Sub ApplySanpaiRowRestrictionsCore(ByVal ws As Worksheet)
         End If
     Next r
 
-    LogCI "ï¿½Yï¿½pï¿½ï¿½ï¿½ï¿½ï¿½s: Aï¿½ï¿½hï¿½ï¿½Â‚Ô‚ï¿½ï¿½Eï¿½ï¿½ï¿½Í•sï¿½ï¿½=" & restrictedCount & " ï¿½s"
+    LogCI "?¿½Y?¿½p?¿½?¿½?¿½?¿½?¿½s: A?¿½?¿½h?¿½?¿½Â‚Ô‚ï¿½?¿½E?¿½?¿½?¿½Í•s?¿½?¿½=" & restrictedCount & " ?¿½s"
 End Sub
 
 Public Sub WriteTotalCells(ByVal ws As Worksheet, ByVal totalRow As Long, _
@@ -93,8 +109,8 @@ End Sub
 Public Function IsOutputTotalLabelText(ByVal text As String) As Boolean
     Dim normalized As String
     normalized = Trim$(CommonNormalizeText(CommonNzText(text)))
-    IsOutputTotalLabelText = (normalized = "JRï¿½ï¿½ï¿½v") Or _
-        (Len(normalized) >= 2 And Right$(normalized, 2) = "ï¿½ï¿½ï¿½v")
+    IsOutputTotalLabelText = (normalized = ConstructionJrTotalLabelText()) Or _
+        (Len(normalized) >= 2 And Right$(normalized, 2) = ConstructionTotalSuffixText())
 End Function
 
 Public Sub ClearDoubleBorder(ByVal target As Range)
@@ -195,7 +211,7 @@ Public Sub WriteOutputTotalRows( _
     ClearStaleOutputTotalFormatting ws, lastRow, lastRow + 1, subconFirstCol, _
         subconColumnCount, dataKeyColumn, jrLabelColumn, jrSumColumn
 
-    WriteTotalCells ws, lastRow + 1, jrLabelColumn, "JRï¿½ï¿½ï¿½v", jrSumColumn, lastRow
+    WriteTotalCells ws, lastRow + 1, jrLabelColumn, ConstructionJrTotalLabelText(), jrSumColumn, lastRow
 
     If Not vendorNames Is Nothing Then
         Dim vendorIndex As Long
@@ -203,7 +219,7 @@ Public Sub WriteOutputTotalRows( _
         For vendorIndex = 1 To vendorNames.Count
             priceColumn = subconFirstCol + ((vendorIndex - 1) * 2)
             WriteTotalCells ws, lastRow + 1, _
-                            priceColumn, CStr(vendorNames(vendorIndex)) & "ï¿½ï¿½ï¿½v", _
+                            priceColumn, CStr(vendorNames(vendorIndex)) & ConstructionTotalSuffixText(), _
                             priceColumn + 1, lastRow, useRoundHalfUp:=True
         Next vendorIndex
     End If
@@ -255,7 +271,7 @@ Public Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
     unitColumn = mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_UNIT)
     lineColumn = mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_LINE)
 
-    ' ï¿½ï¿½ï¿½ï¿½ï¿½Ôï¿½ï¿½ï¿½ï¿½ÎÛï¿½ï¿½ï¿½(ï¿½Pï¿½ï¿½)ï¿½Vï¿½[ï¿½gï¿½É–ï¿½ï¿½oï¿½^ï¿½Ìsï¿½ï¿½ï¿½ï¿½ï¿½Vï¿½[ï¿½gï¿½Ê‚Éï¿½ï¿½Wï¿½ï¿½ï¿½ï¿½
+    ' ?¿½?¿½?¿½?¿½?¿½Ôï¿½?¿½?¿½?¿½ÎÛï¿½?¿½?¿½(?¿½P?¿½?¿½)?¿½V?¿½[?¿½g?¿½É–ï¿½?¿½o?¿½^?¿½Ìs?¿½?¿½?¿½?¿½?¿½V?¿½[?¿½g?¿½Ê‚Éï¿½?¿½W?¿½?¿½?¿½?¿½
     Dim pendingByLineSheet As Object
     Set pendingByLineSheet = CreateObject("Scripting.Dictionary")
     pendingByLineSheet.CompareMode = vbTextCompare
@@ -266,9 +282,9 @@ Public Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
     If isWeldingSheet Then
         weldingPriceSheetName = mod_Construction_OutputLayout.ResolveWeldingPriceSheetName()
         If weldingPriceSheetName = "" Then
-            LogCI "ï¿½ï¿½ï¿½[ï¿½ï¿½ï¿½nï¿½Ú’Pï¿½ï¿½: ï¿½Vï¿½[ï¿½gï¿½ï¿½ï¿½Ì‰ï¿½ï¿½ï¿½ï¿½Éï¿½ï¿½s(ï¿½ï¿½{ï¿½ï¿½ï¿½B6/C6 ï¿½Ü‚ï¿½ï¿½ï¿½ ï¿½Pï¿½ï¿½ï¿½Kï¿½pï¿½ï¿½ï¿½ï¿½}ï¿½Xï¿½^ï¿½ï¿½ï¿½ï¿½v)"
+            LogCI "?¿½?¿½?¿½[?¿½?¿½?¿½n?¿½Ú’P?¿½?¿½: ?¿½V?¿½[?¿½g?¿½?¿½?¿½Ì‰ï¿½?¿½?¿½?¿½Éï¿½?¿½s(?¿½?¿½{?¿½?¿½?¿½B6/C6 ?¿½Ü‚ï¿½?¿½?¿½ ?¿½P?¿½?¿½?¿½K?¿½p?¿½?¿½?¿½?¿½}?¿½X?¿½^?¿½?¿½?¿½?¿½v)"
         ElseIf Not mod_Construction_OutputLayout.SheetExistsByName(weldingPriceSheetName) Then
-            LogCI "ï¿½ï¿½ï¿½[ï¿½ï¿½ï¿½nï¿½Ú’Pï¿½ï¿½: ï¿½Vï¿½[ï¿½gï¿½u" & weldingPriceSheetName & "ï¿½vï¿½ï¿½ï¿½ï¿½ï¿½Â‚ï¿½ï¿½ï¿½Ü‚ï¿½ï¿½ï¿½"
+            LogCI "?¿½?¿½?¿½[?¿½?¿½?¿½n?¿½Ú’P?¿½?¿½: ?¿½V?¿½[?¿½g?¿½u" & weldingPriceSheetName & "?¿½v?¿½?¿½?¿½?¿½?¿½Â‚ï¿½?¿½?¿½Ü‚ï¿½?¿½?¿½"
         End If
     End If
 
@@ -323,8 +339,8 @@ Public Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
             End If
         End If
 
-        ' ï¿½Hï¿½ï¿½(ï¿½ï¿½nï¿½ï¿½)ï¿½Vï¿½[ï¿½gï¿½Ì‚ï¿½: ï¿½ï¿½ï¿½ï¿½ï¿½Ôï¿½ï¿½ï¿½ï¿½Pï¿½ï¿½ï¿½}ï¿½Xï¿½^ï¿½É–ï¿½ï¿½ï¿½ï¿½sï¿½ï¿½ï¿½ï¿½ï¿½Vï¿½[ï¿½gï¿½Ö“oï¿½^ï¿½ÎÛ‚Æ‚ï¿½ï¿½Äï¿½ï¿½Wï¿½ï¿½ï¿½ï¿½B
-        ' Gï¿½ï¿½ï¿½(ï¿½Oï¿½ï¿½)ï¿½ï¿½ NormalizeLineLookupText ï¿½ÅƒVï¿½[ï¿½gï¿½ï¿½ï¿½Æï¿½ï¿½ï¿½ï¿½Éï¿½ï¿½ï¿½ï¿½Ï‚İBï¿½Ç‹Lï¿½ï¿½ï¿½Ì‚Ísï¿½ï¿½ï¿½B
+        ' ?¿½H?¿½?¿½(?¿½?¿½n?¿½?¿½)?¿½V?¿½[?¿½g?¿½Ì‚ï¿½: ?¿½?¿½?¿½?¿½?¿½Ôï¿½?¿½?¿½?¿½P?¿½?¿½?¿½}?¿½X?¿½^?¿½É–ï¿½?¿½?¿½?¿½s?¿½?¿½?¿½?¿½?¿½V?¿½[?¿½g?¿½Ö“o?¿½^?¿½ÎÛ‚Æ‚ï¿½?¿½Äï¿½?¿½W?¿½?¿½?¿½?¿½B
+        ' G?¿½?¿½?¿½(?¿½O?¿½?¿½)?¿½?¿½ NormalizeLineLookupText ?¿½ÅƒV?¿½[?¿½g?¿½?¿½?¿½Æï¿½?¿½?¿½?¿½Éï¿½?¿½?¿½?¿½Ï‚İB?¿½Ç‹L?¿½?¿½?¿½Ì‚Ís?¿½?¿½?¿½B
         If recordMissing And (Not isWeldingSheet) And unitPriceSheetName <> "" Then
             CollectMissingSeiriForLineSheet pendingByLineSheet, unitPriceSheetName, recordKey, _
                 ws.Cells(r, seiriColumn).value, _
@@ -341,11 +357,11 @@ Public Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
         WritePriceComparison ws, r, unitPriceSheetName, True, guidanceDocumentName
     Next r
 
-    ' ï¿½ï¿½ï¿½ï¿½ï¿½Ôï¿½ï¿½ï¿½ï¿½Pï¿½ï¿½ï¿½}ï¿½Xï¿½^ï¿½É–ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Aï¿½ÎÛï¿½ï¿½ï¿½Vï¿½[ï¿½gï¿½ÌÅ‰ï¿½ï¿½ï¿½ï¿½Ö“oï¿½^ï¿½ï¿½ï¿½ï¿½
+    ' ?¿½?¿½?¿½?¿½?¿½Ôï¿½?¿½?¿½?¿½P?¿½?¿½?¿½}?¿½X?¿½^?¿½É–ï¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½A?¿½ÎÛï¿½?¿½?¿½V?¿½[?¿½g?¿½ÌÅ‰ï¿½?¿½?¿½?¿½Ö“o?¿½^?¿½?¿½?¿½?¿½
     If Not isWeldingSheet Then
         If pendingCollectCount > 0 Then
-            LogCI "ï¿½ï¿½ï¿½ï¿½ï¿½Ôï¿½ï¿½ï¿½ï¿½oï¿½^ï¿½Ì’Ç‹Lï¿½ï¿½ï¿½=" & pendingCollectCount & _
-                  " (ï¿½ï¿½ï¿½ï¿½Vï¿½[ï¿½gï¿½ï¿½=" & pendingByLineSheet.Count & ")"
+            LogCI "?¿½?¿½?¿½?¿½?¿½Ôï¿½?¿½?¿½?¿½o?¿½^?¿½Ì’Ç‹L?¿½?¿½?¿½=" & pendingCollectCount & _
+                  " (?¿½?¿½?¿½?¿½V?¿½[?¿½g?¿½?¿½=" & pendingByLineSheet.Count & ")"
         End If
         RegisterMissingSeiriToLineSheets pendingByLineSheet
     End If
@@ -356,9 +372,9 @@ Public Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
     SafeSetRangeNumberFormatLocal ws.Range(ws.Cells(2, autoPriceColumn), ws.Cells(lastRow, autoAmountColumn)), ConstructionIntegerNumberFormat()
     ws.Range(ws.Cells(1, compareColumn), ws.Cells(lastRow, compareColumn)).HorizontalAlignment = xlCenter
 
-    LogCI "ï¿½Qï¿½Æ’Pï¿½ï¿½ï¿½ï¿½v=" & matchedCount & _
-          " / ï¿½ï¿½ï¿½æ–¢ï¿½ï¿½ï¿½ï¿½=" & unresolvedLineCount & _
-          " / ï¿½ï¿½ï¿½ï¿½ï¿½Ôï¿½ï¿½ï¿½ï¿½ï¿½v=" & missingRecordCount
+    LogCI "?¿½Q?¿½Æ’P?¿½?¿½?¿½?¿½v=" & matchedCount & _
+          " / ?¿½?¿½?¿½æ–¢?¿½?¿½?¿½?¿½=" & unresolvedLineCount & _
+          " / ?¿½?¿½?¿½?¿½?¿½Ôï¿½?¿½?¿½?¿½?¿½v=" & missingRecordCount
 End Sub
 
 Public Sub RefreshConstructionReferenceUnitPricesOnExistingSheetsCore()
@@ -385,7 +401,7 @@ Public Sub RefreshConstructionReferenceUnitPricesOnExistingSheetsCore()
         End If
     Next ws
 
-    LogCI "ï¿½ï¿½ï¿½ï¿½ï¿½{ï¿½Hï¿½wï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Vï¿½[ï¿½gï¿½ÌQï¿½Æ’Pï¿½ï¿½ï¿½Ä“Çï¿½: ï¿½Îï¿½=" & refreshedCount
+    LogCI "?¿½?¿½?¿½?¿½?¿½{?¿½H?¿½w?¿½?¿½?¿½?¿½?¿½?¿½?¿½V?¿½[?¿½g?¿½ÌQ?¿½Æ’P?¿½?¿½?¿½Ä“Çï¿½: ?¿½Îï¿½=" & refreshedCount
 
 Cleanup:
     g.Restore
@@ -438,8 +454,8 @@ End Sub
 Public Function IsConstructionDocumentOutputSheet(ByVal ws As Worksheet) As Boolean
     If ws Is Nothing Then Exit Function
     If Not mod_Construction_OutputLayout.IsConstructionVendorOutputSheet(ws) Then Exit Function
-    If mod_Construction_BasicTotals.FindHeaderColumn(ws, "ï¿½ï¿½ï¿½ï¿½ï¿½Ôï¿½") = 0 Then Exit Function
-    IsConstructionDocumentOutputSheet = (mod_Construction_BasicTotals.FindHeaderColumn(ws, "ï¿½Pï¿½ï¿½ï¿½ï¿½r") > 0)
+    If mod_Construction_BasicTotals.FindHeaderColumn(ws, "?¿½?¿½?¿½?¿½?¿½Ôï¿½") = 0 Then Exit Function
+    IsConstructionDocumentOutputSheet = (mod_Construction_BasicTotals.FindHeaderColumn(ws, "?¿½P?¿½?¿½?¿½?¿½r") > 0)
 End Function
 
 Public Sub RefreshConstructionReferencePricesOnSheet( _
@@ -448,7 +464,7 @@ Public Sub RefreshConstructionReferencePricesOnSheet( _
     ByVal changedPriceRows As Object, _
     ByVal lineSheetMap As Object)
 
-    ' ï¿½nï¿½ÚƒVï¿½[ï¿½gï¿½ÌQï¿½Æ’Pï¿½ï¿½ï¿½Íƒï¿½ï¿½[ï¿½ï¿½ï¿½nï¿½Ú’Pï¿½ï¿½ï¿½Vï¿½[ï¿½gï¿½Rï¿½ï¿½ï¿½Ì‚ï¿½ï¿½ßAï¿½Hï¿½ï¿½ï¿½Pï¿½ï¿½ï¿½Vï¿½[ï¿½gï¿½ÏXï¿½Å‚ÍÄŒvï¿½Zï¿½ï¿½ï¿½È‚ï¿½ï¿½B
+    ' ?¿½n?¿½ÚƒV?¿½[?¿½g?¿½ÌQ?¿½Æ’P?¿½?¿½?¿½Í??¿½?¿½[?¿½?¿½?¿½n?¿½Ú’P?¿½?¿½?¿½V?¿½[?¿½g?¿½R?¿½?¿½?¿½Ì‚ï¿½?¿½ßA?¿½H?¿½?¿½?¿½P?¿½?¿½?¿½V?¿½[?¿½g?¿½ÏX?¿½Å‚ÍÄŒv?¿½Z?¿½?¿½?¿½È‚ï¿½?¿½B
     If mod_Construction_OutputLayout.IsWeldingOutputSheetCore(ws) Then Exit Sub
 
     Dim seiriColumn As Long
@@ -456,11 +472,11 @@ Public Sub RefreshConstructionReferencePricesOnSheet( _
     Dim quantityColumn As Long
     Dim jrPriceColumn As Long
     Dim comparisonColumn As Long
-    seiriColumn = mod_Construction_BasicTotals.FindHeaderColumn(ws, "ï¿½ï¿½ï¿½ï¿½ï¿½Ôï¿½")
-    dayNightColumn = mod_Construction_BasicTotals.FindHeaderColumn(ws, "ï¿½ï¿½ï¿½ï¿½ï¿½")
-    quantityColumn = mod_Construction_BasicTotals.FindHeaderColumn(ws, "ï¿½ï¿½ï¿½ï¿½")
-    jrPriceColumn = mod_Construction_BasicTotals.FindHeaderColumn(ws, "JRï¿½Pï¿½ï¿½")
-    comparisonColumn = mod_Construction_BasicTotals.FindHeaderColumn(ws, "ï¿½Pï¿½ï¿½ï¿½ï¿½r")
+    seiriColumn = mod_Construction_BasicTotals.FindHeaderColumn(ws, "?¿½?¿½?¿½?¿½?¿½Ôï¿½")
+    dayNightColumn = mod_Construction_BasicTotals.FindHeaderColumn(ws, "?¿½?¿½?¿½?¿½?¿½")
+    quantityColumn = mod_Construction_BasicTotals.FindHeaderColumn(ws, "?¿½?¿½?¿½?¿½")
+    jrPriceColumn = mod_Construction_BasicTotals.FindHeaderColumn(ws, "JR?¿½P?¿½?¿½")
+    comparisonColumn = mod_Construction_BasicTotals.FindHeaderColumn(ws, "?¿½P?¿½?¿½?¿½?¿½r")
 
     If seiriColumn = 0 Or dayNightColumn = 0 Or quantityColumn = 0 Then Exit Sub
     If jrPriceColumn = 0 Or comparisonColumn < 3 Then Exit Sub
@@ -490,7 +506,7 @@ Public Sub RefreshConstructionReferencePricesOnSheet( _
         recordKey = mod_Construction_LineMapping.NormalizeRecordKey(ws.Cells(r, seiriColumn).value)
         If recordKey <> "" And changedPriceRows.Exists(recordKey) Then
             resolvedSheetName = mod_Construction_LineMapping.ResolveUnitPriceSheetName( _
-                lineSheetMap, CommonNzText(ws.Cells(r, mod_Construction_BasicTotals.FindHeaderColumn(ws, "ï¿½_ï¿½ï¿½ï¿½ï¿½æ–¼")).value), _
+                lineSheetMap, CommonNzText(ws.Cells(r, mod_Construction_BasicTotals.FindHeaderColumn(ws, "?¿½_?¿½?¿½?¿½?¿½æ–¼")).value), _
                 isWeldingSheet)
 
             If mod_Construction_LineMapping.NormalizeLineLookupText(resolvedSheetName, isWeldingSheet) = normalizedSourceSheet Then

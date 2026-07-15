@@ -1,11 +1,11 @@
 Option Explicit
 
-' ï¿½ï¿½ï¿½ó–¾×ƒVï¿½[ï¿½gï¿½Ì–ï¿½ï¿½×•ï¿½ï¿½]ï¿½Lï¿½Gï¿½ï¿½ï¿½Wï¿½ï¿½ï¿½B
-' ï¿½{ï¿½Hï¿½wï¿½ï¿½ï¿½ï¿½(ï¿½Hï¿½ï¿½)/ï¿½{ï¿½Hï¿½Ê’mï¿½ï¿½(ï¿½Hï¿½ï¿½)ï¿½Eï¿½{ï¿½Hï¿½wï¿½ï¿½ï¿½ï¿½(ï¿½nï¿½ï¿½)/ï¿½{ï¿½Hï¿½Ê’mï¿½ï¿½(ï¿½nï¿½ï¿½)ï¿½Ìæï¿½Ï‚İƒVï¿½[ï¿½gï¿½ï¿½ï¿½ï¿½
-' ï¿½{ï¿½Hï¿½ï¿½ï¿½(ï¿½ÆÒƒ}ï¿½Xï¿½^Aï¿½ï¿½ ï¿½ÆÒ–ï¿½)ï¿½Å’ï¿½ï¿½oï¿½ï¿½ï¿½Aï¿½_ï¿½ï¿½ï¿½ï¿½æ–¼_ï¿½Ç—ï¿½ï¿½ï¿½ï¿½ÌƒZï¿½Nï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½Pï¿½Ê‚Å“]ï¿½Lï¿½ï¿½ï¿½ï¿½B
-' ï¿½Hï¿½ï¿½ï¿½æ•ªï¿½ï¿½ï¿½Oï¿½ï¿½ï¿½Hï¿½ï¿½ï¿½Ìê‡: ï¿½Hï¿½ï¿½ï¿½Vï¿½[ï¿½g ï¿½ï¿½ 2ï¿½sï¿½ï¿½ ï¿½ï¿½ ï¿½nï¿½ÚƒVï¿½[ï¿½g(ï¿½Oï¿½ï¿½ï¿½èŒ³ï¿½ï¿½Ğ‚Å’ï¿½ï¿½o)ï¿½B
-' ï¿½Hï¿½ï¿½ï¿½æ•ªï¿½ï¿½ï¿½nï¿½ÚHï¿½ï¿½ï¿½Ìê‡: ï¿½nï¿½ÚƒVï¿½[ï¿½g(ï¿½nï¿½Ú‰ï¿½Ğ‚Å’ï¿½ï¿½o)ï¿½Ì‚İB
-' ï¿½ï¿½ï¿½Cï¿½ï¿½ï¿½ï¿½: CHANGELOG.md ï¿½Qï¿½ï¿½
+' ?¿½?¿½?¿½?¾×ƒV?¿½[?¿½g?¿½Ì–ï¿½?¿½×•ï¿½?¿½]?¿½L?¿½G?¿½?¿½?¿½W?¿½?¿½?¿½B
+' ?¿½{?¿½H?¿½w?¿½?¿½?¿½?¿½(?¿½H?¿½?¿½)/?¿½{?¿½H?¿½Ê’m?¿½?¿½(?¿½H?¿½?¿½)?¿½E?¿½{?¿½H?¿½w?¿½?¿½?¿½?¿½(?¿½n?¿½?¿½)/?¿½{?¿½H?¿½Ê’m?¿½?¿½(?¿½n?¿½?¿½)?¿½Ìæ?¿½Ï‚İƒV?¿½[?¿½g?¿½?¿½?¿½?¿½
+' ?¿½{?¿½H?¿½?¿½?¿½(?¿½ÆÒƒ}?¿½X?¿½^A?¿½?¿½ ?¿½ÆÒ–ï¿½)?¿½Å’ï¿½?¿½o?¿½?¿½?¿½A?¿½_?¿½?¿½?¿½?¿½æ–¼_?¿½Ç—ï¿½?¿½?¿½?¿½ÌƒZ?¿½N?¿½V?¿½?¿½?¿½?¿½?¿½P?¿½Ê‚Å“]?¿½L?¿½?¿½?¿½?¿½B
+' ?¿½H?¿½?¿½?¿½æ•ª?¿½?¿½?¿½O?¿½?¿½?¿½H?¿½?¿½?¿½Ìê‡: ?¿½H?¿½?¿½?¿½V?¿½[?¿½g ?¿½?¿½ 2?¿½s?¿½?¿½ ?¿½?¿½ ?¿½n?¿½ÚƒV?¿½[?¿½g(?¿½O?¿½?¿½?¿½èŒ³?¿½?¿½Ğ‚Å’ï¿½?¿½o)?¿½B
+' ?¿½H?¿½?¿½?¿½æ•ª?¿½?¿½?¿½n?¿½ÚH?¿½?¿½?¿½Ìê‡: ?¿½n?¿½ÚƒV?¿½[?¿½g(?¿½n?¿½Ú‰ï¿½Ğ‚Å’ï¿½?¿½o)?¿½Ì‚İB
+' ?¿½?¿½?¿½C?¿½?¿½?¿½?¿½: CHANGELOG.md ?¿½Q?¿½?¿½
 
 Private Const SRC_FIELD_SEIRI As Long = 1
 Private Const SRC_FIELD_TYPE As Long = 2
@@ -17,17 +17,16 @@ Private Const SRC_FIELD_PRICE As Long = 6
 Private Const FMT_GROUP_GENERAL As Long = 0
 Private Const FMT_GROUP_INTEGER As Long = 1
 Private Const FMT_GROUP_DECIMAL As Long = 2
-Private Const SUMMARY_EXTRA_ROWS As Long = 5   ' ï¿½lï¿½ï¿½/ï¿½v/ï¿½ï¿½ï¿½ï¿½ï¿½/ï¿½ï¿½ï¿½v/ï¿½rï¿½ï¿½ï¿½pï¿½ï¿½
+Private Const SUMMARY_EXTRA_ROWS As Long = 5   ' ?¿½l?¿½?¿½/?¿½v/?¿½?¿½?¿½?¿½?¿½/?¿½?¿½?¿½v/?¿½r?¿½?¿½?¿½p?¿½?¿½
 Private Const SUMMARY_NUMBER_FORMAT As String = "#,##0"
 Private Const SUMMARY_ZERO_HIDE_FORMAT As String = "#,##0;-#,##0;"
-Private Const DETAIL_AMOUNT_DECIMAL_NUMBER_FORMAT As String = "#,##0.##;-#,##0.##;"
-Private Const DETAIL_AMOUNT_NUMBER_FORMAT As String = "#,##0;-#,##0;"            ' ï¿½ï¿½ï¿½ï¿½Ø‚ï¿½Eï¿½[ï¿½ï¿½ï¿½ï¿½\ï¿½ï¿½
-Private Const DETAIL_QTY_DECIMAL_NUMBER_FORMAT As String = "#,##0.00;-#,##0.00;" ' ï¿½ï¿½ï¿½ï¿½2ï¿½ï¿½ï¿½Eï¿½[ï¿½ï¿½ï¿½ï¿½\ï¿½ï¿½
+Private Const DETAIL_AMOUNT_NUMBER_FORMAT As String = "#,##0;-#,##0;"            ' ?¿½?¿½?¿½?¿½Ø‚ï¿½E?¿½[?¿½?¿½?¿½?¿½\?¿½?¿½
+Private Const DETAIL_QTY_DECIMAL_NUMBER_FORMAT As String = "#,##0.00;-#,##0.00;" ' ?¿½?¿½?¿½?¿½2?¿½?¿½?¿½E?¿½[?¿½?¿½?¿½?¿½\?¿½?¿½
 Private Const DETAIL_FONT_SIZE As Double = 11#
 Private Const DETAIL_COL_A_WIDTH As Double = 7#
-Private Const DETAIL_COL_QTY_4 As Long = 15          ' Oï¿½ï¿½(ï¿½ï¿½4ï¿½ï¿½ï¿½Ê—ï¿½)
-Private Const DETAIL_COL_PRICE_4 As Long = 16        ' Pï¿½ï¿½(ï¿½ï¿½4ï¿½Pï¿½ï¿½ï¿½ï¿½)
-Private Const DETAIL_COL_PRICE_BASE As Long = 7        ' Gï¿½ï¿½(ï¿½ï¿½ï¿½ï¿½ï¿½Pï¿½ï¿½)
+Private Const DETAIL_COL_QTY_4 As Long = 15          ' O?¿½?¿½(?¿½?¿½4?¿½?¿½?¿½Ê—ï¿½)
+Private Const DETAIL_COL_PRICE_4 As Long = 16        ' P?¿½?¿½(?¿½?¿½4?¿½P?¿½?¿½?¿½?¿½)
+Private Const DETAIL_COL_PRICE_BASE As Long = 7        ' G?¿½?¿½(?¿½?¿½?¿½?¿½?¿½P?¿½?¿½)
 
 Private Function DiscountLabelText() As String
     Static cached As String
@@ -61,7 +60,7 @@ Private Function GrandTotalLabelText() As String
     GrandTotalLabelText = cached
 End Function
 
-' ï¿½ï¿½ï¿½ó–¾×ƒVï¿½[ï¿½gï¿½Ì–ï¿½ï¿½×•ï¿½(11ï¿½sï¿½Ú`ï¿½ï¿½ï¿½vï¿½sï¿½Ì’ï¿½ï¿½O)ï¿½Ö“]ï¿½Lï¿½ï¿½ï¿½ï¿½
+' ?¿½?¿½?¿½?¾×ƒV?¿½[?¿½g?¿½Ì–ï¿½?¿½×•ï¿½(11?¿½s?¿½Ú`?¿½?¿½?¿½v?¿½s?¿½Ì’ï¿½?¿½O)?¿½Ö“]?¿½L?¿½?¿½?¿½?¿½
 Public Sub ApplyBreakdownDetails(ByVal wsBreakdown As Worksheet, _
                                  ByVal vendorName As String, _
                                  ByVal officialName As String, _
@@ -72,7 +71,7 @@ Public Sub ApplyBreakdownDetails(ByVal wsBreakdown As Worksheet, _
 
     On Error GoTo ErrorHandler
 
-    ' ï¿½ÆÒƒ}ï¿½Xï¿½^ï¿½Ì–ï¿½ï¿½ï¿½(ï¿½ï¿½ï¿½Kï¿½ï¿½/ï¿½ï¿½ï¿½Ì‚Ì‚Ç‚ï¿½ï¿½ï¿½Ì•\ï¿½Lï¿½Å‚ï¿½ï¿½ï¿½vï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
+    ' ?¿½ÆÒƒ}?¿½X?¿½^?¿½Ì–ï¿½?¿½?¿½(?¿½?¿½?¿½K?¿½?¿½/?¿½?¿½?¿½Ì‚Ì‚Ç‚ï¿½?¿½?¿½Ì•\?¿½L?¿½Å‚ï¿½?¿½?¿½v?¿½?¿½?¿½?¿½?¿½?¿½)
     Dim aliasMap As Object
     Set aliasMap = mod_Construction_BasicTotals.GetVendorAliasMap(branchName)
 
@@ -93,8 +92,8 @@ Public Sub ApplyBreakdownDetails(ByVal wsBreakdown As Worksheet, _
     Dim isWeldingWork As Boolean
     isWeldingWork = (InStr(1, CommonNormalizeText(workTypeText), WELDING_WORK_TYPE_KEYWORD, vbTextCompare) > 0)
 
-    ' ï¿½ï¿½ï¿½o: ï¿½Oï¿½ï¿½ï¿½Hï¿½ï¿½ï¿½ÍHï¿½ï¿½ï¿½Vï¿½[ï¿½g(Aï¿½ï¿½ ï¿½{ï¿½Hï¿½Æï¿½)+ï¿½nï¿½ÚƒVï¿½[ï¿½g(Bï¿½ï¿½ ï¿½Oï¿½ï¿½ï¿½èŒ³ï¿½ï¿½ï¿½)ï¿½A
-    '       ï¿½nï¿½ÚHï¿½ï¿½ï¿½Í—nï¿½ÚƒVï¿½[ï¿½g(Aï¿½ï¿½ ï¿½nï¿½Ú‰ï¿½ï¿½)ï¿½Ì‚ï¿½
+    ' ?¿½?¿½?¿½o: ?¿½O?¿½?¿½?¿½H?¿½?¿½?¿½ÍH?¿½?¿½?¿½V?¿½[?¿½g(A?¿½?¿½ ?¿½{?¿½H?¿½Æï¿½)+?¿½n?¿½ÚƒV?¿½[?¿½g(B?¿½?¿½ ?¿½O?¿½?¿½?¿½èŒ³?¿½?¿½?¿½)?¿½A
+    '       ?¿½n?¿½ÚH?¿½?¿½?¿½Í—n?¿½ÚƒV?¿½[?¿½g(A?¿½?¿½ ?¿½n?¿½Ú‰ï¿½?¿½)?¿½Ì‚ï¿½
     Dim worksSections As Collection
     Dim weldSections As Collection
     If isWeldingWork Then
@@ -122,7 +121,7 @@ Public Sub ApplyBreakdownDetails(ByVal wsBreakdown As Worksheet, _
 
     PositionSubtotalRow wsBreakdown, subtotalRow, totalLines
 
-    ' ï¿½]ï¿½Lï¿½lï¿½Ì‘gï¿½İ—ï¿½ï¿½ï¿½
+    ' ?¿½]?¿½L?¿½l?¿½Ì‘g?¿½İ—ï¿½?¿½?¿½
     Dim valuesAF() As Variant
     Dim valuesO() As Variant
     Dim valuesP() As Variant
@@ -145,18 +144,18 @@ Public Sub ApplyBreakdownDetails(ByVal wsBreakdown As Worksheet, _
     WriteBlockLines weldSections, True, lineCursor, valuesAF, valuesO, valuesP, _
                     headerLineRows, integerLineRows, decimalLineRows
 
-    ' ï¿½êŠ‡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    ' ?¿½êŠ??¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½
     Dim startRow As Long
     Dim endRow As Long
     startRow = ORDER_TPL_DETAIL_START_ROW
     endRow = startRow + totalLines - 1
 
     wsBreakdown.Range(wsBreakdown.Cells(startRow, 1), wsBreakdown.Cells(endRow, 7)).value = valuesAF
-    ' ï¿½ï¿½4ï¿½Oï¿½ï¿½ï¿½[ï¿½v: Oï¿½ï¿½=ï¿½ï¿½ï¿½ÊAPï¿½ï¿½=ï¿½Pï¿½ï¿½ï¿½ï¿½ï¿½Â•ÊƒZï¿½ï¿½ï¿½Ö“]ï¿½Lï¿½ï¿½ï¿½ï¿½(2ï¿½ï¿½êŠ‡ï¿½ï¿½ï¿½ï¿½Pï¿½ï¿½Ö“ï¿½ï¿½ï¿½Pï¿½ï¿½ï¿½ï¿½Oï¿½ï¿½Ö‚ï¿½ï¿½ï¿½ï¿½ê‡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
+    ' ?¿½?¿½4?¿½O?¿½?¿½?¿½[?¿½v: O?¿½?¿½=?¿½?¿½?¿½ÊAP?¿½?¿½=?¿½P?¿½?¿½?¿½?¿½?¿½Â•ÊƒZ?¿½?¿½?¿½Ö“]?¿½L?¿½?¿½?¿½?¿½(2?¿½?¿½êŠ??¿½?¿½?¿½?¿½P?¿½?¿½Ö“ï¿½?¿½?¿½P?¿½?¿½?¿½?¿½O?¿½?¿½Ö‚ï¿½?¿½?¿½?¿½ê??¿½?¿½?¿½?¿½?¿½?¿½)
     wsBreakdown.Range(wsBreakdown.Cells(startRow, DETAIL_COL_QTY_4), wsBreakdown.Cells(endRow, DETAIL_COL_QTY_4)).value = valuesO
     wsBreakdown.Range(wsBreakdown.Cells(startRow, DETAIL_COL_PRICE_4), wsBreakdown.Cells(endRow, DETAIL_COL_PRICE_4)).value = valuesP
 
-    ' ï¿½ï¿½ï¿½zï¿½ï¿½(H/K/N/Q)ï¿½Öï¿½ï¿½ï¿½(ï¿½ï¿½ï¿½Ê~ï¿½Pï¿½ï¿½)ï¿½ï¿½İ’è‚·ï¿½ï¿½(ï¿½ï¿½ï¿½vï¿½sï¿½Ì’ï¿½ï¿½Oï¿½Ü‚ï¿½)
+    ' ?¿½?¿½?¿½z?¿½?¿½(H/K/N/Q)?¿½Öï¿½?¿½?¿½(?¿½?¿½?¿½Ê~?¿½P?¿½?¿½)?¿½?¿½İ’è‚·?¿½?¿½(?¿½?¿½?¿½v?¿½s?¿½Ì’ï¿½?¿½O?¿½Ü‚ï¿½)
     Dim formulaColumn As Variant
     For Each formulaColumn In Array("H", "K", "N", "Q")
         wsBreakdown.Range(formulaColumn & startRow & ":" & formulaColumn & (subtotalRow - 1)).FormulaR1C1 = _
@@ -167,19 +166,19 @@ Public Sub ApplyBreakdownDetails(ByVal wsBreakdown As Worksheet, _
 
     ApplyDetailFormats wsBreakdown, startRow, endRow, headerLineRows, integerLineRows, decimalLineRows
 
-    ' é‡‘é¡åˆ—(H/K/N/Q)ã®å°æ•°è¡¨ç¤ºã¯ã€ApplyDetailFormats ã®æ•´æ•°æ›¸å¼ã®å¾Œã«é©ç”¨ã—ã¦å„ªå…ˆã•ã›ã‚‹
+    ' é‡‘é¡å??(H/K/N/Q)ã®å°æ•°è¡¨ç¤ºã¯ã€ApplyDetailFormats ã®æ•´æ•°æ›¸å¼ã?®å¾Œã«é©ç”¨ã—ã¦å„ªå…ˆã•ã›ã‚‹
     ApplyDetailAmountColumnFormats wsBreakdown, startRow, subtotalRow - 1
 
-    ' B:Cï¿½ï¿½ÌŒï¿½ï¿½ï¿½(11ï¿½sï¿½Ú`ï¿½ï¿½ï¿½vï¿½sï¿½Ì’ï¿½ï¿½Oï¿½Bï¿½Zï¿½Nï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½oï¿½ï¿½ï¿½sï¿½ï¿½A:Dï¿½ï¿½ï¿½ï¿½ï¿½Ì‚ï¿½ï¿½ßï¿½ï¿½ï¿½)
+    ' B:C?¿½?¿½ÌŒï¿½?¿½?¿½(11?¿½s?¿½Ú`?¿½?¿½?¿½v?¿½s?¿½Ì’ï¿½?¿½O?¿½B?¿½Z?¿½N?¿½V?¿½?¿½?¿½?¿½?¿½?¿½?¿½o?¿½?¿½?¿½s?¿½?¿½A:D?¿½?¿½?¿½?¿½?¿½Ì‚ï¿½?¿½ßï¿½?¿½?¿½)
     MergeDetailNameColumns wsBreakdown, startRow, subtotalRow - 1, headerLineRows
 
     BuildSummaryBlock wsBreakdown, subtotalRow, totalLines
 
-    ' 11ï¿½sï¿½ÚˆÈ~(ï¿½Wï¿½vï¿½uï¿½ï¿½ï¿½bï¿½Nï¿½Ü‚ï¿½)ï¿½Ìƒtï¿½Hï¿½ï¿½ï¿½gï¿½Tï¿½Cï¿½Yï¿½ï¿½11ï¿½|ï¿½Cï¿½ï¿½ï¿½gï¿½Ö“ï¿½ï¿½ê‚·ï¿½ï¿½
+    ' 11?¿½s?¿½ÚˆÈ~(?¿½W?¿½v?¿½u?¿½?¿½?¿½b?¿½N?¿½Ü‚ï¿½)?¿½Ìƒt?¿½H?¿½?¿½?¿½g?¿½T?¿½C?¿½Y?¿½?¿½11?¿½|?¿½C?¿½?¿½?¿½g?¿½Ö“ï¿½?¿½ê‚·?¿½?¿½
     wsBreakdown.Range(wsBreakdown.Cells(startRow, 1), _
                       wsBreakdown.Cells(subtotalRow + SUMMARY_EXTRA_ROWS, 17)).Font.Size = DETAIL_FONT_SIZE
 
-    ' Aï¿½ï¿½(ï¿½ï¿½ï¿½ï¿½ï¿½Ôï¿½)ï¿½Ì—ñ•‚ï¿½ï¿½Å’ï¿½l7.00ï¿½Éİ’è‚·ï¿½ï¿½
+    ' A?¿½?¿½(?¿½?¿½?¿½?¿½?¿½Ôï¿½)?¿½Ì—ñ•‚ï¿½?¿½Å’ï¿½l7.00?¿½Éİ’è‚·?¿½?¿½
     wsBreakdown.Columns(1).ColumnWidth = DETAIL_COL_A_WIDTH
 
     mod_OrderTpl_Shared.OrderTplLog "ApplyBreakdownDetails done: " & wsBreakdown.Name & _
@@ -191,12 +190,12 @@ ErrorHandler:
     Err.Clear
 End Sub
 
-' ï¿½ï¿½ï¿½×•ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½(ï¿½eï¿½ï¿½ï¿½vï¿½ï¿½ï¿½[ï¿½gï¿½sï¿½ï¿½)ï¿½Ö–ß‚ï¿½ï¿½Aï¿½lï¿½ï¿½ï¿½Nï¿½ï¿½ï¿½Aï¿½ï¿½ï¿½ï¿½
+' ?¿½?¿½?¿½×•ï¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½(?¿½e?¿½?¿½?¿½v?¿½?¿½?¿½[?¿½g?¿½s?¿½?¿½)?¿½Ö–ß‚ï¿½?¿½A?¿½l?¿½?¿½?¿½N?¿½?¿½?¿½A?¿½?¿½?¿½?¿½
 Private Sub ResetDetailArea(ByVal wsBreakdown As Worksheet, ByRef subtotalRow As Long)
     subtotalRow = FindSubtotalRow(wsBreakdown)
     If subtotalRow = 0 Then Exit Sub
 
-    ' ï¿½È‘Oï¿½Éï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Wï¿½vï¿½uï¿½ï¿½ï¿½bï¿½N(ï¿½lï¿½ï¿½/ï¿½v/ï¿½ï¿½ï¿½ï¿½ï¿½/ï¿½ï¿½ï¿½v/ï¿½rï¿½ï¿½ï¿½pï¿½ó”’s)ï¿½ï¿½ï¿½íœï¿½ï¿½ï¿½ï¿½
+    ' ?¿½È‘O?¿½Éï¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½W?¿½v?¿½u?¿½?¿½?¿½b?¿½N(?¿½l?¿½?¿½/?¿½v/?¿½?¿½?¿½?¿½?¿½/?¿½?¿½?¿½v/?¿½r?¿½?¿½?¿½p?¿½?’s)?¿½?¿½?¿½íœï¿½?¿½?¿½?¿½
     If IsSummaryLabelRow(wsBreakdown, subtotalRow + 1, DiscountLabelText()) Then
         wsBreakdown.Rows((subtotalRow + 1) & ":" & (subtotalRow + SUMMARY_EXTRA_ROWS)).Delete
     End If
@@ -212,7 +211,7 @@ Private Sub ResetDetailArea(ByVal wsBreakdown As Worksheet, ByRef subtotalRow As
     Dim clearLastRow As Long
     clearLastRow = subtotalRow - 1
 
-    ' ï¿½Oï¿½ï¿½]ï¿½Lï¿½ÌƒZï¿½Nï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½oï¿½ï¿½(A:Dï¿½ï¿½ï¿½ï¿½)ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½ï¿½lï¿½ï¿½ï¿½Nï¿½ï¿½ï¿½Aï¿½ï¿½ï¿½ï¿½
+    ' ?¿½O?¿½?¿½]?¿½L?¿½ÌƒZ?¿½N?¿½V?¿½?¿½?¿½?¿½?¿½?¿½?¿½o?¿½?¿½(A:D?¿½?¿½?¿½?¿½)?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½Ä‚ï¿½?¿½?¿½l?¿½?¿½?¿½N?¿½?¿½?¿½A?¿½?¿½?¿½?¿½
     mod_VendorBlockLayout.SafeUnmergeRange wsBreakdown.Range( _
         wsBreakdown.Cells(ORDER_TPL_DETAIL_START_ROW, 1), wsBreakdown.Cells(clearLastRow, 4))
 
@@ -225,7 +224,7 @@ Private Sub ResetDetailArea(ByVal wsBreakdown As Worksheet, ByRef subtotalRow As
     End With
 End Sub
 
-' Aï¿½ï¿½Ìuï¿½ï¿½ï¿½vï¿½vï¿½sï¿½ï¿½Tï¿½ï¿½
+' A?¿½?¿½Ìu?¿½?¿½?¿½v?¿½v?¿½s?¿½?¿½T?¿½?¿½
 Private Function FindSubtotalRow(ByVal wsBreakdown As Worksheet) As Long
     Dim subtotalText As String
     subtotalText = mod_OrderTpl_Shared.OrderTplSubtotalLabelText()
@@ -240,8 +239,8 @@ Private Function FindSubtotalRow(ByVal wsBreakdown As Worksheet) As Long
     Next r
 End Function
 
-' å½“è©²æ¥­è€…ã®å†…è¨³æ˜ç´°ã‚·ãƒ¼ãƒˆã®ã€Œè¨ˆã€è¡Œ(å°è¨ˆ+2)ã®Qåˆ—å€¤ã‚’è¿”ã™ã€‚å­˜åœ¨ã—ãªã‘ã‚Œã° Emptyã€‚
-' åŸºæœ¬æƒ…å ±33è¡Œ(å¥‘ç´„é‡‘é¡ç¨æŠœ)ã‚’å†…è¨³æ˜ç´°ã€Œè¨ˆã€ã«ä¸€è‡´ã•ã›ã‚‹ãŸã‚ã«ä½¿ã†ã€‚
+' å½“è©²æ¥­è€?ã®å†?è¨³æ˜ç´°ã‚·ãƒ¼ãƒˆã?®ã€Œè¨ˆã€è¡?(å°è¨?+2)ã®Qåˆ—å€¤ã‚’è¿”ã™ã€‚å­˜åœ¨ã—ãªã‘ã‚Œã° Emptyã€?
+' åŸºæœ¬æƒ?å ±33è¡?(å¥‘ç´?é‡‘é¡ç¨æŠœ)ã‚’å??è¨³æ˜ç´°ã€Œè¨ˆã€ã«ä¸€è‡´ã•ã›ã‚‹ãŸã‚ã«ä½¿ã?ã€?
 Public Function OrderTplGetBreakdownNetTotalQForVendor(ByVal wsInfo As Worksheet, _
                                                        ByVal vendorIndex As Long) As Variant
     On Error GoTo Done
@@ -271,7 +270,7 @@ Public Function OrderTplGetBreakdownNetTotalQForVendor(ByVal wsInfo As Worksheet
     subtotalRow = FindSubtotalRow(wsBreakdown)
     If subtotalRow = 0 Then Exit Function
 
-    ' ã€Œè¨ˆã€è¡Œã®æ•°å¼(=å°è¨ˆ+å€¤å¼•ã)ã‚’æœ€æ–°åŒ–ã—ã¦ã‹ã‚‰Qå€¤ã‚’å–å¾—ã™ã‚‹
+    ' ã€Œè¨ˆã€è¡Œã?®æ•°å¼?(=å°è¨?+å€¤å¼•ã)ã‚’æœ€æ–°åŒ–ã—ã¦ã‹ã‚‰Qå€¤ã‚’å–å¾—ã™ã‚?
     On Error Resume Next
     wsBreakdown.Calculate
     On Error GoTo Done
@@ -280,7 +279,7 @@ Public Function OrderTplGetBreakdownNetTotalQForVendor(ByVal wsInfo As Worksheet
 Done:
 End Function
 
-' ï¿½ï¿½ï¿½vï¿½sï¿½ï¿½ï¿½uï¿½ÅIï¿½fï¿½[ï¿½^ï¿½sï¿½ï¿½ï¿½ï¿½2ï¿½sï¿½ó‚¯‚ï¿½ï¿½Ê’uï¿½vï¿½ÖˆÚ“ï¿½ï¿½ï¿½ï¿½ï¿½(ï¿½sï¿½ï¿½ï¿½Ísï¿½}ï¿½ï¿½ï¿½Aï¿½]ï¿½ï¿½Ísï¿½íœ)
+' ?¿½?¿½?¿½v?¿½s?¿½?¿½?¿½u?¿½ÅI?¿½f?¿½[?¿½^?¿½s?¿½?¿½?¿½?¿½2?¿½s?¿½?¯‚ï¿½?¿½Ê’u?¿½v?¿½ÖˆÚ“ï¿½?¿½?¿½?¿½?¿½(?¿½s?¿½?¿½?¿½Ís?¿½}?¿½?¿½?¿½A?¿½]?¿½?¿½Ís?¿½í?)
 Private Sub PositionSubtotalRow(ByVal wsBreakdown As Worksheet, _
                                 ByRef subtotalRow As Long, _
                                 ByVal totalLines As Long)
@@ -291,7 +290,7 @@ Private Sub PositionSubtotalRow(ByVal wsBreakdown As Worksheet, _
         Dim insertCount As Long
         insertCount = desiredRow - subtotalRow
 
-        ' ï¿½ï¿½ï¿½ï¿½ï¿½Íï¿½ï¿½ï¿½sï¿½ï¿½ï¿½ï¿½pï¿½ï¿½ï¿½Bï¿½ï¿½ï¿½zï¿½ï¿½ï¿½ï¿½(H/K/N/Q)ï¿½Í“]ï¿½Lï¿½ï¿½É‘Sï¿½sï¿½Öİ’è‚·ï¿½ï¿½
+        ' ?¿½?¿½?¿½?¿½?¿½Íï¿½?¿½?¿½s?¿½?¿½?¿½?¿½p?¿½?¿½?¿½B?¿½?¿½?¿½z?¿½?¿½?¿½?¿½(H/K/N/Q)?¿½Í“]?¿½L?¿½?¿½É‘S?¿½s?¿½Öİ’è‚·?¿½?¿½
         wsBreakdown.Rows(subtotalRow & ":" & (subtotalRow + insertCount - 1)).Insert _
             Shift:=xlDown, CopyOrigin:=xlFormatFromLeftOrAbove
     ElseIf desiredRow < subtotalRow Then
@@ -301,31 +300,31 @@ Private Sub PositionSubtotalRow(ByVal wsBreakdown As Worksheet, _
     subtotalRow = desiredRow
 End Sub
 
-' ï¿½Wï¿½vï¿½uï¿½ï¿½ï¿½bï¿½Nï¿½ï¿½ï¿½\ï¿½zï¿½ï¿½ï¿½ï¿½: ï¿½ï¿½ï¿½v/ï¿½lï¿½ï¿½/ï¿½v/ï¿½ï¿½ï¿½ï¿½ï¿½/ï¿½ï¿½ï¿½v + ï¿½rï¿½ï¿½ï¿½pï¿½ó”’s
+' ?¿½W?¿½v?¿½u?¿½?¿½?¿½b?¿½N?¿½?¿½?¿½\?¿½z?¿½?¿½?¿½?¿½: ?¿½?¿½?¿½v/?¿½l?¿½?¿½/?¿½v/?¿½?¿½?¿½?¿½?¿½/?¿½?¿½?¿½v + ?¿½r?¿½?¿½?¿½p?¿½?’s
 Private Sub BuildSummaryBlock(ByVal wsBreakdown As Worksheet, _
                               ByVal subtotalRow As Long, _
                               ByVal totalLines As Long)
     Dim lastDataRow As Long
     lastDataRow = ORDER_TPL_DETAIL_START_ROW + totalLines - 1
 
-    ' ï¿½ï¿½ï¿½vï¿½sï¿½Ì‰ï¿½ï¿½ï¿½4ï¿½s(ï¿½lï¿½ï¿½/ï¿½v/ï¿½ï¿½ï¿½ï¿½ï¿½/ï¿½ï¿½ï¿½v)+ï¿½rï¿½ï¿½ï¿½pï¿½ó”’sï¿½ï¿½}ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    ' ?¿½?¿½?¿½v?¿½s?¿½Ì‰ï¿½?¿½?¿½4?¿½s(?¿½l?¿½?¿½/?¿½v/?¿½?¿½?¿½?¿½?¿½/?¿½?¿½?¿½v)+?¿½r?¿½?¿½?¿½p?¿½?’s?¿½?¿½}?¿½?¿½?¿½?¿½?¿½?¿½
     wsBreakdown.Rows((subtotalRow + 1) & ":" & (subtotalRow + SUMMARY_EXTRA_ROWS)).Insert _
         Shift:=xlDown, CopyOrigin:=xlFormatFromLeftOrAbove
 
-    ' ï¿½ï¿½ï¿½ï¿½Å—ï¿½(ï¿½ï¿½{ï¿½ï¿½ï¿½B34ï¿½uï¿½ï¿½ï¿½ï¿½ï¿½(10%)ï¿½Fï¿½vï¿½ÌƒJï¿½bï¿½Rï¿½ï¿½)ï¿½ï¿½ï¿½æ“¾ï¿½ï¿½ï¿½ï¿½
+    ' ?¿½?¿½?¿½?¿½Å—ï¿½(?¿½?¿½{?¿½?¿½?¿½B34?¿½u?¿½?¿½?¿½?¿½?¿½(10%)?¿½F?¿½v?¿½ÌƒJ?¿½b?¿½R?¿½?¿½)?¿½?¿½?¿½æ“¾?¿½?¿½?¿½?¿½
     Dim taxRateText As String
     taxRateText = Trim$(Str$(mod_Construction_BasicTotals.ResolveBasicInfoTaxRate( _
         CommonGetBasicInfoWorksheet())))
 
-    ' ï¿½ï¿½ï¿½xï¿½ï¿½(A:Cï¿½ï¿½ï¿½ï¿½ï¿½Eï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
+    ' ?¿½?¿½?¿½x?¿½?¿½(A:C?¿½?¿½?¿½?¿½?¿½E?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½)
     WriteSummaryLabel wsBreakdown, subtotalRow, mod_OrderTpl_Shared.OrderTplSubtotalLabelText()
     WriteSummaryLabel wsBreakdown, subtotalRow + 1, DiscountLabelText()
     WriteSummaryLabel wsBreakdown, subtotalRow + 2, NetTotalLabelText()
     WriteSummaryLabel wsBreakdown, subtotalRow + 3, TaxLabelText()
     WriteSummaryLabel wsBreakdown, subtotalRow + 4, GrandTotalLabelText()
 
-    ' H/K/N/Q ï¿½ï¿½: ï¿½ï¿½ï¿½v=SUM(11:ï¿½ÅIï¿½fï¿½[ï¿½^ï¿½s)ï¿½Aï¿½lï¿½ï¿½=-MOD(ï¿½ï¿½ï¿½v,1000)ï¿½Aï¿½v=ï¿½ï¿½ï¿½v+ï¿½lï¿½ï¿½ï¿½A
-    ' ï¿½ï¿½ï¿½ï¿½ï¿½=ROUNDDOWN(ï¿½v*ï¿½Å—ï¿½,0)ï¿½Aï¿½ï¿½ï¿½v=ï¿½v+ï¿½ï¿½ï¿½ï¿½ï¿½
+    ' H/K/N/Q ?¿½?¿½: ?¿½?¿½?¿½v=SUM(11:?¿½ÅI?¿½f?¿½[?¿½^?¿½s)?¿½A?¿½l?¿½?¿½=-MOD(?¿½?¿½?¿½v,1000)?¿½A?¿½v=?¿½?¿½?¿½v+?¿½l?¿½?¿½?¿½A
+    ' ?¿½?¿½?¿½?¿½?¿½=ROUNDDOWN(?¿½v*?¿½Å—ï¿½,0)?¿½A?¿½?¿½?¿½v=?¿½v+?¿½?¿½?¿½?¿½?¿½
     Dim summaryColumns As Variant
     summaryColumns = Array("H", "K", "N", "Q")
 
@@ -348,14 +347,14 @@ Private Sub BuildSummaryBlock(ByVal wsBreakdown As Worksheet, _
 
     ApplySummaryNumberFormats wsBreakdown, subtotalRow
 
-    ' ï¿½tï¿½Hï¿½ï¿½ï¿½g
+    ' ?¿½t?¿½H?¿½?¿½?¿½g
     wsBreakdown.Range(wsBreakdown.Cells(subtotalRow, 1), _
                       wsBreakdown.Cells(subtotalRow + 4, 17)).Font.Name = BASIC_INFO_REF_FONT_NAME
 
     ApplySummaryBorders wsBreakdown, subtotalRow
 End Sub
 
-' ï¿½ï¿½ï¿½xï¿½ï¿½ï¿½Zï¿½ï¿½(A:Cï¿½ï¿½ï¿½ï¿½ï¿½Eï¿½ã‰ºï¿½ï¿½ï¿½Eï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)ï¿½Ö‚Ìï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+' ?¿½?¿½?¿½x?¿½?¿½?¿½Z?¿½?¿½(A:C?¿½?¿½?¿½?¿½?¿½E?¿½ã‰º?¿½?¿½?¿½E?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½)?¿½Ö‚Ìï¿½?¿½?¿½?¿½?¿½?¿½?¿½
 Private Sub WriteSummaryLabel(ByVal wsBreakdown As Worksheet, _
                               ByVal rowIndex As Long, _
                               ByVal labelText As String)
@@ -374,11 +373,11 @@ Private Sub WriteSummaryLabel(ByVal wsBreakdown As Worksheet, _
     labelRange.VerticalAlignment = xlCenter
 End Sub
 
-' ï¿½ï¿½ï¿½×•ï¿½ï¿½{ï¿½Wï¿½vï¿½uï¿½ï¿½ï¿½bï¿½Nï¿½ÌŒrï¿½ï¿½ï¿½ğ’•ï¿½ï¿½ï¿½ï¿½eï¿½ï¿½ï¿½vï¿½ï¿½ï¿½[ï¿½gï¿½Ì—lï¿½ï¿½ï¿½Éï¿½ï¿½í‚¹ï¿½Äˆï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½B
-' ï¿½ÎÛ‚Í–ï¿½ï¿½×ŠJï¿½nï¿½sï¿½`ï¿½ï¿½ï¿½vï¿½s(ï¿½ï¿½ï¿½v+4)ï¿½Ü‚ÅEA:Q ï¿½Sï¿½ï¿½Bï¿½sï¿½Ì‘}ï¿½ï¿½/ï¿½íœï¿½Å•ï¿½ï¿½ê‚½ï¿½rï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Zï¿½bï¿½gï¿½ï¿½ï¿½ÄÄ•`ï¿½ï¿½B
-'   ï¿½ï¿½ï¿½rï¿½ï¿½: ï¿½ï¿½ï¿½×‚ï¿½ xlHairlineï¿½Bï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½vï¿½sï¿½Ìï¿½=ï¿½ï¿½dï¿½ï¿½ / ï¿½ï¿½ï¿½vï¿½sï¿½Ì‰ï¿½=xlMediumï¿½B
-'   ï¿½cï¿½rï¿½ï¿½(ï¿½ï¿½ï¿½ï¿½): ï¿½Oï¿½gï¿½ï¿½(A)ï¿½Eï¿½Oï¿½gï¿½E(Q)ï¿½Eï¿½ï¿½ï¿½zï¿½Oï¿½ï¿½ï¿½[ï¿½vï¿½ï¿½ï¿½E(F/I/L/O ï¿½Ìï¿½)ï¿½B
-'   ï¿½cï¿½rï¿½ï¿½(ï¿½×ï¿½): ï¿½ï¿½ï¿½Ì‘ï¿½ï¿½Ì—ñ‹«ŠE(E/G/H/J/K/M/N/P/Q ï¿½Ìï¿½)ï¿½B
+' ?¿½?¿½?¿½×•ï¿½?¿½{?¿½W?¿½v?¿½u?¿½?¿½?¿½b?¿½N?¿½ÌŒr?¿½?¿½?¿½?•?¿½?¿½?¿½?¿½e?¿½?¿½?¿½v?¿½?¿½?¿½[?¿½g?¿½Ì—l?¿½?¿½?¿½Éï¿½?¿½í‚¹?¿½Äˆï¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½B
+' ?¿½ÎÛ‚Í–ï¿½?¿½×ŠJ?¿½n?¿½s?¿½`?¿½?¿½?¿½v?¿½s(?¿½?¿½?¿½v+4)?¿½Ü‚ÅEA:Q ?¿½S?¿½?¿½B?¿½s?¿½Ì‘}?¿½?¿½/?¿½íœï¿½Å•ï¿½?¿½ê‚½?¿½r?¿½?¿½?¿½?¿½?¿½?¿½?¿½Z?¿½b?¿½g?¿½?¿½?¿½ÄÄ•`?¿½?¿½B
+'   ?¿½?¿½?¿½r?¿½?¿½: ?¿½?¿½?¿½×‚ï¿½ xlHairline?¿½B?¿½?¿½?¿½?¿½?¿½?¿½ ?¿½?¿½?¿½v?¿½s?¿½Ìï¿½=?¿½?¿½d?¿½?¿½ / ?¿½?¿½?¿½v?¿½s?¿½Ì‰ï¿½=xlMedium?¿½B
+'   ?¿½c?¿½r?¿½?¿½(?¿½?¿½?¿½?¿½): ?¿½O?¿½g?¿½?¿½(A)?¿½E?¿½O?¿½g?¿½E(Q)?¿½E?¿½?¿½?¿½z?¿½O?¿½?¿½?¿½[?¿½v?¿½?¿½?¿½E(F/I/L/O ?¿½Ìï¿½)?¿½B
+'   ?¿½c?¿½r?¿½?¿½(?¿½×ï¿½): ?¿½?¿½?¿½Ì‘ï¿½?¿½Ì—ñ‹«ŠE(E/G/H/J/K/M/N/P/Q ?¿½Ìï¿½)?¿½B
 Private Sub ApplySummaryBorders(ByVal wsBreakdown As Worksheet, _
                                 ByVal subtotalRow As Long)
     Dim firstRow As Long, grandTotalRow As Long
@@ -389,7 +388,7 @@ Private Sub ApplySummaryBorders(ByVal wsBreakdown As Worksheet, _
     Set fullRange = wsBreakdown.Range(wsBreakdown.Cells(firstRow, 1), _
                                       wsBreakdown.Cells(grandTotalRow, 17))
 
-    ' ï¿½ï¿½ï¿½ï¿½ï¿½rï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ñƒŠƒZï¿½bï¿½g
+    ' ?¿½?¿½?¿½?¿½?¿½r?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½?ŠƒZ?¿½b?¿½g
     fullRange.Borders(xlEdgeLeft).LineStyle = xlNone
     fullRange.Borders(xlEdgeRight).LineStyle = xlNone
     fullRange.Borders(xlEdgeTop).LineStyle = xlNone
@@ -397,13 +396,13 @@ Private Sub ApplySummaryBorders(ByVal wsBreakdown As Worksheet, _
     fullRange.Borders(xlInsideHorizontal).LineStyle = xlNone
     fullRange.Borders(xlInsideVertical).LineStyle = xlNone
 
-    ' ï¿½ï¿½ï¿½rï¿½ï¿½: ï¿½ï¿½ï¿½×‚ï¿½ xlHairline(ï¿½sï¿½ÔEï¿½ï¿½[)
+    ' ?¿½?¿½?¿½r?¿½?¿½: ?¿½?¿½?¿½×‚ï¿½ xlHairline(?¿½s?¿½ÔE?¿½?¿½[)
     fullRange.Borders(xlInsideHorizontal).LineStyle = xlContinuous
     fullRange.Borders(xlInsideHorizontal).Weight = xlHairline
     fullRange.Borders(xlEdgeTop).LineStyle = xlContinuous
     fullRange.Borders(xlEdgeTop).Weight = xlHairline
 
-    ' ï¿½cï¿½rï¿½ï¿½(ï¿½ï¿½ï¿½ï¿½): ï¿½Oï¿½gï¿½ï¿½(A)ï¿½Eï¿½ï¿½ï¿½zï¿½Oï¿½ï¿½ï¿½[ï¿½vï¿½ï¿½ï¿½E(F/I/L/O ï¿½Ìï¿½)
+    ' ?¿½c?¿½r?¿½?¿½(?¿½?¿½?¿½?¿½): ?¿½O?¿½g?¿½?¿½(A)?¿½E?¿½?¿½?¿½z?¿½O?¿½?¿½?¿½[?¿½v?¿½?¿½?¿½E(F/I/L/O ?¿½Ìï¿½)
     Dim mediumCol As Variant
     For Each mediumCol In Array(1, 6, 9, 12, 15)
         With wsBreakdown.Range(wsBreakdown.Cells(firstRow, CLng(mediumCol)), _
@@ -412,14 +411,14 @@ Private Sub ApplySummaryBorders(ByVal wsBreakdown As Worksheet, _
             .Weight = xlMedium
         End With
     Next mediumCol
-    ' ï¿½Oï¿½gï¿½E(Q)=ï¿½ï¿½ï¿½ï¿½
+    ' ?¿½O?¿½g?¿½E(Q)=?¿½?¿½?¿½?¿½
     With wsBreakdown.Range(wsBreakdown.Cells(firstRow, 17), _
                            wsBreakdown.Cells(grandTotalRow, 17)).Borders(xlEdgeRight)
         .LineStyle = xlContinuous
         .Weight = xlMedium
     End With
 
-    ' ï¿½cï¿½rï¿½ï¿½(ï¿½×ï¿½): ï¿½ï¿½ï¿½Ì‘ï¿½ï¿½Ì—ñ‹«ŠE(E/G/H/J/K/M/N/P/Q ï¿½Ìï¿½)
+    ' ?¿½c?¿½r?¿½?¿½(?¿½×ï¿½): ?¿½?¿½?¿½Ì‘ï¿½?¿½Ì—ñ‹«ŠE(E/G/H/J/K/M/N/P/Q ?¿½Ìï¿½)
     Dim thinCol As Variant
     For Each thinCol In Array(5, 7, 8, 10, 11, 13, 14, 16, 17)
         With wsBreakdown.Range(wsBreakdown.Cells(firstRow, CLng(thinCol)), _
@@ -429,11 +428,11 @@ Private Sub ApplySummaryBorders(ByVal wsBreakdown As Worksheet, _
         End With
     Next thinCol
 
-    ' ï¿½ï¿½ï¿½vï¿½sï¿½Ìï¿½=ï¿½ï¿½dï¿½ï¿½ (A:Q)
+    ' ?¿½?¿½?¿½v?¿½s?¿½Ìï¿½=?¿½?¿½d?¿½?¿½ (A:Q)
     wsBreakdown.Range(wsBreakdown.Cells(subtotalRow, 1), _
                       wsBreakdown.Cells(subtotalRow, 17)).Borders(xlEdgeTop).LineStyle = xlDouble
 
-    ' ï¿½ï¿½ï¿½vï¿½sï¿½Ì‰ï¿½=ï¿½ï¿½ï¿½ï¿½ (A:Q)
+    ' ?¿½?¿½?¿½v?¿½s?¿½Ì‰ï¿½=?¿½?¿½?¿½?¿½ (A:Q)
     With wsBreakdown.Range(wsBreakdown.Cells(grandTotalRow, 1), _
                            wsBreakdown.Cells(grandTotalRow, 17)).Borders(xlEdgeBottom)
         .LineStyle = xlContinuous
@@ -441,7 +440,7 @@ Private Sub ApplySummaryBorders(ByVal wsBreakdown As Worksheet, _
     End With
 End Sub
 
-' Aï¿½ï¿½Zï¿½ï¿½ï¿½Ì•\ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ñ‚ªwï¿½èƒ‰ï¿½xï¿½ï¿½ï¿½Æˆï¿½vï¿½ï¿½ï¿½é‚©
+' A?¿½?¿½Z?¿½?¿½?¿½Ì•\?¿½?¿½?¿½?¿½?¿½?¿½?¿½?ªw?¿½èƒ‰ï¿½x?¿½?¿½?¿½Æˆï¿½v?¿½?¿½?¿½é‚©
 Private Function IsSummaryLabelRow(ByVal wsBreakdown As Worksheet, _
                                    ByVal rowIndex As Long, _
                                    ByVal labelText As String) As Boolean
@@ -450,8 +449,8 @@ Private Function IsSummaryLabelRow(ByVal wsBreakdown As Worksheet, _
         labelText, vbTextCompare) = 0)
 End Function
 
-' ï¿½æï¿½Ï‚İƒVï¿½[ï¿½gï¿½ï¿½ï¿½ï¿½{ï¿½Hï¿½ï¿½Ğ‚Å’ï¿½ï¿½oï¿½ï¿½ï¿½Aï¿½_ï¿½ï¿½ï¿½ï¿½æ–¼_ï¿½Ç—ï¿½ï¿½ï¿½ï¿½ÌƒZï¿½Nï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½ê——ï¿½ï¿½ï¿½ï¿½ï¿½
-' ï¿½ß‚ï¿½l: Collection of Array(ï¿½Zï¿½Nï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½oï¿½ï¿½, ï¿½sCollection)ï¿½Bï¿½s = Array(ï¿½ï¿½ï¿½ï¿½ï¿½Ôï¿½, ï¿½Hï¿½ï¿½ï¿½ï¿½ï¿½, ï¿½ï¿½ï¿½ï¿½ï¿½, ï¿½Pï¿½ï¿½, ï¿½ï¿½ï¿½ï¿½, JRï¿½Pï¿½ï¿½)
+' ?¿½æï¿½Ï‚İƒV?¿½[?¿½g?¿½?¿½?¿½?¿½{?¿½H?¿½?¿½Ğ‚Å’ï¿½?¿½o?¿½?¿½?¿½A?¿½_?¿½?¿½?¿½?¿½æ–¼_?¿½Ç—ï¿½?¿½?¿½?¿½ÌƒZ?¿½N?¿½V?¿½?¿½?¿½?¿½?¿½ê——ï¿½?¿½?¿½?¿½?¿½
+' ?¿½ß‚ï¿½l: Collection of Array(?¿½Z?¿½N?¿½V?¿½?¿½?¿½?¿½?¿½?¿½?¿½o?¿½?¿½, ?¿½sCollection)?¿½B?¿½s = Array(?¿½?¿½?¿½?¿½?¿½Ôï¿½, ?¿½H?¿½?¿½?¿½?¿½?¿½, ?¿½?¿½?¿½?¿½?¿½, ?¿½P?¿½?¿½, ?¿½?¿½?¿½?¿½, JR?¿½P?¿½?¿½)
 Private Function CollectSourceSections(ByVal wsSource As Worksheet, _
                                        ByVal vendorColumn As Long, _
                                        ByVal targetKeys As Object, _
@@ -469,7 +468,7 @@ Private Function CollectSourceSections(ByVal wsSource As Worksheet, _
     Dim sourceValues As Variant
     sourceValues = wsSource.Range(wsSource.Cells(2, 1), wsSource.Cells(lastRow, COL_JR_PRICE + columnOffset)).value
 
-    ' ï¿½{ï¿½Hï¿½ï¿½Ğ•Ê’Pï¿½ï¿½ï¿½ï¿½(ï¿½wï¿½bï¿½_ï¿½[ï¿½uï¿½ï¿½Ğ–ï¿½+ï¿½Pï¿½ï¿½ï¿½v)ï¿½ğ–¼Šñ‚¹‚Å“ï¿½ï¿½è‚·ï¿½ï¿½
+    ' ?¿½{?¿½H?¿½?¿½Ğ•Ê’P?¿½?¿½?¿½?¿½(?¿½w?¿½b?¿½_?¿½[?¿½u?¿½?¿½Ğ–ï¿½+?¿½P?¿½?¿½?¿½v)?¿½?¼Šñ‚¹‚Å“ï¿½?¿½è‚·?¿½?¿½
     Dim vendorPriceColumn As Long
     vendorPriceColumn = FindVendorUnitPriceColumn(wsSource, targetKeys, aliasMap)
     If vendorPriceColumn = 0 Then
@@ -513,7 +512,7 @@ Private Function CollectSourceSections(ByVal wsSource As Worksheet, _
                 sectionKeys.Add Array(sectionLabel, sectionKey)
             End If
 
-            ' ï¿½Pï¿½ï¿½ï¿½Í{ï¿½Hï¿½ï¿½Ğ•Ê’Pï¿½ï¿½ï¿½ï¿½(ï¿½ï¿½Ğ–ï¿½+ï¿½Pï¿½ï¿½)ï¿½ï¿½ï¿½ï¿½æ“¾ï¿½ï¿½ï¿½ï¿½(ï¿½ï¿½ï¿½Wï¿½Jï¿½Eï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í‹ï¿½)
+            ' ?¿½P?¿½?¿½?¿½Í{?¿½H?¿½?¿½Ğ•Ê’P?¿½?¿½?¿½?¿½(?¿½?¿½Ğ–ï¿½+?¿½P?¿½?¿½)?¿½?¿½?¿½?¿½æ“¾?¿½?¿½?¿½?¿½(?¿½?¿½?¿½W?¿½J?¿½E?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½Í‹ï¿½)
             Dim vendorPriceValue As Variant
             vendorPriceValue = Empty
             If vendorPriceColumn > 0 Then vendorPriceValue = vendorPriceValues(i, 1)
@@ -543,7 +542,7 @@ Private Function CollectSourceSections(ByVal wsSource As Worksheet, _
     Set CollectSourceSections = result
 End Function
 
-' ï¿½Zï¿½Nï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½oï¿½ï¿½: ï¿½_ï¿½ï¿½ï¿½ï¿½æ–¼(ï¿½Ú”ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)[_ï¿½ï¿½ï¿½[ï¿½ï¿½ï¿½nï¿½ï¿½]_ï¿½Ç—ï¿½ï¿½ï¿½ï¿½ï¿½
+' ?¿½Z?¿½N?¿½V?¿½?¿½?¿½?¿½?¿½?¿½?¿½o?¿½?¿½: ?¿½_?¿½?¿½?¿½?¿½æ–¼(?¿½Ú”ï¿½?¿½?¿½?¿½?¿½?¿½?¿½)[_?¿½?¿½?¿½[?¿½?¿½?¿½n?¿½?¿½]_?¿½Ç—ï¿½?¿½?¿½?¿½?¿½
 Private Function BuildSectionLabel(ByVal lineText As String, _
                                    ByVal managerRoomText As String, _
                                    ByVal isWeldingSource As Boolean) As String
@@ -553,7 +552,7 @@ Private Function BuildSectionLabel(ByVal lineText As String, _
         label = label & "_" & mod_OrderTpl_Shared.OrderTplRailWeldingLabelText()
     End If
 
-    ' ï¿½{ï¿½sï¿½Ê’mï¿½ï¿½ï¿½É‚ÍŠÇ—ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ßAï¿½ï¿½Ìê‡ï¿½Íu_ï¿½vï¿½ï¿½tï¿½ï¿½ï¿½È‚ï¿½
+    ' ?¿½{?¿½s?¿½Ê’m?¿½?¿½?¿½É‚ÍŠÇ—ï¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½ßA?¿½?¿½Ìê‡?¿½Íu_?¿½v?¿½?¿½t?¿½?¿½?¿½È‚ï¿½
     Dim managerRoomName As String
     managerRoomName = CommonNormalizeText(managerRoomText)
     If Len(managerRoomName) > 0 Then label = label & "_" & managerRoomName
@@ -561,7 +560,7 @@ Private Function BuildSectionLabel(ByVal lineText As String, _
     BuildSectionLabel = label
 End Function
 
-' ï¿½Zï¿½Nï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½\ï¿½[ï¿½g: ï¿½ï¿½1ï¿½Lï¿½[ ï¿½ï¿½ï¿½ï¿½ï¿½(ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)ï¿½Aï¿½ï¿½2ï¿½Lï¿½[ ï¿½ï¿½ï¿½ï¿½ï¿½Ôï¿½(ï¿½ï¿½ï¿½ï¿½)
+' ?¿½Z?¿½N?¿½V?¿½?¿½?¿½?¿½?¿½?¿½?¿½\?¿½[?¿½g: ?¿½?¿½1?¿½L?¿½[ ?¿½?¿½?¿½?¿½?¿½(?¿½?¿½?¿½?¿½?¿½?¿½)?¿½A?¿½?¿½2?¿½L?¿½[ ?¿½?¿½?¿½?¿½?¿½Ôï¿½(?¿½?¿½?¿½?¿½)
 Private Function SortSectionRows(ByVal sectionRows As Collection) As Collection
     Dim rowCount As Long
     rowCount = sectionRows.Count
@@ -635,14 +634,14 @@ Private Function CountBlockLines(ByVal sections As Collection) As Long
     Dim total As Long
     Dim sectionItem As Variant
     For Each sectionItem In sections
-        If total > 0 Then total = total + 1   ' ï¿½Zï¿½Nï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½Ô‚Ì‹ó”’s
-        total = total + 1                     ' ï¿½Zï¿½Nï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½oï¿½ï¿½ï¿½s
-        total = total + sectionItem(1).Count  ' ï¿½fï¿½[ï¿½^ï¿½s
+        If total > 0 Then total = total + 1   ' ?¿½Z?¿½N?¿½V?¿½?¿½?¿½?¿½?¿½Ô‚Ì‹ó”’s
+        total = total + 1                     ' ?¿½Z?¿½N?¿½V?¿½?¿½?¿½?¿½?¿½?¿½?¿½o?¿½?¿½?¿½s
+        total = total + sectionItem(1).Count  ' ?¿½f?¿½[?¿½^?¿½s
     Next sectionItem
     CountBlockLines = total
 End Function
 
-' ï¿½Zï¿½Nï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½ê——ï¿½ï¿½]ï¿½Lï¿½pï¿½zï¿½ï¿½Ö“Wï¿½Jï¿½ï¿½ï¿½ï¿½
+' ?¿½Z?¿½N?¿½V?¿½?¿½?¿½?¿½?¿½ê——ï¿½?¿½]?¿½L?¿½p?¿½z?¿½?¿½Ö“W?¿½J?¿½?¿½?¿½?¿½
 Private Sub WriteBlockLines(ByVal sections As Collection, _
                             ByVal isWeldingSource As Boolean, _
                             ByRef lineCursor As Long, _
@@ -659,7 +658,7 @@ Private Sub WriteBlockLines(ByVal sections As Collection, _
 
     Dim sectionItem As Variant
     For Each sectionItem In sections
-        If Not isFirstSection Then lineCursor = lineCursor + 1   ' ï¿½Zï¿½Nï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½Ô‚Ì‹ó”’s
+        If Not isFirstSection Then lineCursor = lineCursor + 1   ' ?¿½Z?¿½N?¿½V?¿½?¿½?¿½?¿½?¿½Ô‚Ì‹ó”’s
         isFirstSection = False
 
         lineCursor = lineCursor + 1
@@ -688,7 +687,7 @@ Private Sub WriteBlockLines(ByVal sections As Collection, _
     Next sectionItem
 End Sub
 
-' ï¿½ï¿½ï¿½Ê‚Ì•\ï¿½ï¿½ï¿½`ï¿½ï¿½: ï¿½nï¿½Ú‚ÍŒï¿½ï¿½Ø‚ï¿½È‚ï¿½(General)ï¿½Aï¿½Hï¿½ï¿½ï¿½Í’Pï¿½Ê‚É‰ï¿½ï¿½ï¿½ï¿½Äï¿½ï¿½ï¿½(0)/ï¿½ï¿½ï¿½ï¿½2ï¿½ï¿½(0.00)
+' ?¿½?¿½?¿½Ê‚Ì•\?¿½?¿½?¿½`?¿½?¿½: ?¿½n?¿½Ú‚ÍŒï¿½?¿½Ø‚ï¿½È‚ï¿½(General)?¿½A?¿½H?¿½?¿½?¿½Í’P?¿½Ê‚É‰ï¿½?¿½?¿½?¿½Äï¿½?¿½?¿½(0)/?¿½?¿½?¿½?¿½2?¿½?¿½(0.00)
 Private Function QuantityFormatGroup(ByVal unitText As String, ByVal isWeldingSource As Boolean) As Long
     If isWeldingSource Then
         QuantityFormatGroup = FMT_GROUP_GENERAL
@@ -709,7 +708,7 @@ Private Function NumericOrValue(ByVal sourceValue As Variant) As Variant
     End If
 End Function
 
-' ï¿½ï¿½ï¿½ï¿½ï¿½Kï¿½p: ï¿½tï¿½Hï¿½ï¿½ï¿½gï¿½Eï¿½zï¿½uï¿½Eï¿½kï¿½ï¿½ï¿½\ï¿½ï¿½ï¿½Eï¿½\ï¿½ï¿½ï¿½`ï¿½ï¿½
+' ?¿½?¿½?¿½?¿½?¿½K?¿½p: ?¿½t?¿½H?¿½?¿½?¿½g?¿½E?¿½z?¿½u?¿½E?¿½k?¿½?¿½?¿½\?¿½?¿½?¿½E?¿½\?¿½?¿½?¿½`?¿½?¿½
 Private Sub ApplyDetailFormats(ByVal wsBreakdown As Worksheet, _
                                ByVal startRow As Long, _
                                ByVal endRow As Long, _
@@ -717,27 +716,27 @@ Private Sub ApplyDetailFormats(ByVal wsBreakdown As Worksheet, _
                                ByVal integerLineRows As Collection, _
                                ByVal decimalLineRows As Collection)
     With wsBreakdown
-        ' ï¿½ï¿½ï¿½Í”ÍˆÍ‘Sï¿½Ì‚ï¿½ BIZ UDï¿½Sï¿½Vï¿½bï¿½Nï¿½ï¿½
+        ' ?¿½?¿½?¿½Í”ÍˆÍ‘S?¿½Ì‚ï¿½ BIZ UD?¿½S?¿½V?¿½b?¿½N?¿½?¿½
         .Range(.Cells(startRow, 1), .Cells(endRow, 17)).Font.Name = BASIC_INFO_REF_FONT_NAME
 
-        ' Aï¿½ï¿½: ï¿½ï¿½ï¿½ï¿½ï¿½Ôï¿½ï¿½Íï¿½ï¿½Eï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        ' A?¿½?¿½: ?¿½?¿½?¿½?¿½?¿½Ôï¿½?¿½Íï¿½?¿½E?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½
         .Range(.Cells(startRow, 1), .Cells(endRow, 1)).HorizontalAlignment = xlCenter
 
-        ' Bï¿½ï¿½: ï¿½Hï¿½ï¿½ï¿½ï¿½Ş‚Íï¿½ï¿½lï¿½ßEï¿½kï¿½ï¿½ï¿½ï¿½ï¿½Ä‘Sï¿½Ì‚ï¿½\ï¿½ï¿½
+        ' B?¿½?¿½: ?¿½H?¿½?¿½?¿½?¿½Ş‚Íï¿½?¿½l?¿½ßE?¿½k?¿½?¿½?¿½?¿½?¿½Ä‘S?¿½Ì‚ï¿½\?¿½?¿½
         With .Range(.Cells(startRow, 2), .Cells(endRow, 2))
             .HorizontalAlignment = xlLeft
             .WrapText = False
             .ShrinkToFit = True
         End With
 
-        ' Dï¿½ï¿½: ï¿½ï¿½ï¿½ï¿½Ê‚Íï¿½ï¿½Eï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        ' D?¿½?¿½: ?¿½?¿½?¿½?¿½Ê‚Íï¿½?¿½E?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½
         .Range(.Cells(startRow, 4), .Cells(endRow, 4)).HorizontalAlignment = xlCenter
 
-        ' Fï¿½`Qï¿½ï¿½: ï¿½ï¿½ï¿½ï¿½Ø‚ï¿½Eï¿½[ï¿½ï¿½ï¿½lï¿½ï¿½\ï¿½ï¿½ï¿½Bï¿½ï¿½ï¿½Ê—ï¿½(F/I/L/O)ï¿½ÌŠï¿½ï¿½ï¿½=ï¿½ï¿½ï¿½ï¿½ï¿½Aï¿½ï¿½ï¿½ï¿½3ï¿½ï¿½ï¿½Ìsï¿½ÍŒï¿½Åã‘ï¿½ï¿½
+        ' F?¿½`Q?¿½?¿½: ?¿½?¿½?¿½?¿½Ø‚ï¿½E?¿½[?¿½?¿½?¿½l?¿½?¿½\?¿½?¿½?¿½B?¿½?¿½?¿½Ê—ï¿½(F/I/L/O)?¿½ÌŠï¿½?¿½?¿½=?¿½?¿½?¿½?¿½?¿½A?¿½?¿½?¿½?¿½3?¿½?¿½?¿½Ìs?¿½ÍŒï¿½Åã‘?¿½?¿½
         .Range(.Cells(startRow, 6), .Cells(endRow, 17)).NumberFormat = DETAIL_AMOUNT_NUMBER_FORMAT
     End With
 
-    ' ï¿½Zï¿½Nï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½oï¿½ï¿½ï¿½s(ï¿½_ï¿½ï¿½ï¿½ï¿½æ–¼ï¿½Eï¿½Ç—ï¿½ï¿½ï¿½ï¿½ï¿½): A:Dï¿½ï¿½ï¿½ï¿½ï¿½Eï¿½ï¿½ï¿½lï¿½ßEï¿½kï¿½ï¿½ï¿½ï¿½ï¿½ÄƒZï¿½ï¿½ï¿½ï¿½ï¿½Éï¿½ï¿½ß‚ï¿½
+    ' ?¿½Z?¿½N?¿½V?¿½?¿½?¿½?¿½?¿½?¿½?¿½o?¿½?¿½?¿½s(?¿½_?¿½?¿½?¿½?¿½æ–¼?¿½E?¿½Ç—ï¿½?¿½?¿½?¿½?¿½): A:D?¿½?¿½?¿½?¿½?¿½E?¿½?¿½?¿½l?¿½ßE?¿½k?¿½?¿½?¿½?¿½?¿½ÄƒZ?¿½?¿½?¿½?¿½?¿½Éï¿½?¿½ß‚ï¿½
     Dim lineIndex As Variant
     For Each lineIndex In headerLineRows
         Dim headerRowIndex As Long
@@ -751,7 +750,7 @@ Private Sub ApplyDetailFormats(ByVal wsBreakdown As Worksheet, _
         End With
     Next lineIndex
 
-    ' ï¿½ï¿½ï¿½Ê—ï¿½(F/I/L/O): ï¿½Pï¿½Ê‚ï¿½ï¿½ï¿½ï¿½ï¿½2ï¿½ï¿½ï¿½Îï¿½(m/m3/M/ï¿½u/t)ï¿½Ìsï¿½ï¿½ï¿½ï¿½ï¿½ï¿½2ï¿½ï¿½ï¿½\ï¿½ï¿½ï¿½Öã‘ï¿½ï¿½
+    ' ?¿½?¿½?¿½Ê—ï¿½(F/I/L/O): ?¿½P?¿½Ê‚ï¿½?¿½?¿½?¿½?¿½2?¿½?¿½?¿½Îï¿½(m/m3/M/?¿½u/t)?¿½Ìs?¿½?¿½?¿½?¿½?¿½?¿½2?¿½?¿½?¿½\?¿½?¿½?¿½Öã‘?¿½?¿½
     ApplyNumberFormatToLineRows wsBreakdown, startRow, 6, decimalLineRows, DETAIL_QTY_DECIMAL_NUMBER_FORMAT
     ApplyNumberFormatToLineRows wsBreakdown, startRow, 9, decimalLineRows, DETAIL_QTY_DECIMAL_NUMBER_FORMAT
     ApplyNumberFormatToLineRows wsBreakdown, startRow, 12, decimalLineRows, DETAIL_QTY_DECIMAL_NUMBER_FORMAT
@@ -789,7 +788,7 @@ Private Sub ApplyNumberFormatToLineRows(ByVal wsBreakdown As Worksheet, _
     If Not targetRange Is Nothing Then targetRange.NumberFormat = formatText
 End Sub
 
-' ï¿½æï¿½ï¿½ï¿½Vï¿½[ï¿½gï¿½ï¿½1ï¿½sï¿½Ú‚ï¿½ï¿½ï¿½uï¿½ï¿½Ğ–ï¿½+ï¿½Pï¿½ï¿½ï¿½vï¿½wï¿½bï¿½_ï¿½[ï¿½ï¿½ğ–¼Šñ‚¹‚Å’Tï¿½ï¿½
+' ?¿½æï¿½?¿½?¿½V?¿½[?¿½g?¿½?¿½1?¿½s?¿½Ú‚ï¿½?¿½?¿½u?¿½?¿½Ğ–ï¿½+?¿½P?¿½?¿½?¿½v?¿½w?¿½b?¿½_?¿½[?¿½?¿½?¼Šñ‚¹‚Å’T?¿½?¿½
 Private Function FindVendorUnitPriceColumn(ByVal wsSource As Worksheet, _
                                            ByVal targetKeys As Object, _
                                            ByVal aliasMap As Object) As Long
@@ -822,7 +821,7 @@ Private Function FindVendorUnitPriceColumn(ByVal wsSource As Worksheet, _
     Next c
 End Function
 
-' B:Cï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½(ï¿½ï¿½ï¿½×•ï¿½ï¿½Ì‚İBï¿½Zï¿½Nï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½oï¿½ï¿½ï¿½sï¿½ï¿½A:Dï¿½ï¿½ï¿½ï¿½ï¿½Ì‚ï¿½ï¿½ßï¿½ï¿½O)
+' B:C?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½(?¿½?¿½?¿½×•ï¿½?¿½Ì‚İB?¿½Z?¿½N?¿½V?¿½?¿½?¿½?¿½?¿½?¿½?¿½o?¿½?¿½?¿½s?¿½?¿½A:D?¿½?¿½?¿½?¿½?¿½Ì‚ï¿½?¿½ßï¿½?¿½O)
 Private Sub MergeDetailNameColumns(ByVal wsBreakdown As Worksheet, _
                                    ByVal firstRow As Long, _
                                    ByVal lastRow As Long, _
@@ -850,9 +849,9 @@ Private Sub MergeDetailNameColumns(ByVal wsBreakdown As Worksheet, _
     Next r
 End Sub
 
-' ï¿½ï¿½ï¿½ó–¾×ƒVï¿½[ï¿½gï¿½Ì‘Oï¿½ï¿½(Iï¿½ï¿½)/ï¿½ï¿½ï¿½ï¿½(Lï¿½ï¿½)/ï¿½ï¿½4ï¿½ï¿½ï¿½ï¿½(Oï¿½ï¿½)ï¿½Ö‚Ìï¿½ï¿½Ê“ï¿½ï¿½Í‚ï¿½ï¿½Äï¿½ï¿½ï¿½ï¿½Aï¿½Pï¿½ï¿½ï¿½ï¿½(J/M/P)ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í‚ï¿½ï¿½ï¿½B
-' I12/L12 ï¿½Ì“ï¿½ï¿½Í—Lï¿½ï¿½ï¿½É‰ï¿½ï¿½ï¿½ï¿½ÄWï¿½vï¿½uï¿½ï¿½ï¿½bï¿½Nï¿½ï¿½ K/N ï¿½ï¿½[ï¿½ï¿½ï¿½\ï¿½ï¿½ï¿½ï¿½ï¿½Xï¿½Vï¿½ï¿½ï¿½ï¿½B
-' ThisWorkbook.Workbook_SheetChange ï¿½ï¿½ï¿½ï¿½Ä‚Î‚ï¿½ï¿½
+' ?¿½?¿½?¿½?¾×ƒV?¿½[?¿½g?¿½Ì‘O?¿½?¿½(I?¿½?¿½)/?¿½?¿½?¿½?¿½(L?¿½?¿½)/?¿½?¿½4?¿½?¿½?¿½?¿½(O?¿½?¿½)?¿½Ö‚Ìï¿½?¿½Ê“ï¿½?¿½Í‚ï¿½?¿½Äï¿½?¿½?¿½?¿½A?¿½P?¿½?¿½?¿½?¿½(J/M/P)?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½Í‚ï¿½?¿½?¿½B
+' I12/L12 ?¿½Ì“ï¿½?¿½Í—L?¿½?¿½?¿½É‰ï¿½?¿½?¿½?¿½ÄW?¿½v?¿½u?¿½?¿½?¿½b?¿½N?¿½?¿½ K/N ?¿½?¿½[?¿½?¿½?¿½\?¿½?¿½?¿½?¿½?¿½X?¿½V?¿½?¿½?¿½?¿½B
+' ThisWorkbook.Workbook_SheetChange ?¿½?¿½?¿½?¿½Ä‚Î‚ï¿½?¿½
 Public Sub HandleBreakdownQuantityCellChange(ByVal sh As Object, ByVal target As Range)
     If TypeName(sh) <> "Worksheet" Then Exit Sub
     If target Is Nothing Then Exit Sub
@@ -896,7 +895,7 @@ Public Sub HandleBreakdownQuantityCellChange(ByVal sh As Object, ByVal target As
             Dim quantityValue As Variant
             quantityValue = changedCell.value
             If IsNumeric(quantityValue) And Len(Trim$(CStr(quantityValue))) > 0 Then
-                ' ï¿½Pï¿½ï¿½ï¿½Í“ï¿½ï¿½ï¿½ï¿½Pï¿½ï¿½(Gï¿½ï¿½=ï¿½ï¿½Ğ•Ê’Pï¿½ï¿½)ï¿½Æ“ï¿½ï¿½lï¿½ï¿½ï¿½ï¿½Í‚ï¿½ï¿½ï¿½
+                ' ?¿½P?¿½?¿½?¿½Í“ï¿½?¿½?¿½?¿½P?¿½?¿½(G?¿½?¿½=?¿½?¿½Ğ•Ê’P?¿½?¿½)?¿½Æ“ï¿½?¿½l?¿½?¿½?¿½?¿½Í‚ï¿½?¿½?¿½
                 priceCell.value = ws.Cells(changedCell.Row, DETAIL_COL_PRICE_BASE).value
             Else
                 priceCell.ClearContents
@@ -912,18 +911,18 @@ Quiet:
     Err.Clear
 End Sub
 
-' ï¿½ï¿½ï¿½zï¿½ï¿½(H/K/N/Q)ï¿½Öƒ[ï¿½ï¿½ï¿½ï¿½\ï¿½ï¿½ï¿½Ì•\ï¿½ï¿½ï¿½`ï¿½ï¿½ï¿½ï¿½Kï¿½pï¿½ï¿½ï¿½ï¿½(ï¿½ï¿½ï¿½vï¿½ï¿½ï¿½Oï¿½Ì‹ï¿½sï¿½ï¿½ï¿½Ü‚ï¿½)
+' ?¿½?¿½?¿½z?¿½?¿½(H/K/N/Q)?¿½Öƒ[?¿½?¿½?¿½?¿½\?¿½?¿½?¿½Ì•\?¿½?¿½?¿½`?¿½?¿½?¿½?¿½K?¿½p?¿½?¿½?¿½?¿½(?¿½?¿½?¿½v?¿½?¿½?¿½O?¿½Ì‹ï¿½s?¿½?¿½?¿½Ü‚ï¿½)
 Private Sub ApplyDetailAmountColumnFormats(ByVal wsBreakdown As Worksheet, _
                                            ByVal startRow As Long, _
                                            ByVal endRow As Long)
     Dim colLetter As Variant
     For Each colLetter In Array("H", "K", "N", "Q")
         wsBreakdown.Range(CStr(colLetter) & startRow & ":" & CStr(colLetter) & endRow).NumberFormat = _
-            DETAIL_AMOUNT_DECIMAL_NUMBER_FORMAT
+            DETAIL_AMOUNT_NUMBER_FORMAT
     Next colLetter
 End Sub
 
-' Aï¿½ñ‚ª‹ó—“‚Ìsï¿½Í‹ï¿½ï¿½zï¿½ï¿½ï¿½0ï¿½ï¿½\ï¿½ï¿½ï¿½ï¿½ï¿½È‚ï¿½(ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê‚ï¿½ï¿½Nï¿½ï¿½ï¿½A)
+' A?¿½?ª‹ó—“‚Ìs?¿½Í‹ï¿½?¿½z?¿½?¿½?¿½0?¿½?¿½\?¿½?¿½?¿½?¿½?¿½È‚ï¿½(?¿½?¿½?¿½?¿½?¿½?¿½?¿½Ê‚ï¿½?¿½N?¿½?¿½?¿½A)
 Private Sub CleanupDetailAmountEmptyRows(ByVal wsBreakdown As Worksheet, _
                                          ByVal startRow As Long, _
                                          ByVal endRow As Long)
@@ -938,7 +937,7 @@ Private Sub CleanupDetailAmountEmptyRows(ByVal wsBreakdown As Worksheet, _
     Next r
 End Sub
 
-' ï¿½Wï¿½vï¿½uï¿½ï¿½ï¿½bï¿½N(ï¿½ï¿½ï¿½vï¿½`ï¿½ï¿½ï¿½v)ï¿½Ì‹ï¿½ï¿½zï¿½\ï¿½ï¿½ï¿½`ï¿½ï¿½ï¿½BK/Nï¿½ï¿½ï¿½ I12/L12 ï¿½Ì“ï¿½ï¿½Í—Lï¿½ï¿½ï¿½Åƒ[ï¿½ï¿½ï¿½\ï¿½ï¿½ï¿½ï¿½Ø‘ï¿½
+' ?¿½W?¿½v?¿½u?¿½?¿½?¿½b?¿½N(?¿½?¿½?¿½v?¿½`?¿½?¿½?¿½v)?¿½Ì‹ï¿½?¿½z?¿½\?¿½?¿½?¿½`?¿½?¿½?¿½BK/N?¿½?¿½?¿½ I12/L12 ?¿½Ì“ï¿½?¿½Í—L?¿½?¿½?¿½Åƒ[?¿½?¿½?¿½\?¿½?¿½?¿½?¿½Ø‘ï¿½
 Private Sub ApplySummaryNumberFormats(ByVal wsBreakdown As Worksheet, ByVal subtotalRow As Long)
     Dim r1 As Long, r2 As Long
     r1 = subtotalRow
@@ -970,8 +969,8 @@ Public Sub RefreshBreakdownSummaryNumberFormats(ByVal wsBreakdown As Worksheet)
     ApplySummaryNumberFormats wsBreakdown, subtotalRow
 End Sub
 
-' ï¿½Aï¿½Nï¿½eï¿½Bï¿½uï¿½È“ï¿½ï¿½ó–¾×ƒVï¿½[ï¿½gï¿½ÖAï¿½rï¿½ï¿½ï¿½EAï¿½ñ•Eï¿½Wï¿½vï¿½ï¿½ï¿½lï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½è“®ï¿½ÅÄ“Kï¿½pï¿½ï¿½ï¿½ï¿½(ï¿½ï¿½ï¿½ï¿½/ï¿½êŠ‡ï¿½Cï¿½ï¿½ï¿½p)ï¿½B
-' ï¿½ï¿½ï¿½ï¿½ï¿½Ï‚İ‚Ì“ï¿½ï¿½ó–¾×ƒVï¿½[ï¿½gï¿½ï¿½\ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô‚ï¿½ Alt+F8 ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½sï¿½ï¿½ï¿½ï¿½B
+' ?¿½A?¿½N?¿½e?¿½B?¿½u?¿½È“ï¿½?¿½?¾×ƒV?¿½[?¿½g?¿½ÖA?¿½r?¿½?¿½?¿½EA?¿½?E?¿½W?¿½v?¿½?¿½?¿½l?¿½?¿½?¿½?¿½?¿½?¿½?¿½è“®?¿½ÅÄ“K?¿½p?¿½?¿½?¿½?¿½(?¿½?¿½?¿½?¿½/?¿½êŠ??¿½C?¿½?¿½?¿½p)?¿½B
+' ?¿½?¿½?¿½?¿½?¿½Ï‚İ‚Ì“ï¿½?¿½?¾×ƒV?¿½[?¿½g?¿½?¿½\?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½Ô‚ï¿½ Alt+F8 ?¿½?¿½?¿½?¿½?¿½?¿½s?¿½?¿½?¿½?¿½B
 Public Sub ApplyBreakdownFormattingToActiveSheet()
     Dim ws As Worksheet
     On Error Resume Next
@@ -1006,7 +1005,7 @@ Restore:
     MsgBox BreakdownFormattingDoneText() & vbCrLf & ws.Name & " / subtotalRow=" & subtotalRow, vbInformation
 End Sub
 
-' "ï¿½ï¿½ï¿½vï¿½sï¿½ï¿½ï¿½ï¿½ï¿½Â‚ï¿½ï¿½ï¿½Ü‚ï¿½ï¿½ï¿½Bï¿½ï¿½ï¿½ó–¾×ƒVï¿½[ï¿½gï¿½ï¿½ï¿½Aï¿½Nï¿½eï¿½Bï¿½uï¿½É‚ï¿½ï¿½Äï¿½ï¿½sï¿½ï¿½ï¿½Ä‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½B"
+' "?¿½?¿½?¿½v?¿½s?¿½?¿½?¿½?¿½?¿½Â‚ï¿½?¿½?¿½Ü‚ï¿½?¿½?¿½B?¿½?¿½?¿½?¾×ƒV?¿½[?¿½g?¿½?¿½?¿½A?¿½N?¿½e?¿½B?¿½u?¿½É‚ï¿½?¿½Äï¿½?¿½s?¿½?¿½?¿½Ä‚ï¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½B"
 Private Function BreakdownSubtotalNotFoundText() As String
     BreakdownSubtotalNotFoundText = ChrW$(&H5C0F) & ChrW$(&H8A08) & ChrW$(&H884C) & ChrW$(&H304C) & _
         ChrW$(&H898B) & ChrW$(&H3064) & ChrW$(&H304B) & ChrW$(&H308A) & ChrW$(&H307E) & ChrW$(&H305B) & _
@@ -1017,7 +1016,7 @@ Private Function BreakdownSubtotalNotFoundText() As String
         ChrW$(&H3055) & ChrW$(&H3044) & ChrW$(&H3002)
 End Function
 
-' "ï¿½rï¿½ï¿½ï¿½Eï¿½ñ•Eï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä“Kï¿½pï¿½ï¿½ï¿½Ü‚ï¿½ï¿½ï¿½ï¿½B"
+' "?¿½r?¿½?¿½?¿½E?¿½?E?¿½?¿½?¿½?¿½?¿½?¿½?¿½Ä“K?¿½p?¿½?¿½?¿½Ü‚ï¿½?¿½?¿½?¿½B"
 Private Function BreakdownFormattingDoneText() As String
     BreakdownFormattingDoneText = ChrW$(&H7F6B) & ChrW$(&H7DDA) & ChrW$(&H30FB) & ChrW$(&H5217) & _
         ChrW$(&H5E45) & ChrW$(&H30FB) & ChrW$(&H66F8) & ChrW$(&H5F0F) & ChrW$(&H3092) & ChrW$(&H518D) & _
