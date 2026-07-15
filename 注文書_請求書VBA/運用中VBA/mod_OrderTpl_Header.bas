@@ -15,6 +15,9 @@ Private Const CONTRACTOR_CONTRACT_TOTAL_ROW As Long = 35
 ' ��{��� �{�H��Ѓu���b�N: ��\�Җ�(12�s��)�E�Z��(14�s��)
 Private Const CONTRACTOR_REPRESENTATIVE_ROW As Long = 12
 Private Const CONTRACTOR_ADDRESS_ROW As Long = 14
+Private Const CONDITION_CHECKBOX_D_COL As Long = 4
+Private Const CONDITION_CHECKBOX_X_COL As Long = 24
+Private Const CONDITION_CHECKBOX_E_COL As Long = 5
 
 ' �w��u���b�N�̎{�H��ЂɑΉ�����e���v���[�g5�V�[�g�փw�b�_�[��]�L����(�f�B�X�p�b�`��)
 Public Sub ApplyVendorSheetHeaders(ByVal wsInfo As Worksheet, _
@@ -228,7 +231,7 @@ ErrorHandler:
     Err.Clear
 End Sub
 
-' 軌道工事(条件書(軌道工事)のみH25:U25転記の判定用)
+' Rail-work type text for H25:U25 copy (rail condition sheet only)
 Private Function ConditionRailWorkTypeText() As String
     Static cached As String
     If cached = "" Then
@@ -237,8 +240,8 @@ Private Function ConditionRailWorkTypeText() As String
     ConditionRailWorkTypeText = cached
 End Function
 
-' 条件書シートへ基本情報/当該施工会社の内容を転記する。
-' 4条件書共通の10項目 + 条件書(軌道工事)のみ H25:U25 <- 当該業者41行(左詰め)。
+' Copy basic info / vendor fields into condition sheet.
+' Ten shared fields + rail sheet H25:U25 from vendor row41.
 Public Sub ApplyConditionSheetHeader(ByVal wsInfo As Worksheet, _
                                      ByVal wsCondition As Worksheet, _
                                      ByVal vendorIndex As Long)
@@ -250,31 +253,31 @@ Public Sub ApplyConditionSheetHeader(ByVal wsInfo As Worksheet, _
     Dim valueColumn As Long
     valueColumn = mod_Construction_BasicTotals.BasicInfoVendorColumn(vendorIndex)
 
-    ' S1:X1 作成日(基本情報C2、グレゴリオ暦 yyyy年m月d日、中央)
+    ' S1:X1 created date from C2 (Gregorian yyyy/m/d, centered)
     WriteHeaderDateGregorian wsCondition.Range("S1"), wsInfo.Range("C2").value
     wsCondition.Range("S1").MergeArea.Cells(1, 1).HorizontalAlignment = xlCenter
 
-    ' P3:S3 支店(B6) / T3:X3 出張所(C6) / T4:X4 所長名(F6)  下詰め
+    ' P3:S3 branch B6 / T3:X3 office C6 / T4:X4 chief F6 (bottom aligned)
     WriteHeaderValueBottom wsCondition.Range("P3"), wsInfo.Range("B6").value
     WriteHeaderValueBottom wsCondition.Range("T3"), wsInfo.Range("C6").value
     WriteHeaderValueBottom wsCondition.Range("T4"), wsInfo.Range("F6").value
 
-    ' B5:C6 施工会社名(当該業者11行), 下詰め
+    ' B5:C6 vendor name row11 (bottom aligned)
     WriteHeaderValueBottom wsCondition.Range("B5"), _
         wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, valueColumn).value
 
-    ' F9:I9 工事番号(C9) / L9:X9 工事件名(C10)  中央
+    ' F9:I9 project no C9 / L9:X9 project name C10 (centered)
     WriteHeaderValue wsCondition.Range("F9"), wsInfo.Range("C9").value, True
     WriteHeaderValue wsCondition.Range("L9"), wsInfo.Range("C10").value, True
 
-    ' F11:L11 工期自(C15) / R11:X11 工期至(C16)  グレゴリオ暦 yyyy年m月d日
+    ' F11:L11 start C15 / R11:X11 end C16 (Gregorian yyyy/m/d)
     WriteHeaderDateGregorian wsCondition.Range("F11"), wsInfo.Range("C15").value
     WriteHeaderDateGregorian wsCondition.Range("R11"), wsInfo.Range("C16").value
 
-    ' D16:X16 施工場所(C13), 中央
+    ' D16:X16 site C13 (centered)
     WriteHeaderValue wsCondition.Range("D16"), wsInfo.Range("C13").value, True
 
-    ' 条件書(軌道工事)のみ: H25:U25 <- 当該業者41行(左詰め)
+    ' Rail-work condition sheet only: H25:U25 <- vendor row41 (left aligned)
     Dim workType As String
     workType = CommonNormalizeText(CommonNzText( _
         wsInfo.Cells(BASIC_INFO_VENDOR_WORK_TYPE_ROW, valueColumn).value))
@@ -290,15 +293,12 @@ ErrorHandler:
     Err.Clear
 End Sub
 
-' ===== 条件書チェックボックスの排他グループ化 =====
-' 各行D/X(10行/18-33行/38行)と E34/E35 のペアで、常にどちらか一方だけONになる。
-' 片方をONにするともう片方をOFF、片方をOFFにするともう片方をONにする。
+' ===== Condition sheet checkbox exclusivity =====
+' D/X rows (10,18-33,38) and E34/E35 pairs keep exactly one side ON.
+' Turning one ON turns the other OFF; turning one OFF turns the other ON.
 
-Private Const CONDITION_CHECKBOX_D_COL As Long = 4
-Private Const CONDITION_CHECKBOX_X_COL As Long = 24
-Private Const CONDITION_CHECKBOX_E_COL As Long = 5
 
-' 排他ペアの対象行かどうか(D/X: 10,18-33,38 / E縦ペア: 34,35)
+' Exclusive target rows (D/X: 10,18-33,38 / E vertical pair: 34,35)
 Private Function IsConditionDxExclusiveRow(ByVal rowIndex As Long) As Boolean
     IsConditionDxExclusiveRow = (rowIndex = 10) Or (rowIndex >= 18 And rowIndex <= 33) Or (rowIndex = 38)
 End Function
@@ -325,7 +325,7 @@ Private Function IsConditionExclusiveCheckbox(ByVal cb As Object) As Boolean
     If IsConditionDxExclusiveRow(rowIndex) Then
         IsConditionExclusiveCheckbox = IsConditionDxCheckboxColumn(colIndex)
     ElseIf rowIndex = 39 And IsConditionDxCheckboxColumn(colIndex) Then
-        ' 38行目のコントロールが39行にアンカーされる場合がある
+        ' Row-38 control may anchor to row 39
         IsConditionExclusiveCheckbox = True
     End If
 End Function
@@ -338,12 +338,12 @@ Private Function ConditionDxPairTargetColumn(ByVal clickedCol As Long) As Long
     End If
 End Function
 
-' 排他ペアの対象行かどうか(D/X: 10,18-33,38 / E縦ペア: 34,35)
+' Exclusive target rows (D/X: 10,18-33,38 / E vertical pair: 34,35)
 Private Function IsConditionExclusiveRow(ByVal r As Long) As Boolean
     IsConditionExclusiveRow = IsConditionDxExclusiveRow(r) Or IsConditionEVerticalPairRow(r)
 End Function
 
-' 条件書シートの対象チェックボックスに排他クリックのマクロを割り当てる
+' Assign exclusive-click macro to condition-sheet checkboxes
 Public Sub SetupConditionCheckboxExclusivity(ByVal wsCondition As Worksheet)
     If wsCondition Is Nothing Then Exit Sub
     On Error Resume Next
@@ -356,7 +356,7 @@ Public Sub SetupConditionCheckboxExclusivity(ByVal wsCondition As Worksheet)
     On Error GoTo 0
 End Sub
 
-' チェックボックスクリック時に呼ばれる。ペアの相手を反対状態にする。
+' Checkbox click handler: flip paired control to opposite state.
 Public Sub ConditionCheckboxExclusiveClick()
     On Error GoTo Done
     Dim ws As Worksheet
@@ -380,7 +380,7 @@ Public Sub ConditionCheckboxExclusiveClick()
 Done:
 End Sub
 
-' クリックされたチェックボックスのペアを返す(D/X=反対列・近傍Top / E34-E35=行34と35)
+' Return paired checkbox (D/X: opposite col + nearest Top / E34-E35: other row)
 Private Function FindConditionCheckboxPair(ByVal ws As Worksheet, ByVal clicked As Object) As Object
     Dim rowIndex As Long
     rowIndex = clicked.TopLeftCell.Row
