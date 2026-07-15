@@ -294,10 +294,53 @@ End Sub
 ' 各行D/X(10行/18-33行/38行)と E34/E35 のペアで、常にどちらか一方だけONになる。
 ' 片方をONにするともう片方をOFF、片方をOFFにするともう片方をONにする。
 
+Private Const CONDITION_CHECKBOX_D_COL As Long = 4
+Private Const CONDITION_CHECKBOX_X_COL As Long = 24
+Private Const CONDITION_CHECKBOX_E_COL As Long = 5
+
+' 排他ペアの対象行かどうか(D/X: 10,18-33,38 / E縦ペア: 34,35)
+Private Function IsConditionDxExclusiveRow(ByVal rowIndex As Long) As Boolean
+    IsConditionDxExclusiveRow = (rowIndex = 10) Or (rowIndex >= 18 And rowIndex <= 33) Or (rowIndex = 38)
+End Function
+
+Private Function IsConditionEVerticalPairRow(ByVal rowIndex As Long) As Boolean
+    IsConditionEVerticalPairRow = (rowIndex = 34) Or (rowIndex = 35)
+End Function
+
+Private Function IsConditionDxCheckboxColumn(ByVal colIndex As Long) As Boolean
+    IsConditionDxCheckboxColumn = (colIndex = CONDITION_CHECKBOX_D_COL Or colIndex = CONDITION_CHECKBOX_X_COL)
+End Function
+
+Private Function IsConditionExclusiveCheckbox(ByVal cb As Object) As Boolean
+    Dim rowIndex As Long
+    Dim colIndex As Long
+    rowIndex = cb.TopLeftCell.Row
+    colIndex = cb.TopLeftCell.Column
+
+    If IsConditionEVerticalPairRow(rowIndex) Then
+        IsConditionExclusiveCheckbox = (colIndex = CONDITION_CHECKBOX_E_COL)
+        Exit Function
+    End If
+
+    If IsConditionDxExclusiveRow(rowIndex) Then
+        IsConditionExclusiveCheckbox = IsConditionDxCheckboxColumn(colIndex)
+    ElseIf rowIndex = 39 And IsConditionDxCheckboxColumn(colIndex) Then
+        ' 38行目のコントロールが39行にアンカーされる場合がある
+        IsConditionExclusiveCheckbox = True
+    End If
+End Function
+
+Private Function ConditionDxPairTargetColumn(ByVal clickedCol As Long) As Long
+    If clickedCol <= CONDITION_CHECKBOX_D_COL Then
+        ConditionDxPairTargetColumn = CONDITION_CHECKBOX_X_COL
+    ElseIf clickedCol >= CONDITION_CHECKBOX_X_COL Then
+        ConditionDxPairTargetColumn = CONDITION_CHECKBOX_D_COL
+    End If
+End Function
+
 ' 排他ペアの対象行かどうか(D/X: 10,18-33,38 / E縦ペア: 34,35)
 Private Function IsConditionExclusiveRow(ByVal r As Long) As Boolean
-    IsConditionExclusiveRow = (r = 10) Or (r >= 18 And r <= 33) Or (r = 38) Or _
-                              (r = 34) Or (r = 35)
+    IsConditionExclusiveRow = IsConditionDxExclusiveRow(r) Or IsConditionEVerticalPairRow(r)
 End Function
 
 ' 条件書シートの対象チェックボックスに排他クリックのマクロを割り当てる
@@ -306,7 +349,7 @@ Public Sub SetupConditionCheckboxExclusivity(ByVal wsCondition As Worksheet)
     On Error Resume Next
     Dim cb As Object
     For Each cb In wsCondition.CheckBoxes
-        If IsConditionExclusiveRow(cb.TopLeftCell.Row) Then
+        If IsConditionExclusiveCheckbox(cb) Then
             cb.OnAction = "'" & ThisWorkbook.Name & "'!ConditionCheckboxExclusiveClick"
         End If
     Next cb
@@ -337,36 +380,81 @@ Public Sub ConditionCheckboxExclusiveClick()
 Done:
 End Sub
 
-' クリックされたチェックボックスのペアを返す(D/X=同一行のもう片方 / E34-E35=行34と35)
+' クリックされたチェックボックスのペアを返す(D/X=反対列・近傍Top / E34-E35=行34と35)
 Private Function FindConditionCheckboxPair(ByVal ws As Worksheet, ByVal clicked As Object) As Object
-    Dim r As Long
-    r = clicked.TopLeftCell.Row
+    Dim rowIndex As Long
+    rowIndex = clicked.TopLeftCell.Row
 
-    Dim byRowPair As Boolean
+    If IsConditionEVerticalPairRow(rowIndex) Then
+        Set FindConditionCheckboxPair = FindConditionEVerticalCheckboxPair(ws, clicked)
+        Exit Function
+    End If
+
+    If IsConditionDxExclusiveRow(rowIndex) Or _
+       (rowIndex = 39 And IsConditionDxCheckboxColumn(clicked.TopLeftCell.Column)) Then
+        Set FindConditionCheckboxPair = FindConditionDxCheckboxPair(ws, clicked)
+    End If
+End Function
+
+Private Function FindConditionEVerticalCheckboxPair(ByVal ws As Worksheet, ByVal clicked As Object) As Object
+    Dim rowIndex As Long
+    rowIndex = clicked.TopLeftCell.Row
+
     Dim targetRow As Long
-    byRowPair = False
-    If r = 34 Then
+    If rowIndex = 34 Then
         targetRow = 35
-        byRowPair = True
-    ElseIf r = 35 Then
+    Else
         targetRow = 34
-        byRowPair = True
     End If
 
     Dim cb As Object
     For Each cb In ws.CheckBoxes
         If cb.Name <> clicked.Name Then
-            If byRowPair Then
-                If cb.TopLeftCell.Row = targetRow Then
-                    Set FindConditionCheckboxPair = cb
-                    Exit Function
-                End If
-            ElseIf cb.TopLeftCell.Row = r Then
-                Set FindConditionCheckboxPair = cb
+            If cb.TopLeftCell.Row = targetRow And cb.TopLeftCell.Column = CONDITION_CHECKBOX_E_COL Then
+                Set FindConditionEVerticalCheckboxPair = cb
                 Exit Function
             End If
         End If
     Next cb
+End Function
+
+Private Function FindConditionDxCheckboxPair(ByVal ws As Worksheet, ByVal clicked As Object) As Object
+    Dim clickedCol As Long
+    clickedCol = clicked.TopLeftCell.Column
+    Dim pairCol As Long
+    pairCol = ConditionDxPairTargetColumn(clickedCol)
+    If pairCol = 0 Then Exit Function
+
+    Dim clickedRow As Long
+    clickedRow = clicked.TopLeftCell.Row
+    Dim rowTolerance As Long
+    If clickedRow = 38 Or clickedRow = 39 Then
+        rowTolerance = 1
+    Else
+        rowTolerance = 0
+    End If
+
+    Dim bestCb As Object
+    Dim bestTopDist As Double
+    bestTopDist = -1
+
+    Dim cb As Object
+    For Each cb In ws.CheckBoxes
+        If cb.Name <> clicked.Name Then
+            If cb.TopLeftCell.Column = pairCol Then
+                If Abs(cb.TopLeftCell.Row - clickedRow) <= rowTolerance Then
+                    Dim topDist As Double
+                    topDist = Abs(cb.Top - clicked.Top)
+                    If bestCb Is Nothing Or topDist < bestTopDist Then
+                        Set bestCb = cb
+                        bestTopDist = topDist
+                    End If
+                End If
+            End If
+        End If
+    Next cb
+
+    Set FindConditionDxCheckboxPair = bestCb
 End Function
 
 ' �󒍎җp/��������/�x�X�T ����: S1:U1 �����ԍ�(27) / Q2:V2 �쐬��C2(����) /
