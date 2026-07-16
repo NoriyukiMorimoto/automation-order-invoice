@@ -968,6 +968,7 @@ End Sub
 Private Sub ApplyAttachment3Header(ByVal wsInfo As Worksheet, _
                                    ByVal wsTarget As Worksheet, _
                                    ByVal vendorIndex As Long)
+    On Error GoTo ErrorHandler
     ' O1: �{�H��Ж�(��{��� �{�H��З�11�s��)���E�l�߁EBIZ UD�S�V�b�N�œ]�L
     Dim vendorCol As Long
     vendorCol = mod_Construction_BasicTotals.BasicInfoVendorColumn(vendorIndex)
@@ -983,6 +984,11 @@ Private Sub ApplyAttachment3Header(ByVal wsInfo As Worksheet, _
 
     ' J54:M54 �Y�p�sJR���z���v(�H���V�[�g�ɕR�t�����{�H��Ђ݂̂ɓ���)
     RefreshAttachment3SanpaiJrTotal wsTarget, wsInfo, vendorIndex
+    Exit Sub
+
+ErrorHandler:
+    mod_OrderTpl_Shared.OrderTplLog "ApplyAttachment3Header error: " & Err.Number & " " & Err.Description
+    Err.Clear
 End Sub
 
 ' O1(�{�H��Ж�)�̓]�L(�E�l�߁EBIZ UD�S�V�b�N)
@@ -1315,25 +1321,35 @@ Private Sub RefreshAttachment3SanpaiJrTotal(ByVal ws As Worksheet, _
                                             ByVal wsInfo As Worksheet, _
                                             ByVal vendorIndex As Long)
     If ws Is Nothing Then Exit Sub
+    On Error GoTo Done
 
+    Dim jrTotalArea As Range
+    Set jrTotalArea = ws.Range("J54").MergeArea      ' J54:M54(�����Z��)
     Dim writeCell As Range
-    Set writeCell = ws.Range("J54").MergeArea.Cells(1, 1)
+    Set writeCell = jrTotalArea.Cells(1, 1)
 
-    ' 施行指示書(工事)/施行通知書(工事)のA列に紐付いていない施工会社の別紙IIIには
-    ' 産廃JR金額合計を入力しない(J54を空にする)。
+    ' �{�H�w����(�H��)/�{�H�ʒm��(�H��)��A���ɕR�t���Ă��Ȃ��{�H��Ђ̕ʎ�III�ɂ�
+    ' �Y�pJR���z���v����͂��Ȃ�(�����Z���S�̂��N���A)�B
+    ' ���̌����Z���̈ꕔ(Cells(1,1))�ɑ΂��� ClearContents �� 1004
+    '   �u���̑���͌����������Z���ɂ͍s���܂���v�ɂȂ邽�߁AMergeArea �S�̂��N���A����B
     If Not IsAttachment3VendorLinkedToWorks(wsInfo, vendorIndex) Then
-        writeCell.ClearContents
+        jrTotalArea.ClearContents
         Exit Sub
     End If
 
     Dim total As Double
     total = mod_Construction_BasicTotals.SumSanpaiJrAmount()
 
-    writeCell.value = Int(total)   ' 桁切り(整数切り捨て)で入力する
+    writeCell.value = Int(total)   ' ���؂�(�����؂�̂�)�œ��͂���
     writeCell.NumberFormat = "#,##0;-#,##0;"
     writeCell.Font.Name = BASIC_INFO_REF_FONT_NAME
     writeCell.HorizontalAlignment = xlRight
     writeCell.VerticalAlignment = xlCenter
+    Exit Sub
+
+Done:
+    mod_OrderTpl_Shared.OrderTplLog "RefreshAttachment3SanpaiJrTotal error: " & Err.Number & " " & Err.Description
+    Err.Clear
 End Sub
 
 ' 当該別紙IIIの業者が施行指示書(工事)/通知書(工事)のA列に紐付いているか
