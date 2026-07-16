@@ -24,7 +24,10 @@ Private Const CONDITION_ROW38_BAND_MIN_ROW As Long = 37
 Private Const CONDITION_ROW38_BAND_MAX_ROW As Long = 39
 Private Const CONDITION_E_PAIR_MIN_ROW As Long = 34
 Private Const CONDITION_E_PAIR_MAX_ROW As Long = 35
-Private Const ATTACHMENT3_CHECK_ROW_MIN As Long = 36
+' �`�F�b�N�{�b�N�X��TopLeftCell.Row�̓e���v���[�g�̃A���J�[�ʒu�Ɉˑ����A
+' Excel�̋��E�ۂ߂ɂ��35�`40 �܂��� 36�`41 �̂ǂ��炩�ɂȂ肤��B
+' �ǂ���ł����p�F������悤�ɔ͈͂�35�`41�Ɋg���Ĕ��肷��B
+Private Const ATTACHMENT3_CHECK_ROW_MIN As Long = 35
 Private Const ATTACHMENT3_CHECK_ROW_MAX As Long = 41
 Private Const ATTACHMENT3_COL_F As Long = 6
 Private Const ATTACHMENT3_COL_H As Long = 8
@@ -32,7 +35,9 @@ Private Const ATTACHMENT3_COL_J As Long = 10
 Private Const ATTACHMENT3_COL_L As Long = 12
 Public Const ATTACHMENT3_SANPAI_ROW_MIN As Long = 49
 Public Const ATTACHMENT3_SANPAI_ROW_MAX As Long = 52
-Public Const ATTACHMENT3_SANPAI_NAME_COL As Long = 5
+' �{�ݖ��Z���͌������Z�� D49:I49(D��=4)�A���ݒn�� J49:O49(J��=10)�B
+' �_�u���N���b�N���茋���̍�����(D��)�Ɉ�v������K�v�����邽�߁A�{�ݖ���=4�B
+Public Const ATTACHMENT3_SANPAI_NAME_COL As Long = 4
 Public Const ATTACHMENT3_SANPAI_VALUE_COL As Long = 10
 Private Const SANPAI_FACILITY_MASTER_START_ROW As Long = 59
 
@@ -432,18 +437,20 @@ Public Sub ConditionCheckboxExclusiveClick()
     Dim callerName As String
     callerName = Application.Caller
 
-    Dim clicked As Object
+    ' �N���b�N���ꂽ�`�F�b�N�{�b�N�X�͕K���A�N�e�B�u�V�[�g��ɂ���B
+    ' �����̏����V(���)�Ԃœ����`�F�b�N�{�b�N�X�����݂��邽�߁A�S�V�[�g����
+    ' �擪��v�Ŏ��V�[�g�ɌН������̂�h���A�A�N�e�B�u�V�[�g�Ɍ��肷��B
     Dim ws As Worksheet
-    Set clicked = Nothing
-    For Each ws In ThisWorkbook.Worksheets
-        On Error Resume Next
-        Set clicked = ws.CheckBoxes(callerName)
-        On Error GoTo Done
-        If Not clicked Is Nothing Then Exit For
-        Set clicked = Nothing
-    Next ws
-    If clicked Is Nothing Then Exit Sub
+    On Error Resume Next
+    Set ws = ActiveSheet
+    On Error GoTo Done
     If ws Is Nothing Then Exit Sub
+
+    Dim clicked As Object
+    On Error Resume Next
+    Set clicked = ws.CheckBoxes(callerName)
+    On Error GoTo Done
+    If clicked Is Nothing Then Exit Sub
 
     Dim pair As Object
     Set pair = FindConditionCheckboxPair(ws, clicked)
@@ -974,8 +981,8 @@ Private Sub ApplyAttachment3Header(ByVal wsInfo As Worksheet, _
     ' E49:I49�`E52:I52 �_�u���N���b�N�ɂ��Y�Ɣp���������{�ݑI��
     SetupAttachment3SanpaiFacilityDoubleClickHint wsTarget
 
-    ' J54:M54 �Y�p�sJR���z���v
-    RefreshAttachment3SanpaiJrTotal wsTarget
+    ' J54:M54 �Y�p�sJR���z���v(�H���V�[�g�ɕR�t�����{�H��Ђ݂̂ɓ���)
+    RefreshAttachment3SanpaiJrTotal wsTarget, wsInfo, vendorIndex
 End Sub
 
 ' O1(�{�H��Ж�)�̓]�L(�E�l�߁EBIZ UD�S�V�b�N)
@@ -1026,18 +1033,21 @@ Public Sub Attachment3CheckboxClick()
     Dim callerName As String
     callerName = Application.Caller
 
-    Dim clicked As Object
+    ' �N���b�N���ꂽ�`�F�b�N�{�b�N�X�͕K���A�N�e�B�u�V�[�g��ɂ���B
+    ' �����̕ʎ��V(���)�Ɠ����`�F�b�N�{�b�N�X�����݂��邽�߁A�S�V�[�g����
+    ' �擪��v�Ŏ��V�[�g�ɌН������̂�h���A�A�N�e�B�u�V�[�g�Ɍ��肷��B
     Dim ws As Worksheet
-    Set clicked = Nothing
-    For Each ws In ThisWorkbook.Worksheets
-        On Error Resume Next
-        Set clicked = ws.CheckBoxes(callerName)
-        On Error GoTo Done
-        If Not clicked Is Nothing Then Exit For
-        Set clicked = Nothing
-    Next ws
-    If clicked Is Nothing Then Exit Sub
+    On Error Resume Next
+    Set ws = ActiveSheet
+    On Error GoTo Done
     If ws Is Nothing Then Exit Sub
+    If Not IsAttachment3Sheet(ws) Then Exit Sub
+
+    Dim clicked As Object
+    On Error Resume Next
+    Set clicked = ws.CheckBoxes(callerName)
+    On Error GoTo Done
+    If clicked Is Nothing Then Exit Sub
 
     Dim rowIndex As Long, colIndex As Long
     rowIndex = clicked.TopLeftCell.Row
@@ -1301,20 +1311,51 @@ End Function
 ' ===== �ʎ��V J54:M54 �Y�p�sJR���z���v =====
 ' �{�s�w����(�H��)/�{�s�ʒm��(�H��)�V�[�g�̎Y�p�s(�{�H��Ђ������I���ł��Ȃ������s)��
 ' JR���z�񍇌v���A����؂萮���� J54:M54(�����Z��)�֓]�L����B
-Private Sub RefreshAttachment3SanpaiJrTotal(ByVal ws As Worksheet)
+Private Sub RefreshAttachment3SanpaiJrTotal(ByVal ws As Worksheet, _
+                                            ByVal wsInfo As Worksheet, _
+                                            ByVal vendorIndex As Long)
     If ws Is Nothing Then Exit Sub
+
+    Dim writeCell As Range
+    Set writeCell = ws.Range("J54").MergeArea.Cells(1, 1)
+
+    ' 施行指示書(工事)/施行通知書(工事)のA列に紐付いていない施工会社の別紙IIIには
+    ' 産廃JR金額合計を入力しない(J54を空にする)。
+    If Not IsAttachment3VendorLinkedToWorks(wsInfo, vendorIndex) Then
+        writeCell.ClearContents
+        Exit Sub
+    End If
 
     Dim total As Double
     total = mod_Construction_BasicTotals.SumSanpaiJrAmount()
 
-    Dim writeCell As Range
-    Set writeCell = ws.Range("J54").MergeArea.Cells(1, 1)
     writeCell.value = Int(total)   ' 桁切り(整数切り捨て)で入力する
     writeCell.NumberFormat = "#,##0;-#,##0;"
     writeCell.Font.Name = BASIC_INFO_REF_FONT_NAME
     writeCell.HorizontalAlignment = xlRight
     writeCell.VerticalAlignment = xlCenter
 End Sub
+
+' 当該別紙IIIの業者が施行指示書(工事)/通知書(工事)のA列に紐付いているか
+Private Function IsAttachment3VendorLinkedToWorks(ByVal wsInfo As Worksheet, _
+                                                  ByVal vendorIndex As Long) As Boolean
+    On Error GoTo Done
+    If wsInfo Is Nothing Then Exit Function
+
+    Dim branchName As String
+    branchName = GetBasicInfoCellText(wsInfo, BASIC_INFO_BRANCH_CELL)
+
+    Dim vendorCol As Long
+    vendorCol = mod_Construction_BasicTotals.BasicInfoVendorColumn(vendorIndex)
+    Dim companyName As String
+    companyName = GetBasicInfoCellText(wsInfo, wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, vendorCol).Address)
+    If companyName = "" Then Exit Function
+
+    IsAttachment3VendorLinkedToWorks = _
+        mod_Construction_BasicTotals.IsVendorSelectedOnWorksSheet(branchName, companyName)
+
+Done:
+End Function
 
 ' ?��?��?��?��?��Z?��?��?��Ή�?��̒l?��]?��L(?��t?��H?��?��?��g?��K?��p?��A?��K?��v?��ɉ�?��?��?��ď㉺?��?��?��E?��?��?��?��?��?��?��?��)
 Private Sub WriteHeaderValue(ByVal target As Range, ByVal value As Variant, ByVal centered As Boolean)
