@@ -61,7 +61,14 @@ Private Sub Workbook_SheetSelectionChange(ByVal Sh As Object, ByVal Target As Ra
         Set mSubconSavedSel = Target
     Else
         If Not mSubconSavedSel Is Nothing Then
-            If Not (mSubconSavedSel.Worksheet Is Sh) Then
+            Dim savedWs As Worksheet
+            On Error Resume Next
+            Set savedWs = mSubconSavedSel.Worksheet
+            On Error GoTo 0
+            If savedWs Is Nothing Then
+                ' 保存していた選択範囲のシートが削除・再作成されて参照切れになった場合の保護
+                Set mSubconSavedSel = Nothing
+            ElseIf Not (savedWs Is Sh) Then
                 Set mSubconSavedSel = Nothing
             ElseIf Application.Intersect(mSubconSavedSel, Target) Is Nothing Then
                 Set mSubconSavedSel = Nothing

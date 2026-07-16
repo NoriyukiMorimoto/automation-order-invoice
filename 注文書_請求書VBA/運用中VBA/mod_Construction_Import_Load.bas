@@ -396,8 +396,9 @@ Public Function BuildConstructionOutputSheet(ByVal sheetName As String, _
         ApplyPriceGuidanceColumnLayout ws
         mod_subcontractorselector.ApplySubcontractorDropdowns ws
     End If
-    ' 産廃処理行の入力禁止(A列塗りつぶし)は廃止。施工会社は全行で選択可能とし、
-    ' 産廃処理行の内訳明細への転記除外は mod_OrderTpl_Detail.CollectSourceSections 側で行う。
+    ' 産廃行の入力禁止は廃止(施工会社は全行で選択可能)。A列は色分け表示のみ行う。
+    ' 産廃行の内訳明細への転記除外は mod_OrderTpl_Detail.CollectSourceSections 側で行う。
+    mod_Construction_OutputFormat.ApplySanpaiRowColorCore ws
     RefreshOutputSheetVendorColumnColors ws, mod_Construction_LineMapping.GetLastDataRow(ws)
 
     If Not isWelding Then

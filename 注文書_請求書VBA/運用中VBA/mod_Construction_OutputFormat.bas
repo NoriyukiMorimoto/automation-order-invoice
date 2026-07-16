@@ -82,6 +82,41 @@ Public Sub ApplySanpaiRowRestrictionsCore(ByVal ws As Worksheet)
     LogCI "?ｿｽY?ｿｽp?ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽs: A?ｿｽ?ｿｽh?ｿｽ?ｿｽﾂぶゑｿｽ?ｿｽE?ｿｽ?ｿｽ?ｿｽﾍ不?ｿｽ?ｿｽ=" & restrictedCount & " ?ｿｽs"
 End Sub
 
+' 産廃行(施工会社列が当初選択できなかった行)のA列(施工会社列)を色分け表示する。
+' 入力・選択の制限は行わない(選択可否の制御廃止に伴い、視覚的な区別のみを行う)。
+' 塗りつぶし=808080、文字色=白。
+Public Sub ApplySanpaiRowColorCore(ByVal ws As Worksheet)
+    If ws Is Nothing Then Exit Sub
+
+    Dim lastRow As Long
+    lastRow = mod_Construction_LineMapping.GetLastDataRow(ws)
+    If lastRow < 2 Then Exit Sub
+
+    Dim fillColor As Long
+    fillColor = RGB(&H80, &H80, &H80)
+    Dim fontColor As Long
+    fontColor = RGB(255, 255, 255)
+
+    Dim coloredCount As Long
+    Dim r As Long
+    Dim vendorCol As Variant
+    Dim vendorColumns As Collection
+    Set vendorColumns = mod_Construction_OutputLayout.OutputSheetVendorColumnsCore(ws)
+    For r = 2 To lastRow
+        If mod_Construction_BasicTotals.IsSanpaiRow(ws, r) Then
+            For Each vendorCol In vendorColumns
+                With ws.Cells(r, CLng(vendorCol))
+                    .Interior.Color = fillColor
+                    .Font.Color = fontColor
+                End With
+            Next vendorCol
+            coloredCount = coloredCount + 1
+        End If
+    Next r
+
+    LogCI "産廃行: A列塗りつぶし(808080)・文字色白=" & coloredCount & " 行"
+End Sub
+
 Public Sub WriteTotalCells(ByVal ws As Worksheet, ByVal totalRow As Long, _
                             ByVal labelColumn As Long, ByVal labelText As String, _
                             ByVal sumColumn As Long, ByVal sumLastRow As Long, _

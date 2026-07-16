@@ -1,23 +1,23 @@
 Option Explicit
 
-' ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½eï¿½ï¿½ï¿½vï¿½ï¿½ï¿½[ï¿½gï¿½æ(ï¿½{ï¿½Hï¿½ï¿½ĞŠmï¿½èï¿½ÌƒVï¿½[ï¿½gï¿½}ï¿½ï¿½ï¿½Eï¿½ï¿½ï¿½ó–¾×“]ï¿½L)ï¿½Ì‹ï¿½ï¿½Ê’è”ï¿½Eï¿½Æï¿½ï¿½wï¿½ï¿½ï¿½pï¿½[ï¿½B
-' ï¿½ï¿½ï¿½Cï¿½ï¿½ï¿½ï¿½: CHANGELOG.md ï¿½Qï¿½ï¿½
+' ’•¶‘ƒeƒ“ƒvƒŒ[ƒgæ({H‰ïĞŠm’è‚ÌƒV[ƒg‘}“üE“à–ó–¾×“]‹L)‚Ì‹¤’Ê’è”EÆ‡ƒwƒ‹ƒp[B
+' ‰üC—š—ğ: CHANGELOG.md QÆ
 
-Public Const ORDER_TPL_DETAIL_START_ROW As Long = 11      ' ï¿½ï¿½ï¿½ó–¾×‚Ì–ï¿½ï¿½×ŠJï¿½nï¿½s(ï¿½Zï¿½Nï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½oï¿½ï¿½ï¿½s)
-Public Const ORDER_TPL_DETAIL_DEFAULT_ROWS As Long = 22   ' ï¿½eï¿½ï¿½ï¿½vï¿½ï¿½ï¿½[ï¿½gï¿½ï¿½ï¿½ï¿½ï¿½Ì–ï¿½ï¿½×sï¿½ï¿½(11:32ï¿½s)
+Public Const ORDER_TPL_DETAIL_START_ROW As Long = 11      ' “à–ó–¾×‚Ì–¾×ŠJns(ƒZƒNƒVƒ‡ƒ“Œ©o‚µs)
+Public Const ORDER_TPL_DETAIL_DEFAULT_ROWS As Long = 22   ' ƒeƒ“ƒvƒŒ[ƒg‰Šú‚Ì–¾×s”(11:32s)
 Public Const ORDER_TPL_PRINT_TITLE_ROWS As String = "$7:$10"
-Public Const ORDER_TPL_BLOCK_VENDOR_CODE_ROW As Long = 16 ' ï¿½ï¿½{ï¿½ï¿½ï¿½: ï¿½ÆÒƒRï¿½[ï¿½hï¿½s
-Public Const ORDER_TPL_BLOCK_ORDER_NO_ROW As Long = 27    ' ï¿½ï¿½{ï¿½ï¿½ï¿½: ï¿½ï¿½ï¿½ï¿½ï¿½Ôï¿½ï¿½s
-Public Const ORDER_TPL_VENDOR_ADO_NAME_FIELD As Long = 0      ' ï¿½ÆÒƒ}ï¿½Xï¿½^ Aï¿½ï¿½ ï¿½ÆÒ–ï¿½
-Public Const ORDER_TPL_VENDOR_ADO_OFFICIAL_FIELD As Long = 1  ' ï¿½ÆÒƒ}ï¿½Xï¿½^ Bï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Òï¿½ï¿½ï¿½
-Public Const ORDER_TPL_VENDOR_ADO_WORK_FIELD As Long = 14     ' ï¿½ÆÒƒ}ï¿½Xï¿½^ Oï¿½ï¿½ ï¿½Sï¿½ï¿½ï¿½Hï¿½ï¿½
-Public Const ORDER_TPL_VENDOR_ADO_ALIAS_FIELD As Long = 15    ' ï¿½ÆÒƒ}ï¿½Xï¿½^ Pï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+Public Const ORDER_TPL_BLOCK_VENDOR_CODE_ROW As Long = 16 ' Šî–{î•ñ: ‹ÆÒƒR[ƒhs
+Public Const ORDER_TPL_BLOCK_ORDER_NO_ROW As Long = 27    ' Šî–{î•ñ: ’•¶”Ô†s
+Public Const ORDER_TPL_VENDOR_ADO_NAME_FIELD As Long = 0      ' ‹ÆÒƒ}ƒXƒ^ A—ñ ‹ÆÒ–¼
+Public Const ORDER_TPL_VENDOR_ADO_OFFICIAL_FIELD As Long = 1  ' ‹ÆÒƒ}ƒXƒ^ B—ñ ¿‹Ò–¼
+Public Const ORDER_TPL_VENDOR_ADO_WORK_FIELD As Long = 14     ' ‹ÆÒƒ}ƒXƒ^ O—ñ ’S“–H–
+Public Const ORDER_TPL_VENDOR_ADO_ALIAS_FIELD As Long = 15    ' ‹ÆÒƒ}ƒXƒ^ P—ñ —ªÌ
 
-Private mVendorInfoCache As Object       ' ï¿½xï¿½X|ï¿½ï¿½Ğ–ï¿½ ï¿½ï¿½ Array(ï¿½ÆÒ–ï¿½, ï¿½ï¿½ï¿½ï¿½, ï¿½Sï¿½ï¿½ï¿½Hï¿½ï¿½)
-Private mBranchOfficeCodeCache As Object ' ï¿½xï¿½X|ï¿½oï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½Xï¿½Rï¿½[ï¿½h
-Private mPlaceholderRepairDone As Boolean ' ï¿½Zï¿½bï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å–hï¿½ï¿½Iï¿½ÈˆêŠ‡ï¿½ï¿½Cï¿½ï¿½ï¿½ï¿½ï¿½{ï¿½Ï‚İ‚ï¿½(Activateï¿½ï¿½ï¿½Ì‘Sï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
+Private mVendorInfoCache As Object       ' x“X|‰ïĞ–¼ ¨ Array(‹ÆÒ–¼, —ªÌ, ’S“–H–)
+Private mBranchOfficeCodeCache As Object ' x“X|o’£Š ¨ •”“XƒR[ƒh
+Private mPlaceholderRepairDone As Boolean ' ƒZƒbƒVƒ‡ƒ““à‚Å–hŒä“I‚ÈˆêŠ‡•âC‚ğÀ{Ï‚İ‚©(Activate–ˆ‚Ì‘S‘–¸‚ğ‰ñ”ğ)
 
-' ï¿½eï¿½ï¿½ï¿½vï¿½ï¿½ï¿½[ï¿½gï¿½tï¿½@ï¿½Cï¿½ï¿½ï¿½ï¿½
+' ƒeƒ“ƒvƒŒ[ƒgƒtƒ@ƒCƒ‹–¼
 Public Function OrderTplTemplateFileNameText() As String
     Static cached As String
     If cached = "" Then
@@ -68,7 +68,7 @@ Public Function OrderTplBaseNameAttachment3Text() As String
     OrderTplBaseNameAttachment3Text = cached
 End Function
 
-' æ¡ä»¶æ›¸(å–è¾¼å¾Œã®åŸºæº–åã€‚ãƒ†ãƒ³ãƒ—ãƒ¬ãƒ¼ãƒˆã¯å·¥äº‹åŒºåˆ†åˆ¥ã®ã€Œæ¡ä»¶æ›¸(â—¯â—¯å·¥äº‹)ã€)
+' ğŒ‘(æŒã‚ÌŠî€–¼Bƒeƒ“ƒvƒŒ[ƒg‚ÍH–‹æ•ª•Ê‚ÌuğŒ‘(üüH–)v)
 Public Function OrderTplBaseNameConditionText() As String
     Static cached As String
     If cached = "" Then
@@ -85,7 +85,7 @@ Public Function OrderTplRailWeldingLabelText() As String
     OrderTplRailWeldingLabelText = cached
 End Function
 
-' ï¿½{ï¿½Hï¿½ï¿½Ğ•Ê’Pï¿½ï¿½ï¿½ï¿½wï¿½bï¿½_ï¿½[ï¿½ÌÚ”ï¿½ï¿½ï¿½
+' {H‰ïĞ•Ê’P‰¿—ñƒwƒbƒ_[‚ÌÚ”ö«
 Public Function OrderTplUnitPriceHeaderSuffixText() As String
     Static cached As String
     If cached = "" Then
@@ -110,7 +110,7 @@ Public Function OrderTplSubtotalLabelText() As String
     OrderTplSubtotalLabelText = cached
 End Function
 
-' ï¿½ï¿½ï¿½Ø‚ï¿½È‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì’Pï¿½Êˆê——
+' Œ…Ø‚è‚È‚µ®”‚Ì’PˆÊˆê——
 Private Function OrderTplIntegerUnitListText() As String
     Static cached As String
     If cached = "" Then
@@ -135,7 +135,7 @@ Private Function OrderTplIntegerUnitListText() As String
     OrderTplIntegerUnitListText = cached
 End Function
 
-' ï¿½ï¿½ï¿½ï¿½2ï¿½ï¿½ï¿½Ì’Pï¿½Êˆê——
+' ¬”2Œ…‚Ì’PˆÊˆê——
 Private Function OrderTplDecimalUnitListText() As String
     Static cached As String
     If cached = "" Then
@@ -150,7 +150,7 @@ Private Function OrderTplDecimalUnitListText() As String
     OrderTplDecimalUnitListText = cached
 End Function
 
-' ï¿½aï¿½ï¿½\ï¿½ï¿½ï¿½`ï¿½ï¿½
+' ˜a—ï•\¦Œ`®
 Public Function OrderTplEraDateNumberFormatText() As String
     Static cached As String
     If cached = "" Then
@@ -248,9 +248,9 @@ Public Function OrderTplTemplateSheetBaseNames() As Variant
                                            OrderTplBaseNameAttachment3Text())
 End Function
 
-' ç”Ÿæˆã‚·ãƒ¼ãƒˆã®èªè­˜ç”¨ã®åŸºæº–å(å–è¾¼5ã‚·ãƒ¼ãƒˆ + æ¡ä»¶æ›¸)ã€‚
-' æ¡ä»¶æ›¸ã¯å·¥äº‹åŒºåˆ†åˆ¥ãƒ†ãƒ³ãƒ—ãƒ¬ãƒ¼ãƒˆã‹ã‚‰å–ã‚Šè¾¼ã‚€ãŒã€ç”Ÿæˆå¾Œã¯ "æ¡ä»¶æ›¸(ç•¥ç§°)" ã¨ãªã‚‹ãŸã‚ã€
-' èªè­˜ãƒ»å¾Œå§‹æœ«ãƒ»å†è»¢è¨˜ã®åˆ¤å®šã¯ã“ã®ä¸€è¦§ã§è¡Œã†(å–è¾¼ã®ã‚³ãƒ”ãƒ¼å¯¾è±¡ã¯ä¸Šã®5å›ºå®šã®ã¾ã¾)ã€‚
+' ¶¬ƒV[ƒg‚Ì”F¯—p‚ÌŠî€–¼(æ5ƒV[ƒg + ğŒ‘)B
+' ğŒ‘‚ÍH–‹æ•ª•Êƒeƒ“ƒvƒŒ[ƒg‚©‚çæ‚è‚Ş‚ªA¶¬Œã‚Í "ğŒ‘(—ªÌ)" ‚Æ‚È‚é‚½‚ßA
+' ”F¯EŒãn––EÄ“]‹L‚Ì”»’è‚Í‚±‚Ìˆê——‚Ås‚¤(æ‚ÌƒRƒs[‘ÎÛ‚Íã‚Ì5ŒÅ’è‚Ì‚Ü‚Ü)B
 Public Function OrderTplGeneratedSheetBaseNames() As Variant
     OrderTplGeneratedSheetBaseNames = Array(OrderTplBaseNameBreakdownText(), _
                                             OrderTplBaseNameContractorText(), _
@@ -260,8 +260,8 @@ Public Function OrderTplGeneratedSheetBaseNames() As Variant
                                             OrderTplBaseNameAttachment3Text())
 End Function
 
-' å·¥äº‹åŒºåˆ†(åŸºæœ¬æƒ…å ±10è¡Œ)ã«ä¸€è‡´ã™ã‚‹æ¡ä»¶æ›¸ãƒ†ãƒ³ãƒ—ãƒ¬ãƒ¼ãƒˆã‚·ãƒ¼ãƒˆã‚’ template ã‹ã‚‰æ¢ã™ã€‚
-' "æ¡ä»¶æ›¸" ã§å§‹ã¾ã‚Šå·¥äº‹åŒºåˆ†åã‚’å«ã‚€ã‚·ãƒ¼ãƒˆã‚’è¿”ã™(ãƒ‘ãƒ¼ãƒ¬ãƒ³è¡¨è¨˜ã®æºã‚Œã«å¼·ã„)ã€‚ç„¡ã‘ã‚Œã° Nothingã€‚
+' H–‹æ•ª(Šî–{î•ñ10s)‚Éˆê’v‚·‚éğŒ‘ƒeƒ“ƒvƒŒ[ƒgƒV[ƒg‚ğ template ‚©‚ç’T‚·B
+' "ğŒ‘" ‚Ån‚Ü‚èH–‹æ•ª–¼‚ğŠÜ‚ŞƒV[ƒg‚ğ•Ô‚·(ƒp[ƒŒƒ“•\‹L‚Ì—h‚ê‚É‹­‚¢)B–³‚¯‚ê‚Î NothingB
 Public Function OrderTplFindConditionTemplateSheet(ByVal templateBook As Workbook, _
                                                    ByVal workType As String) As Worksheet
     If templateBook Is Nothing Then Exit Function
@@ -287,7 +287,7 @@ Public Function OrderTplFindConditionTemplateSheet(ByVal templateBook As Workboo
     Next ws
 End Function
 
-' ï¿½}ï¿½Xï¿½^ï¿½fï¿½[ï¿½^ï¿½tï¿½Hï¿½ï¿½ï¿½_ï¿½ï¿½ï¿½tï¿½@ï¿½Cï¿½ï¿½ï¿½Ìƒpï¿½Xï¿½ï¿½ï¿½ï¿½(ï¿½ï¿½ï¿½Lï¿½tï¿½Hï¿½ï¿½ï¿½_ ï¿½ï¿½ ï¿½uï¿½bï¿½Nï¿½eï¿½tï¿½Hï¿½ï¿½ï¿½_ ï¿½ï¿½ ï¿½uï¿½bï¿½Nï¿½ï¿½ï¿½ï¿½)
+' ƒ}ƒXƒ^ƒf[ƒ^ƒtƒHƒ‹ƒ_“àƒtƒ@ƒCƒ‹‚ÌƒpƒX‰ğŒˆ(‹¤—LƒtƒHƒ‹ƒ_ ¨ ƒuƒbƒNeƒtƒHƒ‹ƒ_ ¨ ƒuƒbƒN’¼‰º)
 Public Function OrderTplMasterDataFilePath(ByVal fileName As String) As String
     Dim fso As Object
     Set fso = CreateObject("Scripting.FileSystemObject")
@@ -320,7 +320,7 @@ Public Function OrderTplMasterDataFilePath(ByVal fileName As String) As String
     End If
 End Function
 
-' ï¿½ï¿½{ï¿½ï¿½ï¿½Vï¿½[ï¿½gï¿½Ì{ï¿½Hï¿½ï¿½ĞƒZï¿½ï¿½(11ï¿½sï¿½ï¿½)ï¿½Ì’lï¿½ï¿½ï¿½æ“¾ï¿½ï¿½ï¿½ï¿½
+' Šî–{î•ñƒV[ƒg‚Ì{H‰ïĞƒZƒ‹(11s–Ú)‚Ì’l‚ğæ“¾‚·‚é
 Public Function OrderTplGetVendorCompanyName(ByVal wsInfo As Worksheet, ByVal vendorIndex As Long) As String
     If wsInfo Is Nothing Then Exit Function
     Dim valueColumn As Long
@@ -329,7 +329,7 @@ Public Function OrderTplGetVendorCompanyName(ByVal wsInfo As Worksheet, ByVal ve
         wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, valueColumn).value))
 End Function
 
-' ï¿½ÆÒƒ}ï¿½Xï¿½^(ï¿½Sï¿½Ğ”ï¿½)ï¿½ï¿½ï¿½ï¿½ï¿½Ğ–ï¿½(Bï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Òï¿½ï¿½ï¿½)ï¿½ÅÆï¿½ï¿½ï¿½ï¿½AAï¿½ï¿½ ï¿½ÆÒ–ï¿½ï¿½EPï¿½ï¿½ ï¿½ï¿½ï¿½ÌEOï¿½ï¿½ ï¿½Sï¿½ï¿½ï¿½Hï¿½ï¿½ï¿½ï¿½Ô‚ï¿½
+' ‹ÆÒƒ}ƒXƒ^(‘SĞ”Å)‚©‚ç‰ïĞ–¼(B—ñ ¿‹Ò–¼)‚ÅÆ‡‚µAA—ñ ‹ÆÒ–¼EP—ñ —ªÌEO—ñ ’S“–H–‚ğ•Ô‚·
 Public Function OrderTplResolveVendorMasterInfo(ByVal branchName As String, _
                                                 ByVal officialName As String, _
                                                 ByRef vendorName As String, _
@@ -404,7 +404,7 @@ Cleanup:
     CommonCloseAdoConnection connection
 End Function
 
-' ï¿½oï¿½ï¿½ï¿½ï¿½ï¿½ï¿½_ï¿½Pï¿½ï¿½ï¿½Kï¿½pï¿½ï¿½ï¿½ï¿½.xlsx ï¿½Ì’Pï¿½ï¿½ï¿½Kï¿½pï¿½ï¿½ï¿½ï¿½Vï¿½[ï¿½gï¿½ï¿½ï¿½ç•”ï¿½Xï¿½Rï¿½[ï¿½h(Gï¿½ï¿½)ï¿½ï¿½ï¿½æ“¾ï¿½ï¿½ï¿½ï¿½
+' o’£Š•Ê_’P‰¿“K—pü‹æ.xlsx ‚Ì’P‰¿“K—pü‹æƒV[ƒg‚©‚ç•”“XƒR[ƒh(G—ñ)‚ğæ“¾‚·‚é
 Public Function OrderTplResolveBranchOfficeCode(ByVal branchName As String, _
                                                 ByVal officeName As String) As String
     Dim normalizedBranch As String
@@ -474,12 +474,12 @@ Private Function ResolveAdoWorksheetName(ByVal connection As Object, ByVal targe
     Next sheetName
 End Function
 
-' ï¿½eï¿½ï¿½ï¿½vï¿½ï¿½ï¿½[ï¿½gï¿½Vï¿½[ï¿½gï¿½ï¿½ + ï¿½ï¿½ï¿½ï¿½(Pï¿½ï¿½)ï¿½ï¿½ï¿½ï¿½Vï¿½[ï¿½gï¿½ï¿½ï¿½ï¿½gï¿½İ—ï¿½ï¿½Ä‚ï¿½
+' ƒeƒ“ƒvƒŒ[ƒgƒV[ƒg–¼ + —ªÌ(P—ñ)‚©‚çƒV[ƒg–¼‚ğ‘g‚İ—§‚Ä‚é
 Public Function OrderTplBuildSheetName(ByVal baseName As String, ByVal aliasText As String) As String
     OrderTplBuildSheetName = mod_Construction_OutputLayout.SanitizeSheetName(baseName & aliasText)
 End Function
 
-' ï¿½ï¿½ï¿½ï¿½ï¿½Ï‚İƒeï¿½ï¿½ï¿½vï¿½ï¿½ï¿½[ï¿½gï¿½Vï¿½[ï¿½gï¿½ï¿½ï¿½ï¿½ï¿½è‚µï¿½Aï¿½ï¿½{ï¿½ï¿½ï¿½Æ—ï¿½ï¿½Ì‚ï¿½Ô‚ï¿½
+' ¶¬Ï‚İƒeƒ“ƒvƒŒ[ƒgƒV[ƒg‚©”»’è‚µAŠî–{–¼‚Æ—ªÌ‚ğ•Ô‚·
 Public Function OrderTplIsGeneratedSheet(ByVal ws As Worksheet, _
                                          ByRef baseName As String, _
                                          ByRef aliasText As String) As Boolean
@@ -520,7 +520,7 @@ Public Function OrderTplSheetExists(ByVal sheetName As String) As Boolean
     OrderTplSheetExists = Not ws Is Nothing
 End Function
 
-' ï¿½{ï¿½Hï¿½wï¿½ï¿½ï¿½ï¿½(ï¿½Hï¿½ï¿½)/ï¿½{ï¿½Hï¿½Ê’mï¿½ï¿½(ï¿½Hï¿½ï¿½)ï¿½Ìæï¿½Ï‚İƒVï¿½[ï¿½gï¿½ï¿½Tï¿½ï¿½(ï¿½ï¿½ï¿½İ‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½gï¿½p)
+' {Hw¦‘(H–)/{H’Ê’m‘(H–)‚ÌæÏ‚İƒV[ƒg‚ğ’T‚·(‘¶İ‚·‚é•û‚ğ©“®g—p)
 Public Function OrderTplFindWorksSourceSheet() As Worksheet
     Dim ws As Worksheet
     For Each ws In ThisWorkbook.Worksheets
@@ -537,7 +537,7 @@ Public Function OrderTplFindWorksSourceSheet() As Worksheet
     Next ws
 End Function
 
-' ï¿½{ï¿½Hï¿½wï¿½ï¿½ï¿½ï¿½(ï¿½nï¿½ï¿½)/ï¿½{ï¿½Hï¿½Ê’mï¿½ï¿½(ï¿½nï¿½ï¿½)ï¿½Ìæï¿½Ï‚İƒVï¿½[ï¿½gï¿½ï¿½Tï¿½ï¿½(ï¿½ï¿½ï¿½İ‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½gï¿½p)
+' {Hw¦‘(—nÚ)/{H’Ê’m‘(—nÚ)‚ÌæÏ‚İƒV[ƒg‚ğ’T‚·(‘¶İ‚·‚é•û‚ğ©“®g—p)
 Public Function OrderTplFindWeldingSourceSheet() As Worksheet
     Dim ws As Worksheet
     For Each ws In ThisWorkbook.Worksheets
@@ -554,8 +554,8 @@ Public Function OrderTplFindWeldingSourceSheet() As Worksheet
     Next ws
 End Function
 
-' ï¿½_ï¿½ï¿½ï¿½ï¿½æ–¼ï¿½ï¿½ï¿½ï¿½Ú”ï¿½ï¿½ï¿½((ï¿½Oï¿½ï¿½)/(ï¿½nï¿½Úwï¿½ï¿½ï¿½ï¿½ï¿½p)/(ï¿½nï¿½Ú’Ê’mï¿½ï¿½ï¿½p))ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-' ï¿½ï¿½ï¿½ï¿½ï¿½Ìƒ}ï¿½[ï¿½Jï¿½[ï¿½ï¿½ï¿½ï¿½ï¿½Öï¿½ï¿½ÖˆÏï¿½ï¿½ï¿½ï¿½Aï¿½wï¿½ï¿½ï¿½ï¿½ï¿½Eï¿½Ê’mï¿½ï¿½ï¿½Ì—ï¿½ï¿½\ï¿½Lï¿½É‘Î‰ï¿½ï¿½ï¿½ï¿½ï¿½
+' Œ_–ñü‹æ–¼‚©‚çÚ”ö«((‹O“¹)/(—nÚw¦‘—p)/(—nÚ’Ê’m‘—p))‚ğœ‹‚·‚é
+' Šù‘¶‚Ìƒ}[ƒJ[œ‹ŠÖ”‚ÖˆÏ÷‚µAw¦‘E’Ê’m‘‚Ì—¼•\‹L‚É‘Î‰‚·‚é
 Public Function OrderTplStripLineSuffix(ByVal lineText As String, ByVal isWeldingSource As Boolean) As String
     Dim t As String
     t = mod_Construction_Import_Load.NormalizeSheetNameParentheses(CommonNormalizeText(lineText))
@@ -568,12 +568,12 @@ Public Function OrderTplStripLineSuffix(ByVal lineText As String, ByVal isWeldin
     OrderTplStripLineSuffix = Trim$(t)
 End Function
 
-' ï¿½ï¿½ï¿½Ê‚Ì’Pï¿½Ê‚ï¿½ï¿½ï¿½ï¿½ï¿½(ï¿½ï¿½ï¿½Ø‚ï¿½È‚ï¿½)ï¿½ÎÛ‚ï¿½ï¿½ï¿½ï¿½è‚·ï¿½ï¿½
+' ”—Ê‚Ì’PˆÊ‚ª®”(Œ…Ø‚è‚È‚µ)‘ÎÛ‚©”»’è‚·‚é
 Public Function OrderTplIsIntegerUnit(ByVal unitText As String) As Boolean
     OrderTplIsIntegerUnit = UnitListContains(OrderTplIntegerUnitListText(), unitText)
 End Function
 
-' ï¿½ï¿½ï¿½Ê‚Ì’Pï¿½Ê‚ï¿½ï¿½ï¿½ï¿½ï¿½2ï¿½ï¿½ï¿½ÎÛ‚ï¿½ï¿½ï¿½ï¿½è‚·ï¿½ï¿½
+' ”—Ê‚Ì’PˆÊ‚ª¬”2Œ…‘ÎÛ‚©”»’è‚·‚é
 Public Function OrderTplIsDecimalUnit(ByVal unitText As String) As Boolean
     OrderTplIsDecimalUnit = UnitListContains(OrderTplDecimalUnitListText(), unitText)
 End Function
@@ -582,7 +582,7 @@ Private Function UnitListContains(ByVal listText As String, ByVal unitText As St
     Dim normalizedUnit As String
     normalizedUnit = CommonRemoveAllSpaces(CommonNormalizeText(unitText))
     If normalizedUnit = "" Then Exit Function
-    ' ï¿½Pï¿½ï¿½ï¿½\ï¿½Eï¿½{ï¿½Hï¿½wï¿½ï¿½ï¿½ï¿½ï¿½Ì’Pï¿½Ê‚Í‘Sï¿½pï¿½pï¿½ï¿½(ï¿½ï¿½/ï¿½l/ï¿½ï¿½)ï¿½Å“ï¿½ï¿½é‚±ï¿½Æ‚ï¿½ï¿½ï¿½ï¿½é‚½ï¿½ß”ï¿½ï¿½pï¿½Öï¿½ï¿½Kï¿½ï¿½ï¿½ï¿½ï¿½ÄÆï¿½ï¿½ï¿½ï¿½ï¿½
+    ' ’P‰¿•\E{Hw¦‘‚Ì’PˆÊ‚Í‘SŠp‰pš(‚/‚l/‚”)‚Å“ü‚é‚±‚Æ‚ª‚ ‚é‚½‚ß”¼Šp‚Ö³‹K‰»‚µ‚ÄÆ‡‚·‚é
     normalizedUnit = StrConv(normalizedUnit, vbNarrow)
 
     Dim items As Variant
@@ -597,13 +597,13 @@ Private Function UnitListContains(ByVal listText As String, ByVal unitText As St
     Next i
 End Function
 
-' ï¿½ï¿½ï¿½ï¿½ï¿½Ï‚İƒeï¿½ï¿½ï¿½vï¿½ï¿½ï¿½[ï¿½g(ï¿½xï¿½Xï¿½T/ï¿½ó’Ò—p/ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)ï¿½Écï¿½ï¿½vï¿½ï¿½ï¿½[ï¿½Xï¿½zï¿½ï¿½ï¿½_ï¿½[ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½B
-' ï¿½eï¿½ï¿½ï¿½vï¿½ï¿½ï¿½[ï¿½g xlsx ï¿½Ìï¿½ï¿½ÈQï¿½ï¿½(ï¿½ï¿½: ='ï¿½xï¿½Xï¿½T(ï¿½ï¿½ï¿½ï¿½)'!E20)ï¿½ï¿½ #REF!ï¿½Aï¿½xï¿½Xï¿½Tï¿½Ö‚Ìƒ~ï¿½ï¿½ï¿½[ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-' ï¿½uï¿½bï¿½Nï¿½ÄŒvï¿½Zï¿½ï¿½ï¿½Ézï¿½ÂQï¿½Æƒ_ï¿½Cï¿½Aï¿½ï¿½ï¿½Oï¿½ï¿½ï¿½oï¿½ï¿½ï¿½ï¿½ï¿½ßAVBA ï¿½]ï¿½Lï¿½Oï¿½É’lï¿½Zï¿½ï¿½ï¿½Ö–ß‚ï¿½ï¿½B
-' ï¿½ï¿½ï¿½ï¿½ï¿½Ï‚İƒeï¿½ï¿½ï¿½vï¿½ï¿½ï¿½[ï¿½g(ï¿½xï¿½Xï¿½T/ï¿½ó’Ò—p/ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)ï¿½Ìƒvï¿½ï¿½ï¿½[ï¿½Xï¿½zï¿½ï¿½ï¿½_ï¿½[ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½êŠ‡ï¿½ï¿½Cï¿½ï¿½ï¿½ï¿½B
-' ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½(GenerateVendorOrderSheets)ï¿½Eï¿½Ä“]ï¿½Lï¿½ï¿½ï¿½EF9ï¿½ï¿½ï¿½Cï¿½Aï¿½Eï¿½gï¿½ÏXï¿½ï¿½ï¿½ÍŠeï¿½Vï¿½[ï¿½gï¿½ï¿½ï¿½Â•Ê‚É•ï¿½Cï¿½Ï‚İ‚Ì‚ï¿½ï¿½ßA
-' ï¿½ï¿½ï¿½ï¿½ï¿½Ä‚Ñoï¿½ï¿½ï¿½ï¿½ Force:=True ï¿½Å•Kï¿½ï¿½ï¿½ï¿½ï¿½sï¿½ï¿½ï¿½Aï¿½ï¿½{ï¿½ï¿½ï¿½Vï¿½[ï¿½gï¿½ï¿½ Activate ï¿½ï¿½ï¿½ï¿½Ì–hï¿½ï¿½Iï¿½Ä‚Ñoï¿½ï¿½(Forceï¿½È—ï¿½)ï¿½ï¿½
-' ï¿½Zï¿½bï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì‚İï¿½ï¿½sï¿½ï¿½ï¿½ÄAï¿½Vï¿½[ï¿½gï¿½Ø‘Ö‚Ì“sï¿½xï¿½Ì‘Sï¿½ï¿½ï¿½ï¿½(ï¿½ÌŠï¿½ï¿½tï¿½ï¿½ï¿½[ï¿½Yï¿½Ìˆï¿½ï¿½)ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½B
+' ¶¬Ï‚İƒeƒ“ƒvƒŒ[ƒg(x“XT/ó’Ò—p/’•¶¿‘)‚Éc‚éƒvƒŒ[ƒXƒzƒ‹ƒ_[”®‚ğœ‹‚·‚éB
+' ƒeƒ“ƒvƒŒ[ƒg xlsx ‚Ì©ŒÈQÆ(—á: ='x“XT(—ªÌ)'!E20)‚â #REF!Ax“XT‚Ö‚Ìƒ~ƒ‰[”®‚ª
+' ƒuƒbƒNÄŒvZ‚ÉzŠÂQÆƒ_ƒCƒAƒƒO‚ğo‚·‚½‚ßAVBA “]‹L‘O‚É’lƒZƒ‹‚Ö–ß‚·B
+' ¶¬Ï‚İƒeƒ“ƒvƒŒ[ƒg(x“XT/ó’Ò—p/’•¶¿‘)‚ÌƒvƒŒ[ƒXƒzƒ‹ƒ_[”®‚ğˆêŠ‡•âC‚·‚éB
+' ¶¬(GenerateVendorOrderSheets)EÄ“]‹LEF9ƒŒƒCƒAƒEƒg•ÏX‚ÍŠeƒV[ƒg‚ªŒÂ•Ê‚É•âCÏ‚İ‚Ì‚½‚ßA
+' –¾¦ŒÄ‚Ño‚µ‚Í Force:=True ‚Å•K‚¸Às‚µAŠî–{î•ñƒV[ƒg‚Ì Activate ‚©‚ç‚Ì–hŒä“IŒÄ‚Ño‚µ(ForceÈ—ª)‚Í
+' ƒZƒbƒVƒ‡ƒ“‰‰ñ‚Ì‚İÀs‚µ‚ÄAƒV[ƒgØ‘Ö‚Ì“s“x‚Ì‘S‘–¸(‘ÌŠ´ƒtƒŠ[ƒY‚Ìˆêˆö)‚ğ‰ñ”ğ‚·‚éB
 Public Sub OrderTplRepairAllGeneratedPlaceholderFormulas(Optional ByVal Force As Boolean = False)
     If Not Force And mPlaceholderRepairDone Then Exit Sub
 
@@ -650,7 +650,7 @@ Public Sub OrderTplSanitizePlaceholderFormulas(ByVal ws As Worksheet)
         If processed.Exists(repKey) Then GoTo ContinueCell
         processed.Add repKey, True
 
-        ' ï¿½ï¿½\ï¿½Zï¿½ï¿½(ï¿½ï¿½ï¿½ï¿½ï¿½Ìï¿½ï¿½ï¿½)ï¿½ï¿½ï¿½ç”ï¿½ï¿½ï¿½ï¿½1ï¿½ñ‚¾‚ï¿½ï¿½æ“¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö“nï¿½ï¿½(MergeAreaï¿½ï¿½ï¿½ï¿½ï¿½Ìdï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
+        ' ‘ã•\ƒZƒ‹(Œ‹‡‚Ì¶ã)‚©‚ç”®‚ğ1‰ñ‚¾‚¯æ“¾‚µ”»’è‚Ö“n‚·(MergeArea‰•œ‚Ìd•¡‚ğ‰ñ”ğ)
         Dim formulaText As String
         formulaText = ""
         On Error Resume Next
