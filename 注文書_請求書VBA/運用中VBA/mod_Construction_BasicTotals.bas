@@ -386,43 +386,6 @@ Public Function SumVendorAmountOnSheet(ByVal ws As Worksheet, _
         SumVendorAmountOnSheet = SumVendorAmountByColumn(ws, CLng(columnMap(vendorKey)))
     End If
 End Function
-' 施行指示書(工事)/施行通知書(工事)シートのうち、産廃行(施工業者が選択できない特殊行)の
-' JR金額のみ合計する(別紙III J54:M54 用)。溶接シートは対象外。
-Public Function SumSanpaiJrAmount() As Double
-    Dim total As Double
-    Dim ws As Worksheet
-    For Each ws In ThisWorkbook.Worksheets
-        If IsConstructionOutputSheet(ws) Then
-            If Not mod_Construction_OutputLayout.IsWeldingOutputSheetCore(ws) Then
-                total = total + SumSanpaiJrAmountOnSheet(ws)
-            End If
-        End If
-    Next ws
-    SumSanpaiJrAmount = RoundDownAmount(total)
-End Function
-
-Private Function SumSanpaiJrAmountOnSheet(ByVal ws As Worksheet) As Double
-    Dim SeiriColumn As Long
-    Dim amountColumn As Long
-    SeiriColumn = FindHeaderColumn(ws, "整理番号")
-    amountColumn = FindHeaderColumn(ws, "JR金額")
-    If SeiriColumn = 0 Or amountColumn = 0 Then Exit Function
-
-    Dim lastRow As Long
-    lastRow = mod_Construction_LineMapping.GetLastDataRow(ws, SeiriColumn)
-    If lastRow < 2 Then Exit Function
-
-    Dim subtotal As Double
-    Dim r As Long
-    For r = 2 To lastRow
-        If IsSanpaiRow(ws, r) Then
-            Dim v As Variant
-            v = ws.Cells(r, amountColumn).Value2
-            If IsNumeric(v) Then subtotal = subtotal + CDbl(v)
-        End If
-    Next r
-    SumSanpaiJrAmountOnSheet = subtotal
-End Function
 
 ' 施行指示書(工事)/施行通知書(工事)の A列(施工業者)に、指定業者が選択されているか。
 ' (別紙IIIのJR合計を「工事シートに紐付いた施工会社」に限定するための判定。溶接のみ等は False)
