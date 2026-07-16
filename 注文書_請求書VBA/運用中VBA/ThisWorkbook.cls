@@ -78,6 +78,14 @@ Private Sub Workbook_SheetSelectionChange(ByVal Sh As Object, ByVal Target As Ra
 End Sub
 
 Private Sub Workbook_SheetBeforeDoubleClick(ByVal Sh As Object, ByVal Target As Range, Cancel As Boolean)
+    If TypeName(Sh) = "Worksheet" Then
+        If mod_OrderTpl_Header.IsAttachment3SanpaiFacilityTarget(Sh, Target) Then
+            Cancel = True
+            mod_OrderTpl_Header.RequestAttachment3SanpaiFacilitySelection Sh, Target
+            Exit Sub
+        End If
+    End If
+
     If Not IsSubconSheet(Sh) Then Exit Sub
     If Not IsVendorSelectionTargetColumn(Sh, Target.Column) Then Exit Sub
     If Target.Row < SUBCON_DATA_START_ROW Then Exit Sub

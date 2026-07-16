@@ -627,7 +627,7 @@ End Sub
 '   Q22:?¿½Åï¿½(35) Q23:?¿½Å”ï¿½(33) Q24:?¿½?¿½?¿½?¿½?¿½(34)?¿½AC30/H30/J30/M34/R34/F32/F33 ?¿½?¿½ Reapply?¿½n?¿½o?¿½R)?¿½?¿½
 '   ApplyContractorStyleCommonFields ?¿½ÅA3?¿½V?¿½[?¿½g?¿½Æ‚ï¿½?¿½?¿½?¿½êƒï¿½W?¿½b?¿½N?¿½?¿½K?¿½p?¿½?¿½?¿½?¿½B
 ' ?¿½?Ò—p?¿½V?¿½[?¿½g?¿½Å—L: E9:?¿½ÆÒƒR?¿½[?¿½h(16) A13:?¿½?¿½Ğ–ï¿½(11) M10:?¿½?¿½?¿½?¿½?¿½ÒZ?¿½?¿½
-'   M11:?¿½?¿½S?¿½H?¿½ÆŠï¿½?¿½?¿½?¿½?¿½?¿½+?¿½û¦²?¿½o?¿½?¿½?¿½?¿½ M12:?¿½?¿½E?¿½?¿½?¿½?¿½(?¿½o?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½X?¿½g?¿½Q?¿½?¿½)
+'   M11:?¿½?¿½S?¿½H?¿½ÆŠï¿½?¿½?¿½?¿½?¿½?¿½+?¿½îŠ²?¿½o?¿½?¿½?¿½?¿½ M12:?¿½?¿½E?¿½?¿½?¿½?¿½(?¿½o?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½X?¿½g?¿½Q?¿½?¿½)
 Private Sub ApplyContractorHeader(ByVal wsInfo As Worksheet, _
                                   ByVal wsTarget As Worksheet, _
                                   ByVal vendorIndex As Long)
@@ -741,7 +741,7 @@ Private Sub EnsureOfficeChiefRowMerge(ByVal wsTarget As Worksheet, ByVal rowNo A
     End With
 End Sub
 
-' M10:?¿½Z?¿½?¿½ / M11:?¿½?¿½S?¿½H?¿½ÆŠï¿½?¿½?¿½?¿½?¿½?¿½+?¿½S?¿½p?¿½?¿½+?¿½û¦²?¿½o?¿½?¿½?¿½?¿½ / M12:(?¿½?¿½?¿½?¿½?¿½?¿½)?¿½?¿½E?¿½?¿½?¿½?¿½ ?¿½?¿½]?¿½L
+' M10:?¿½Z?¿½?¿½ / M11:?¿½?¿½S?¿½H?¿½ÆŠï¿½?¿½?¿½?¿½?¿½?¿½+?¿½S?¿½p?¿½?¿½+?¿½îŠ²?¿½o?¿½?¿½?¿½?¿½ / M12:(?¿½?¿½?¿½?¿½?¿½?¿½)?¿½?¿½E?¿½?¿½?¿½?¿½ ?¿½?¿½]?¿½L
 Private Sub ApplyOfficeChiefBlock(ByVal wsInfo As Worksheet, ByVal wsTarget As Worksheet)
     ' M10:U ?¿½?¿½ M10:V ?¿½ÖŒï¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½A?¿½k?¿½?¿½?¿½?¿½?¿½Ä‘S?¿½Ì•\?¿½?¿½?¿½Éİ’ï¿½(M/13?¿½?¿½ ?¿½` V/22?¿½?¿½)
     Dim mergeRow As Long
@@ -769,10 +769,10 @@ Private Sub ApplyOfficeChiefBlock(ByVal wsInfo As Worksheet, ByVal wsTarget As W
     ' M10: ?¿½Z?¿½?¿½
     WriteHeaderValue wsTarget.Range("M10"), addr, False
 
-    ' M11: ?¿½?¿½S?¿½H?¿½ÆŠï¿½?¿½?¿½?¿½?¿½?¿½ + ?¿½S?¿½p?¿½?¿½ + ?¿½û¦²?¿½o?¿½?¿½?¿½?¿½
+    ' M11: ?¿½?¿½S?¿½H?¿½ÆŠï¿½?¿½?¿½?¿½?¿½?¿½ + ?¿½S?¿½p?¿½?¿½ + ?¿½îŠ²?¿½o?¿½?¿½?¿½?¿½
     WriteHeaderValue wsTarget.Range("M11"), CommonCompanyNameText() & fw & coreOffice, False
 
-    ' M12: ?¿½o?¿½?¿½?¿½?¿½=?¿½û¦²?¿½o?¿½?¿½?¿½?¿½?¿½È‚ï¿½u?¿½?¿½E ?¿½?¿½?¿½?¿½?¿½v?¿½A?¿½s?¿½?¿½v?¿½È‚ï¿½u?¿½o?¿½?¿½?¿½?¿½ ?¿½?¿½E ?¿½?¿½?¿½?¿½?¿½v
+    ' M12: ?¿½o?¿½?¿½?¿½?¿½=?¿½îŠ²?¿½o?¿½?¿½?¿½?¿½?¿½È‚ï¿½u?¿½?¿½E ?¿½?¿½?¿½?¿½?¿½v?¿½A?¿½s?¿½?¿½v?¿½È‚ï¿½u?¿½o?¿½?¿½?¿½?¿½ ?¿½?¿½E ?¿½?¿½?¿½?¿½?¿½v
     Dim m12 As String
     If StrComp(CommonNormalizeText(matchedOffice), CommonNormalizeText(coreOffice), vbTextCompare) = 0 Then
         m12 = title & fw & chiefName
@@ -851,7 +851,7 @@ End Sub
 ' ?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½V?¿½[?¿½g?¿½Ö‚Ì“]?¿½L?¿½B?¿½?¿½?¿½Ê•ï¿½(S1:U1/Q2:V2/?¿½s20-34)?¿½?¿½ ApplyContractorStyleCommonFields?¿½B
 '   G8:K9 ?¿½ÆÒƒR?¿½[?¿½h(?¿½?Ò—pE9?¿½E?¿½?¿½?¿½?¿½) / B12:K12 ?¿½Z?¿½?¿½(?¿½?¿½{?¿½?¿½?¿½14?¿½s?¿½ÚE?¿½?¿½?¿½l?¿½?¿½) /
 '   B14:K14 ?¿½?¿½Ğ–ï¿½(?¿½?¿½{?¿½?¿½?¿½11?¿½s?¿½ÚE?¿½?¿½?¿½l?¿½?¿½) / C15:I16 ?¿½?¿½\?¿½Ò–ï¿½(?¿½?¿½{?¿½?¿½?¿½12?¿½s?¿½ÚE?¿½E?¿½l?¿½?¿½) /
-'   M9:V9 ?¿½Z?¿½?¿½(?¿½?Ò—pM10?¿½E?¿½?¿½?¿½l?¿½?¿½) / M10:V10 ?¿½?¿½S?¿½H?¿½ÆŠï¿½?¿½?¿½?¿½?¿½?¿½+?¿½û¦²?¿½o?¿½?¿½?¿½?¿½(?¿½?Ò—pM11?¿½E?¿½?¿½?¿½l?¿½?¿½) /
+'   M9:V9 ?¿½Z?¿½?¿½(?¿½?Ò—pM10?¿½E?¿½?¿½?¿½l?¿½?¿½) / M10:V10 ?¿½?¿½S?¿½H?¿½ÆŠï¿½?¿½?¿½?¿½?¿½?¿½+?¿½îŠ²?¿½o?¿½?¿½?¿½?¿½(?¿½?Ò—pM11?¿½E?¿½?¿½?¿½l?¿½?¿½) /
 '   M11:V11 ?¿½?¿½E?¿½?¿½?¿½?¿½(?¿½?Ò—pM12)+?¿½u?¿½@?¿½@?¿½a?¿½v(?¿½E?¿½E?¿½l?¿½?¿½)
 Private Sub ApplyAcceptanceHeader(ByVal wsInfo As Worksheet, _
                                   ByVal wsTarget As Worksheet, _
@@ -884,7 +884,7 @@ Private Sub ApplyAcceptanceHeader(ByVal wsInfo As Worksheet, _
     ' M9:V9: ?¿½Z?¿½?¿½(?¿½?Ò—pM10), ?¿½?¿½?¿½l?¿½?¿½
     WriteHeaderValueLeft wsTarget.Range("M9"), MirroredContractorText(wsContractor, "M10")
 
-    ' M10:V10: ?¿½?¿½S?¿½H?¿½ÆŠï¿½?¿½?¿½?¿½?¿½?¿½+?¿½û¦²?¿½o?¿½?¿½?¿½?¿½(?¿½?Ò—pM11), ?¿½?¿½?¿½l?¿½?¿½
+    ' M10:V10: ?¿½?¿½S?¿½H?¿½ÆŠï¿½?¿½?¿½?¿½?¿½?¿½+?¿½îŠ²?¿½o?¿½?¿½?¿½?¿½(?¿½?Ò—pM11), ?¿½?¿½?¿½l?¿½?¿½
     WriteHeaderValueLeft wsTarget.Range("M10"), MirroredContractorText(wsContractor, "M11")
 
     ' M11:V11: ?¿½?¿½E?¿½?¿½?¿½?¿½(?¿½?Ò—pM12) + ?¿½u?¿½@?¿½@?¿½a?¿½v, ?¿½E?¿½l?¿½?¿½
@@ -904,7 +904,7 @@ End Sub
 
 ' ?¿½x?¿½X?¿½T?¿½V?¿½[?¿½g?¿½Ö‚Ì“]?¿½L?¿½B?¿½?¿½?¿½Ê•ï¿½(S1:U1/Q2:V2/?¿½s20-34)?¿½?¿½ ApplyContractorStyleCommonFields?¿½B
 '   E9:I10 ?¿½ÆÒƒR?¿½[?¿½h(?¿½?Ò—pE9?¿½E?¿½?¿½?¿½?¿½) / A13:I15 ?¿½?¿½Ğ–ï¿½(?¿½?Ò—pA13?¿½E?¿½?¿½?¿½?¿½) /
-'   M8:V8 ?¿½Z?¿½?¿½(?¿½?Ò—pM10?¿½E?¿½?¿½?¿½l?¿½?¿½) / M9:V9 ?¿½?¿½S?¿½H?¿½ÆŠï¿½?¿½?¿½?¿½?¿½?¿½+?¿½û¦²?¿½o?¿½?¿½?¿½?¿½(?¿½?Ò—pM11?¿½E?¿½?¿½?¿½l?¿½?¿½) /
+'   M8:V8 ?¿½Z?¿½?¿½(?¿½?Ò—pM10?¿½E?¿½?¿½?¿½l?¿½?¿½) / M9:V9 ?¿½?¿½S?¿½H?¿½ÆŠï¿½?¿½?¿½?¿½?¿½?¿½+?¿½îŠ²?¿½o?¿½?¿½?¿½?¿½(?¿½?Ò—pM11?¿½E?¿½?¿½?¿½l?¿½?¿½) /
 '   M10:V10 ?¿½?¿½E?¿½?¿½?¿½?¿½(?¿½?Ò—pM12?¿½E?¿½E?¿½l?¿½?¿½)
 Private Sub ApplyBranchCopyHeader(ByVal wsInfo As Worksheet, _
                                   ByVal wsTarget As Worksheet, _
@@ -931,7 +931,7 @@ Private Sub ApplyBranchCopyHeader(ByVal wsInfo As Worksheet, _
     ' M8:V8: ?¿½Z?¿½?¿½(?¿½?Ò—pM10), ?¿½?¿½?¿½l?¿½?¿½
     WriteHeaderValueLeft wsTarget.Range("M8"), MirroredContractorText(wsContractor, "M10")
 
-    ' M9:V9: ?¿½?¿½S?¿½H?¿½ÆŠï¿½?¿½?¿½?¿½?¿½?¿½+?¿½û¦²?¿½o?¿½?¿½?¿½?¿½(?¿½?Ò—pM11), ?¿½?¿½?¿½l?¿½?¿½
+    ' M9:V9: ?¿½?¿½S?¿½H?¿½ÆŠï¿½?¿½?¿½?¿½?¿½?¿½+?¿½îŠ²?¿½o?¿½?¿½?¿½?¿½(?¿½?Ò—pM11), ?¿½?¿½?¿½l?¿½?¿½
     WriteHeaderValueLeft wsTarget.Range("M9"), MirroredContractorText(wsContractor, "M11")
 
     ' M10:V10: ?¿½?¿½E?¿½?¿½?¿½?¿½(?¿½?Ò—pM12), ?¿½E?¿½l?¿½?¿½
@@ -950,7 +950,372 @@ End Sub
 Private Sub ApplyAttachment3Header(ByVal wsInfo As Worksheet, _
                                    ByVal wsTarget As Worksheet, _
                                    ByVal vendorIndex As Long)
-    ' ?¿½]?¿½L?¿½d?¿½l ?¿½?¿½?¿½w?¿½?¿½(?¿½R?¿½s?¿½[?¿½Ì‚ï¿½)
+    ' O1: {H‰ïĞ–¼(Šî–{î•ñ {H‰ïĞ—ñ11s–Ú)‚ğ‰E‹l‚ßEBIZ UDƒSƒVƒbƒN‚Å“]‹L
+    Dim vendorCol As Long
+    vendorCol = mod_Construction_BasicTotals.BasicInfoVendorColumn(vendorIndex)
+    Dim vendorName As String
+    vendorName = GetBasicInfoCellText(wsInfo, wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, vendorCol).Address)
+    WriteAttachment3VendorName wsTarget.Range("O1"), vendorName
+
+    ' 36`41s–Ú F/H—ñEJ/L—ñ‚Ì”r‘¼ƒ`ƒFƒbƒNƒ{ƒbƒNƒX§Œä
+    SetupAttachment3CheckboxExclusivity wsTarget
+
+    ' E49:I49`E52:I52 ƒ_ƒuƒ‹ƒNƒŠƒbƒN‚É‚æ‚éY‹Æ”pŠü•¨ˆ—{İ‘I‘ğ
+    SetupAttachment3SanpaiFacilityDoubleClickHint wsTarget
+
+    ' J54:M54 Y”psJR‹àŠz‡Œv
+    RefreshAttachment3SanpaiJrTotal wsTarget
+End Sub
+
+' O1({H‰ïĞ–¼)‚Ì“]‹L(‰E‹l‚ßEBIZ UDƒSƒVƒbƒN)
+Private Sub WriteAttachment3VendorName(ByVal target As Range, ByVal vendorName As String)
+    Dim writeCell As Range
+    Set writeCell = target.MergeArea.Cells(1, 1)
+
+    writeCell.NumberFormat = "@"
+    If Len(Trim$(vendorName)) = 0 Then
+        writeCell.ClearContents
+    Else
+        writeCell.value = vendorName
+    End If
+
+    writeCell.Font.Name = BASIC_INFO_REF_FONT_NAME
+    writeCell.HorizontalAlignment = xlRight
+    writeCell.VerticalAlignment = xlCenter
+End Sub
+
+' ===== •Ê†‡V 36`41s–Ú F/H—ñEJ/L—ñ ”r‘¼ƒ`ƒFƒbƒNƒ{ƒbƒNƒX =====
+' F—ñ=—L / H—ñ=–³ ‚ÌƒyƒA‚ÆAJ—ñEL—ñ‚ÌƒyƒA‚ğ‚»‚ê‚¼‚ê”r‘¼‰»‚·‚éB
+' ‚³‚ç‚É H—ñ(–³)‚ªƒ`ƒFƒbƒN‚³‚ê‚Ä‚¢‚és‚Í J—ñEL—ñ‚Ì‚Ç‚¿‚ç‚àƒ`ƒFƒbƒN‚Å‚«‚È‚¢B
+Private Const ATTACHMENT3_CHECK_ROW_MIN As Long = 36
+Private Const ATTACHMENT3_CHECK_ROW_MAX As Long = 41
+Private Const ATTACHMENT3_COL_F As Long = 6
+Private Const ATTACHMENT3_COL_H As Long = 8
+Private Const ATTACHMENT3_COL_J As Long = 10
+Private Const ATTACHMENT3_COL_L As Long = 12
+
+Public Sub SetupAttachment3CheckboxExclusivity(ByVal ws As Worksheet)
+    If ws Is Nothing Then Exit Sub
+
+    On Error Resume Next
+    Dim cb As Object
+    For Each cb In ws.CheckBoxes
+        Dim r As Long, c As Long
+        r = cb.TopLeftCell.Row
+        c = cb.TopLeftCell.Column
+        If r >= ATTACHMENT3_CHECK_ROW_MIN And r <= ATTACHMENT3_CHECK_ROW_MAX Then
+            If c = ATTACHMENT3_COL_F Or c = ATTACHMENT3_COL_H Or _
+               c = ATTACHMENT3_COL_J Or c = ATTACHMENT3_COL_L Then
+                cb.OnAction = "'" & ThisWorkbook.Name & "'!Attachment3CheckboxClick"
+            End If
+        End If
+    Next cb
+    On Error GoTo 0
+
+    NormalizeAttachment3CheckboxRows ws
+End Sub
+
+' ƒ`ƒFƒbƒNƒ{ƒbƒNƒXƒNƒŠƒbƒN‚Ì”r‘¼§Œä–{‘Ì(Šeƒ`ƒFƒbƒNƒ{ƒbƒNƒX‚Ì OnAction ‚©‚çŒÄ‚Î‚ê‚é)
+Public Sub Attachment3CheckboxClick()
+    On Error GoTo Done
+
+    Dim callerName As String
+    callerName = Application.Caller
+
+    Dim clicked As Object
+    Dim ws As Worksheet
+    Set clicked = Nothing
+    For Each ws In ThisWorkbook.Worksheets
+        On Error Resume Next
+        Set clicked = ws.CheckBoxes(callerName)
+        On Error GoTo Done
+        If Not clicked Is Nothing Then Exit For
+        Set clicked = Nothing
+    Next ws
+    If clicked Is Nothing Then Exit Sub
+    If ws Is Nothing Then Exit Sub
+
+    Dim rowIndex As Long, colIndex As Long
+    rowIndex = clicked.TopLeftCell.Row
+    colIndex = clicked.TopLeftCell.Column
+
+    Application.EnableEvents = False
+
+    Select Case colIndex
+        Case ATTACHMENT3_COL_F
+            If clicked.value = xlOn Then
+                SetAttachment3Checkbox ws, rowIndex, ATTACHMENT3_COL_H, False
+            End If
+        Case ATTACHMENT3_COL_H
+            If clicked.value = xlOn Then
+                SetAttachment3Checkbox ws, rowIndex, ATTACHMENT3_COL_F, False
+                ' H(–³)‚ğ‘I‘ğ‚µ‚½s‚Í J—ñEL—ñ‚Ì‚Ç‚¿‚ç‚àƒ`ƒFƒbƒN•s‰Â‚Æ‚·‚é
+                SetAttachment3Checkbox ws, rowIndex, ATTACHMENT3_COL_J, False
+                SetAttachment3Checkbox ws, rowIndex, ATTACHMENT3_COL_L, False
+            End If
+        Case ATTACHMENT3_COL_J
+            If clicked.value = xlOn Then
+                If IsAttachment3CheckboxOn(ws, rowIndex, ATTACHMENT3_COL_H) Then
+                    clicked.value = xlOff
+                Else
+                    SetAttachment3Checkbox ws, rowIndex, ATTACHMENT3_COL_L, False
+                End If
+            End If
+        Case ATTACHMENT3_COL_L
+            If clicked.value = xlOn Then
+                If IsAttachment3CheckboxOn(ws, rowIndex, ATTACHMENT3_COL_H) Then
+                    clicked.value = xlOff
+                Else
+                    SetAttachment3Checkbox ws, rowIndex, ATTACHMENT3_COL_J, False
+                End If
+            End If
+    End Select
+
+    Application.EnableEvents = True
+    Exit Sub
+
+Done:
+    On Error Resume Next
+    Application.EnableEvents = True
+    On Error GoTo 0
+End Sub
+
+Private Function FindAttachment3Checkbox(ByVal ws As Worksheet, ByVal rowIndex As Long, ByVal colIndex As Long) As Object
+    Dim cb As Object
+    On Error Resume Next
+    For Each cb In ws.CheckBoxes
+        If cb.TopLeftCell.Row = rowIndex And cb.TopLeftCell.Column = colIndex Then
+            Set FindAttachment3Checkbox = cb
+            Exit Function
+        End If
+    Next cb
+    On Error GoTo 0
+End Function
+
+Private Sub SetAttachment3Checkbox(ByVal ws As Worksheet, ByVal rowIndex As Long, ByVal colIndex As Long, ByVal turnOn As Boolean)
+    Dim cb As Object
+    Set cb = FindAttachment3Checkbox(ws, rowIndex, colIndex)
+    If cb Is Nothing Then Exit Sub
+    If turnOn Then
+        cb.value = xlOn
+    Else
+        cb.value = xlOff
+    End If
+End Sub
+
+Private Function IsAttachment3CheckboxOn(ByVal ws As Worksheet, ByVal rowIndex As Long, ByVal colIndex As Long) As Boolean
+    Dim cb As Object
+    Set cb = FindAttachment3Checkbox(ws, rowIndex, colIndex)
+    If cb Is Nothing Then Exit Function
+    IsAttachment3CheckboxOn = (cb.value = xlOn)
+End Function
+
+' Šù‘¶‚Ì‘I‘ğ“à—e‚É–µ‚(F/H—¼•ûƒ`ƒFƒbƒNAH+J/L‚Ì•¹—pAJ/L—¼•ûƒ`ƒFƒbƒN“™)‚ª‚ ‚éê‡‚Ì‚İ•â³‚·‚éB
+' V‹K‚ÉŠù’è’l‚ğ•t—^‚·‚é‚±‚Æ‚Í‚µ‚È‚¢B
+Private Sub NormalizeAttachment3CheckboxRows(ByVal ws As Worksheet)
+    If ws Is Nothing Then Exit Sub
+
+    Dim prevEvents As Boolean
+    prevEvents = Application.EnableEvents
+    Application.EnableEvents = False
+    On Error Resume Next
+
+    Dim r As Long
+    For r = ATTACHMENT3_CHECK_ROW_MIN To ATTACHMENT3_CHECK_ROW_MAX
+        If IsAttachment3CheckboxOn(ws, r, ATTACHMENT3_COL_F) And _
+           IsAttachment3CheckboxOn(ws, r, ATTACHMENT3_COL_H) Then
+            SetAttachment3Checkbox ws, r, ATTACHMENT3_COL_H, False
+        End If
+
+        If IsAttachment3CheckboxOn(ws, r, ATTACHMENT3_COL_H) Then
+            SetAttachment3Checkbox ws, r, ATTACHMENT3_COL_J, False
+            SetAttachment3Checkbox ws, r, ATTACHMENT3_COL_L, False
+        ElseIf IsAttachment3CheckboxOn(ws, r, ATTACHMENT3_COL_J) And _
+               IsAttachment3CheckboxOn(ws, r, ATTACHMENT3_COL_L) Then
+            SetAttachment3Checkbox ws, r, ATTACHMENT3_COL_L, False
+        End If
+    Next r
+
+    On Error GoTo 0
+    Application.EnableEvents = prevEvents
+End Sub
+
+' ===== •Ê†‡V E49:I49`E52:I52 Y‹Æ”pŠü•¨ˆ—{İ‘I‘ğ =====
+Public Const ATTACHMENT3_SANPAI_ROW_MIN As Long = 49
+Public Const ATTACHMENT3_SANPAI_ROW_MAX As Long = 52
+Public Const ATTACHMENT3_SANPAI_NAME_COL As Long = 5    ' E
+Public Const ATTACHMENT3_SANPAI_VALUE_COL As Long = 10  ' J
+Private Const SANPAI_FACILITY_MASTER_START_ROW As Long = 59
+
+' ƒ_ƒuƒ‹ƒNƒŠƒbƒN‘ÎÛ”ÍˆÍ‚Í¶¬“_‚Å‘®E•ÛŒì“™‚Ì’Ç‰Áİ’è‚Í•s—v‚Ì‚½‚ßŒ»ó‚Í‹óÀ‘•B
+' (‘ÎÛ”»’èE‘I‘ğˆ—‚Í ThisWorkbook ‘¤‚©‚ç mod_OrderTpl_Header ‚ÌŠÖ”‚ğ’¼ÚŒÄ‚Ño‚·)
+Private Sub SetupAttachment3SanpaiFacilityDoubleClickHint(ByVal ws As Worksheet)
+    ' —\–ñ(«—ˆ‚Ì‘®•t—^“™‚É”õ‚¦‚½ƒtƒbƒN)
+End Sub
+
+' Attachment3(•Ê†‡V)ƒV[ƒg‚©‚Ç‚¤‚©‚ğ”»’è‚·‚é
+Public Function IsAttachment3Sheet(ByVal ws As Worksheet) As Boolean
+    IsAttachment3Sheet = False
+    If ws Is Nothing Then Exit Function
+    Dim baseName As String, aliasText As String
+    If mod_OrderTpl_Shared.OrderTplIsGeneratedSheet(ws, baseName, aliasText) Then
+        IsAttachment3Sheet = (StrComp(baseName, mod_OrderTpl_Shared.OrderTplBaseNameAttachment3Text(), vbTextCompare) = 0)
+    End If
+End Function
+
+' E49:I49`E52:I52 (Y‹Æ”pŠü•¨ˆ—{İ‘I‘ğƒZƒ‹)‚©‚Ç‚¤‚©‚ğ”»’è‚·‚é
+Public Function IsAttachment3SanpaiFacilityTarget(ByVal ws As Worksheet, ByVal target As Range) As Boolean
+    IsAttachment3SanpaiFacilityTarget = False
+    If ws Is Nothing Or target Is Nothing Then Exit Function
+    If Not IsAttachment3Sheet(ws) Then Exit Function
+
+    Dim targetArea As Range
+    On Error Resume Next
+    Set targetArea = target.MergeArea
+    On Error GoTo 0
+    If targetArea Is Nothing Then Set targetArea = target
+
+    Dim topLeft As Range
+    Set topLeft = targetArea.Cells(1, 1)
+
+    If topLeft.Row < ATTACHMENT3_SANPAI_ROW_MIN Or topLeft.Row > ATTACHMENT3_SANPAI_ROW_MAX Then Exit Function
+    IsAttachment3SanpaiFacilityTarget = (topLeft.Column = ATTACHMENT3_SANPAI_NAME_COL)
+End Function
+
+' frmSubconSelector.frm ‚ğÄ—˜—p‚µ‚ÄY‹Æ”pŠü•¨ˆ—{İ‚ğ‘I‘ğ‚µA
+' E—ñ({İ–¼)EJ—ñ(‘Î‰’lA‹ÆÒƒ}ƒXƒ^B—ñ)‚Ö‘‚«‚ŞB
+Public Sub RequestAttachment3SanpaiFacilitySelection(ByVal ws As Worksheet, ByVal target As Range)
+    If ws Is Nothing Or target Is Nothing Then Exit Sub
+
+    Dim rowIndex As Long
+    rowIndex = target.Row
+
+    Dim wsInfo As Worksheet
+    Set wsInfo = CommonGetBasicInfoWorksheet(ThisWorkbook)
+    If wsInfo Is Nothing Then Exit Sub
+
+    Dim branchName As String
+    branchName = GetBasicInfoCellText(wsInfo, BASIC_INFO_BRANCH_CELL)
+
+    Dim names As Collection
+    Dim companionMap As Object
+    Set names = New Collection
+    Set companionMap = CreateObject("Scripting.Dictionary")
+    companionMap.CompareMode = vbTextCompare
+
+    If Not LoadSanpaiFacilityMasterRows(branchName, names, companionMap) Then
+        MsgBox "Y‹Æ”pŠü•¨ˆ—{İ‚Ìƒ}ƒXƒ^‚ªæ“¾‚Å‚«‚Ü‚¹‚ñ‚Å‚µ‚½B", vbExclamation
+        Exit Sub
+    End If
+    If names.Count = 0 Then
+        MsgBox "Y‹Æ”pŠü•¨ˆ—{İ‚Ìƒ}ƒXƒ^‚Éƒf[ƒ^‚ª‚ ‚è‚Ü‚¹‚ñB", vbExclamation
+        Exit Sub
+    End If
+
+    Dim arr() As String
+    ReDim arr(1 To names.Count)
+    Dim i As Long
+    For i = 1 To names.Count
+        arr(i) = CStr(names(i))
+    Next i
+
+    Dim f As New frmSubconSelector
+    f.Caption = Attachment3SanpaiFacilityCaptionText()
+    f.SetCompanies arr
+    f.Show vbModal
+
+    Dim confirmed As Boolean, chosen As String
+    confirmed = f.confirmed
+    chosen = f.SelectedCompany
+    Unload f
+    If Not confirmed Or chosen = "" Then Exit Sub
+
+    Dim prevEvents As Boolean
+    prevEvents = Application.EnableEvents
+    Application.EnableEvents = False
+
+    ws.Cells(rowIndex, ATTACHMENT3_SANPAI_NAME_COL).MergeArea.Cells(1, 1).value = chosen
+
+    Dim companionValue As String
+    If companionMap.Exists(chosen) Then companionValue = CStr(companionMap(chosen))
+    ws.Cells(rowIndex, ATTACHMENT3_SANPAI_VALUE_COL).MergeArea.Cells(1, 1).value = companionValue
+
+    Application.EnableEvents = prevEvents
+End Sub
+
+' ‹ÆÒƒ}ƒXƒ^(‘SĞ”Å).xlsx ‚Ìx“X–¼ƒV[ƒg‚©‚ç A59ˆÈ‰º({İ–¼)EB59ˆÈ‰º(‘Î‰’l)‚ğ“Ç‚İ‚ŞB
+Private Function LoadSanpaiFacilityMasterRows(ByVal branchName As String, _
+                                              ByVal names As Collection, _
+                                              ByVal companionMap As Object) As Boolean
+    Dim connection As Object
+    Dim recordset As Object
+    On Error GoTo Cleanup
+
+    If Trim$(branchName) = "" Then GoTo Cleanup
+
+    Dim masterPath As String
+    masterPath = mod_Construction_BasicTotals.ResolveVendorMasterPath()
+    If masterPath = "" Then GoTo Cleanup
+
+    Set connection = CommonOpenExcelAdoConnection(masterPath)
+    If connection Is Nothing Then GoTo Cleanup
+
+    Dim actualSheetName As String
+    actualSheetName = mod_Construction_OutputLayout.FindAdoWorksheetName(connection, branchName)
+    If actualSheetName = "" Then GoTo Cleanup
+
+    Dim tableRangeName As String
+    tableRangeName = "[" & Replace$(actualSheetName, "]", "]]") & "$A" & _
+                      SANPAI_FACILITY_MASTER_START_ROW & ":B10000]"
+
+    Set recordset = CreateObject("ADODB.Recordset")
+    recordset.Open "SELECT F1, F2 FROM " & tableRangeName, connection, 0, 1, 1
+
+    Do Until recordset.EOF
+        Dim nameVal As String, companionVal As String
+        nameVal = Trim$(CommonNzText(recordset.fields(0).value))
+        companionVal = Trim$(CommonNzText(recordset.fields(1).value))
+        If nameVal <> "" Then
+            names.Add nameVal
+            If Not companionMap.Exists(nameVal) Then companionMap.Add nameVal, companionVal
+        End If
+        recordset.MoveNext
+    Loop
+
+    LoadSanpaiFacilityMasterRows = True
+
+Cleanup:
+    If Err.Number <> 0 Then Err.Clear
+    CommonCloseAdoRecordset recordset
+    CommonCloseAdoConnection connection
+End Function
+
+' "Y‹Æ”pŠü•¨ˆ—{İ‘I‘ğ"
+Private Function Attachment3SanpaiFacilityCaptionText() As String
+    Static cached As String
+    If cached = "" Then
+        cached = CommonTextFromChars(&H7523, &H696D, &H5EC3, &H68C4, &H7269, _
+                                      &H51E6, &H7406, &H65BD, &H8A2D, &H9078, &H629E)
+    End If
+    Attachment3SanpaiFacilityCaptionText = cached
+End Function
+
+' ===== •Ê†‡V J54:M54 Y”psJR‹àŠz‡Œv =====
+' {sw¦‘(H–)/{s’Ê’m‘(H–)ƒV[ƒg‚ÌY”ps({H‰ïĞ‚ª“–‰‘I‘ğ‚Å‚«‚È‚©‚Á‚½s)‚Ì
+' JR‹àŠz—ñ‡Œv‚ğAŒ…‹æØ‚è®”‚Å J54:M54(Œ‹‡ƒZƒ‹)‚Ö“]‹L‚·‚éB
+Private Sub RefreshAttachment3SanpaiJrTotal(ByVal ws As Worksheet)
+    If ws Is Nothing Then Exit Sub
+
+    Dim total As Double
+    total = mod_Construction_BasicTotals.SumSanpaiJrAmount()
+
+    Dim writeCell As Range
+    Set writeCell = ws.Range("J54").MergeArea.Cells(1, 1)
+    writeCell.value = total
+    writeCell.NumberFormat = "#,##0;-#,##0;"
+    writeCell.Font.Name = BASIC_INFO_REF_FONT_NAME
+    writeCell.HorizontalAlignment = xlRight
+    writeCell.VerticalAlignment = xlCenter
 End Sub
 
 ' ?¿½?¿½?¿½?¿½?¿½Z?¿½?¿½?¿½Î‰ï¿½?¿½Ì’l?¿½]?¿½L(?¿½t?¿½H?¿½?¿½?¿½g?¿½K?¿½p?¿½A?¿½K?¿½v?¿½É‰ï¿½?¿½?¿½?¿½Äã‰º?¿½?¿½?¿½E?¿½?¿½?¿½?¿½?¿½?¿½?¿½?¿½)
