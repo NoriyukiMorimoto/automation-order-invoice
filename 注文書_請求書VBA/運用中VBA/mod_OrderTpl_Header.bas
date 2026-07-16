@@ -60,6 +60,7 @@ Public Sub ApplyVendorSheetHeaders(ByVal wsInfo As Worksheet, _
         mod_OrderTpl_Shared.OrderTplBaseNameConditionText(), aliasText)
     If mod_OrderTpl_Shared.OrderTplSheetExists(condSheetName) Then
         ApplyVendorSheetTabColor wsInfo, ThisWorkbook.Worksheets(condSheetName), vendorIndex
+        SetupConditionCheckboxExclusivity ThisWorkbook.Worksheets(condSheetName)
     End If
 End Sub
 
@@ -330,11 +331,43 @@ Private Function IsConditionDxSideCheckbox(ByVal cb As Object) As Boolean
                                 IsConditionDxRightSideColumn(colIndex)
 End Function
 
-Private Function IsConditionEVerticalCheckbox(ByVal cb As Object) As Boolean
-    Dim rowIndex As Long
-    rowIndex = cb.TopLeftCell.Row
-    IsConditionEVerticalCheckbox = (cb.TopLeftCell.Column = CONDITION_CHECKBOX_E_COL) And _
-        (rowIndex >= CONDITION_E_PAIR_MIN_ROW And rowIndex <= CONDITION_E_PAIR_MAX_ROW)
+Private Function ConditionCheckboxOverlapsCell(ByVal cb As Object, _
+                                               ByVal ws As Worksheet, _
+                                               ByVal rowIndex As Long, _
+                                               ByVal colIndex As Long) As Boolean
+    On Error GoTo Fail
+    Dim cell As Range
+    Set cell = ws.Cells(rowIndex, colIndex)
+    Dim centerX As Double
+    Dim centerY As Double
+    centerX = cb.Left + (cb.Width / 2#)
+    centerY = cb.Top + (cb.Height / 2#)
+    ConditionCheckboxOverlapsCell = (centerX >= cell.Left And centerX < (cell.Left + cell.Width) And _
+                                     centerY >= cell.Top And centerY < (cell.Top + cell.Height))
+    Exit Function
+Fail:
+    ConditionCheckboxOverlapsCell = False
+End Function
+
+Private Function ConditionEVerticalCheckboxRow(ByVal cb As Object, ByVal ws As Worksheet) As Long
+    If ConditionCheckboxOverlapsCell(cb, ws, CONDITION_E_PAIR_MAX_ROW, CONDITION_CHECKBOX_E_COL) Then
+        ConditionEVerticalCheckboxRow = CONDITION_E_PAIR_MAX_ROW
+        Exit Function
+    End If
+    If ConditionCheckboxOverlapsCell(cb, ws, CONDITION_E_PAIR_MIN_ROW, CONDITION_CHECKBOX_E_COL) Then
+        ConditionEVerticalCheckboxRow = CONDITION_E_PAIR_MIN_ROW
+        Exit Function
+    End If
+    If cb.TopLeftCell.Column = CONDITION_CHECKBOX_E_COL Then
+        If cb.TopLeftCell.Row >= CONDITION_E_PAIR_MIN_ROW And _
+           cb.TopLeftCell.Row <= CONDITION_E_PAIR_MAX_ROW Then
+            ConditionEVerticalCheckboxRow = cb.TopLeftCell.Row
+        End If
+    End If
+End Function
+
+Private Function IsConditionEVerticalCheckbox(ByVal cb As Object, ByVal ws As Worksheet) As Boolean
+    IsConditionEVerticalCheckbox = (ConditionEVerticalCheckboxRow(cb, ws) > 0)
 End Function
 
 Private Function IsConditionRow38BandRow(ByVal rowIndex As Long) As Boolean
@@ -342,13 +375,11 @@ Private Function IsConditionRow38BandRow(ByVal rowIndex As Long) As Boolean
                                rowIndex <= CONDITION_ROW38_BAND_MAX_ROW)
 End Function
 
-Private Function IsConditionExclusiveCheckbox(ByVal cb As Object) As Boolean
+Private Function IsConditionExclusiveCheckbox(ByVal cb As Object, ByVal ws As Worksheet) As Boolean
     Dim rowIndex As Long
-    Dim colIndex As Long
     rowIndex = cb.TopLeftCell.Row
-    colIndex = cb.TopLeftCell.Column
 
-    If IsConditionEVerticalCheckbox(cb) Then
+    If IsConditionEVerticalCheckbox(cb, ws) Then
         IsConditionExclusiveCheckbox = True
         Exit Function
     End If
@@ -371,27 +402,37 @@ End Function
 ' Assign exclusive-click macro to condition-sheet checkboxes
 Public Sub SetupConditionCheckboxExclusivity(ByVal wsCondition As Worksheet)
     If wsCondition Is Nothing Then Exit Sub
+    FixConditionE34E35Pair wsCondition
     On Error Resume Next
     Dim cb As Object
     For Each cb In wsCondition.CheckBoxes
-        If IsConditionExclusiveCheckbox(cb) Then
+        If IsConditionExclusiveCheckbox(cb, wsCondition) Then
             cb.OnAction = "'" & ThisWorkbook.Name & "'!ConditionCheckboxExclusiveClick"
         End If
     Next cb
     On Error GoTo 0
     NormalizeConditionCheckboxPairs wsCondition
+    FixConditionE34E35Pair wsCondition
 End Sub
 
 ' Checkbox click handler: flip paired control to opposite state.
 Public Sub ConditionCheckboxExclusiveClick()
     On Error GoTo Done
-    Dim ws As Worksheet
-    Set ws = ActiveSheet
-    If ws Is Nothing Then Exit Sub
+    Dim callerName As String
+    callerName = Application.Caller
 
     Dim clicked As Object
-    Set clicked = ws.CheckBoxes(Application.Caller)
+    Dim ws As Worksheet
+    Set clicked = Nothing
+    For Each ws In ThisWorkbook.Worksheets
+        On Error Resume Next
+        Set clicked = ws.CheckBoxes(callerName)
+        On Error GoTo Done
+        If Not clicked Is Nothing Then Exit For
+        Set clicked = Nothing
+    Next ws
     If clicked Is Nothing Then Exit Sub
+    If ws Is Nothing Then Exit Sub
 
     Dim pair As Object
     Set pair = FindConditionCheckboxPair(ws, clicked)
@@ -416,7 +457,7 @@ Private Function FindConditionCheckboxPair(ByVal ws As Worksheet, ByVal clicked 
     Dim rowIndex As Long
     rowIndex = clicked.TopLeftCell.Row
 
-    If IsConditionEVerticalCheckbox(clicked) Then
+    If IsConditionEVerticalCheckbox(clicked, ws) Then
         Set FindConditionCheckboxPair = FindConditionEVerticalCheckboxPair(ws, clicked)
         Exit Function
     End If
@@ -430,42 +471,25 @@ End Function
 
 Private Function FindConditionEVerticalCheckboxPair(ByVal ws As Worksheet, ByVal clicked As Object) As Object
     Dim clickedRow As Long
-    Dim clickedTop As Double
-    clickedRow = clicked.TopLeftCell.Row
-    clickedTop = clicked.Top
+    clickedRow = ConditionEVerticalCheckboxRow(clicked, ws)
+    If clickedRow = 0 Then Exit Function
 
-    Dim preferredPartnerRow As Long
-    If clickedRow <= CONDITION_E_PAIR_MIN_ROW Then
-        preferredPartnerRow = CONDITION_E_PAIR_MAX_ROW
+    Dim targetRow As Long
+    If clickedRow = CONDITION_E_PAIR_MIN_ROW Then
+        targetRow = CONDITION_E_PAIR_MAX_ROW
     Else
-        preferredPartnerRow = CONDITION_E_PAIR_MIN_ROW
+        targetRow = CONDITION_E_PAIR_MIN_ROW
     End If
-
-    Dim bestCb As Object
-    Dim bestScore As Double
-    bestScore = -1
 
     Dim cb As Object
     For Each cb In ws.CheckBoxes
         If cb.Name <> clicked.Name Then
-            If cb.TopLeftCell.Column = CONDITION_CHECKBOX_E_COL Then
-                If cb.TopLeftCell.Row >= CONDITION_E_PAIR_MIN_ROW And _
-                   cb.TopLeftCell.Row <= CONDITION_E_PAIR_MAX_ROW Then
-                    If cb.TopLeftCell.Row <> clickedRow Then
-                        Dim score As Double
-                        score = 1000# - (Abs(cb.TopLeftCell.Row - preferredPartnerRow) * 100#) _
-                                      - Abs(cb.Top - clickedTop)
-                        If bestCb Is Nothing Or score > bestScore Then
-                            Set bestCb = cb
-                            bestScore = score
-                        End If
-                    End If
-                End If
+            If ConditionEVerticalCheckboxRow(cb, ws) = targetRow Then
+                Set FindConditionEVerticalCheckboxPair = cb
+                Exit Function
             End If
         End If
     Next cb
-
-    Set FindConditionEVerticalCheckboxPair = bestCb
 End Function
 
 Private Function FindConditionDxCheckboxPair(ByVal ws As Worksheet, ByVal clicked As Object) As Object
@@ -542,7 +566,7 @@ Private Sub NormalizeConditionCheckboxPairs(ByVal ws As Worksheet)
     Application.EnableEvents = False
     Dim cb As Object
     For Each cb In ws.CheckBoxes
-        If IsConditionExclusiveCheckbox(cb) Then
+        If IsConditionExclusiveCheckbox(cb, ws) Then
             If Not processed.Exists(cb.Name) Then
                 Dim pair As Object
                 Set pair = FindConditionCheckboxPair(ws, cb)
@@ -553,7 +577,7 @@ Private Sub NormalizeConditionCheckboxPairs(ByVal ws As Worksheet)
                     If cb.Value = xlOn And pair.Value = xlOn Then
                         pair.Value = xlOff
                     ElseIf cb.Value <> xlOn And pair.Value <> xlOn Then
-                        If IsConditionEVerticalCheckbox(cb) Or _
+                        If IsConditionEVerticalCheckbox(cb, ws) Or _
                            IsConditionDxLeftSideColumn(cb.TopLeftCell.Column) Then
                             cb.Value = xlOn
                         Else
@@ -566,6 +590,36 @@ Private Sub NormalizeConditionCheckboxPairs(ByVal ws As Worksheet)
     Next cb
     Application.EnableEvents = True
     On Error GoTo 0
+End Sub
+
+Private Sub FixConditionE34E35Pair(ByVal ws As Worksheet)
+    If ws Is Nothing Then Exit Sub
+
+    Dim cb34 As Object
+    Dim cb35 As Object
+    Dim cb As Object
+    For Each cb In ws.CheckBoxes
+        Select Case ConditionEVerticalCheckboxRow(cb, ws)
+            Case CONDITION_E_PAIR_MIN_ROW
+                Set cb34 = cb
+            Case CONDITION_E_PAIR_MAX_ROW
+                Set cb35 = cb
+        End Select
+    Next cb
+    If cb34 Is Nothing Or cb35 Is Nothing Then Exit Sub
+
+    On Error Resume Next
+    cb34.OnAction = "'" & ThisWorkbook.Name & "'!ConditionCheckboxExclusiveClick"
+    cb35.OnAction = "'" & ThisWorkbook.Name & "'!ConditionCheckboxExclusiveClick"
+    On Error GoTo 0
+
+    Application.EnableEvents = False
+    If cb34.Value = xlOn And cb35.Value = xlOn Then
+        cb35.Value = xlOff
+    ElseIf cb34.Value <> xlOn And cb35.Value <> xlOn Then
+        cb34.Value = xlOn
+    End If
+    Application.EnableEvents = True
 End Sub
 
 ' ?øΩ?çé“óp/?øΩ?øΩ?øΩ?øΩ?øΩ?øΩ?øΩ?øΩ/?øΩx?øΩX?øΩT ?øΩ?øΩ?øΩ?øΩ: S1:U1 ?øΩ?øΩ?øΩ?øΩ?øΩ‘çÔøΩ(27) / Q2:V2 ?øΩ?ê¨?øΩ?øΩC2(?øΩ?øΩ?øΩ?øΩ) /

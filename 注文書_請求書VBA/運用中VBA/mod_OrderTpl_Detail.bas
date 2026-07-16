@@ -490,6 +490,10 @@ Private Function CollectSourceSections(ByVal wsSource As Worksheet, _
 
     Dim i As Long
     For i = 1 To UBound(sourceValues, 1)
+        ' ŽY”pˆ—s(“–‰‚ÍŽ{H‰ïŽÐ‚ð‘I‘ð‚Å‚«‚È‚©‚Á‚½HŽí)‚Í“à–ó–¾×‚Ö“]‹L‚µ‚È‚¢
+        If InStr(1, CommonRemoveAllSpaces(CommonNzText(sourceValues(i, COL_TYPE + columnOffset))), _
+                 SANPAI_KEYWORD, vbTextCompare) > 0 Then GoTo NextSourceRow
+
         Dim rowVendorKey As String
         rowVendorKey = mod_Construction_BasicTotals.ResolveVendorCanonicalKey( _
             CommonNzText(sourceValues(i, vendorColumn)), aliasMap)
@@ -525,6 +529,7 @@ Private Function CollectSourceSections(ByVal wsSource As Worksheet, _
                 sourceValues(i, COL_QTY + columnOffset), _
                 vendorPriceValue)
         End If
+NextSourceRow:
     Next i
 
     If sectionKeys.Count = 0 Then Exit Function

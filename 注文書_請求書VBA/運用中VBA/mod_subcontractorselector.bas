@@ -344,16 +344,15 @@ Private Sub ApplyVendorColumnDropdownWithNames(ByVal ws As Worksheet, _
     Dim r As Long
     For r = DATA_START_ROW To lastRow
         If Trim$(CommonNzText(ws.Cells(r, SeiriColumn(ws)).value)) <> "" Then
-            If Not IsSanpaiRow(ws, r) Then
-                With ws.Cells(r, vendorColumn).Validation
-                    .Delete
-                    .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, _
-                         Operator:=xlBetween, Formula1:=listFormula
-                    .IgnoreBlank = True
-                    .InCellDropdown = False
-                    .ShowError = False
-                End With
-            End If
+            ' Y”pˆ—s‚àŠÜ‚ßA‘Ss‚É{H‰ïĞƒhƒƒbƒvƒ_ƒEƒ“‚ğ“K—p‚·‚é(“ü—Í‹Ö~‚Ì”p~)
+            With ws.Cells(r, vendorColumn).Validation
+                .Delete
+                .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, _
+                     Operator:=xlBetween, Formula1:=listFormula
+                .IgnoreBlank = True
+                .InCellDropdown = False
+                .ShowError = False
+            End With
         End If
     Next r
 End Sub
@@ -635,7 +634,7 @@ Private Sub AddEligibleVendorRowDirect(ByVal ws As Worksheet, _
     Next i
 
     If Trim$(CommonNzText(ws.Cells(rowIndex, seiriCol).value)) = "" Then Exit Sub
-    If IsSanpaiRow(ws, rowIndex) Then Exit Sub
+    ' Y”pˆ—s‚à‘I‘ğ‘ÎÛ‚ÉŠÜ‚ß‚é(“ü—Í‹Ö~‚Ì”p~)
     targetRows.Add rowIndex
 End Sub
 

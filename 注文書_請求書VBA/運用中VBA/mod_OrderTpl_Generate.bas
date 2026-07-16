@@ -227,6 +227,14 @@ Public Sub GenerateVendorOrderSheets(ByVal wsInfo As Worksheet, ByVal vendorInde
     mod_OrderTpl_Shared.OrderTplLog "step: apply breakdown " & wsBreakdown.Name
     mod_OrderTpl_Detail.ApplyBreakdownDetails wsBreakdown, vendorName, companyName, branchName, workTypeText
 
+    Dim condSheetNameFinal As String
+    condSheetNameFinal = mod_OrderTpl_Shared.OrderTplBuildSheetName( _
+        mod_OrderTpl_Shared.OrderTplBaseNameConditionText(), aliasText)
+    If mod_OrderTpl_Shared.OrderTplSheetExists(condSheetNameFinal) Then
+        mod_OrderTpl_Header.SetupConditionCheckboxExclusivity _
+            ThisWorkbook.Worksheets(condSheetNameFinal)
+    End If
+
     mod_OrderTpl_Shared.OrderTplLog "GenerateVendorOrderSheets done alias=" & aliasText
 
 Cleanup:

@@ -396,7 +396,8 @@ Public Function BuildConstructionOutputSheet(ByVal sheetName As String, _
         ApplyPriceGuidanceColumnLayout ws
         mod_subcontractorselector.ApplySubcontractorDropdowns ws
     End If
-    mod_Construction_OutputFormat.ApplySanpaiRowRestrictionsCore ws
+    ' Y”pˆ—s‚Ì“ü—Í‹Ö~(A—ñ“h‚è‚Â‚Ô‚µ)‚Í”p~B{H‰ïĞ‚Í‘Ss‚Å‘I‘ğ‰Â”\‚Æ‚µA
+    ' Y”pˆ—s‚Ì“à–ó–¾×‚Ö‚Ì“]‹LœŠO‚Í mod_OrderTpl_Detail.CollectSourceSections ‘¤‚Ås‚¤B
     RefreshOutputSheetVendorColumnColors ws, mod_Construction_LineMapping.GetLastDataRow(ws)
 
     If Not isWelding Then
