@@ -11,10 +11,15 @@ Attribute VB_Control = "btnClearBasicInfo, 2, 1, MSForms, CommandButton"
 Attribute VB_Control = "ComboBox1, 3, 2, MSForms, ComboBox"
 Option Explicit
 
-' Šî–{î•ñƒV[ƒg‚ÌActivateAd‚¢Ä\’z(“ü—Í‹K‘¥‚ÌÄ\’zE‡ŒvÄŒvZEƒŒƒKƒV[‘|œ)‚Í
-' ƒZƒbƒVƒ‡ƒ“‰‰ñ‚Ì‚İÀs‚·‚é‚½‚ß‚Ìƒtƒ‰ƒOB2‰ñ–ÚˆÈ~‚ÌØ‘Ö‚Å‚ÍÈ—ª‚·‚é(Šeˆ—‚Í‘Î‰‚·‚é
-' ƒZƒ‹•ÏXƒCƒxƒ“ƒg/æˆ—‘¤‚ÅˆÛ‚³‚ê‚é‚½‚ßAØ‘Ö‚Ì“s“x‚â‚è’¼‚·•K—v‚ª‚È‚¢)B
+' ï¿½ï¿½{ï¿½ï¿½ï¿½Vï¿½[ï¿½gï¿½ï¿½Activateï¿½ï¿½ï¿½Aï¿½dï¿½ï¿½ï¿½Ä\ï¿½z(ï¿½ï¿½ï¿½Í‹Kï¿½ï¿½ï¿½ÌÄ\ï¿½zï¿½Eï¿½ï¿½ï¿½vï¿½ÄŒvï¿½Zï¿½Eï¿½ï¿½ï¿½Kï¿½Vï¿½[ï¿½|ï¿½ï¿½)ï¿½ï¿½
+' ï¿½Zï¿½bï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì‚İï¿½ï¿½sï¿½ï¿½ï¿½é‚½ï¿½ß‚Ìƒtï¿½ï¿½ï¿½Oï¿½B2ï¿½ï¿½ÚˆÈ~ï¿½ÌØ‘Ö‚Å‚ÍÈ—ï¿½ï¿½ï¿½ï¿½ï¿½(ï¿½eï¿½ï¿½ï¿½ï¿½ï¿½Í‘Î‰ï¿½ï¿½ï¿½ï¿½ï¿½
+' ï¿½Zï¿½ï¿½ï¿½ÏXï¿½Cï¿½xï¿½ï¿½ï¿½g/ï¿½æï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÅˆÛï¿½ï¿½ï¿½ï¿½ï¿½é‚½ï¿½ßAï¿½Ø‘Ö‚Ì“sï¿½xï¿½ï¿½è’¼ï¿½ï¿½ï¿½Kï¿½vï¿½ï¿½ï¿½È‚ï¿½)ï¿½B
 Private mBasicInfoActivateInitialized As Boolean
+
+' ï¿½ÏXï¿½Äï¿½ï¿½Qï¿½[ï¿½gï¿½ÍˆÍ‚ÌÃ“Iï¿½ï¿½(ï¿½Å’ï¿½Zï¿½ï¿½+ï¿½{ï¿½Hï¿½ï¿½Ñƒ uï¿½ï¿½ï¿½bï¿½Nï¿½ï¿½)ï¿½ÌƒLï¿½ï¿½ï¿½bï¿½Vï¿½ï¿½ï¿½B
+' ï¿½ï¿½ï¿½Cï¿½Aï¿½Eï¿½gï¿½ÍÃ“Iï¿½È‚ï¿½ï¿½ßˆï¿½xï¿½\ï¿½zï¿½ï¿½ï¿½ï¿½ÎÄ—ï¿½ï¿½pï¿½Å‚ï¿½ï¿½Aï¿½ï¿½ï¿½ÏXï¿½Å‚ï¿½60ï¿½ï¿½ï¿½ï¿½Unionï¿½Ä\ï¿½zï¿½ï¿½ï¿½ï¿½ï¿½B
+' ï¿½ï¿½ï¿½ï¿½ï¿½ÎÛƒ Zï¿½ï¿½ï¿½Wï¿½ï¿½ï¿½Í]ï¿½ï¿½ï¿½Æ“ï¿½ï¿½ï¿½(ï¿½Å’ï¿½Zï¿½ï¿½+ï¿½{ï¿½Hï¿½ï¿½Ñƒ uï¿½ï¿½ï¿½bï¿½N10ï¿½ï¿½6ï¿½s)ï¿½Bï¿½Oï¿½Ì‚ï¿½ï¿½ï¿½Activateï¿½Å–ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½B
+Private mStaticGateRangeCache As Range
 
 Private Sub Worksheet_Activate()
     Dim g As New clsPerfGuard
@@ -22,16 +27,17 @@ Private Sub Worksheet_Activate()
 
     On Error GoTo ExitHandler
 
-    ' –ˆ‰ñ•K—v‚ÈŒy—Êˆ—(ƒLƒƒƒbƒVƒ…‰Šú‰»EUIŒãn––EŒ”‰Šú‰»E“ü—ÍƒKƒCƒh)
+    ' ï¿½ï¿½ï¿½ï¿½Kï¿½vï¿½ÈŒyï¿½Êï¿½ï¿½ï¿½(ï¿½Lï¿½ï¿½ï¿½bï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½EUIï¿½ï¿½nï¿½ï¿½ï¿½Eï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Eï¿½ï¿½ï¿½ÍƒKï¿½Cï¿½h)
     mod_VendorMaster.ClearVendorRowsCache
+    Set mStaticGateRangeCache = Nothing   ' ï¿½ÏXï¿½Qï¿½[ï¿½gï¿½ÍˆÍ‚ÌÃ“Iï¿½ï¿½ï¿½Lï¿½ï¿½ï¿½bï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½Oï¿½Ì‚ï¿½ï¿½ßÄ\ï¿½z
     mod_FillManagerName.HideOfficeComboBox Me
     mod_VendorMaster.EnsureVendorCountInputValidation Me
     mod_OrderTpl_Shared.OrderTplRepairAllGeneratedPlaceholderFormulas
     mod_VendorMaster.InitVendorBlockCountFromSheet Me
     mod_BasicInfoGuide.InitBasicInfoGuide Me
 
-    ' d‚¢Ä\’z(ƒŒƒKƒV[‘|œE“ü—Í‹K‘¥‚ÌÄ\’zE‡ŒvÄŒvZ)‚ÍƒZƒbƒVƒ‡ƒ“‰‰ñ‚Ì‚İÀs‚·‚éB
-    ' 2‰ñ–ÚˆÈ~‚ÌØ‘Ö‚Å‚ÍÈ—ª(‚¢‚¸‚ê‚à‘Î‰‚·‚éƒZƒ‹•ÏXƒCƒxƒ“ƒg/æˆ—‘¤‚ÅÅV‚ÉˆÛ‚³‚ê‚é)B
+    ' ï¿½dï¿½ï¿½ï¿½Ä\ï¿½z(ï¿½ï¿½ï¿½Kï¿½Vï¿½[ï¿½|ï¿½ï¿½ï¿½Eï¿½ï¿½ï¿½Í‹Kï¿½ï¿½ï¿½ÌÄ\ï¿½zï¿½Eï¿½ï¿½ï¿½vï¿½ÄŒvï¿½Z)ï¿½ÍƒZï¿½bï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì‚İï¿½ï¿½sï¿½ï¿½ï¿½ï¿½B
+    ' 2ï¿½ï¿½ÚˆÈ~ï¿½ÌØ‘Ö‚Å‚ÍÈ—ï¿½(ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î‰ï¿½ï¿½ï¿½ï¿½ï¿½Zï¿½ï¿½ï¿½ÏXï¿½Cï¿½xï¿½ï¿½ï¿½g/ï¿½æï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÅÅVï¿½ÉˆÛï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)ï¿½B
     If Not mBasicInfoActivateInitialized Then
         mod_FillManagerName.CleanupLegacyBasicInfoValidationListDebris Me
         mod_VendorMaster.CleanupLegacyVendorListDebrisInColumnAD Me
@@ -62,7 +68,7 @@ Private Sub Worksheet_Change(ByVal target As Range)
     Set vendorUnitPriceMonitorRange = mod_VendorMaster.GetVendorUnitPriceMonitorRange(Me)
 
     If IsIgnoredBasicInfoChange(Me, target, vendorNameRange, vendorUnitPriceMonitorRange) Then
-        mod_DebugLog.Log "[Sheet1] ŠÄ‹‘ÎÛŠO -> Exit"
+        mod_DebugLog.Log "[Sheet1] ï¿½Äï¿½ï¿½ÎÛŠO -> Exit"
         Exit Sub
     End If
 
@@ -83,9 +89,9 @@ Private Sub Worksheet_Change(ByVal target As Range)
     needComboPrompt = False
 
     If Not Intersect(target, Me.Range("B4,B6")) Is Nothing Then
-        mod_DebugLog.Log "[Sheet1] B4/B6•ÏX -> RefreshBranchOfficeValidation(False) ŒÄ‚Ño‚µ"
+        mod_DebugLog.Log "[Sheet1] B4/B6ï¿½ÏX -> RefreshBranchOfficeValidation(False) ï¿½Ä‚Ñoï¿½ï¿½"
         needComboPrompt = mod_FillManagerName.RefreshBranchOfficeValidation(False)
-        mod_DebugLog.Log "[Sheet1] RefreshBranchOfficeValidation –ß‚è’l needComboPrompt=" & needComboPrompt
+        mod_DebugLog.Log "[Sheet1] RefreshBranchOfficeValidation ï¿½ß‚ï¿½l needComboPrompt=" & needComboPrompt
     End If
 
     If Not Intersect(target, Me.Range("B6")) Is Nothing Then
@@ -96,16 +102,16 @@ Private Sub Worksheet_Change(ByVal target As Range)
         mod_VendorMaster.SyncVendorBlocksFromCount Me
         Set vendorNameRange = mod_VendorMaster.GetVendorNameRange(Me)
         mod_Construction_Order_Import.RefreshBasicInfoConstructionTotals
-        ' ‰ïĞ”Œ¸­‚Å‘ÎÛŠO‚É‚È‚Á‚½’•¶‘ƒeƒ“ƒvƒŒ[ƒgƒV[ƒg‚ğíœ
+        ' ï¿½ï¿½Ğï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å‘ÎÛŠOï¿½É‚È‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½eï¿½ï¿½ï¿½vï¿½ï¿½ï¿½[ï¿½gï¿½Vï¿½[ï¿½gï¿½ï¿½ï¿½íœ
         mod_OrderTpl_Generate.RemoveOrphanGeneratedSheets Me
     End If
 
     If Not Intersect(target, Me.Range("B6,C6")) Is Nothing Then
-        mod_DebugLog.Log "[Sheet1] B6/C6•ÏX IsSuppressing=" & mod_FillManagerName.IsSuppressingC6Change()
+        mod_DebugLog.Log "[Sheet1] B6/C6ï¿½ÏX IsSuppressing=" & mod_FillManagerName.IsSuppressingC6Change()
         If Not mod_FillManagerName.IsSuppressingC6Change() Then
-            mod_DebugLog.Log "[Sheet1] SilentClearBasicInfo ŒÄ‚Ño‚µ"
+            mod_DebugLog.Log "[Sheet1] SilentClearBasicInfo ï¿½Ä‚Ñoï¿½ï¿½"
             mod_BasicInfoUpdate.SilentClearBasicInfo Me
-            mod_DebugLog.Log "[Sheet1] SilentClearBasicInfo Š®—¹"
+            mod_DebugLog.Log "[Sheet1] SilentClearBasicInfo ï¿½ï¿½ï¿½ï¿½"
         End If
     End If
 
@@ -161,7 +167,7 @@ Private Sub Worksheet_Change(ByVal target As Range)
         mod_VendorMaster.HideVendorComboBox Me
         mod_Construction_Order_Import.RefreshBasicInfoConstructionTotals _
             mod_VendorMaster.GetVendorIndexFromValueColumnPublic(changedVendorCell.Column)
-        ' {H‰ïĞŠm’è‚É”º‚¤’•¶‘ƒeƒ“ƒvƒŒ[ƒgƒV[ƒg‚Ì¶¬/íœ
+        ' ï¿½{ï¿½Hï¿½ï¿½ĞŠmï¿½ï¿½É”ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½eï¿½ï¿½ï¿½vï¿½ï¿½ï¿½[ï¿½gï¿½Vï¿½[ï¿½gï¿½Ìï¿½ï¿½ï¿½/ï¿½íœ
         mod_OrderTpl_Generate.HandleVendorNameCellChange Me, changedVendorCell
     End If
 
@@ -179,15 +185,15 @@ Private Sub Worksheet_Change(ByVal target As Range)
 
     mod_BasicInfoGuide.OnCellChanged Me, target
 
-    ' Šî–{î•ñ‚Ìƒwƒbƒ_[“]‹LŒ³ƒZƒ‹•ÏX‚ğ’•¶‘ƒeƒ“ƒvƒŒ[ƒgŠeƒV[ƒg‚Ö”½‰f
-    ' (10s–Ú‚ÌH–‹æ•ªF‚Ì“K—pŒã‚Éƒ^ƒuF‚ğ“Ç‚İæ‚é‚½‚ßAƒKƒCƒhXV‚ÌŒã‚ÉÀs‚·‚é)
+    ' ï¿½ï¿½{ï¿½ï¿½ï¿½Ìƒwï¿½bï¿½_ï¿½[ï¿½]ï¿½Lï¿½ï¿½ï¿½Zï¿½ï¿½ï¿½ÏXï¿½ğ’•ï¿½ï¿½ï¿½ï¿½eï¿½ï¿½ï¿½vï¿½ï¿½ï¿½[ï¿½gï¿½eï¿½Vï¿½[ï¿½gï¿½Ö”ï¿½ï¿½f
+    ' (10ï¿½sï¿½Ú‚ÌHï¿½ï¿½ï¿½æ•ªï¿½Fï¿½Ì“Kï¿½pï¿½ï¿½Éƒ^ï¿½uï¿½Fï¿½ï¿½Ç‚İï¿½é‚½ï¿½ßAï¿½Kï¿½Cï¿½hï¿½Xï¿½Vï¿½ÌŒï¿½Éï¿½ï¿½sï¿½ï¿½ï¿½ï¿½)
     mod_OrderTpl_Header.HandleBasicInfoHeaderSourceChange Me, target
 
     mod_DebugLog.Log "[Sheet1] needComboPrompt=" & needComboPrompt
     If needComboPrompt Then
-        mod_DebugLog.Log "[Sheet1] PromptOfficeComboBox ŒÄ‚Ño‚µ‘O EnableEvents=" & Application.EnableEvents
+        mod_DebugLog.Log "[Sheet1] PromptOfficeComboBox ï¿½Ä‚Ñoï¿½ï¿½ï¿½O EnableEvents=" & Application.EnableEvents
         mod_FillManagerName.PromptOfficeComboBox
-        mod_DebugLog.Log "[Sheet1] PromptOfficeComboBox ŒÄ‚Ño‚µŒã EnableEvents=" & Application.EnableEvents
+        mod_DebugLog.Log "[Sheet1] PromptOfficeComboBox ï¿½Ä‚Ñoï¿½ï¿½ï¿½ï¿½ EnableEvents=" & Application.EnableEvents
     End If
 
 ExitHandler:
@@ -297,11 +303,11 @@ Private Sub Worksheet_SelectionChange(ByVal target As Range)
 
     If Not mod_FillManagerName.IsPromptingOfficeComboBox() Then
         If Intersect(target, Me.Range("C6")) Is Nothing Then
-            mod_DebugLog.Log "[Sheet1] SelectionChange: C6ˆÈŠO -> HideOfficeComboBox"
+            mod_DebugLog.Log "[Sheet1] SelectionChange: C6ï¿½ÈŠO -> HideOfficeComboBox"
             mod_FillManagerName.HideOfficeComboBox Me
         End If
     Else
-        mod_DebugLog.Log "[Sheet1] SelectionChange: IsPrompting=True -> Hide—}§"
+        mod_DebugLog.Log "[Sheet1] SelectionChange: IsPrompting=True -> Hideï¿½}ï¿½ï¿½"
     End If
 
     If mod_BasicInfoCellDropdown.IsCellDropdownSessionOpen(Me) Then
@@ -341,7 +347,7 @@ End Sub
 Private Sub ComboBox1_LostFocus()
     mod_DebugLog.Log "[Sheet1] ComboBox1_LostFocus IsPrompting=" & mod_FillManagerName.IsPromptingOfficeComboBox()
     If mod_FillManagerName.IsPromptingOfficeComboBox() Then
-        mod_DebugLog.Log "[Sheet1] ComboBox1_LostFocus: IsPrompting=True -> ƒXƒLƒbƒv"
+        mod_DebugLog.Log "[Sheet1] ComboBox1_LostFocus: IsPrompting=True -> ï¿½Xï¿½Lï¿½bï¿½v"
         Exit Sub
     End If
     mod_FillManagerName.CommitOfficeComboBoxSelection False
@@ -400,7 +406,7 @@ Private Function IsIgnoredBasicInfoChange(ByVal ws As Worksheet, _
     IsIgnoredBasicInfoChange = True
 End Function
 
-' •ÏXŠÄ‹ƒQ[ƒg: ƒwƒbƒ_[“]‹LŒ³ + ƒKƒCƒhŠÄ‹”ÍˆÍ + ŒÅ’èƒZƒ‹ + ‹ÆÒƒuƒƒbƒN(Å‘å10Ğ)‚ÌŠÄ‹s
+' ï¿½ÏXï¿½Äï¿½ï¿½Qï¿½[ï¿½g: ï¿½wï¿½bï¿½_ï¿½[ï¿½]ï¿½Lï¿½ï¿½ + ï¿½Kï¿½Cï¿½hï¿½Äï¿½ï¿½Íˆï¿½ + ï¿½Å’ï¿½Zï¿½ï¿½ + ï¿½ÆÒƒuï¿½ï¿½ï¿½bï¿½N(ï¿½Å‘ï¿½10ï¿½ï¿½)ï¿½ÌŠÄï¿½ï¿½s
 Private Function GetBasicInfoChangeGateRange(ByVal ws As Worksheet) As Range
     Dim result As Range
 
@@ -417,15 +423,35 @@ Private Function GetBasicInfoChangeGateRange(ByVal ws As Worksheet) As Range
         End If
     End If
 
-    Dim fixedRange As Range
-    Set fixedRange = ws.Range("C2,C9,C22,C23,F6,F9")
-    If result Is Nothing Then
-        Set result = fixedRange
-    Else
-        Set result = Union(result, fixedRange)
+    ' ï¿½Å’ï¿½Zï¿½ï¿½+ï¿½{ï¿½Hï¿½ï¿½Ñƒ uï¿½ï¿½ï¿½bï¿½N(10ï¿½ï¿½6ï¿½s)ï¿½ÍÃ“Iï¿½È‚ï¿½ï¿½ßƒLï¿½ï¿½ï¿½bï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½Ä—ï¿½ï¿½pï¿½ï¿½ï¿½ï¿½
+    ' (ï¿½ï¿½ï¿½ÏXï¿½ï¿½ï¿½Ì‘å‚«ï¿½ï¿½Unionï¿½Ä\ï¿½zï¿½ï¿½ï¿½ï¿½ï¿½Bï¿½Äï¿½ï¿½ÎÛƒ Zï¿½ï¿½ï¿½Wï¿½ï¿½ï¿½Í]ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½v)ï¿½B
+    Dim staticPart As Range
+    Set staticPart = GetStaticGateRange(ws)
+    If Not staticPart Is Nothing Then
+        If result Is Nothing Then
+            Set result = staticPart
+        Else
+            Set result = Union(result, staticPart)
+        End If
+    End If
+    On Error GoTo 0
+
+    Set GetBasicInfoChangeGateRange = result
+End Function
+
+' ï¿½Å’ï¿½Zï¿½ï¿½+ï¿½{ï¿½Hï¿½ï¿½Ñƒ uï¿½ï¿½ï¿½bï¿½Nï¿½ï¿½ÌÃ“Iï¿½ÈƒQï¿½[ï¿½gï¿½ÍˆÍ‚ï¿½ï¿½\ï¿½zï¿½ï¿½ï¿½Ä•Ô‚ï¿½(ï¿½Lï¿½ï¿½ï¿½bï¿½Vï¿½ï¿½)ï¿½B
+' BasicInfoVendorColumn(i) ï¿½ï¿½ i ï¿½Ìï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È‚Ì‚Å‚ï¿½ï¿½ï¿½ï¿½ÌWï¿½ï¿½ï¿½ÍŠï¿½ï¿½Sï¿½ÉÃ“Iï¿½B
+Private Function GetStaticGateRange(ByVal ws As Worksheet) As Range
+    If Not mStaticGateRangeCache Is Nothing Then
+        Set GetStaticGateRange = mStaticGateRangeCache
+        Exit Function
     End If
 
-    ' ‹ÆÒƒuƒƒbƒN(F—ñn‚Ü‚è3—ñ‚¨‚«)‚Ì 10/11/16/27/29/31 s–Ú
+    Dim result As Range
+    On Error Resume Next
+    Set result = ws.Range("C2,C9,C22,C23,F6,F9")
+
+    ' ï¿½ÆÒƒuï¿½ï¿½ï¿½bï¿½N(Fï¿½ï¿½nï¿½Ü‚ï¿½3ï¿½ñ‚¨‚ï¿½)ï¿½ï¿½ 10/11/16/27/29/31 ï¿½sï¿½ï¿½
     Dim monitorRows As Variant
     monitorRows = Array(10, 11, 16, 27, 29, 31)
 
@@ -441,7 +467,8 @@ Private Function GetBasicInfoChangeGateRange(ByVal ws As Worksheet) As Range
     Next i
     On Error GoTo 0
 
-    Set GetBasicInfoChangeGateRange = result
+    Set mStaticGateRangeCache = result
+    Set GetStaticGateRange = result
 End Function
 
 Private Function IntersectsBasicInfoMonitorTarget(ByVal target As Range, _

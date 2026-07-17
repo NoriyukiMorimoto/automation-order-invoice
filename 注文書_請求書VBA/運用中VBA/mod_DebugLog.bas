@@ -11,11 +11,17 @@ Public Const LOG_PERSIST_BOTH As Long = 3
 Private mFileLogPath As String
 Private mFileLogPathReady As Boolean
 
+' Immediate�E�B���h�E�ֈ̏o��(Debug.Print)�̗L��/�����B
+' �ʏ�^�p�ł�False(VBE���J���Ă���ꍇ��Debug.Print�̃I�[�o�[�w�b�h�����)�B
+' ���O���͈̂ێ�(���L�o�b�t�@mLogs��AppendLogLineToFile��FlushToSheet�͏]�����蓮��)�B
+' �f�o�b�O���ɂ� True �ɂ���� Immediate �ɂ��o�͂����B
+Public DebugImmediateEnabled As Boolean
+
 Public Sub Log(ByVal msg As String, Optional ByVal persist As Long = 0)
     Dim line As String
     line = Format(Now, "hh:mm:ss") & "  " & msg
 
-    Debug.Print line
+    If DebugImmediateEnabled Then Debug.Print line
 
     If mLogCount = 0 And mLogOffset = 0 Then
         ReDim mLogs(0 To LOG_MAX_COUNT - 1)
