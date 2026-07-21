@@ -81,11 +81,14 @@ Public Sub RunScheduledVendorSheetGeneration()
     If mPendingVendorIndexes Is Nothing Then Exit Sub
     If mPendingVendorIndexes.Count = 0 Then Exit Sub
 
+    Dim runT0 As Double
+    runT0 = mod_Construction_Import_Shared.LogCIStart()
+    mod_Construction_Import_Shared.LogCI "RunScheduledVendorSheetGeneration start count=" & mPendingVendorIndexes.Count
+
     Dim wsInfo As Worksheet
     Set wsInfo = CommonGetBasicInfoWorksheet()
     If wsInfo Is Nothing Then Exit Sub
 
-    ' 実行前に予約リストを退避してクリアする(実行中の再予約と衝突させない)
     Dim pendingKeys As Variant
     pendingKeys = mPendingVendorIndexes.Keys
     mPendingVendorIndexes.RemoveAll
@@ -96,16 +99,84 @@ Public Sub RunScheduledVendorSheetGeneration()
 
     Dim i As Long
     For i = LBound(pendingKeys) To UBound(pendingKeys)
-        GenerateVendorOrderSheets wsInfo, CLng(pendingKeys(i))
+        Dim vendorIndex As Long
+        vendorIndex = CLng(pendingKeys(i))
+        Dim oneT0 As Double
+        oneT0 = mod_Construction_Import_Shared.LogCIStart()
+        If RefreshExistingVendorOrderSheetsIfPresent(wsInfo, vendorIndex) Then
+            mod_Construction_Import_Shared.LogCIElapsed "vendor sheets in-place refresh index=" & vendorIndex, oneT0
+        Else
+            GenerateVendorOrderSheets wsInfo, vendorIndex
+            mod_Construction_Import_Shared.LogCIElapsed "vendor sheets full generate index=" & vendorIndex, oneT0
+        End If
     Next i
 
-    ' 内訳明細の「計」行の値を基本情報33行目へ反映する
     mod_Construction_Order_Import.RefreshBasicInfoConstructionTotals
 
     Application.EnableEvents = prevEnableEvents
+    mod_Construction_Import_Shared.LogCIElapsed "RunScheduledVendorSheetGeneration total", runT0
 End Sub
 
-' 指定ブロックの施工会社のテンプレート5シートを削除して再作成し、内訳明細へ転記する
+' 対象エイリアスの内訳明細が既にある場合はテンプレ再コピーせず見出し/明細のみ更新する。
+' (会社名変更で毎回 Worksheets.Copy すると数十秒掛かるため)
+Private Function RefreshExistingVendorOrderSheetsIfPresent(ByVal wsInfo As Worksheet, _
+                                                           ByVal vendorIndex As Long) As Boolean
+    RefreshExistingVendorOrderSheetsIfPresent = False
+    If wsInfo Is Nothing Then Exit Function
+    If vendorIndex < 1 Then Exit Function
+
+    Dim companyName As String
+    companyName = mod_OrderTpl_Shared.OrderTplGetVendorCompanyName(wsInfo, vendorIndex)
+    If companyName = "" Then
+        RemoveOrphanGeneratedSheets wsInfo
+        RefreshExistingVendorOrderSheetsIfPresent = True
+        Exit Function
+    End If
+
+    Dim branchName As String
+    branchName = CommonNormalizeText(CommonNzText(wsInfo.Range(BASIC_INFO_BRANCH_CELL).value))
+
+    Dim vendorName As String
+    Dim aliasText As String
+    Dim workText As String
+    If Not mod_OrderTpl_Shared.OrderTplResolveVendorMasterInfo(branchName, companyName, vendorName, aliasText, workText) Then
+        Exit Function
+    End If
+    If aliasText = "" Then Exit Function
+
+    Dim breakdownSheetName As String
+    breakdownSheetName = mod_OrderTpl_Shared.OrderTplBuildSheetName( _
+        mod_OrderTpl_Shared.OrderTplBaseNameBreakdownText(), aliasText)
+    If Not mod_OrderTpl_Shared.OrderTplSheetExists(breakdownSheetName) Then Exit Function
+
+    RemoveOrphanGeneratedSheets wsInfo
+
+    Dim workTypeText As String
+    workTypeText = CommonNormalizeText(CommonNzText( _
+        wsInfo.Cells(BASIC_INFO_VENDOR_WORK_TYPE_ROW, _
+                     mod_Construction_BasicTotals.BasicInfoVendorColumn(vendorIndex)).value))
+    If workTypeText = "" Then workTypeText = workText
+
+    Dim wsBreakdown As Worksheet
+    Set wsBreakdown = ThisWorkbook.Worksheets(breakdownSheetName)
+
+    mod_OrderTpl_Shared.OrderTplLog "in-place refresh alias=" & aliasText
+    mod_OrderTpl_Header.ApplyVendorSheetHeaders wsInfo, vendorIndex, aliasText
+    mod_OrderTpl_Detail.ApplyBreakdownDetails wsBreakdown, vendorName, companyName, branchName, workTypeText
+
+    Dim condSheetName As String
+    condSheetName = mod_OrderTpl_Shared.OrderTplBuildSheetName( _
+        mod_OrderTpl_Shared.OrderTplBaseNameConditionText(), aliasText)
+    If mod_OrderTpl_Shared.OrderTplSheetExists(condSheetName) Then
+        mod_OrderTpl_Header.ApplyConditionSheetHeader wsInfo, _
+            ThisWorkbook.Worksheets(condSheetName), vendorIndex
+        mod_OrderTpl_Header.SetupConditionCheckboxExclusivity _
+            ThisWorkbook.Worksheets(condSheetName)
+    End If
+
+    RefreshExistingVendorOrderSheetsIfPresent = True
+End Function
+
 Public Sub GenerateVendorOrderSheets(ByVal wsInfo As Worksheet, ByVal vendorIndex As Long)
     If wsInfo Is Nothing Then Exit Sub
     If mGenerating Then Exit Sub
@@ -124,7 +195,10 @@ Public Sub GenerateVendorOrderSheets(ByVal wsInfo As Worksheet, ByVal vendorInde
 
     Dim companyName As String
     companyName = mod_OrderTpl_Shared.OrderTplGetVendorCompanyName(wsInfo, vendorIndex)
+    Dim genT0 As Double
+    genT0 = mod_Construction_Import_Shared.LogCIStart()
     mod_OrderTpl_Shared.OrderTplLog "GenerateVendorOrderSheets index=" & vendorIndex & " company=[" & companyName & "]"
+    mod_Construction_Import_Shared.LogCI "GenerateVendorOrderSheets start index=" & vendorIndex
 
     RemoveOrphanGeneratedSheets wsInfo
     If companyName = "" Then GoTo Cleanup
@@ -178,16 +252,21 @@ Public Sub GenerateVendorOrderSheets(ByVal wsInfo As Worksheet, ByVal vendorInde
     baseNames = mod_OrderTpl_Shared.OrderTplTemplateSheetBaseNames()
 
     Application.DisplayAlerts = False
+    Dim stepT0 As Double
+    stepT0 = mod_Construction_Import_Shared.LogCIStart()
     mod_OrderTpl_Shared.OrderTplLog "step: copy template after=" & anchorSheet.Name
     templateWorkbook.Worksheets(baseNames).Copy After:=anchorSheet
+    mod_Construction_Import_Shared.LogCIElapsed "Generate: template Copy", stepT0
 
     Dim i As Long
     For i = LBound(baseNames) To UBound(baseNames)
         Dim wsGenerated As Worksheet
         Set wsGenerated = ThisWorkbook.Sheets(anchorSheet.Index + 1 + i - LBound(baseNames))
         wsGenerated.Name = mod_OrderTpl_Shared.OrderTplBuildSheetName(CStr(baseNames(i)), aliasText)
+        stepT0 = mod_Construction_Import_Shared.LogCIStart()
         mod_OrderTpl_Shared.OrderTplLog "step: sanitize " & wsGenerated.Name
         mod_OrderTpl_Shared.OrderTplSanitizePlaceholderFormulas wsGenerated
+        mod_Construction_Import_Shared.LogCIElapsed "Generate: sanitize " & wsGenerated.Name, stepT0
     Next i
 
     ' 工事区分(基本情報10行目)を取得する。施工会社ごとに1件のみ保持され、別紙IIIの生成要否判定に使う。
@@ -236,10 +315,14 @@ Public Sub GenerateVendorOrderSheets(ByVal wsInfo As Worksheet, ByVal vendorInde
     Set wsBreakdown = ThisWorkbook.Worksheets( _
         mod_OrderTpl_Shared.OrderTplBuildSheetName(CStr(baseNames(LBound(baseNames))), aliasText))
 
+    stepT0 = mod_Construction_Import_Shared.LogCIStart()
     mod_OrderTpl_Shared.OrderTplLog "step: apply headers alias=" & aliasText
     mod_OrderTpl_Header.ApplyVendorSheetHeaders wsInfo, vendorIndex, aliasText
+    mod_Construction_Import_Shared.LogCIElapsed "Generate: ApplyVendorSheetHeaders", stepT0
+    stepT0 = mod_Construction_Import_Shared.LogCIStart()
     mod_OrderTpl_Shared.OrderTplLog "step: apply breakdown " & wsBreakdown.Name
     mod_OrderTpl_Detail.ApplyBreakdownDetails wsBreakdown, vendorName, companyName, branchName, workTypeText
+    mod_Construction_Import_Shared.LogCIElapsed "Generate: ApplyBreakdownDetails", stepT0
 
     Dim condSheetNameFinal As String
     condSheetNameFinal = mod_OrderTpl_Shared.OrderTplBuildSheetName( _
@@ -250,10 +333,13 @@ Public Sub GenerateVendorOrderSheets(ByVal wsInfo As Worksheet, ByVal vendorInde
     End If
 
     mod_OrderTpl_Shared.OrderTplLog "GenerateVendorOrderSheets done alias=" & aliasText
+    mod_Construction_Import_Shared.LogCIElapsed "GenerateVendorOrderSheets done alias=" & aliasText, genT0
 
 Cleanup:
     On Error Resume Next
-    If Not previousActiveSheet Is Nothing Then previousActiveSheet.Activate
+    If Not previousActiveSheet Is Nothing Then
+        If Not previousActiveSheet Is wsInfo Then previousActiveSheet.Activate
+    End If
     Application.DisplayAlerts = prevDisplayAlerts
     Application.ScreenUpdating = prevScreenUpdating
     mGenerating = False

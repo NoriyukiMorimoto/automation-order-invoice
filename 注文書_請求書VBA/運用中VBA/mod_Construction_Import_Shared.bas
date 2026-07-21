@@ -162,3 +162,15 @@ Public mProjectMasterLineOrderRankMap As Object
 Public Sub LogCI(ByVal msg As String)
     Debug.Print "[ConstructionImport] " & Format(Now, "hh:mm:ss") & "  " & msg
 End Sub
+
+' 所要時間計測用。Timer(秒)を返す。半夜越えは LogCIElapsed 側で補正。
+Public Function LogCIStart() As Double
+    LogCIStart = Timer
+End Function
+
+Public Sub LogCIElapsed(ByVal label As String, ByVal startedAt As Double)
+    Dim elapsedSec As Double
+    elapsedSec = Timer - startedAt
+    If elapsedSec < 0 Then elapsedSec = elapsedSec + 86400#
+    LogCI label & " " & Format$(elapsedSec * 1000#, "0") & "ms"
+End Sub

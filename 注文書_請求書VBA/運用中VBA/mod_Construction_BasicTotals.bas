@@ -6,6 +6,9 @@ Option Explicit
 Public Sub RefreshBasicInfoConstructionTotalsCore(Optional ByVal changedVendorIndex As Long = 0)
     On Error GoTo ErrorHandler
 
+    Dim totalsT0 As Double
+    totalsT0 = LogCIStart()
+
     Dim wsInfo As Worksheet
     Set wsInfo = CommonGetBasicInfoWorksheet(ThisWorkbook)
     If wsInfo Is Nothing Then Exit Sub
@@ -146,6 +149,7 @@ Public Sub RefreshBasicInfoConstructionTotalsCore(Optional ByVal changedVendorIn
 
     ' 各ブロックの34/35行目(消費税・税込み金額)を追従更新する
     RefreshVendorBlockTaxRows wsInfo
+    LogCIElapsed "RefreshBasicInfoConstructionTotalsCore full=" & fullRefresh & " vendor=" & changedVendorIndex, totalsT0
     Exit Sub
 
 ErrorHandler:
@@ -1014,6 +1018,9 @@ Public Function BuildVendorAliasMap(ByVal branchName As String) As Object
     Set result = CreateObject("Scripting.Dictionary")
     result.CompareMode = vbTextCompare
 
+    Dim aliasT0 As Double
+    aliasT0 = LogCIStart()
+
     Dim connection As Object
     Dim recordset As Object
 
@@ -1062,6 +1069,7 @@ Public Function BuildVendorAliasMap(ByVal branchName As String) As Object
 
     LogCI "業者マスタ別名 件数=" & result.Count & " 支店=[" & branchName & _
           "] sheet=[" & actualSheetName & "]"
+    LogCIElapsed "BuildVendorAliasMap", aliasT0
 
 Cleanup:
     If Err.Number <> 0 Then

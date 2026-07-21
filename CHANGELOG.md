@@ -5,6 +5,17 @@
 
 ---
 
+## 性能改善 施工会社変更の二重集計抑制と所要時間ログ（2026-07-21）
+
+### #1 ボトルネック分析に基づく短縮
+- ログ上の約53秒空白は `GenerateVendorOrderSheets`（テンプレCopy+Sanitize）が主因。加えて `RefreshBasicInfoConstructionTotals` の二重実行と、Sheet1 Activate ごとの別名マップADO再読込が発生していた。
+- 既存エイリアスの内訳明細がある場合はテンプレ再コピーせず in-place 更新（`RefreshExistingVendorOrderSheetsIfPresent`）。
+- Sheet1 の施工会社変更時の合計再計算を削除（Notify / RunScheduled 側に集約）。Notify は previousWorkType 指定時に早期集計を省略。
+- Activate では別名マップを破棄しない（B6変更時のみ破棄）。生成後の基本情報 Activate も抑制。
+- `LogCIStart` / `LogCIElapsed` を追加し、vendor11変更・別名構築・集計・Generate各ステップの所要msを `[ConstructionImport]` に出力。
+
+---
+
 ## 性能改善 施工会社(11行目)変更時の外注単価全再レイアウトを抑制（mod_VendorUnitPrice）
 
 ### #1 左詰め割当でも「スロット不変」なら部分更新に戻す

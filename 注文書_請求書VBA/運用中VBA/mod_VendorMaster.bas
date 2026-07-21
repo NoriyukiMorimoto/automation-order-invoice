@@ -694,6 +694,11 @@ End Sub
 Public Sub ClearVendorRowsCache()
     Set mVendorRowsCache = Nothing
     Set mVendorNameIndexCache = Nothing
+    ' 別名マップは支店(B6)依存のため Activate ごとに破棄しない。
+    ' B6変更時は ClearVendorAliasMapCacheOnBranchChange で明示破棄する。
+End Sub
+
+Public Sub ClearVendorAliasMapCacheOnBranchChange()
     mod_Construction_Order_Import.ClearVendorAliasMapCache
 End Sub
 
@@ -801,7 +806,10 @@ Public Sub NotifyVendorBasicInfoBlockChanged(ByVal wsInfo As Worksheet, _
     vendorIndex = mod_VendorUnitPrice.GetVendorIndexFromValueColumn(valueColumn)
     If vendorIndex > 0 Then
         mod_BasicInfoGuide.RefreshSingleVendorRowGuidePublic wsInfo, vendorIndex
-        mod_Construction_Order_Import.RefreshBasicInfoConstructionTotals vendorIndex
+        ' 会社名変更等(previousWorkType指定)はシート生成後の全件更新に委譲し、ここでの集計を省略する。
+        If IsMissing(previousWorkType) Then
+            mod_Construction_Order_Import.RefreshBasicInfoConstructionTotals vendorIndex
+        End If
     End If
     Exit Sub
 

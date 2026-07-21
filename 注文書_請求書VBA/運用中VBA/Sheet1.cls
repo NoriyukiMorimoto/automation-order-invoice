@@ -95,6 +95,7 @@ Private Sub Worksheet_Change(ByVal target As Range)
     End If
 
     If Not Intersect(target, Me.Range("B6")) Is Nothing Then
+        mod_VendorMaster.ClearVendorAliasMapCacheOnBranchChange
         mod_VendorMaster.RefreshVendorListForBasicInfo Me
     End If
 
@@ -162,13 +163,15 @@ Private Sub Worksheet_Change(ByVal target As Range)
         End If
     End If
     If Not changedVendorCell Is Nothing Then
+        Dim vendorChangeT0 As Double
+        vendorChangeT0 = mod_Construction_Import_Shared.LogCIStart()
+        mod_Construction_Import_Shared.LogCI "Sheet1 vendor11 change start col=" & changedVendorCell.Column
         mod_VendorMaster.FillVendorInfoToBasicInfo Me, changedVendorCell
         mod_VendorMaster.CancelScheduledVendorListDropdown
         mod_VendorMaster.HideVendorComboBox Me
-        mod_Construction_Order_Import.RefreshBasicInfoConstructionTotals _
-            mod_VendorMaster.GetVendorIndexFromValueColumnPublic(changedVendorCell.Column)
-        ' 施工会社確定に伴い、対応する受注者用テンプレートシートへ反映/転記
+        ' 合計更新は Fill 内 Notify とシート生成後(RunScheduled)で行う。ここでの再呼び出しは省略。
         mod_OrderTpl_Generate.HandleVendorNameCellChange Me, changedVendorCell
+        mod_Construction_Import_Shared.LogCIElapsed "Sheet1 vendor11 change sync-part", vendorChangeT0
     End If
 
     Dim monitorHit As Range
