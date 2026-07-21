@@ -69,8 +69,8 @@ Public Sub ApplySanpaiRowRestrictionsCore(ByVal ws As Worksheet)
                         .IgnoreBlank = True
                         .InCellDropdown = False
                         .ShowInput = False
-                        .ErrorTitle = "?ｿｽ?ｿｽ?ｿｽﾍ不?ｿｽ?ｿｽ"
-                        .ErrorMessage = "?ｿｽY?ｿｽp?ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽﾌ行?ｿｽﾍ施?ｿｽH?ｿｽ?ｿｽﾐゑｿｽ?ｿｽ?ｿｽﾍでゑｿｽ?ｿｽﾜゑｿｽ?ｿｽ?ｿｽB"
+                        .ErrorTitle = "入力不可"
+                        .ErrorMessage = "産廃処理の行は施工会社を入力できません。"
                         .ShowError = True
                     End With
                 End With
@@ -79,7 +79,7 @@ Public Sub ApplySanpaiRowRestrictionsCore(ByVal ws As Worksheet)
         End If
     Next r
 
-    LogCI "?ｿｽY?ｿｽp?ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽs: A?ｿｽ?ｿｽh?ｿｽ?ｿｽﾂぶゑｿｽ?ｿｽE?ｿｽ?ｿｽ?ｿｽﾍ不?ｿｽ?ｿｽ=" & restrictedCount & " ?ｿｽs"
+    LogCI "産廃行制限: A列塗りつぶし・入力不可=" & restrictedCount & " 行"
 End Sub
 
 ' 産廃行(施工会社列が当初選択できなかった行)のA列(施工会社列)を色分け表示する。
@@ -306,7 +306,7 @@ Public Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
     unitColumn = mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_UNIT)
     lineColumn = mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_LINE)
 
-    ' ?ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽﾔ搾ｿｽ?ｿｽ?ｿｽ?ｿｽﾎ象撰ｿｽ?ｿｽ?ｿｽ(?ｿｽP?ｿｽ?ｿｽ)?ｿｽV?ｿｽ[?ｿｽg?ｿｽﾉ厄ｿｽ?ｿｽo?ｿｽ^?ｿｽﾌ行?ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽV?ｿｽ[?ｿｽg?ｿｽﾊに趣ｿｽ?ｿｽW?ｿｽ?ｿｽ?ｿｽ?ｿｽ
+    ' 整理番号が対象線区(単価)シートに未登録の行を線区シート別に収集する
     Dim pendingByLineSheet As Object
     Set pendingByLineSheet = CreateObject("Scripting.Dictionary")
     pendingByLineSheet.CompareMode = vbTextCompare
@@ -317,9 +317,9 @@ Public Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
     If isWeldingSheet Then
         weldingPriceSheetName = mod_Construction_OutputLayout.ResolveWeldingPriceSheetName()
         If weldingPriceSheetName = "" Then
-            LogCI "?ｿｽ?ｿｽ?ｿｽ[?ｿｽ?ｿｽ?ｿｽn?ｿｽﾚ単?ｿｽ?ｿｽ: ?ｿｽV?ｿｽ[?ｿｽg?ｿｽ?ｿｽ?ｿｽﾌ会ｿｽ?ｿｽ?ｿｽ?ｿｽﾉ趣ｿｽ?ｿｽs(?ｿｽ?ｿｽ{?ｿｽ?ｿｽ?ｿｽB6/C6 ?ｿｽﾜゑｿｽ?ｿｽ?ｿｽ ?ｿｽP?ｿｽ?ｿｽ?ｿｽK?ｿｽp?ｿｽ?ｿｽ?ｿｽ?ｿｽ}?ｿｽX?ｿｽ^?ｿｽ?ｿｽ?ｿｽ?ｿｽv)"
+            LogCI "レール溶接単価: シート名の解決に失敗(基本情報B6/C6 または 単価適用線区マスタ未一致)"
         ElseIf Not mod_Construction_OutputLayout.SheetExistsByName(weldingPriceSheetName) Then
-            LogCI "?ｿｽ?ｿｽ?ｿｽ[?ｿｽ?ｿｽ?ｿｽn?ｿｽﾚ単?ｿｽ?ｿｽ: ?ｿｽV?ｿｽ[?ｿｽg?ｿｽu" & weldingPriceSheetName & "?ｿｽv?ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽﾂゑｿｽ?ｿｽ?ｿｽﾜゑｿｽ?ｿｽ?ｿｽ"
+            LogCI "レール溶接単価: シート「" & weldingPriceSheetName & "」が見つかりません"
         End If
     End If
 
@@ -374,8 +374,8 @@ Public Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
             End If
         End If
 
-        ' ?ｿｽH?ｿｽ?ｿｽ(?ｿｽ?ｿｽn?ｿｽ?ｿｽ)?ｿｽV?ｿｽ[?ｿｽg?ｿｽﾌゑｿｽ: ?ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽﾔ搾ｿｽ?ｿｽ?ｿｽ?ｿｽP?ｿｽ?ｿｽ?ｿｽ}?ｿｽX?ｿｽ^?ｿｽﾉ厄ｿｽ?ｿｽ?ｿｽ?ｿｽs?ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽV?ｿｽ[?ｿｽg?ｿｽﾖ登?ｿｽ^?ｿｽﾎ象とゑｿｽ?ｿｽﾄ趣ｿｽ?ｿｽW?ｿｽ?ｿｽ?ｿｽ?ｿｽB
-        ' G?ｿｽ?ｿｽ?ｿｽ(?ｿｽO?ｿｽ?ｿｽ)?ｿｽ?ｿｽ NormalizeLineLookupText ?ｿｽﾅシ?ｿｽ[?ｿｽg?ｿｽ?ｿｽ?ｿｽﾆ搾ｿｽ?ｿｽ?ｿｽ?ｿｽﾉ擾ｿｽ?ｿｽ?ｿｽ?ｿｽﾏみ。?ｿｽﾇ記?ｿｽ?ｿｽ?ｿｽﾌは行?ｿｽ?ｿｽ?ｿｽB
+        ' 工事(非溶接)シートのみ: 整理番号が単価マスタに無い行を線区シートへ登録対象として収集する。
+        ' G列の(軌道)は NormalizeLineLookupText でシート名照合時に除去済み。追記自体は行う。
         If recordMissing And (Not isWeldingSheet) And unitPriceSheetName <> "" Then
             CollectMissingSeiriForLineSheet pendingByLineSheet, unitPriceSheetName, recordKey, _
                 ws.Cells(r, seiriColumn).value, _
@@ -392,11 +392,11 @@ Public Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
         WritePriceComparison ws, r, unitPriceSheetName, True, guidanceDocumentName
     Next r
 
-    ' ?ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽﾔ搾ｿｽ?ｿｽ?ｿｽ?ｿｽP?ｿｽ?ｿｽ?ｿｽ}?ｿｽX?ｿｽ^?ｿｽﾉ厄ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽA?ｿｽﾎ象撰ｿｽ?ｿｽ?ｿｽV?ｿｽ[?ｿｽg?ｿｽﾌ最会ｿｽ?ｿｽ?ｿｽ?ｿｽﾖ登?ｿｽ^?ｿｽ?ｿｽ?ｿｽ?ｿｽ
+    ' 整理番号が単価マスタに無かった分を、対象線区シートの最下部へ登録する
     If Not isWeldingSheet Then
         If pendingCollectCount > 0 Then
-            LogCI "?ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽﾔ搾ｿｽ?ｿｽ?ｿｽ?ｿｽo?ｿｽ^?ｿｽﾌ追記?ｿｽ?ｿｽ?ｿｽ=" & pendingCollectCount & _
-                  " (?ｿｽ?ｿｽ?ｿｽ?ｿｽV?ｿｽ[?ｿｽg?ｿｽ?ｿｽ=" & pendingByLineSheet.Count & ")"
+            LogCI "整理番号未登録の追記候補=" & pendingCollectCount & _
+                  " (線区シート数=" & pendingByLineSheet.Count & ")"
         End If
         RegisterMissingSeiriToLineSheets pendingByLineSheet
     End If
@@ -407,9 +407,9 @@ Public Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
     SafeSetRangeNumberFormatLocal ws.Range(ws.Cells(2, autoPriceColumn), ws.Cells(lastRow, autoAmountColumn)), ConstructionIntegerNumberFormat()
     ws.Range(ws.Cells(1, compareColumn), ws.Cells(lastRow, compareColumn)).HorizontalAlignment = xlCenter
 
-    LogCI "?ｿｽQ?ｿｽﾆ単?ｿｽ?ｿｽ?ｿｽ?ｿｽv=" & matchedCount & _
-          " / ?ｿｽ?ｿｽ?ｿｽ譁｢?ｿｽ?ｿｽ?ｿｽ?ｿｽ=" & unresolvedLineCount & _
-          " / ?ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽﾔ搾ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽv=" & missingRecordCount
+    LogCI "参照単価一致=" & matchedCount & _
+          " / 線区未解決=" & unresolvedLineCount & _
+          " / 整理番号未一致=" & missingRecordCount
 End Sub
 
 Public Sub RefreshConstructionReferenceUnitPricesOnExistingSheetsCore()
@@ -436,7 +436,7 @@ Public Sub RefreshConstructionReferenceUnitPricesOnExistingSheetsCore()
         End If
     Next ws
 
-    LogCI "?ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽ{?ｿｽH?ｿｽw?ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽV?ｿｽ[?ｿｽg?ｿｽﾌ参?ｿｽﾆ単?ｿｽ?ｿｽ?ｿｽﾄ読搾ｿｽ: ?ｿｽﾎ擾ｿｽ=" & refreshedCount
+    LogCI "既存施工指示書等シートの参照単価再読込: 対象=" & refreshedCount
 
 Cleanup:
     g.Restore
@@ -489,8 +489,8 @@ End Sub
 Public Function IsConstructionDocumentOutputSheet(ByVal ws As Worksheet) As Boolean
     If ws Is Nothing Then Exit Function
     If Not mod_Construction_OutputLayout.IsConstructionVendorOutputSheet(ws) Then Exit Function
-    If mod_Construction_BasicTotals.FindHeaderColumn(ws, "?ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽﾔ搾ｿｽ") = 0 Then Exit Function
-    IsConstructionDocumentOutputSheet = (mod_Construction_BasicTotals.FindHeaderColumn(ws, "?ｿｽP?ｿｽ?ｿｽ?ｿｽ?ｿｽr") > 0)
+    If mod_Construction_BasicTotals.FindHeaderColumn(ws, "整理番号") = 0 Then Exit Function
+    IsConstructionDocumentOutputSheet = (mod_Construction_BasicTotals.FindHeaderColumn(ws, "単価比較") > 0)
 End Function
 
 Public Sub RefreshConstructionReferencePricesOnSheet( _
@@ -499,7 +499,7 @@ Public Sub RefreshConstructionReferencePricesOnSheet( _
     ByVal changedPriceRows As Object, _
     ByVal lineSheetMap As Object)
 
-    ' ?ｿｽn?ｿｽﾚシ?ｿｽ[?ｿｽg?ｿｽﾌ参?ｿｽﾆ単?ｿｽ?ｿｽ?ｿｽﾍ??ｿｽ?ｿｽ[?ｿｽ?ｿｽ?ｿｽn?ｿｽﾚ単?ｿｽ?ｿｽ?ｿｽV?ｿｽ[?ｿｽg?ｿｽR?ｿｽ?ｿｽ?ｿｽﾌゑｿｽ?ｿｽﾟ、?ｿｽH?ｿｽ?ｿｽ?ｿｽP?ｿｽ?ｿｽ?ｿｽV?ｿｽ[?ｿｽg?ｿｽﾏ更?ｿｽﾅは再計?ｿｽZ?ｿｽ?ｿｽ?ｿｽﾈゑｿｽ?ｿｽB
+    ' 溶接シートの参照単価はレール溶接単価シート由来のため、工事単価シート変更では再計算しない。
     If mod_Construction_OutputLayout.IsWeldingOutputSheetCore(ws) Then Exit Sub
 
     Dim seiriColumn As Long
@@ -507,11 +507,11 @@ Public Sub RefreshConstructionReferencePricesOnSheet( _
     Dim quantityColumn As Long
     Dim jrPriceColumn As Long
     Dim comparisonColumn As Long
-    seiriColumn = mod_Construction_BasicTotals.FindHeaderColumn(ws, "?ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽﾔ搾ｿｽ")
-    dayNightColumn = mod_Construction_BasicTotals.FindHeaderColumn(ws, "?ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽ")
-    quantityColumn = mod_Construction_BasicTotals.FindHeaderColumn(ws, "?ｿｽ?ｿｽ?ｿｽ?ｿｽ")
-    jrPriceColumn = mod_Construction_BasicTotals.FindHeaderColumn(ws, "JR?ｿｽP?ｿｽ?ｿｽ")
-    comparisonColumn = mod_Construction_BasicTotals.FindHeaderColumn(ws, "?ｿｽP?ｿｽ?ｿｽ?ｿｽ?ｿｽr")
+    SeiriColumn = mod_Construction_BasicTotals.FindHeaderColumn(ws, "整理番号")
+    dayNightColumn = mod_Construction_BasicTotals.FindHeaderColumn(ws, "昼夜別")
+    quantityColumn = mod_Construction_BasicTotals.FindHeaderColumn(ws, "数量")
+    jrPriceColumn = mod_Construction_BasicTotals.FindHeaderColumn(ws, "JR単価")
+    comparisonColumn = mod_Construction_BasicTotals.FindHeaderColumn(ws, "単価比較")
 
     If seiriColumn = 0 Or dayNightColumn = 0 Or quantityColumn = 0 Then Exit Sub
     If jrPriceColumn = 0 Or comparisonColumn < 3 Then Exit Sub
@@ -541,7 +541,7 @@ Public Sub RefreshConstructionReferencePricesOnSheet( _
         recordKey = mod_Construction_LineMapping.NormalizeRecordKey(ws.Cells(r, seiriColumn).value)
         If recordKey <> "" And changedPriceRows.Exists(recordKey) Then
             resolvedSheetName = mod_Construction_LineMapping.ResolveUnitPriceSheetName( _
-                lineSheetMap, CommonNzText(ws.Cells(r, mod_Construction_BasicTotals.FindHeaderColumn(ws, "?ｿｽ_?ｿｽ?ｿｽ?ｿｽ?ｿｽ譁ｼ")).value), _
+                lineSheetMap, CommonNzText(ws.Cells(r, mod_Construction_BasicTotals.FindHeaderColumn(ws, "契約線区名")).value), _
                 isWeldingSheet)
 
             If mod_Construction_LineMapping.NormalizeLineLookupText(resolvedSheetName, isWeldingSheet) = normalizedSourceSheet Then

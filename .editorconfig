@@ -1,0 +1,14 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+
+[*.bas]
+charset = shift-jis
+
+[*.frm]
+charset = shift-jis
+
+[*.cls]
+charset = shift-jis

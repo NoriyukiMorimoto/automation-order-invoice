@@ -23,8 +23,10 @@ logs/
 # ワークスペ�?�スファイル
 *.code-workspace
 
-# PowerShellスクリプト
+# PowerShell�X�N���v�g
 *.ps1
+!������_������VBA/ImportModules.ps1
+!������_������VBA/Check-VbaSourceEncoding.ps1
 
 # Wordファイル
 *.docx
@@ -44,5 +46,5 @@ AGENTS.md
 # ���[7 VBA�R�[�h
 **/*7VBA*(*)/
 
-# 参考データ（ローカル参照用。Git管理対象外）
-注文書_請求書VBA/参考データ/
+# 参�?�?ータ?��ローカル参�?�用�?Git管�?対象外�?
+注�?書_請求書VBA/参�?�?ータ/

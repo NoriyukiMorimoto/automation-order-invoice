@@ -1,3 +1,12 @@
 {
-    "claudeCodeChat.permissions.yoloMode": false
+    "claudeCodeChat.permissions.yoloMode": false,
+    "files.encoding": "shiftjis",
+    "[vba]": {
+        "files.encoding": "shiftjis"
+    },
+    "files.associations": {
+        "*.bas": "vba",
+        "*.frm": "vba",
+        "*.cls": "vba"
+    }
 }

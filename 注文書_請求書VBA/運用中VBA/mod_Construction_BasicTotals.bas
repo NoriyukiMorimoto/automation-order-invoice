@@ -1,6 +1,6 @@
 Option Explicit
 
-' ï¿½ï¿½ï¿½Cï¿½ï¿½ï¿½ï¿½: CHANGELOG.md ï¿½Qï¿½ï¿½
+' ‰üC—š—ğ: CHANGELOG.md QÆ
 ' mod_Construction_BasicTotals (split from mod_Construction_Order_Import)
 
 Public Sub RefreshBasicInfoConstructionTotalsCore(Optional ByVal changedVendorIndex As Long = 0)
@@ -46,7 +46,7 @@ Public Sub RefreshBasicInfoConstructionTotalsCore(Optional ByVal changedVendorIn
         For i = 1 To vendorCount
             vendorNameLog = vendorNameLog & " [" & i & ":" & vendorNames(i) & "]"
         Next i
-        LogCI "ï¿½ï¿½{ï¿½ï¿½ï¿½Æï¿½ F9ï¿½ï¿½ï¿½ï¿½=" & vendorCount & vendorNameLog
+        LogCI "Šî–{î•ñ‹ÆÒ F9Œ”=" & vendorCount & vendorNameLog
     End If
 
     Dim branchName As String
@@ -57,10 +57,10 @@ Public Sub RefreshBasicInfoConstructionTotalsCore(Optional ByVal changedVendorIn
     Dim worksTotal As Double
     Dim purchaseTotal As Double
 
-    ' ï¿½ï¿½ï¿½ï¿½ï¿½Xï¿½V(ï¿½Pï¿½ï¿½Æï¿½)ï¿½Å‚ï¿½ï¿½ï¿½ï¿½ó–¾ï¿½ï¿½uï¿½vï¿½vï¿½sQï¿½ï¿½Dï¿½ï¿½Ì—pï¿½ï¿½ï¿½ï¿½(ï¿½ï¿½ï¿½Ìï¿½ï¿½ï¿½ï¿½ï¿½)ï¿½B
-    ' ï¿½ï¿½ï¿½Qï¿½ï¿½ï¿½æ“¾ï¿½ï¿½ï¿½Aï¿½ï¿½ï¿½lï¿½È‚ï¿½ï¿½ÆÒ• ÊWï¿½vï¿½ï¿½ï¿½[ï¿½v(ï¿½Sï¿½{ï¿½Hï¿½Vï¿½[ï¿½gï¿½ï¿½ï¿½ï¿½+ï¿½ï¿½}ï¿½bï¿½vï¿½\ï¿½z)ï¿½ï¿½
-    ' vendorTotalsï¿½ï¿½ï¿½gï¿½ï¿½ï¿½È‚ï¿½ï¿½ï¿½ï¿½ßŠÛ‚ï¿½ï¿½ÆÈ—ï¿½ï¿½ï¿½ï¿½Ä•ï¿½ï¿½×‚ï¿½ï¿½ï¿½ç‚·ï¿½Bï¿½Wï¿½vï¿½ï¿½ï¿½[ï¿½vï¿½Í“Çï¿½ï¿½ï¿½pï¿½ï¿½
-    ' ï¿½ï¿½ï¿½Ê‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì‚ÅAï¿½È—ï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½ï¿½ï¿½ï¿½(ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ş’l)ï¿½Í“ï¿½ï¿½ï¿½B
+    ' •”•ªXV(’Pˆê‹ÆÒ)A“à–ó–¾×ƒV[ƒg‚ÌuŒvvsQ—ñ‚ğ—Dæ—˜—p‚Å‚«‚éê‡‚Í
+    ' ‘SƒV[ƒgÄ‘–¸(d‚¢ˆ—)‚ğÈ—ª‚·‚éB
+    ' vendorTotals ‚Íg—p‚µ‚È‚¢‚½‚ß–¢ŒvZ‚Ì‚Ü‚Ü‚¾‚ªAŒã’i‚Ì‘‚İ‚Í netTotalQ ‚ğ—Dæ‚·‚é‚½‚ß–â‘è‚È‚¢B
+    ' È—ª‚Å‚«‚È‚¢ê‡(‰‰ñE•¡”‹ÆÒ•ÏX‚È‚Ç)‚Í]—ˆ’Ê‚è‘SƒV[ƒg‚ğ‘–¸‚·‚éB
     Dim partialNetTotalQ As Variant
     Dim partialUsesNetQ As Boolean
     partialUsesNetQ = False
@@ -122,11 +122,11 @@ Public Sub RefreshBasicInfoConstructionTotalsCore(Optional ByVal changedVendorIn
         totalCellAddress = wsInfo.Cells(BASIC_INFO_VENDOR_TOTAL_ROW, _
                                         BasicInfoVendorColumn(i)).Address
         If i <= vendorCount And vendorNames(i) <> "" Then
-            ' 33ï¿½s(ï¿½_ï¿½ï¿½ï¿½ï¿½zï¿½Å”ï¿½)ï¿½Í•Rï¿½tï¿½ï¿½ï¿½ï¿½ï¿½ó–¾×ƒVï¿½[ï¿½gï¿½Ìuï¿½vï¿½vï¿½sQï¿½ï¿½Éˆï¿½vï¿½ï¿½ï¿½ï¿½ï¿½ï¿½B
-            ' ï¿½ï¿½ï¿½ó–¾×‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½/ï¿½ï¿½ï¿½vï¿½Zï¿½ï¿½ï¿½Åæ“¾ï¿½Å‚ï¿½ï¿½È‚ï¿½ï¿½ê‡ï¿½Í]ï¿½ï¿½ï¿½ÌWï¿½vï¿½lï¿½Éƒtï¿½Hï¿½[ï¿½ï¿½ï¿½oï¿½bï¿½Nï¿½B
+            ' 33s(Œ_–ñ‹àŠzÅ”²)‚Í•R•t‚­“à–ó–¾×ƒV[ƒg‚ÌuŒvvsQ—ñ‚Éˆê’v‚³‚¹‚éB
+            ' “à–ó–¾×‚ª–¢¶¬/–¢ŒvZ“™‚Åæ“¾‚Å‚«‚È‚¢ê‡‚Í]—ˆ‚ÌWŒv’l‚ÉƒtƒH[ƒ‹ƒoƒbƒNB
             Dim netTotalQ As Variant
             If (Not fullRefresh) And i = changedVendorIndex Then
-                netTotalQ = partialNetTotalQ    ' ï¿½Oï¿½Éæ“¾ï¿½Ï‚ï¿½(ï¿½ï¿½dï¿½vï¿½Zï¿½ï¿½ï¿½)
+                netTotalQ = partialNetTotalQ    ' –‘O‚Éæ“¾Ï‚İ(d•¡ŒvZ‰ñ”ğ)
             Else
                 netTotalQ = mod_OrderTpl_Detail.OrderTplGetBreakdownNetTotalQForVendor(wsInfo, i)
             End If
@@ -144,20 +144,20 @@ Public Sub RefreshBasicInfoConstructionTotalsCore(Optional ByVal changedVendorIn
         totalCell.NumberFormatLocal = BasicInfoYenNumberFormat()
     Next i
 
-    ' ï¿½eï¿½uï¿½ï¿½ï¿½bï¿½Nï¿½ï¿½34/35ï¿½sï¿½ï¿½(ï¿½ï¿½ï¿½ï¿½ÅEï¿½Åï¿½ï¿½İ‹ï¿½ï¿½z)ï¿½ï¿½Ç]ï¿½Xï¿½Vï¿½ï¿½ï¿½ï¿½
+    ' ŠeƒuƒƒbƒN‚Ì34/35s–Ú(Á”ïÅEÅ‚İ‹àŠz)‚ğ’Ç]XV‚·‚é
     RefreshVendorBlockTaxRows wsInfo
     Exit Sub
 
 ErrorHandler:
-    LogCI "ï¿½ï¿½{ï¿½ï¿½ñ‡Œvï¿½ï¿½ï¿½zï¿½Xï¿½Vï¿½Gï¿½ï¿½ï¿½[ Err " & Err.Number & ": " & Err.Description
+    LogCI "Šî–{î•ñ‡Œv‹àŠzXVƒGƒ‰[ Err " & Err.Number & ": " & Err.Description
     Err.Clear
 End Sub
 
 '  RefreshVendorBlockTaxRows
-'  ï¿½{ï¿½Hï¿½ï¿½Ğƒuï¿½ï¿½ï¿½bï¿½Nï¿½ï¿½34/35ï¿½sï¿½Ú‚ï¿½ï¿½Xï¿½Vï¿½ï¿½ï¿½ï¿½B
-'  ï¿½ï¿½ï¿½xï¿½ï¿½ï¿½ï¿½(ï¿½lï¿½ï¿½Ìï¿½)ï¿½É‚ï¿½B34:B35(ï¿½ï¿½ï¿½ï¿½ï¿½(10%)ï¿½F/ï¿½Åï¿½ï¿½İ‹ï¿½ï¿½zï¿½F)ï¿½Ìƒfï¿½[ï¿½^ï¿½Eï¿½rï¿½ï¿½ï¿½ï¿½ï¿½Rï¿½sï¿½[ï¿½ï¿½ï¿½A
-'  ï¿½lï¿½ï¿½34ï¿½sï¿½ï¿½=33ï¿½sï¿½ï¿½(ï¿½_ï¿½ï¿½ï¿½ï¿½zï¿½Å”ï¿½)ï¿½~ï¿½Å—ï¿½(B34ï¿½ÌƒJï¿½bï¿½Rï¿½ï¿½ï¿½AC34ï¿½Æ“ï¿½ï¿½ï¿½ï¿½Ø‚ï¿½Ì‚ï¿½)ï¿½A
-'  35ï¿½sï¿½ï¿½=33ï¿½sï¿½ï¿½+34ï¿½sï¿½ÚBï¿½ï¿½ï¿½ï¿½ï¿½ï¿½33ï¿½sï¿½Ú‚ï¿½Í•ï¿½BF9ï¿½Ì‰ï¿½Ğï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É‚ï¿½ï¿½Ç]ï¿½ï¿½ï¿½ï¿½B
+'  {H‰ïĞƒuƒƒbƒN‚Ì34/35s–Ú‚ğXV‚·‚éB
+'  ƒ‰ƒxƒ‹—ñ(’l—ñ‚Ì¶)‚É‚ÍB34:B35(Á”ïÅ(10%)F/Å‚İ‹àŠzF)‚Ìƒf[ƒ^EŒrü‚ğƒRƒs[‚µA
+'  ’l—ñ34s–Ú=33s–Ú(Œ_–ñ‹àŠzÅ”²)~Å—¦(B34‚ÌƒJƒbƒR“àAC34‚Æ“¯‚¶Ø‚èÌ‚Ä)A
+'  35s–Ú=33s–Ú+34s–ÚB‘®‚Í33s–Ú‚ğ–Í•íBF9‚Ì‰ïĞ”‘Œ¸‚É‚à’Ç]‚·‚éB
 Public Sub RefreshVendorBlockTaxRows(Optional ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet(ThisWorkbook)
     If wsInfo Is Nothing Then Exit Sub
@@ -178,10 +178,10 @@ Public Sub RefreshVendorBlockTaxRows(Optional ByVal wsInfo As Worksheet)
         labelColumn = valueColumn - 1
 
         If i <= vendorCount Then
-            ' ï¿½ï¿½ï¿½xï¿½ï¿½(B34:B35)ï¿½Ìƒfï¿½[ï¿½^ï¿½ÆŒrï¿½ï¿½ï¿½ï¿½ï¿½Rï¿½sï¿½[
+            ' ƒ‰ƒxƒ‹(B34:B35)‚Ìƒf[ƒ^‚ÆŒrü‚ğƒRƒs[
             wsInfo.Range("B34:B35").Copy Destination:=wsInfo.Cells(34, labelColumn)
 
-            ' ï¿½lï¿½Zï¿½ï¿½ï¿½Ìï¿½ï¿½ï¿½ï¿½ï¿½33ï¿½sï¿½ï¿½(ï¿½_ï¿½ï¿½ï¿½ï¿½z)ï¿½ï¿½Í•ï¿½
+            ' ’lƒZƒ‹‚Ì‘®‚Í33s–Ú(Œ_–ñ‹àŠz)‚ğ–Í•í
             wsInfo.Cells(BASIC_INFO_VENDOR_TOTAL_ROW, valueColumn).Copy
             wsInfo.Cells(34, valueColumn).Resize(2, 1).PasteSpecial xlPasteFormats
             Application.CutCopyMode = False
@@ -200,8 +200,8 @@ Public Sub RefreshVendorBlockTaxRows(Optional ByVal wsInfo As Worksheet)
             wsInfo.Cells(34, valueColumn).value = taxAmount
             wsInfo.Cells(35, valueColumn).value = baseAmount + taxAmount
         Else
-            ' ï¿½ï¿½Ğï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í‘ÎÛŠOï¿½uï¿½ï¿½ï¿½bï¿½Nï¿½ï¿½34/35ï¿½sï¿½Ú‚Ì’lï¿½Ì‚İï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½B
-            ' .Clear ï¿½Í“hï¿½ï¿½Â‚Ô‚ï¿½ï¿½Ü‚Å‰ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½é‚½ï¿½ßgï¿½ï¿½È‚ï¿½(ï¿½ï¿½ï¿½gï¿½pï¿½uï¿½ï¿½ï¿½bï¿½Nï¿½ï¿½ #06111D ï¿½ï¿½ï¿½Ûï¿½)ï¿½B
+            ' ‰ïĞ”Œ¸­‚Í‘ÎÛŠOƒuƒƒbƒN‚Ì34/35s–Ú‚Ì’l‚Ì‚İÁ‹‚·‚éB
+            ' .Clear ‚Í“h‚è‚Â‚Ô‚µ‚Ü‚Å‰ğœ‚·‚é‚½‚ßg‚í‚È‚¢(–¢g—pƒuƒƒbƒN‚Í #06111D ‚ğˆÛ)B
             ClearInactiveVendorBlockTaxRows wsInfo, labelColumn, valueColumn
         End If
     Next i
@@ -210,11 +210,11 @@ Public Sub RefreshVendorBlockTaxRows(Optional ByVal wsInfo As Worksheet)
 
 ErrorHandler:
     Application.CutCopyMode = False
-    LogCI "ï¿½uï¿½ï¿½ï¿½bï¿½Nï¿½ï¿½ï¿½ï¿½Åsï¿½Xï¿½Vï¿½Gï¿½ï¿½ï¿½[ Err " & Err.Number & ": " & Err.Description
+    LogCI "ƒuƒƒbƒNÁ”ïÅsXVƒGƒ‰[ Err " & Err.Number & ": " & Err.Description
     Err.Clear
 End Sub
 
-' ï¿½ÎÛŠOï¿½{ï¿½Hï¿½ï¿½Ğƒuï¿½ï¿½ï¿½bï¿½Nï¿½ï¿½34/35ï¿½sï¿½ï¿½: ï¿½lï¿½Ì‚İï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Aï¿½ï¿½ï¿½gï¿½pï¿½uï¿½ï¿½ï¿½bï¿½Nï¿½Æ“ï¿½ï¿½ï¿½ï¿½wï¿½iï¿½Fï¿½ğ•œŒï¿½ï¿½ï¿½ï¿½ï¿½B
+' ‘ÎÛŠO{H‰ïĞƒuƒƒbƒN‚Ì34/35s–Ú: ’l‚Ì‚İÁ‹‚µA–¢g—pƒuƒƒbƒN‚Æ“¯‚¶”wŒiF‚ğ•œŒ³‚·‚éB
 Private Sub ClearInactiveVendorBlockTaxRows(ByVal wsInfo As Worksheet, _
                                             ByVal labelColumn As Long, _
                                             ByVal valueColumn As Long)
@@ -267,7 +267,7 @@ Public Function BuildSheetVendorAmountColumnMap(ByVal ws As Worksheet, _
     result.CompareMode = vbTextCompare
 
     Dim kindColumn As Long
-    kindColumn = FindHeaderColumn(ws, "ï¿½Hï¿½í•ªï¿½ï¿½")
+    kindColumn = FindHeaderColumn(ws, "Hí•ª—Ş")
     If kindColumn <= mod_Construction_OutputLayout.OutputSheetSubconPriceFirstColCore(ws) Then
         Set BuildSheetVendorAmountColumnMap = result
         Exit Function
@@ -280,10 +280,10 @@ Public Function BuildSheetVendorAmountColumnMap(ByVal ws As Worksheet, _
     For c = subconFirstCol To kindColumn - 1
         Dim headerText As String
         headerText = CommonNzText(ws.Cells(1, c).value)
-        If Len(headerText) > Len("ï¿½ï¿½ï¿½z") Then
-            If Right$(headerText, Len("ï¿½ï¿½ï¿½z")) = "ï¿½ï¿½ï¿½z" Then
+        If Len(headerText) > Len("‹àŠz") Then
+            If Right$(headerText, Len("‹àŠz")) = "‹àŠz" Then
                 Dim vendorKey As String
-                vendorKey = ResolveVendorCanonicalKey(Left$(headerText, Len(headerText) - Len("ï¿½ï¿½ï¿½z")), aliasMap)
+                vendorKey = ResolveVendorCanonicalKey(Left$(headerText, Len(headerText) - Len("‹àŠz")), aliasMap)
                 If vendorKey <> "" Then
                     If Not result.Exists(vendorKey) Then
                         result.Add vendorKey, c
@@ -299,7 +299,7 @@ End Function
 Public Function SumVendorAmountByColumn(ByVal ws As Worksheet, _
                                          ByVal amountColumn As Long) As Double
     Dim SeiriColumn As Long
-    SeiriColumn = FindHeaderColumn(ws, "ï¿½ï¿½ï¿½ï¿½ï¿½Ôï¿½")
+    SeiriColumn = FindHeaderColumn(ws, "®—”Ô†")
     If SeiriColumn = 0 Or amountColumn = 0 Then Exit Function
 
     Dim lastRow As Long
@@ -336,17 +336,17 @@ Public Function IsConstructionOutputSheet(ByVal ws As Worksheet) As Boolean
     If IsPurchaseOutputSheet(ws) Then Exit Function
 
     IsConstructionOutputSheet = _
-        ((FindHeaderColumn(ws, "ï¿½{ï¿½Hï¿½Æï¿½") > 0) Or mod_Construction_OutputLayout.IsWeldingOutputSheetCore(ws)) And _
-        (FindHeaderColumn(ws, "ï¿½ï¿½ï¿½ï¿½ï¿½Ôï¿½") > 0) And _
-        (FindHeaderColumn(ws, "JRï¿½ï¿½ï¿½z") > 0) And _
-        (FindHeaderColumn(ws, "ï¿½Hï¿½í•ªï¿½ï¿½") > 0)
+        ((FindHeaderColumn(ws, "{H‹ÆÒ") > 0) Or mod_Construction_OutputLayout.IsWeldingOutputSheetCore(ws)) And _
+        (FindHeaderColumn(ws, "®—”Ô†") > 0) And _
+        (FindHeaderColumn(ws, "JR‹àŠz") > 0) And _
+        (FindHeaderColumn(ws, "Hí•ª—Ş") > 0)
 End Function
 
 Public Function SumOutputJrAmount(ByVal ws As Worksheet) As Double
     Dim SeiriColumn As Long
     Dim amountColumn As Long
-    SeiriColumn = FindHeaderColumn(ws, "ï¿½ï¿½ï¿½ï¿½ï¿½Ôï¿½")
-    amountColumn = FindHeaderColumn(ws, "JRï¿½ï¿½ï¿½z")
+    SeiriColumn = FindHeaderColumn(ws, "®—”Ô†")
+    amountColumn = FindHeaderColumn(ws, "JR‹àŠz")
     If SeiriColumn = 0 Or amountColumn = 0 Then Exit Function
 
     Dim lastRow As Long
@@ -355,8 +355,8 @@ Public Function SumOutputJrAmount(ByVal ws As Worksheet) As Double
 
     SumOutputJrAmount = RoundDownAmount(SumNumericColumn(ws, amountColumn, lastRow))
 End Function
-' ï¿½{ï¿½sï¿½wï¿½ï¿½ï¿½ï¿½(ï¿½Hï¿½ï¿½)/ï¿½{ï¿½sï¿½Ê’mï¿½ï¿½(ï¿½Hï¿½ï¿½)ï¿½Vï¿½[ï¿½gï¿½Ì‚ï¿½ï¿½ï¿½ï¿½Aï¿½Yï¿½pï¿½s(ï¿½{ï¿½Hï¿½ÆÒ‚ï¿½ï¿½Iï¿½ï¿½ï¿½Å‚ï¿½ï¿½È‚ï¿½ï¿½ï¿½ï¿½ï¿½s)ï¿½ï¿½
-' JRï¿½ï¿½ï¿½zï¿½Ì‚İï¿½ï¿½vï¿½ï¿½ï¿½ï¿½(ï¿½Êï¿½III J54:M54 ï¿½p)ï¿½Bï¿½nï¿½ÚƒVï¿½[ï¿½gï¿½Í‘ÎÛŠOï¿½B
+' {sw¦‘(H–)/{s’Ê’m‘(H–)ƒV[ƒg‚Ì‚¤‚¿AY”ps({H‰ïĞ‚ª“–‰‘I‘ğ‚Å‚«‚È‚©‚Á‚½s)‚Ì
+' JR‹àŠz—ñ‚ğ‡Œv‚·‚é(•Ê†‡V J54:M54 —p)B—nÚƒV[ƒg‚Í‘ÎÛŠOB
 Public Function SumSanpaiJrAmount() As Double
     Dim total As Double
     Dim ws As Worksheet
@@ -373,8 +373,8 @@ End Function
 Private Function SumSanpaiJrAmountOnSheet(ByVal ws As Worksheet) As Double
     Dim SeiriColumn As Long
     Dim amountColumn As Long
-    SeiriColumn = FindHeaderColumn(ws, "ï¿½ï¿½ï¿½ï¿½ï¿½Ôï¿½")
-    amountColumn = FindHeaderColumn(ws, "JRï¿½ï¿½ï¿½z")
+    SeiriColumn = FindHeaderColumn(ws, "®—”Ô†")
+    amountColumn = FindHeaderColumn(ws, "JR‹àŠz")
     If SeiriColumn = 0 Or amountColumn = 0 Then Exit Function
 
     Dim lastRow As Long
@@ -407,8 +407,8 @@ Public Function SumVendorAmountOnSheet(ByVal ws As Worksheet, _
     End If
 End Function
 
-' ï¿½{ï¿½sï¿½wï¿½ï¿½ï¿½ï¿½(ï¿½Hï¿½ï¿½)/ï¿½{ï¿½sï¿½Ê’mï¿½ï¿½(ï¿½Hï¿½ï¿½)ï¿½ï¿½ Aï¿½ï¿½(ï¿½{ï¿½Hï¿½Æï¿½)ï¿½ÉAï¿½wï¿½ï¿½ÆÒ‚ï¿½ï¿½Iï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½é‚©ï¿½B
-' (ï¿½Êï¿½IIIï¿½ï¿½JRï¿½ï¿½ï¿½vï¿½ï¿½ï¿½uï¿½Hï¿½ï¿½ï¿½Vï¿½[ï¿½gï¿½É•Rï¿½tï¿½ï¿½ï¿½ï¿½ï¿½{ï¿½Hï¿½ï¿½Ğvï¿½ÉŒï¿½ï¿½è‚·ï¿½é‚½ï¿½ß‚Ì”ï¿½ï¿½ï¿½Bï¿½nï¿½Ú‚Ì‚İ“ï¿½ï¿½ï¿½ False)
+' {sw¦‘(H–)/{s’Ê’m‘(H–)ƒV[ƒg‚ÌA—ñ({H‰ïĞ)‚ÉAw’è‹ÆÒ‚ª‘I‘ğ‚³‚ê‚Ä‚¢‚é‚©‚ğ’²‚×‚éB
+' (•Ê†‡V“™‚ÅJR‹àŠzWŒv‚ğuH–ƒV[ƒg‚É•R•t‚­{H‰ïĞv‚Ì‚İ‘ÎÛ‚Æ‚·‚é”»’è‚É—˜—pB–¢‘I‘ğ‚Í False)
 Public Function IsVendorSelectedOnWorksSheet(ByVal branchName As String, _
                                              ByVal vendorName As String) As Boolean
     On Error GoTo Done
@@ -476,10 +476,10 @@ Public Sub WriteBasicInfoAmount(ByVal wsInfo As Worksheet, _
 End Sub
 
 '  UpdateBasicInfoTaxTotals
-'  ï¿½ï¿½{ï¿½ï¿½ï¿½Vï¿½[ï¿½gï¿½ï¿½ C33(ï¿½ï¿½ï¿½v)ï¿½EC34(ï¿½ï¿½ï¿½ï¿½ï¿½)ï¿½EC35(ï¿½Åï¿½ï¿½ï¿½ï¿½v) ï¿½ï¿½ï¿½Xï¿½Vï¿½ï¿½ï¿½A
-'  C31:C35 ï¿½Éu\ï¿½{ï¿½ï¿½ï¿½ï¿½Ø‚ï¿½vï¿½Ì•\ï¿½ï¿½ï¿½`ï¿½ï¿½ï¿½ï¿½Kï¿½pï¿½ï¿½ï¿½ï¿½B
+'  Šî–{î•ñƒV[ƒg‚Ì C33(¬Œv)EC34(Á”ïÅ)EC35(Å‡Œv) ‚ğXV‚µA
+'  C31:C35 ‚Éu\{Œ…‹æØ‚èv‚Ì•\¦Œ`®‚ğ“K—p‚·‚éB
 '  C33 = C31 + C32
-'  C34 = C33 ï¿½~ ï¿½Å—ï¿½(B34ï¿½Ì•\ï¿½Lï¿½ï¿½ï¿½ï¿½æ“¾ï¿½Bï¿½æ“¾ï¿½Å‚ï¿½ï¿½È‚ï¿½ï¿½ê‡ï¿½ï¿½10%) ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½_ï¿½È‰ï¿½ï¿½Ø‚ï¿½Ì‚ï¿½
+'  C34 = C33 ~ Å—¦(B34‚Ì•\‹L‚©‚çæ“¾Bæ“¾‚Å‚«‚È‚¢ê‡‚Í10%) ¦¬”“_ˆÈ‰ºØ‚èÌ‚Ä
 '  C35 = C33 + C34
 Public Sub UpdateBasicInfoTaxTotalsCore(Optional ByVal wsInfo As Worksheet)
     On Error GoTo ErrorHandler
@@ -500,16 +500,16 @@ Public Sub UpdateBasicInfoTaxTotalsCore(Optional ByVal wsInfo As Worksheet)
 
     ApplyBasicInfoYenTotalFormat wsInfo
 
-    LogCI "ï¿½Åï¿½ï¿½ï¿½ï¿½vï¿½Xï¿½V: ï¿½ï¿½ï¿½v=" & subtotal & " / ï¿½ï¿½ï¿½ï¿½ï¿½=" & taxAmount & _
-          " / ï¿½Åï¿½ï¿½ï¿½ï¿½v=" & (subtotal + taxAmount)
+    LogCI "Å‡ŒvXV: ¬Œv=" & subtotal & " / Á”ïÅ=" & taxAmount & _
+          " / Å‡Œv=" & (subtotal + taxAmount)
     Exit Sub
 
 ErrorHandler:
-    LogCI "ï¿½ï¿½{ï¿½ï¿½ï¿½Åï¿½ï¿½ï¿½ï¿½vï¿½Xï¿½Vï¿½Gï¿½ï¿½ï¿½[ Err " & Err.Number & ": " & Err.Description
+    LogCI "Šî–{î•ñÅ‡ŒvXVƒGƒ‰[ Err " & Err.Number & ": " & Err.Description
 End Sub
 
 '  GetBasicInfoCellAmount
-'  ï¿½wï¿½ï¿½Zï¿½ï¿½ï¿½Ìï¿½ï¿½lï¿½ï¿½ï¿½æ“¾ï¿½ï¿½ï¿½ï¿½(ï¿½ï¿½ï¿½ï¿½ï¿½Zï¿½ï¿½ï¿½Î‰ï¿½ï¿½Bï¿½ó—“Eï¿½ñ”’lï¿½Eï¿½Gï¿½ï¿½ï¿½[ï¿½lï¿½ï¿½0)ï¿½B
+'  w’èƒZƒ‹‚Ì”’l‚ğæ“¾‚·‚é(Œ‹‡ƒZƒ‹‘Î‰B‹ó—“E”ñ”’lEƒGƒ‰[’l‚Í0)B
 Public Function GetBasicInfoCellAmount(ByVal wsInfo As Worksheet, _
                                         ByVal cellAddress As String) As Double
     Dim targetCell As Range
@@ -524,7 +524,7 @@ Public Function GetBasicInfoCellAmount(ByVal wsInfo As Worksheet, _
 End Function
 
 '  WriteBasicInfoPlainValue
-'  ï¿½wï¿½ï¿½Zï¿½ï¿½ï¿½Ö’lï¿½Ì‚İ‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½(ï¿½ï¿½ï¿½ï¿½ï¿½Zï¿½ï¿½ï¿½Î‰ï¿½ï¿½Bï¿½\ï¿½ï¿½ï¿½`ï¿½ï¿½ï¿½Í•ÏXï¿½ï¿½ï¿½È‚ï¿½)ï¿½B
+'  w’èƒZƒ‹‚Ö’l‚Ì‚İ‚ğ‘‚«‚Ş(Œ‹‡ƒZƒ‹‘Î‰B•\¦Œ`®‚Í•ÏX‚µ‚È‚¢)B
 Public Sub WriteBasicInfoPlainValue(ByVal wsInfo As Worksheet, _
                                      ByVal cellAddress As String, _
                                      ByVal amount As Double)
@@ -535,8 +535,8 @@ Public Sub WriteBasicInfoPlainValue(ByVal wsInfo As Worksheet, _
 End Sub
 
 '  ResolveBasicInfoTaxRate
-'  B34 ï¿½Ìƒï¿½ï¿½xï¿½ï¿½(ï¿½ï¿½:ï¿½uï¿½ï¿½ï¿½ï¿½ï¿½(10%)ï¿½v)ï¿½ï¿½ï¿½ï¿½Å—ï¿½ï¿½ğ’Šoï¿½ï¿½ï¿½ï¿½B
-'  ï¿½u%ï¿½vï¿½ï¿½ï¿½Oï¿½Ìï¿½ï¿½lï¿½ï¿½Å—ï¿½ï¿½Æ‚ï¿½ï¿½Ä‰ï¿½ï¿½ß‚ï¿½ï¿½Aï¿½æ“¾ï¿½Å‚ï¿½ï¿½È‚ï¿½ï¿½ê‡ï¿½ÍŠï¿½ï¿½ï¿½ï¿½10%ï¿½ï¿½Ô‚ï¿½ï¿½B
+'  B34 ‚Ìƒ‰ƒxƒ‹(—á:uÁ”ïÅ(10%)v)‚©‚çÅ—¦‚ğ’Šo‚·‚éB
+'  u%v’¼‘O‚Ì”’l‚ğÅ—¦‚Æ‚µ‚Ä‰ğß‚µAæ“¾‚Å‚«‚È‚¢ê‡‚ÍŠù’è‚Ì10%‚ğ•Ô‚·B
 Public Function ResolveBasicInfoTaxRate(ByVal wsInfo As Worksheet) As Double
     ResolveBasicInfoTaxRate = BASIC_INFO_TAX_RATE_DEFAULT
 
@@ -565,19 +565,19 @@ Public Function ResolveBasicInfoTaxRate(ByVal wsInfo As Worksheet) As Double
 End Function
 
 '  ApplyBasicInfoYenTotalFormat
-'  C31:C35 ï¿½Éu\ï¿½{ï¿½ï¿½ï¿½ï¿½Ø‚ï¿½v(ï¿½ï¿½ï¿½ï¿½ï¿½ÍÔï¿½)ï¿½Ì•\ï¿½ï¿½ï¿½`ï¿½ï¿½ï¿½ï¿½Kï¿½pï¿½ï¿½ï¿½ï¿½B
+'  C31:C35 ‚Éu\{Œ…‹æØ‚èv(•‰”‚ÍÔš)‚Ì•\¦Œ`®‚ğ“K—p‚·‚éB
 Public Sub ApplyBasicInfoYenTotalFormat(ByVal wsInfo As Worksheet)
     wsInfo.Range(BASIC_INFO_YEN_TOTAL_RANGE).NumberFormatLocal = BasicInfoYenNumberFormat()
 End Sub
 
 '  BasicInfoYenNumberFormat
-'  ï¿½u\ï¿½{ï¿½ï¿½ï¿½ï¿½Ø‚ï¿½v(ï¿½ï¿½ï¿½ï¿½ï¿½ÍÔï¿½)ï¿½Ì•\ï¿½ï¿½ï¿½`ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô‚ï¿½ï¿½B
-'  \ï¿½Lï¿½ï¿½ï¿½ï¿½CP932ï¿½Å‚Ì•ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½é‚½ï¿½ï¿½ ChrW$ ï¿½Åï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½B
+'  u\{Œ…‹æØ‚èv(•‰”‚ÍÔš)‚Ì•\¦Œ`®•¶š—ñ‚ğ•Ô‚·B
+'  \‹L†‚ÍCP932‚Å‚Ì•¶š‰»‚¯‚ğ”ğ‚¯‚é‚½‚ß ChrW$ ‚Å¶¬‚·‚éB
 Public Function BasicInfoYenNumberFormat() As String
     Dim yenMark As String
     yenMark = ChrW$(&HA5)   ' \
 
-    BasicInfoYenNumberFormat = yenMark & "#,##0;[ï¿½ï¿½]-" & yenMark & "#,##0"
+    BasicInfoYenNumberFormat = yenMark & "#,##0;[Ô]-" & yenMark & "#,##0"
 End Function
 
 Public Function CollectSelectedSubcontractors(ByVal ws As Worksheet, _
@@ -756,13 +756,13 @@ Public Function GetVendorUnitPriceRows(ByVal unitPriceSheetName As String, _
     Set priceSheet = ThisWorkbook.worksheets(unitPriceSheetName)
     On Error GoTo 0
     If priceSheet Is Nothing Then
-        LogCI "ï¿½{ï¿½Hï¿½ï¿½Ğ’Pï¿½ï¿½: ï¿½Vï¿½[ï¿½gï¿½ï¿½ï¿½ï¿½ï¿½o [" & unitPriceSheetName & "]"
+        LogCI "{H‰ïĞ’P‰¿: ƒV[ƒg–¢ŒŸo [" & unitPriceSheetName & "]"
         StoreVendorUnitPriceCache vendorPriceCaches, cacheKey, result
         Set GetVendorUnitPriceRows = result
         Exit Function
     End If
     If Not mod_MaterialPriceImport.IsConstructionUnitPriceSheet(priceSheet) Then
-        LogCI "ï¿½{ï¿½Hï¿½ï¿½Ğ’Pï¿½ï¿½: ï¿½Hï¿½ï¿½ï¿½Pï¿½ï¿½ï¿½Vï¿½[ï¿½gï¿½Å‚Í‚È‚ï¿½ [" & unitPriceSheetName & "]"
+        LogCI "{H‰ïĞ’P‰¿: H–’P‰¿ƒV[ƒg‚Å‚Í‚È‚¢ [" & unitPriceSheetName & "]"
         StoreVendorUnitPriceCache vendorPriceCaches, cacheKey, result
         Set GetVendorUnitPriceRows = result
         Exit Function
@@ -779,7 +779,7 @@ Public Function GetVendorUnitPriceRows(ByVal unitPriceSheetName As String, _
     Dim vendorDayColumn As Long
     vendorDayColumn = FindUnitPriceVendorDayColumn(priceSheet, vendorName, aliasMap)
     If vendorDayColumn = 0 Then
-        LogCI "ï¿½{ï¿½Hï¿½ï¿½Ğ’Pï¿½ï¿½: ï¿½ÆÒ—ñ–¢Œï¿½ï¿½o sheet=[" & unitPriceSheetName & "] vendor=[" & vendorName & "]"
+        LogCI "{H‰ïĞ’P‰¿: ‹ÆÒ—ñ–¢ŒŸo sheet=[" & unitPriceSheetName & "] vendor=[" & vendorName & "]"
         StoreVendorUnitPriceCache vendorPriceCaches, cacheKey, result
         Set GetVendorUnitPriceRows = result
         Exit Function
@@ -802,7 +802,7 @@ Public Function GetVendorUnitPriceRows(ByVal unitPriceSheetName As String, _
 NextVendorPriceRow:
     Next r
 
-    LogCI "ï¿½{ï¿½Hï¿½ï¿½Ğ’Pï¿½ï¿½: sheet=[" & unitPriceSheetName & "] vendor=[" & vendorName & _
+    LogCI "{H‰ïĞ’P‰¿: sheet=[" & unitPriceSheetName & "] vendor=[" & vendorName & _
           "] col=" & vendorDayColumn & " keys=" & result.Count
 
     StoreVendorUnitPriceCache vendorPriceCaches, cacheKey, result
@@ -900,7 +900,7 @@ Public Function IsUnitPriceVendorRowPriceEligible(ByVal priceSheet As Worksheet,
     dayPrice = priceSheet.Cells(rowIndex, vendorDayColumn).Value2
     nightPrice = priceSheet.Cells(rowIndex, vendorDayColumn + 1).Value2
 
-    '  ï¿½Æï¿½ï¿½Hï¿½ï¿½È‚ï¿½ JR ï¿½Qï¿½ï¿½(E/F)ï¿½ï¿½ï¿½ï¿½Å‚ï¿½ï¿½Aï¿½{ï¿½Hï¿½ï¿½Ğ—ï¿½Öï¿½ï¿½ï¿½Í‚ï¿½ï¿½ê‚½ï¿½Pï¿½ï¿½ï¿½ÍÌ—pï¿½ï¿½ï¿½ï¿½
+    '  “Æ©Hí‚È‚Ç JR QÆ(E/F)‚ª‹ó‚Å‚àA{H‰ïĞ—ñ‚Öè“ü—Í‚³‚ê‚½’P‰¿‚ÍÌ—p‚·‚é
     IsUnitPriceVendorRowPriceEligible = UnitPriceValueIsUsable(dayPrice) Or _
                                         UnitPriceValueIsUsable(nightPrice)
 End Function
@@ -919,9 +919,9 @@ Public Function NormalizeVendorPriceName(ByVal vendorName As String) As String
 End Function
 
 '  ResolveVendorCanonicalKey
-'  ï¿½ÆÒƒ}ï¿½Xï¿½^(ï¿½Ê–ï¿½ï¿½\)ï¿½ğ³‚Æ‚ï¿½ï¿½ÄAï¿½ï¿½ï¿½Kï¿½ï¿½ï¿½Eï¿½ï¿½ï¿½Ì–ï¿½ï¿½Ì‚Ç‚ï¿½ï¿½ï¿½Ì•\ï¿½Lï¿½Å‚ï¿½
-'  ï¿½ï¿½ï¿½ï¿½Ìï¿½ï¿½Kï¿½ï¿½ï¿½Lï¿½[ï¿½Ö‰ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Bï¿½}ï¿½Xï¿½^ï¿½É–ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì‚Íï¿½ï¿½Kï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì‚Ü‚Ü•Ô‚ï¿½
-'  ï¿½ï¿½ï¿½ßƒtï¿½Hï¿½[ï¿½ï¿½ï¿½oï¿½bï¿½Nï¿½ï¿½ï¿½ï¿½Aï¿½Qï¿½ÆƒGï¿½ï¿½ï¿½[ï¿½É‚Í‚È‚ï¿½È‚ï¿½ï¿½B
+'  ‹ÆÒƒ}ƒXƒ^(•Ê–¼•\)‚ğ³‚Æ‚µ‚ÄA³‹K–¼E—ªÌ–¼‚Ì‚Ç‚¿‚ç‚Ì•\‹L‚Å‚à
+'  “¯ˆê‚Ì³‹K–¼ƒL[‚Ö‰ğŒˆ‚·‚éBƒ}ƒXƒ^‚É–³‚¢–¼Ì‚Í³‹K‰»•¶š—ñ‚ğ‚»‚Ì‚Ü‚Ü•Ô‚·
+'  ‚½‚ßƒtƒH[ƒ‹ƒoƒbƒN‚³‚êAQÆƒGƒ‰[‚É‚Í‚È‚ç‚È‚¢B
 Public Function ResolveVendorCanonicalKey(ByVal vendorName As String, _
                                            ByVal aliasMap As Object) As String
     Dim normalizedKey As String
@@ -1004,11 +1004,11 @@ NextVendorIndex:
 End Function
 
 '  BuildVendorAliasMap
-'  ï¿½ÆÒƒ}ï¿½Xï¿½^(ï¿½Sï¿½Ğ”ï¿½).xlsx ï¿½Ìuï¿½xï¿½Xï¿½ï¿½(ï¿½ï¿½{ï¿½ï¿½ï¿½B6)ï¿½vï¿½Vï¿½[ï¿½gï¿½ï¿½ï¿½Jï¿½ï¿½ï¿½A
-'  Aï¿½ï¿½=ï¿½ÆÒ–ï¿½(ï¿½ï¿½ï¿½ï¿½) / Bï¿½ï¿½=ï¿½ï¿½ï¿½ï¿½ï¿½Òï¿½ï¿½ï¿½(ï¿½ï¿½ï¿½Kï¿½ï¿½) ï¿½ï¿½Ç‚İï¿½ï¿½ï¿½ÅA
-'  ï¿½ï¿½ï¿½Kï¿½ï¿½(ï¿½ï¿½ï¿½ï¿½)ï¿½Eï¿½ï¿½ï¿½Kï¿½ï¿½(ï¿½ï¿½ï¿½Kï¿½ï¿½) ï¿½Ì‘oï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Kï¿½ï¿½(ï¿½ï¿½ï¿½Kï¿½ï¿½) ï¿½Ö‘Î‰ï¿½ï¿½tï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô‚ï¿½ï¿½B
-'  (1ï¿½sï¿½Ú‚ÍŒï¿½ï¿½oï¿½ï¿½ï¿½sï¿½ï¿½ï¿½ï¿½ï¿½Aï¿½ï¿½ï¿½ÆÒ–ï¿½ï¿½Æˆï¿½vï¿½ï¿½ï¿½È‚ï¿½ï¿½ï¿½ï¿½Qï¿½ÈƒGï¿½ï¿½ï¿½gï¿½ï¿½ï¿½É‚È‚é‚¾ï¿½ï¿½)
-'  ï¿½}ï¿½Xï¿½^ï¿½ï¿½ï¿½ï¿½ï¿½oï¿½Eï¿½Vï¿½[ï¿½gï¿½ï¿½ï¿½ï¿½ï¿½oï¿½Eï¿½Çï¿½ï¿½ï¿½ï¿½sï¿½ï¿½ï¿½Í‹ó«ï¿½ï¿½ï¿½Ô‚ï¿½(ï¿½Ëï¿½ï¿½Íï¿½ï¿½Kï¿½ï¿½ï¿½Ì‚İ‚ÅŒpï¿½ï¿½)ï¿½B
+'  ‹ÆÒƒ}ƒXƒ^(‘SĞ”Å).xlsx ‚Ìux“X–¼(Šî–{î•ñB6)vƒV[ƒg‚ğŠJ‚«A
+'  A—ñ=‹ÆÒ–¼(—ªÌ) / B—ñ=¿‹Ò–¼(³‹K–¼) ‚ğ“Ç‚İ‚ñ‚ÅA
+'  ³‹K‰»(—ªÌ)E³‹K‰»(³‹K–¼) ‚Ì‘o•û‚ğ ³‹K‰»(³‹K–¼) ‚Ö‘Î‰•t‚¯‚½«‘‚ğ•Ô‚·B
+'  (1s–Ú‚ÍŒ©o‚µs‚¾‚ªAÀ‹ÆÒ–¼‚Æˆê’v‚µ‚È‚¢–³ŠQ‚ÈƒGƒ“ƒgƒŠ‚É‚È‚é‚¾‚¯)
+'  ƒ}ƒXƒ^–¢ŒŸoEƒV[ƒg–¢ŒŸoE“Ç¸”s‚Í‹ó«‘‚ğ•Ô‚·(“Ë‡‚Í³‹K‰»‚Ì‚İ‚ÅŒp‘±)B
 Public Function BuildVendorAliasMap(ByVal branchName As String) As Object
     Dim result As Object
     Set result = CreateObject("Scripting.Dictionary")
@@ -1020,27 +1020,27 @@ Public Function BuildVendorAliasMap(ByVal branchName As String) As Object
     On Error GoTo Cleanup
 
     If Trim$(branchName) = "" Then
-        LogCI "ï¿½ÆÒƒ}ï¿½Xï¿½^ï¿½Ê–ï¿½: ï¿½ï¿½{ï¿½ï¿½ï¿½B6(ï¿½xï¿½Xï¿½ï¿½)ï¿½ï¿½ï¿½ï¿½Ì‚ï¿½ï¿½ß–ï¿½ï¿½ñ‚¹‚È‚ï¿½"
+        LogCI "‹ÆÒƒ}ƒXƒ^•Ê–¼: Šî–{î•ñB6(x“X–¼)‚ª‹ó‚Ì‚½‚ß–¼Šñ‚¹‚È‚µ"
         GoTo Cleanup
     End If
 
     Dim masterPath As String
     masterPath = ResolveVendorMasterPath()
     If masterPath = "" Then
-        LogCI "ï¿½ÆÒƒ}ï¿½Xï¿½^ï¿½ï¿½ï¿½ï¿½ï¿½o -> ï¿½ï¿½ï¿½ñ‚¹‚È‚ï¿½(ï¿½ï¿½ï¿½Kï¿½ï¿½ï¿½Ì‚İ‚Å“Ëï¿½)"
+        LogCI "‹ÆÒƒ}ƒXƒ^–¢ŒŸo -> –¼Šñ‚¹‚È‚µ(³‹K‰»‚Ì‚İ‚Å“Ë‡)"
         GoTo Cleanup
     End If
 
     Set connection = CommonOpenExcelAdoConnection(masterPath)
     If connection Is Nothing Then
-        LogCI "ï¿½ÆÒƒ}ï¿½Xï¿½^ADOï¿½Ú‘ï¿½ï¿½sï¿½ï¿½ path=[" & masterPath & "]"
+        LogCI "‹ÆÒƒ}ƒXƒ^ADOÚ‘±•s‰Â path=[" & masterPath & "]"
         GoTo Cleanup
     End If
 
     Dim actualSheetName As String
     actualSheetName = mod_Construction_OutputLayout.FindAdoWorksheetName(connection, branchName)
     If actualSheetName = "" Then
-        LogCI "ï¿½ÆÒƒ}ï¿½Xï¿½^ï¿½Éxï¿½Xï¿½Vï¿½[ï¿½g[" & branchName & "]ï¿½ï¿½ï¿½ï¿½ï¿½Â‚ï¿½ï¿½ï¿½Ü‚ï¿½ï¿½ï¿½ -> ï¿½ï¿½ï¿½ñ‚¹‚È‚ï¿½"
+        LogCI "‹ÆÒƒ}ƒXƒ^‚Éx“XƒV[ƒg[" & branchName & "]‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñ -> –¼Šñ‚¹‚È‚µ"
         GoTo Cleanup
     End If
 
@@ -1060,12 +1060,12 @@ Public Function BuildVendorAliasMap(ByVal branchName As String) As Object
         recordset.MoveNext
     Loop
 
-    LogCI "ï¿½ÆÒƒ}ï¿½Xï¿½^ï¿½Ê–ï¿½ ï¿½ï¿½ï¿½ï¿½=" & result.Count & " ï¿½xï¿½X=[" & branchName & _
+    LogCI "‹ÆÒƒ}ƒXƒ^•Ê–¼ Œ”=" & result.Count & " x“X=[" & branchName & _
           "] sheet=[" & actualSheetName & "]"
 
 Cleanup:
     If Err.Number <> 0 Then
-        LogCI "ï¿½ÆÒƒ}ï¿½Xï¿½^ï¿½Çï¿½ï¿½Gï¿½ï¿½ï¿½[ Err " & Err.Number & ": " & Err.Description
+        LogCI "‹ÆÒƒ}ƒXƒ^“ÇƒGƒ‰[ Err " & Err.Number & ": " & Err.Description
         Err.Clear
     End If
     CommonCloseAdoRecordset recordset
@@ -1074,7 +1074,7 @@ Cleanup:
 End Function
 
 '  AddVendorAlias
-'  ï¿½ï¿½ï¿½Kï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê–ï¿½ï¿½ğ³‹Kï¿½ï¿½ï¿½Lï¿½[ï¿½Ö“oï¿½^ï¿½ï¿½ï¿½ï¿½(ï¿½ï¿½Eï¿½dï¿½ï¿½ï¿½Í–ï¿½ï¿½ï¿½)ï¿½B
+'  ³‹K‰»‚µ‚½•Ê–¼‚ğ³‹K–¼ƒL[‚Ö“o˜^‚·‚é(‹óEd•¡‚Í–³‹)B
 Public Sub AddVendorAlias(ByVal aliasMap As Object, _
                            ByVal aliasName As String, _
                            ByVal canonicalKey As String)
@@ -1085,7 +1085,7 @@ Public Sub AddVendorAlias(ByVal aliasMap As Object, _
 End Sub
 
 '  ResolveVendorMasterPath
-'  ï¿½ÆÒƒ}ï¿½Xï¿½^(ï¿½Sï¿½Ğ”ï¿½).xlsx ï¿½Ìƒpï¿½Xï¿½ğ•¡ï¿½ï¿½ï¿½â‚©ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½B
+'  ‹ÆÒƒ}ƒXƒ^(‘SĞ”Å).xlsx ‚ÌƒpƒX‚ğ•¡”Œó•â‚©‚ç‰ğŒˆ‚·‚éB
 Public Function ResolveVendorMasterPath() As String
     Dim fso As Object
     Set fso = CreateObject("Scripting.FileSystemObject")
@@ -1113,7 +1113,7 @@ Public Function ResolveVendorMasterPath() As String
     End If
     If Len(Trim$(userProfilePath)) > 0 Then
         AddUniqueText candidates, userProfilePath & "\" & CommonCompanyNameText() & "\" & _
-            "ï¿½ï¿½ï¿½Hï¿½oï¿½ï¿½ï¿½ï¿½ï¿½p_ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½_ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Aï¿½Nï¿½Zï¿½Xï¿½Tï¿½Cï¿½g - ï¿½hï¿½Lï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½g\" & _
+            "ü˜Ho’£Š—p_’•¶‘_¿‹‘ƒAƒNƒZƒXƒTƒCƒg - ƒhƒLƒ…ƒƒ“ƒg\" & _
             MASTER_DATA_FOLDER & "\" & VENDOR_MASTER_FILE
     End If
 
@@ -1160,7 +1160,7 @@ Public Sub FormatSubcontractorPriceColumns(ByVal ws As Worksheet, _
 
     If lastRow >= 2 Then
         With ws.Range(ws.Cells(2, firstColumn), ws.Cells(lastRow, lastColumn))
-            .NumberFormatLocal = "#,##0;[ï¿½ï¿½]-#,##0"
+            .NumberFormatLocal = "#,##0;[Ô]-#,##0"
         End With
         With ws.Range(ws.Cells(1, firstColumn), ws.Cells(lastRow, lastColumn)).Borders
             .LineStyle = xlContinuous
@@ -1177,8 +1177,8 @@ Public Function IsSanpaiRow(ByVal ws As Worksheet, ByVal rowIndex As Long) As Bo
         CommonNzText(ws.Cells(rowIndex, mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_TYPE)).value))
 End Function
 
-' ï¿½ï¿½Ê—ï¿½ï¿½ï¿½êŠ‡ï¿½Çæ‚µï¿½A2ï¿½sï¿½Ú`lastRowï¿½ÌYï¿½pï¿½sï¿½tï¿½ï¿½ï¿½Oï¿½zï¿½ï¿½(ï¿½Yï¿½ï¿½=ï¿½ï¿½ï¿½sï¿½Ôï¿½)ï¿½ï¿½Ô‚ï¿½ï¿½B
-' ï¿½sï¿½Pï¿½Ê‚ï¿½ IsSanpaiRow ï¿½Aï¿½ï¿½(ï¿½ï¿½ï¿½ï¿½Zï¿½ï¿½ï¿½Çï¿½)ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½é‚½ï¿½ß‚ÌˆêŠ‡ï¿½ÅB
+' í•Ê—ñ‚ğˆêŠ‡“Çæ‚µA2s–Ú`lastRow‚ÌY”psƒtƒ‰ƒO”z—ñ(“Yš=Às”Ô†)‚ğ•Ô‚·B
+' s’PˆÊ‚Ì IsSanpaiRow ˜AŒÄ(–ˆ‰ñƒZƒ‹“Çæ)‚ğ”ğ‚¯‚é‚½‚ß‚ÌˆêŠ‡”ÅB
 Public Function BuildSanpaiRowFlags(ByVal ws As Worksheet, ByVal lastRow As Long) As Variant
     Dim flags() As Boolean
     If ws Is Nothing Or lastRow < 2 Then

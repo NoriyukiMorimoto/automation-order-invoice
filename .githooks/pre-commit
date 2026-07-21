@@ -1,0 +1,7 @@
+#!/bin/sh
+# ”CˆÓ: git config core.hooksPath .githooks ‚Å—LŒø‰»
+ROOT="$(git rev-parse --show-toplevel)"
+PS1="$ROOT/’•¶‘_¿‹‘VBA/Check-VbaSourceEncoding.ps1"
+if [ -f "$PS1" ]; then
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$PS1" -Quiet
+fi
