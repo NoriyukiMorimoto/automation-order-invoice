@@ -5,6 +5,16 @@
 
 ---
 
+## 性能改善 施工会社(11行目)変更時の外注単価全再レイアウトを抑制（mod_VendorUnitPrice）
+
+### #1 左詰め割当でも「スロット不変」なら部分更新に戻す
+- 現象: 基本情報の施工会社列11行目を変更すると、軌道工事の左詰め割当導入後に単価シート全ブロックが再レイアウトされ、他列まで書き換わるように見え処理が非常に重くなっていた。
+- 原因: `RefreshVendorUnitPriceForValueColumn` / `RefreshVendorUnitPriceOutsourceRatioOnlyForValueColumn` が常に `SyncVendorUnitPriceBlocksAfterCountChange`（全シート・全スロット再構築）を呼んでいた。左詰めでは該当/非該当の増減時のみ後続スロットがずれるのに、名称変更などスロット不変の更新まで全再展開していた。
+- 修正: 期待スロット数と既構築スロット数を比較する `IsVendorUnitPricePackingStableForColumn` を追加。不変なら名称/ヘッダー/比率の部分更新のみ。増減（新規該当・クリア・工事区分変更等）のときだけ全再レイアウトする。
+- 効果: 既存の軌道工事ブロックに対する会社名変更は対象列の見出し更新に留まり、他列への波及と再計算コストを大幅に削減。
+
+---
+
 ## 内訳明細シート生成 明細0行時に集計フッターが生成されない不具合の統合修正（mod_OrderTpl_Detail.ApplyBreakdownDetails）
 
 ### #1 明細生成と集計フッター生成を1フローへ統合し、明細0行でもフッターを必ず生成する
