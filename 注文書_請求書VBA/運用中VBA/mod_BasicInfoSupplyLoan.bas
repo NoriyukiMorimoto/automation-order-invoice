@@ -486,3 +486,39 @@ Private Sub ReapplyStringCell(ByVal ws As Worksheet, ByVal srcCell As Range, ByV
     c.value = cur
     c.HorizontalAlignment = xlLeft
 End Sub
+
+' ============================================================
+' 施工会社ブロック生成時の初期入力(40/41行)
+'   行40: 支給材料 -> なし / 行41: 貸与品 -> なし
+' 基本情報の値セルが未入力(空)の場合のみ書き込み、既入力は上書きしない。
+' ============================================================
+Public Sub ApplyInitialSupplyLoan(ByVal wsInfo As Worksheet, ByVal valueColumn As Long)
+    If wsInfo Is Nothing Then Exit Sub
+    If valueColumn < 1 Then Exit Sub
+
+    SetInitialNoneCell wsInfo, SUPPLY_ROW, valueColumn
+    SetInitialNoneCell wsInfo, LOAN_ROW, valueColumn
+End Sub
+
+Private Sub SetInitialNoneCell(ByVal wsInfo As Worksheet, ByVal rowNo As Long, ByVal valueColumn As Long)
+    Dim anchor As Range
+    Set anchor = wsInfo.Cells(rowNo, valueColumn)
+    On Error Resume Next
+    If anchor.MergeCells Then Set anchor = anchor.MergeArea.Cells(1, 1)
+    On Error GoTo 0
+
+    If Len(Trim$(CommonNzText(anchor.Value))) > 0 Then Exit Sub
+
+    Dim prevEvents As Boolean
+    prevEvents = Application.EnableEvents
+    On Error GoTo CleanExit
+    Application.EnableEvents = False
+
+    anchor.Value = NoneText()
+    anchor.HorizontalAlignment = xlLeft
+    ApplyWrappedVendorCellLayout anchor
+    mod_DebugLog.Log "[SupplyLoan] init none row=" & rowNo & " col=" & valueColumn
+
+CleanExit:
+    Application.EnableEvents = prevEvents
+End Sub

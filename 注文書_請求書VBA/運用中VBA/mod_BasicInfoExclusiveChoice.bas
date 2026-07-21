@@ -491,3 +491,50 @@ Private Sub ReapplyCombinedCell(ByVal ws As Worksheet, ByVal srcCell As Range, _
     ParseSelection cur, topLabel, bottomLabel, topChecked, bottomChecked
     ApplyCombinedCheckText ws.Range(topCell), topChecked, bottomChecked, topLabel, bottomLabel, suffixText
 End Sub
+
+' ============================================================
+' 施工会社ブロック生成時の初期入力(38/39/42行)
+'   行38: 部分払い費用負担 -> 乙(下)にチェック
+'   行39: 労災保険 加入負担 -> 甲(上)にチェック
+'   行42: 建設リサイクル法  -> 軌道工事=該当する / それ以外=該当しない
+' 基本情報の値セルが未入力(空)の場合のみ既定値を書き込み、既入力は上書きしない。
+' ============================================================
+Public Sub ApplyInitialExclusiveChoices(ByVal wsInfo As Worksheet, ByVal valueColumn As Long, _
+                                        ByVal isRailWork As Boolean)
+    If wsInfo Is Nothing Then Exit Sub
+    If valueColumn < 1 Then Exit Sub
+
+    ' 行38: 乙(下)
+    SetInitialExclusiveCell wsInfo, PARTIAL_PAYMENT_ROW, valueColumn, False, True, KoText(), OtsuText()
+    ' 行39: 甲(上)
+    SetInitialExclusiveCell wsInfo, ROSAI_ROW, valueColumn, True, False, KoText(), OtsuText()
+    ' 行42: 軌道工事なら該当する(上)、それ以外は該当しない(下)
+    SetInitialExclusiveCell wsInfo, RECYCLE_ROW, valueColumn, isRailWork, Not isRailWork, _
+                            ApplicableText(), NotApplicableText()
+End Sub
+
+Private Sub SetInitialExclusiveCell(ByVal wsInfo As Worksheet, ByVal rowNo As Long, ByVal valueColumn As Long, _
+                                    ByVal topChecked As Boolean, ByVal bottomChecked As Boolean, _
+                                    ByVal topLabel As String, ByVal bottomLabel As String)
+    Dim anchor As Range
+    Set anchor = wsInfo.Cells(rowNo, valueColumn)
+    On Error Resume Next
+    If anchor.MergeCells Then Set anchor = anchor.mergeArea.Cells(1, 1)
+    On Error GoTo 0
+
+    If Len(Trim$(CommonNzText(anchor.value))) > 0 Then Exit Sub
+
+    Dim prevEvents As Boolean
+    prevEvents = Application.EnableEvents
+    On Error GoTo CleanExit
+    Application.EnableEvents = False
+
+    anchor.value = BuildCellText(topChecked, bottomChecked, topLabel, bottomLabel)
+    anchor.HorizontalAlignment = xlCenter
+    ApplyExclusiveChoiceCellLayout anchor
+    mod_DebugLog.Log "[ExclChoice] init row=" & rowNo & " col=" & valueColumn & _
+                     " top=" & topChecked & " bottom=" & bottomChecked
+
+CleanExit:
+    Application.EnableEvents = prevEvents
+End Sub

@@ -675,6 +675,9 @@ Public Sub SyncVendorBlocksFromCount(ByVal wsInfo As Worksheet)
     ' その他入力事項(37-42行)を施工会社数分だけ用意/除去する
     RefreshOtherInputBlocks wsInfo, vendorCount
 
+    ' その他入力事項(38-42行)の初期入力(乙/甲/なし/なし/該当判定)を適用する
+    ApplyOtherInputInitialValues wsInfo, vendorCount
+
     ClearVendorWorkTypeWhenCompanyEmpty wsInfo, vendorCount
 
     Dim formatIndex As Long
@@ -736,4 +739,22 @@ ExitHandler:
     Application.EnableEvents = prevEvents
     Application.CutCopyMode = False
     mSyncVendorBlocksInProgress = False
+End Sub
+
+' その他入力事項(38-42行)の初期入力を各施工会社ブロックへ適用する。
+'   行38=乙 / 行39=甲 / 行40・41=なし / 行42=軌道工事なら該当する・それ以外は該当しない。
+' 値が未入力のセルのみ設定するため、利用者の既存選択は保持される。
+Public Sub ApplyOtherInputInitialValues(ByVal wsInfo As Worksheet, Optional ByVal vendorCount As Long = 0)
+    If wsInfo Is Nothing Then Exit Sub
+    If vendorCount <= 0 Then vendorCount = GetVendorBlockCount(wsInfo)
+
+    Dim i As Long
+    Dim valueCol As Long
+    Dim isRail As Boolean
+    For i = 1 To vendorCount
+        valueCol = VendorValueColumnByIndex(i)
+        isRail = mod_VendorUnitPrice.IsRailConstructionVendorBlock(wsInfo, valueCol)
+        mod_BasicInfoExclusiveChoice.ApplyInitialExclusiveChoices wsInfo, valueCol, isRail
+        mod_BasicInfoSupplyLoan.ApplyInitialSupplyLoan wsInfo, valueCol
+    Next i
 End Sub
