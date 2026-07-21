@@ -5,6 +5,19 @@
 
 ---
 
+## 内訳明細シート生成 明細0行時に集計フッターが生成されない不具合の統合修正（mod_OrderTpl_Detail.ApplyBreakdownDetails）
+
+### #1 明細生成と集計フッター生成を1フローへ統合し、明細0行でもフッターを必ず生成する
+- 現象: 基本情報シートの施工会社（11行目）を選択して内訳明細シートを生成した直後（施工指示書等の取込データがまだ無い状態）に、集計フッター（小計/値引/計/消費税/合計、様式18-2の32〜36行相当）が生成されず、小計行のみ残ることがある。
+- 原因: `ApplyBreakdownDetails` は先頭で `ResetDetailArea` が既存フッター（小計の下＝値引/計/消費税/合計）を削除する一方、明細行数 `totalLines = 0` の場合に `If totalLines = 0 Then ... Exit Sub` で早期終了し、フッターを再生成する `BuildSummaryBlock` が呼ばれなかった。このため小計だけが残る。
+- 修正: 早期 `Exit Sub` を除去。明細転記処理（`PositionSubtotalRow`〜`MergeDetailNameColumns`）を `If totalLines > 0 Then ... End If` で囲み、明細が有る場合のみ実施。`BuildSummaryBlock`（集計フッター生成）は明細0行でも常に実行する統合フローに変更。明細0行時は該当ログを `no detail rows (summary only)` として記録。
+- 副修正: フッター常時生成に伴い `startRow` 未設定でも安全なよう、フォントサイズ適用行の起点を `ORDER_TPL_DETAIL_START_ROW` に変更。
+
+### #2 `BuildSummaryBlock` の集計基準行を小計行の1行上に変更（0行対応）
+- 変更前: `lastDataRow = ORDER_TPL_DETAIL_START_ROW + totalLines - 1`。明細0行では `lastDataRow < 開始行` となりSUM範囲が破綻し得る。
+- 変更後: `lastDataRow = subtotalRow - 1`（小計行の直上）。H/K/N/Q のSUM範囲が常に開始行〜小計直上で安定。明細有り時は末尾の空白セパレータ行（空欄）を含むのみで合計値は不変。
+- 影響: `RefreshAllVendorOrderDetails` 系の再転記経路でも同一の統合フローが適用される。
+
 ## 不具合修正 内訳明細の数量列小数書式が m/M/t で適用されない
 
 ### #1 単位照合前に全角英字を半角へ正規化（mod_OrderTpl_Shared.UnitListContains）

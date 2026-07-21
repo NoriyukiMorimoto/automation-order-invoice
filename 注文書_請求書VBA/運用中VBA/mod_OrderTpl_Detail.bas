@@ -114,11 +114,11 @@ Public Sub ApplyBreakdownDetails(ByVal wsBreakdown As Worksheet, _
     Dim totalLines As Long
     totalLines = worksLineCount + weldLineCount
     If worksLineCount > 0 And weldLineCount > 0 Then totalLines = totalLines + 2
-    If totalLines = 0 Then
-        mod_OrderTpl_Shared.OrderTplLog "no detail rows: " & wsBreakdown.Name & " vendor=" & vendorName
-        Exit Sub
-    End If
+    ' 明細行が無くても集計フッター(小計/値引/計/消費税/合計)は必ず生成する(統合フロー)。
+    ' 明細が有る場合のみ、行位置調整と明細転記を実施する。
+    If totalLines <= 0 Then mod_OrderTpl_Shared.OrderTplLog "no detail rows (summary only): " & wsBreakdown.Name & " vendor=" & vendorName
 
+    If totalLines > 0 Then
     PositionSubtotalRow wsBreakdown, subtotalRow, totalLines
 
     ' ?ｿｽ]?ｿｽL?ｿｽl?ｿｽﾌ組?ｿｽﾝ暦ｿｽ?ｿｽ?ｿｽ
@@ -171,11 +171,12 @@ Public Sub ApplyBreakdownDetails(ByVal wsBreakdown As Worksheet, _
 
     ' B:C?ｿｽ?ｿｽﾌ鯉ｿｽ?ｿｽ?ｿｽ(11?ｿｽs?ｿｽﾚ～?ｿｽ?ｿｽ?ｿｽv?ｿｽs?ｿｽﾌ抵ｿｽ?ｿｽO?ｿｽB?ｿｽZ?ｿｽN?ｿｽV?ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽo?ｿｽ?ｿｽ?ｿｽs?ｿｽ?ｿｽA:D?ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽﾌゑｿｽ?ｿｽﾟ擾ｿｽ?ｿｽ?ｿｽ)
     MergeDetailNameColumns wsBreakdown, startRow, subtotalRow - 1, headerLineRows
+    End If
 
     BuildSummaryBlock wsBreakdown, subtotalRow, totalLines
 
     ' 11?ｿｽs?ｿｽﾚ以降(?ｿｽW?ｿｽv?ｿｽu?ｿｽ?ｿｽ?ｿｽb?ｿｽN?ｿｽﾜゑｿｽ)?ｿｽﾌフ?ｿｽH?ｿｽ?ｿｽ?ｿｽg?ｿｽT?ｿｽC?ｿｽY?ｿｽ?ｿｽ11?ｿｽ|?ｿｽC?ｿｽ?ｿｽ?ｿｽg?ｿｽﾖ難ｿｽ?ｿｽ黷ｷ?ｿｽ?ｿｽ
-    wsBreakdown.Range(wsBreakdown.Cells(startRow, 1), _
+    wsBreakdown.Range(wsBreakdown.Cells(ORDER_TPL_DETAIL_START_ROW, 1), _
                       wsBreakdown.Cells(subtotalRow + SUMMARY_EXTRA_ROWS, 17)).Font.Size = DETAIL_FONT_SIZE
 
     ' A?ｿｽ?ｿｽ(?ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽﾔ搾ｿｽ)?ｿｽﾌ列幅ゑｿｽ?ｿｽﾅ抵ｿｽl7.00?ｿｽﾉ設定す?ｿｽ?ｿｽ
@@ -305,7 +306,8 @@ Private Sub BuildSummaryBlock(ByVal wsBreakdown As Worksheet, _
                               ByVal subtotalRow As Long, _
                               ByVal totalLines As Long)
     Dim lastDataRow As Long
-    lastDataRow = ORDER_TPL_DETAIL_START_ROW + totalLines - 1
+    ' 明細0行でもSUM範囲が破綻しないよう、集計直前行(小計行の1行上)を基準にする
+    lastDataRow = subtotalRow - 1
 
     ' ?ｿｽ?ｿｽ?ｿｽv?ｿｽs?ｿｽﾌ会ｿｽ?ｿｽ?ｿｽ4?ｿｽs(?ｿｽl?ｿｽ?ｿｽ/?ｿｽv/?ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽ/?ｿｽ?ｿｽ?ｿｽv)+?ｿｽr?ｿｽ?ｿｽ?ｿｽp?ｿｽ?注s?ｿｽ?ｿｽ}?ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽ
     wsBreakdown.Rows((subtotalRow + 1) & ":" & (subtotalRow + SUMMARY_EXTRA_ROWS)).Insert _
