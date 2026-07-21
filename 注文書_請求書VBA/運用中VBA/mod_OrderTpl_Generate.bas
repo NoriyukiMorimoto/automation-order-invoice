@@ -161,17 +161,23 @@ Private Function RefreshExistingVendorOrderSheetsIfPresent(ByVal wsInfo As Works
     Set wsBreakdown = ThisWorkbook.Worksheets(breakdownSheetName)
 
     mod_OrderTpl_Shared.OrderTplLog "in-place refresh alias=" & aliasText
+    Dim stepT0 As Double
+    stepT0 = mod_Construction_Import_Shared.LogCIStart()
     mod_OrderTpl_Header.ApplyVendorSheetHeaders wsInfo, vendorIndex, aliasText
+    mod_Construction_Import_Shared.LogCIElapsed "in-place: ApplyVendorSheetHeaders", stepT0
+
+    stepT0 = mod_Construction_Import_Shared.LogCIStart()
     mod_OrderTpl_Detail.ApplyBreakdownDetails wsBreakdown, vendorName, companyName, branchName, workTypeText
+    mod_Construction_Import_Shared.LogCIElapsed "in-place: ApplyBreakdownDetails", stepT0
 
     Dim condSheetName As String
     condSheetName = mod_OrderTpl_Shared.OrderTplBuildSheetName( _
         mod_OrderTpl_Shared.OrderTplBaseNameConditionText(), aliasText)
     If mod_OrderTpl_Shared.OrderTplSheetExists(condSheetName) Then
+        stepT0 = mod_Construction_Import_Shared.LogCIStart()
         mod_OrderTpl_Header.ApplyConditionSheetHeader wsInfo, _
             ThisWorkbook.Worksheets(condSheetName), vendorIndex
-        mod_OrderTpl_Header.SetupConditionCheckboxExclusivity _
-            ThisWorkbook.Worksheets(condSheetName)
+        mod_Construction_Import_Shared.LogCIElapsed "in-place: ApplyConditionSheetHeader", stepT0
     End If
 
     RefreshExistingVendorOrderSheetsIfPresent = True

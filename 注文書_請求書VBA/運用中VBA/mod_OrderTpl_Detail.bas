@@ -94,6 +94,9 @@ Public Sub ApplyBreakdownDetails(ByVal wsBreakdown As Worksheet, _
 
     ' ?ｿｽ?ｿｽ?ｿｽo: ?ｿｽO?ｿｽ?ｿｽ?ｿｽH?ｿｽ?ｿｽ?ｿｽﾍ工?ｿｽ?ｿｽ?ｿｽV?ｿｽ[?ｿｽg(A?ｿｽ?ｿｽ ?ｿｽ{?ｿｽH?ｿｽﾆ趣ｿｽ)+?ｿｽn?ｿｽﾚシ?ｿｽ[?ｿｽg(B?ｿｽ?ｿｽ ?ｿｽO?ｿｽ?ｿｽ?ｿｽ闌ｳ?ｿｽ?ｿｽ?ｿｽ)?ｿｽA
     '       ?ｿｽn?ｿｽﾚ工?ｿｽ?ｿｽ?ｿｽﾍ溶?ｿｽﾚシ?ｿｽ[?ｿｽg(A?ｿｽ?ｿｽ ?ｿｽn?ｿｽﾚ会ｿｽ?ｿｽ)?ｿｽﾌゑｿｽ
+    Dim detailT0 As Double
+    detailT0 = mod_Construction_Import_Shared.LogCIStart()
+
     Dim worksSections As Collection
     Dim weldSections As Collection
     If isWeldingWork Then
@@ -105,6 +108,7 @@ Public Sub ApplyBreakdownDetails(ByVal wsBreakdown As Worksheet, _
         Set weldSections = CollectSourceSections( _
             mod_OrderTpl_Shared.OrderTplFindWeldingSourceSheet(), WELD_COL_TRACK_VENDOR, targetKeys, aliasMap, True)
     End If
+    mod_Construction_Import_Shared.LogCIElapsed "ApplyBreakdownDetails: collect", detailT0
 
     Dim worksLineCount As Long
     Dim weldLineCount As Long
@@ -164,6 +168,7 @@ Public Sub ApplyBreakdownDetails(ByVal wsBreakdown As Worksheet, _
 
     CleanupDetailAmountEmptyRows wsBreakdown, startRow, subtotalRow - 1
 
+    detailT0 = mod_Construction_Import_Shared.LogCIStart()
     ApplyDetailFormats wsBreakdown, startRow, endRow, headerLineRows, integerLineRows, decimalLineRows
 
     ' 驥鷹｡榊??(H/K/N/Q)縺ｮ蟆乗焚陦ｨ遉ｺ縺ｯ縲、pplyDetailFormats 縺ｮ謨ｴ謨ｰ譖ｸ蠑上?ｮ蠕後↓驕ｩ逕ｨ縺励※蜆ｪ蜈医＆縺帙ｋ
@@ -171,9 +176,12 @@ Public Sub ApplyBreakdownDetails(ByVal wsBreakdown As Worksheet, _
 
     ' B:C?ｿｽ?ｿｽﾌ鯉ｿｽ?ｿｽ?ｿｽ(11?ｿｽs?ｿｽﾚ～?ｿｽ?ｿｽ?ｿｽv?ｿｽs?ｿｽﾌ抵ｿｽ?ｿｽO?ｿｽB?ｿｽZ?ｿｽN?ｿｽV?ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽo?ｿｽ?ｿｽ?ｿｽs?ｿｽ?ｿｽA:D?ｿｽ?ｿｽ?ｿｽ?ｿｽ?ｿｽﾌゑｿｽ?ｿｽﾟ擾ｿｽ?ｿｽ?ｿｽ)
     MergeDetailNameColumns wsBreakdown, startRow, subtotalRow - 1, headerLineRows
+    mod_Construction_Import_Shared.LogCIElapsed "ApplyBreakdownDetails: format/merge", detailT0
     End If
 
+    detailT0 = mod_Construction_Import_Shared.LogCIStart()
     BuildSummaryBlock wsBreakdown, subtotalRow, totalLines
+    mod_Construction_Import_Shared.LogCIElapsed "ApplyBreakdownDetails: summary", detailT0
 
     ' 11?ｿｽs?ｿｽﾚ以降(?ｿｽW?ｿｽv?ｿｽu?ｿｽ?ｿｽ?ｿｽb?ｿｽN?ｿｽﾜゑｿｽ)?ｿｽﾌフ?ｿｽH?ｿｽ?ｿｽ?ｿｽg?ｿｽT?ｿｽC?ｿｽY?ｿｽ?ｿｽ11?ｿｽ|?ｿｽC?ｿｽ?ｿｽ?ｿｽg?ｿｽﾖ難ｿｽ?ｿｽ黷ｷ?ｿｽ?ｿｽ
     wsBreakdown.Range(wsBreakdown.Cells(ORDER_TPL_DETAIL_START_ROW, 1), _
@@ -804,14 +812,24 @@ Private Function FindVendorUnitPriceColumn(ByVal wsSource As Worksheet, _
 
     Dim lastColumn As Long
     lastColumn = wsSource.Cells(1, wsSource.Columns.Count).End(xlToLeft).Column
+    If lastColumn < 1 Then Exit Function
 
     Dim suffixText As String
     suffixText = mod_OrderTpl_Shared.OrderTplUnitPriceHeaderSuffixText()
 
+    ' ヘッダー行を一括読込してセル往復を避ける
+    Dim headerArr As Variant
+    If lastColumn = 1 Then
+        ReDim headerArr(1 To 1, 1 To 1)
+        headerArr(1, 1) = wsSource.Cells(1, 1).value
+    Else
+        headerArr = wsSource.Range(wsSource.Cells(1, 1), wsSource.Cells(1, lastColumn)).value
+    End If
+
     Dim c As Long
     For c = 1 To lastColumn
         Dim headerText As String
-        headerText = CommonRemoveAllSpaces(CommonNormalizeText(CommonNzText(wsSource.Cells(1, c).value)))
+        headerText = CommonRemoveAllSpaces(CommonNormalizeText(CommonNzText(headerArr(1, c))))
         If Len(headerText) > Len(suffixText) Then
             If StrComp(Right$(headerText, Len(suffixText)), suffixText, vbTextCompare) = 0 Then
                 Dim vendorKey As String
@@ -833,6 +851,8 @@ Private Sub MergeDetailNameColumns(ByVal wsBreakdown As Worksheet, _
                                    ByVal firstRow As Long, _
                                    ByVal lastRow As Long, _
                                    ByVal headerLineRows As Collection)
+    If lastRow < firstRow Then Exit Sub
+
     Dim headerRowMap As Object
     Set headerRowMap = CreateObject("Scripting.Dictionary")
 
@@ -843,14 +863,18 @@ Private Sub MergeDetailNameColumns(ByVal wsBreakdown As Worksheet, _
         Next lineIndex
     End If
 
+    ' 書式は一括、Merge は未結合行のみ
+    Dim formatRange As Range
+    Set formatRange = wsBreakdown.Range(wsBreakdown.Cells(firstRow, 2), wsBreakdown.Cells(lastRow, 3))
+    formatRange.WrapText = False
+    formatRange.ShrinkToFit = True
+    formatRange.HorizontalAlignment = xlLeft
+
     Dim r As Long
     For r = firstRow To lastRow
         If Not headerRowMap.Exists(r) Then
             With wsBreakdown.Range(wsBreakdown.Cells(r, 2), wsBreakdown.Cells(r, 3))
                 If Not .MergeCells Then .Merge
-                .WrapText = False
-                .ShrinkToFit = True
-                .HorizontalAlignment = xlLeft
             End With
         End If
     Next r

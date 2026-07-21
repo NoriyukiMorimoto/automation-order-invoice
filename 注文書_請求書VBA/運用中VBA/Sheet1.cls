@@ -186,11 +186,16 @@ Private Sub Worksheet_Change(ByVal target As Range)
         End If
     End If
 
+    Dim postT0 As Double
+    postT0 = mod_Construction_Import_Shared.LogCIStart()
     mod_BasicInfoGuide.OnCellChanged Me, target
+    mod_Construction_Import_Shared.LogCIElapsed "Sheet1 OnCellChanged", postT0
 
     ' 基本情報のヘッダー転記元セル変更を監視し、各受注者用テンプレート各シートへ反映
     ' (10行目の工事区分など列単位の適用にタブ色反映が絡むため、ガイド更新の後に実行する)
+    postT0 = mod_Construction_Import_Shared.LogCIStart()
     mod_OrderTpl_Header.HandleBasicInfoHeaderSourceChange Me, target
+    mod_Construction_Import_Shared.LogCIElapsed "Sheet1 HandleBasicInfoHeaderSourceChange", postT0
 
     mod_DebugLog.Log "[Sheet1] needComboPrompt=" & needComboPrompt
     If needComboPrompt Then

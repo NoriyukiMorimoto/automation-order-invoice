@@ -85,16 +85,33 @@ Public Sub RefreshAllVendorSheetHeaders(Optional ByVal wsInfo As Worksheet)
     If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet()
     If wsInfo Is Nothing Then Exit Sub
 
+    Dim indexes As Collection
+    Set indexes = New Collection
+    Dim vendorCount As Long
+    vendorCount = mod_Construction_BasicTotals.GetBasicInfoVendorBlockCount(wsInfo)
+    Dim vendorIndex As Long
+    For vendorIndex = 1 To vendorCount
+        indexes.Add vendorIndex
+    Next vendorIndex
+    RefreshVendorSheetHeadersForIndexes wsInfo, indexes
+End Sub
+
+Public Sub RefreshVendorSheetHeadersForIndexes(ByVal wsInfo As Worksheet, ByVal vendorIndexes As Collection)
+    If wsInfo Is Nothing Then Exit Sub
+    If vendorIndexes Is Nothing Then Exit Sub
+
     On Error GoTo Quiet
+
+    Dim t0 As Double
+    t0 = mod_Construction_Import_Shared.LogCIStart()
 
     Dim branchName As String
     branchName = CommonNormalizeText(CommonNzText(wsInfo.Range(BASIC_INFO_BRANCH_CELL).value))
 
-    Dim vendorCount As Long
-    vendorCount = mod_Construction_BasicTotals.GetBasicInfoVendorBlockCount(wsInfo)
-
-    Dim vendorIndex As Long
-    For vendorIndex = 1 To vendorCount
+    Dim idx As Variant
+    For Each idx In vendorIndexes
+        Dim vendorIndex As Long
+        vendorIndex = CLng(idx)
         Dim companyName As String
         companyName = mod_OrderTpl_Shared.OrderTplGetVendorCompanyName(wsInfo, vendorIndex)
         If companyName <> "" Then
@@ -108,16 +125,18 @@ Public Sub RefreshAllVendorSheetHeaders(Optional ByVal wsInfo As Worksheet)
                 condSheetName = mod_OrderTpl_Shared.OrderTplBuildSheetName( _
                     mod_OrderTpl_Shared.OrderTplBaseNameConditionText(), aliasText)
                 If mod_OrderTpl_Shared.OrderTplSheetExists(condSheetName) Then
+                    ' チェックボックス排他は ApplyVendorSheetHeaders 内で設定済みのため再実行しない
                     ApplyConditionSheetHeader wsInfo, ThisWorkbook.Worksheets(condSheetName), vendorIndex
-                    SetupConditionCheckboxExclusivity ThisWorkbook.Worksheets(condSheetName)
                 End If
             End If
         End If
-    Next vendorIndex
+    Next idx
+
+    mod_Construction_Import_Shared.LogCIElapsed "RefreshVendorSheetHeadersForIndexes count=" & vendorIndexes.Count, t0
     Exit Sub
 
 Quiet:
-    mod_OrderTpl_Shared.OrderTplLog "RefreshAllVendorSheetHeaders error: " & Err.Number & " " & Err.Description
+    mod_OrderTpl_Shared.OrderTplLog "RefreshVendorSheetHeadersForIndexes error: " & Err.Number & " " & Err.Description
     Err.Clear
 End Sub
 
@@ -134,7 +153,27 @@ Public Sub HandleBasicInfoHeaderSourceChange(ByVal wsInfo As Worksheet, ByVal ta
     If sourceRange Is Nothing Then Exit Sub
     If Intersect(target, sourceRange) Is Nothing Then Exit Sub
 
-    RefreshAllVendorSheetHeaders wsInfo
+    Dim headerT0 As Double
+    headerT0 = mod_Construction_Import_Shared.LogCIStart()
+
+    ' 施工会社名(11行目)のみの変更は RunScheduled 側で ApplyVendorSheetHeaders される。
+    ' ここで全社分を再転記すると数十秒掛かり、シート生成までブロックする。
+    If IsVendorNameRowOnlyHeaderChange(wsInfo, target) Then
+        mod_Construction_Import_Shared.LogCI "HandleBasicInfoHeaderSourceChange skip(all) name-row-only"
+        Exit Sub
+    End If
+
+    Dim affectedIndexes As Collection
+    Set affectedIndexes = CollectAffectedVendorIndexesFromHeaderChange(wsInfo, target)
+    If affectedIndexes Is Nothing Then
+        RefreshAllVendorSheetHeaders wsInfo
+        mod_Construction_Import_Shared.LogCIElapsed "HandleBasicInfoHeaderSourceChange all", headerT0
+    ElseIf affectedIndexes.Count = 0 Then
+        Exit Sub
+    Else
+        RefreshVendorSheetHeadersForIndexes wsInfo, affectedIndexes
+        mod_Construction_Import_Shared.LogCIElapsed "HandleBasicInfoHeaderSourceChange partial count=" & affectedIndexes.Count, headerT0
+    End If
     Exit Sub
 
 Quiet:
@@ -142,6 +181,62 @@ Quiet:
 End Sub
 
 ' ヘッダー転記元セルの監視範囲を返す公開ラッパー(Sheet1の変更ゲート構築用)
+Private Function IsVendorNameRowOnlyHeaderChange(ByVal wsInfo As Worksheet, ByVal target As Range) As Boolean
+    If target Is Nothing Then Exit Function
+    If wsInfo Is Nothing Then Exit Function
+
+    Dim hit As Range
+    Set hit = Intersect(target, BuildHeaderSourceRange(wsInfo))
+    If hit Is Nothing Then Exit Function
+
+    Dim cell As Range
+    For Each cell In hit.Cells
+        If cell.Row <> BASIC_INFO_VENDOR_NAME_ROW Then Exit Function
+        If mod_VendorUnitPrice.GetVendorIndexFromValueColumn(cell.Column) < 1 Then Exit Function
+    Next cell
+    IsVendorNameRowOnlyHeaderChange = True
+End Function
+
+' 変更セルに対応する施工会社ブロック番号だけを返す。共通セル(B6等)を含む場合は Nothing(=全件)。
+Private Function CollectAffectedVendorIndexesFromHeaderChange(ByVal wsInfo As Worksheet, _
+                                                              ByVal target As Range) As Collection
+    If target Is Nothing Then Exit Function
+    If wsInfo Is Nothing Then Exit Function
+
+    Dim commonHit As Range
+    Set commonHit = Intersect(target, wsInfo.Range(HEADER_SOURCE_COMMON_CELLS))
+    If Not commonHit Is Nothing Then
+        Set CollectAffectedVendorIndexesFromHeaderChange = Nothing
+        Exit Function
+    End If
+
+    Dim headerHit As Range
+    Set headerHit = Intersect(target, BuildHeaderSourceRange(wsInfo))
+    If headerHit Is Nothing Then
+        Set CollectAffectedVendorIndexesFromHeaderChange = New Collection
+        Exit Function
+    End If
+
+    Dim result As Collection
+    Set result = New Collection
+    Dim seen As Object
+    Set seen = CreateObject("Scripting.Dictionary")
+
+    Dim cell As Range
+    For Each cell In headerHit.Cells
+        Dim vendorIndex As Long
+        vendorIndex = mod_VendorUnitPrice.GetVendorIndexFromValueColumn(cell.Column)
+        If vendorIndex >= 1 Then
+            If Not seen.Exists(vendorIndex) Then
+                seen.Add vendorIndex, True
+                result.Add vendorIndex
+            End If
+        End If
+    Next cell
+
+    Set CollectAffectedVendorIndexesFromHeaderChange = result
+End Function
+
 Public Function GetBasicInfoHeaderSourceMonitorRange(ByVal wsInfo As Worksheet) As Range
     If wsInfo Is Nothing Then Exit Function
     Set GetBasicInfoHeaderSourceMonitorRange = BuildHeaderSourceRange(wsInfo)
