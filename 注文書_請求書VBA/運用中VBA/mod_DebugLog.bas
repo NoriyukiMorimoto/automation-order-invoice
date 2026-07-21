@@ -11,10 +11,10 @@ Public Const LOG_PERSIST_BOTH As Long = 3
 Private mFileLogPath As String
 Private mFileLogPathReady As Boolean
 
-' Immediateï¿½Eï¿½Bï¿½ï¿½ï¿½hï¿½Eï¿½ÖˆÌoï¿½ï¿½(Debug.Print)ï¿½Ì—Lï¿½ï¿½/ï¿½ï¿½ï¿½ï¿½ï¿½B
-' ï¿½Êï¿½^ï¿½pï¿½Å‚ï¿½False(VBEï¿½ï¿½ï¿½Jï¿½ï¿½ï¿½Ä‚ï¿½ï¿½ï¿½ê‡ï¿½ï¿½Debug.Printï¿½ÌƒIï¿½[ï¿½oï¿½[ï¿½wï¿½bï¿½hï¿½ï¿½ï¿½ï¿½ï¿½)ï¿½B
-' ï¿½ï¿½ï¿½Oï¿½ï¿½ï¿½Ì‚ÍˆÛï¿½(ï¿½ï¿½ï¿½Lï¿½oï¿½bï¿½tï¿½@mLogsï¿½ï¿½AppendLogLineToFileï¿½ï¿½FlushToSheetï¿½Í]ï¿½ï¿½ï¿½ï¿½ï¿½è“®ï¿½ï¿½)ï¿½B
-' ï¿½fï¿½oï¿½bï¿½Oï¿½ï¿½ï¿½É‚ï¿½ True ï¿½É‚ï¿½ï¿½ï¿½ï¿½ Immediate ï¿½É‚ï¿½ï¿½oï¿½Í‚ï¿½ï¿½ï¿½ï¿½B
+' ImmediateƒEƒBƒ“ƒhƒE‚Ö‚ÌƒfƒoƒbƒOo—Í(Debug.Print)‚Ì—LŒø/–³Œø‚ğØ‚è‘Ö‚¦‚éƒtƒ‰ƒOB
+' Šù’è’l‚ÍFalse(VBE‚ğŠJ‚¢‚Ä‚¢‚È‚¢ŠÂ‹«‚Å‚àDebug.Print‚ÌƒI[ƒo[ƒwƒbƒh‚ğ”ğ‚¯‚é‚½‚ß)B
+' ‚±‚Ìƒtƒ‰ƒO‚ğ•ÏX‚µ‚Ä‚àƒƒO‚Ì’~Ï(mLogsEAppendLogLineToFileEFlushToSheet)‚É‚Í‰e‹¿‚µ‚È‚¢B
+' ƒfƒoƒbƒO‚Ì‚İTrue‚É‚·‚é‚ÆAImmediateƒEƒBƒ“ƒhƒE‚É‚ào—Í‚³‚ê‚éB
 Public DebugImmediateEnabled As Boolean
 
 Public Sub Log(ByVal msg As String, Optional ByVal persist As Long = 0)

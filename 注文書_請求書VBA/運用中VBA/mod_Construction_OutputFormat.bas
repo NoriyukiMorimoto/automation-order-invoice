@@ -1,6 +1,6 @@
 Option Explicit
 
-' ????: CHANGELOG.md ??
+' ‰üC—š—ğ: CHANGELOG.md QÆ
 ' mod_Construction_OutputFormat (split from mod_Construction_Order_Import)
 
 '  ConstructionIntegerNumberFormat
