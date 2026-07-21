@@ -44,7 +44,8 @@ Private Const SANPAI_FACILITY_MASTER_START_ROW As Long = 59
 ' 指定ブロックの施工会社に対応するテンプレート5シートへヘッダーを転記する(ディスパッチャ)
 Public Sub ApplyVendorSheetHeaders(ByVal wsInfo As Worksheet, _
                                    ByVal vendorIndex As Long, _
-                                   ByVal aliasText As String)
+                                   ByVal aliasText As String, _
+                                   Optional ByVal lightRefresh As Boolean = False)
     If wsInfo Is Nothing Then Exit Sub
     If Len(aliasText) = 0 Then Exit Sub
 
@@ -52,6 +53,7 @@ Public Sub ApplyVendorSheetHeaders(ByVal wsInfo As Worksheet, _
     baseNames = mod_OrderTpl_Shared.OrderTplTemplateSheetBaseNames()
 
     Dim i As Long
+    Dim stepT0 As Double
     For i = LBound(baseNames) To UBound(baseNames)
         Dim sheetName As String
         sheetName = mod_OrderTpl_Shared.OrderTplBuildSheetName(CStr(baseNames(i)), aliasText)
@@ -61,13 +63,16 @@ Public Sub ApplyVendorSheetHeaders(ByVal wsInfo As Worksheet, _
 
             ApplyVendorSheetTabColor wsInfo, wsTarget, vendorIndex
 
+            stepT0 = mod_Construction_Import_Shared.LogCIStart()
             Select Case i - LBound(baseNames)
-                Case 0: ApplyBreakdownHeader wsInfo, wsTarget, vendorIndex
+                Case 0: ApplyBreakdownHeader wsInfo, wsTarget, vendorIndex, lightRefresh
                 Case 1: ApplyContractorHeader wsInfo, wsTarget, vendorIndex
                 Case 2: ApplyAcceptanceHeader wsInfo, wsTarget, vendorIndex
                 Case 3: ApplyBranchCopyHeader wsInfo, wsTarget, vendorIndex
-                Case 4: ApplyAttachment3Header wsInfo, wsTarget, vendorIndex
+                Case 4: ApplyAttachment3Header wsInfo, wsTarget, vendorIndex, lightRefresh
             End Select
+            mod_Construction_Import_Shared.LogCIElapsed _
+                "ApplyVendorSheetHeaders case=" & (i - LBound(baseNames)) & " light=" & lightRefresh, stepT0
         End If
     Next i
 
@@ -76,7 +81,11 @@ Public Sub ApplyVendorSheetHeaders(ByVal wsInfo As Worksheet, _
         mod_OrderTpl_Shared.OrderTplBaseNameConditionText(), aliasText)
     If mod_OrderTpl_Shared.OrderTplSheetExists(condSheetName) Then
         ApplyVendorSheetTabColor wsInfo, ThisWorkbook.Worksheets(condSheetName), vendorIndex
-        SetupConditionCheckboxExclusivity ThisWorkbook.Worksheets(condSheetName)
+        If Not lightRefresh Then
+            stepT0 = mod_Construction_Import_Shared.LogCIStart()
+            SetupConditionCheckboxExclusivity ThisWorkbook.Worksheets(condSheetName)
+            mod_Construction_Import_Shared.LogCIElapsed "ApplyVendorSheetHeaders condition-setup", stepT0
+        End If
     End If
 End Sub
 
@@ -289,7 +298,8 @@ End Sub
 ' 内訳明細ヘッダー部へ基本情報シートの内容を転記する
 Public Sub ApplyBreakdownHeader(ByVal wsInfo As Worksheet, _
                                 ByVal wsBreakdown As Worksheet, _
-                                ByVal vendorIndex As Long)
+                                ByVal vendorIndex As Long, _
+                                Optional ByVal lightRefresh As Boolean = False)
     If wsInfo Is Nothing Then Exit Sub
     If wsBreakdown Is Nothing Then Exit Sub
 
@@ -338,9 +348,11 @@ Public Sub ApplyBreakdownHeader(ByVal wsInfo As Worksheet, _
                      wsInfo.Cells(ORDER_TPL_BLOCK_VENDOR_CODE_ROW, valueColumn).value, True
 
     ' 複数ページ印刷用にヘッダー行(7:10行目)をタイトル行に設定する
-    On Error Resume Next
-    wsBreakdown.PageSetup.PrintTitleRows = ORDER_TPL_PRINT_TITLE_ROWS
-    On Error GoTo ErrorHandler
+    If Not lightRefresh Then
+        On Error Resume Next
+        wsBreakdown.PageSetup.PrintTitleRows = ORDER_TPL_PRINT_TITLE_ROWS
+        On Error GoTo ErrorHandler
+    End If
 
     mod_OrderTpl_Shared.OrderTplLog "ApplyBreakdownHeader done: " & wsBreakdown.Name
     Exit Sub
@@ -843,10 +855,25 @@ Private Sub EnsureOfficeChiefRowMerge(ByVal wsTarget As Worksheet, ByVal rowNo A
     Dim mergeRange As Range
     Set mergeRange = wsTarget.Range(wsTarget.Cells(rowNo, OFFICE_COL_START), _
                                     wsTarget.Cells(rowNo, OFFICE_COL_END))
-    mod_VendorBlockLayout.SafeUnmergeRange mergeRange
+
+    ' Already merged as M:V -> skip expensive UnMerge/Merge
+    Dim alreadyOk As Boolean
+    alreadyOk = False
     On Error Resume Next
-    mergeRange.Merge
+    If mergeRange.Cells(1, 1).MergeCells Then
+        If mergeRange.Cells(1, 1).MergeArea.Address(False, False) = mergeRange.Address(False, False) Then
+            alreadyOk = True
+        End If
+    End If
     On Error GoTo 0
+
+    If Not alreadyOk Then
+        mod_VendorBlockLayout.SafeUnmergeRange mergeRange
+        On Error Resume Next
+        mergeRange.Merge
+        On Error GoTo 0
+    End If
+
     With mergeRange.Cells(1, 1)
         .ShrinkToFit = True
         .HorizontalAlignment = xlLeft
@@ -1062,7 +1089,8 @@ End Sub
 ' 別紙Ⅲシートへの転記(転記仕様が確定したらここへ実装する)
 Private Sub ApplyAttachment3Header(ByVal wsInfo As Worksheet, _
                                    ByVal wsTarget As Worksheet, _
-                                   ByVal vendorIndex As Long)
+                                   ByVal vendorIndex As Long, _
+                                   Optional ByVal lightRefresh As Boolean = False)
     On Error GoTo ErrorHandler
     ' O1: 施工会社名(基本情報 施工会社ブロック11行目)を右詰め・BIZ UDゴシックで転記
     Dim vendorCol As Long
@@ -1072,12 +1100,11 @@ Private Sub ApplyAttachment3Header(ByVal wsInfo As Worksheet, _
     WriteAttachment3VendorName wsTarget.Range("O1"), vendorName
 
     ' 36～41行目の F/H列・J/L列の排他チェックボックスを設定
-    SetupAttachment3CheckboxExclusivity wsTarget
+    If Not lightRefresh Then
+        SetupAttachment3CheckboxExclusivity wsTarget
+        SetupAttachment3SanpaiFacilityDoubleClickHint wsTarget
+    End If
 
-    ' E49:I49～E52:I52 ダブルクリックによる産業廃棄物処理施設選択
-    SetupAttachment3SanpaiFacilityDoubleClickHint wsTarget
-
-    ' J54:M54 産廃行JR金額合計(工事シートに紐付く施工会社のみに反映)
     RefreshAttachment3SanpaiJrTotal wsTarget, wsInfo, vendorIndex
     Exit Sub
 
@@ -1235,24 +1262,75 @@ Private Sub NormalizeAttachment3CheckboxRows(ByVal ws As Worksheet)
     Application.EnableEvents = False
     On Error Resume Next
 
+    Dim cbMap As Object
+    Set cbMap = BuildAttachment3CheckboxMap(ws)
+
     Dim r As Long
     For r = ATTACHMENT3_CHECK_ROW_MIN To ATTACHMENT3_CHECK_ROW_MAX
-        If IsAttachment3CheckboxOn(ws, r, ATTACHMENT3_COL_F) And _
-           IsAttachment3CheckboxOn(ws, r, ATTACHMENT3_COL_H) Then
-            SetAttachment3Checkbox ws, r, ATTACHMENT3_COL_H, False
+        If Attachment3CheckboxOnFromMap(cbMap, r, ATTACHMENT3_COL_F) And _
+           Attachment3CheckboxOnFromMap(cbMap, r, ATTACHMENT3_COL_H) Then
+            SetAttachment3CheckboxFromMap cbMap, r, ATTACHMENT3_COL_H, False
         End If
 
-        If IsAttachment3CheckboxOn(ws, r, ATTACHMENT3_COL_H) Then
-            SetAttachment3Checkbox ws, r, ATTACHMENT3_COL_J, False
-            SetAttachment3Checkbox ws, r, ATTACHMENT3_COL_L, False
-        ElseIf IsAttachment3CheckboxOn(ws, r, ATTACHMENT3_COL_J) And _
-               IsAttachment3CheckboxOn(ws, r, ATTACHMENT3_COL_L) Then
-            SetAttachment3Checkbox ws, r, ATTACHMENT3_COL_L, False
+        If Attachment3CheckboxOnFromMap(cbMap, r, ATTACHMENT3_COL_H) Then
+            SetAttachment3CheckboxFromMap cbMap, r, ATTACHMENT3_COL_J, False
+            SetAttachment3CheckboxFromMap cbMap, r, ATTACHMENT3_COL_L, False
+        ElseIf Attachment3CheckboxOnFromMap(cbMap, r, ATTACHMENT3_COL_J) And _
+               Attachment3CheckboxOnFromMap(cbMap, r, ATTACHMENT3_COL_L) Then
+            SetAttachment3CheckboxFromMap cbMap, r, ATTACHMENT3_COL_L, False
         End If
     Next r
 
     On Error GoTo 0
     Application.EnableEvents = prevEvents
+End Sub
+
+Private Function BuildAttachment3CheckboxMap(ByVal ws As Worksheet) As Object
+    Dim map As Object
+    Set map = CreateObject("Scripting.Dictionary")
+    map.CompareMode = vbTextCompare
+
+    Dim cb As Object
+    On Error Resume Next
+    For Each cb In ws.CheckBoxes
+        Dim r As Long, c As Long
+        r = cb.TopLeftCell.Row
+        c = cb.TopLeftCell.Column
+        If r >= ATTACHMENT3_CHECK_ROW_MIN And r <= ATTACHMENT3_CHECK_ROW_MAX Then
+            If c = ATTACHMENT3_COL_F Or c = ATTACHMENT3_COL_H Or _
+               c = ATTACHMENT3_COL_J Or c = ATTACHMENT3_COL_L Then
+                map(CStr(r) & ":" & CStr(c)) = cb
+            End If
+        End If
+    Next cb
+    On Error GoTo 0
+
+    Set BuildAttachment3CheckboxMap = map
+End Function
+
+Private Function Attachment3CheckboxOnFromMap(ByVal cbMap As Object, _
+                                              ByVal rowIndex As Long, _
+                                              ByVal colIndex As Long) As Boolean
+    If cbMap Is Nothing Then Exit Function
+    Dim key As String
+    key = CStr(rowIndex) & ":" & CStr(colIndex)
+    If Not cbMap.Exists(key) Then Exit Function
+    Attachment3CheckboxOnFromMap = (cbMap(key).Value = xlOn)
+End Function
+
+Private Sub SetAttachment3CheckboxFromMap(ByVal cbMap As Object, _
+                                          ByVal rowIndex As Long, _
+                                          ByVal colIndex As Long, _
+                                          ByVal turnOn As Boolean)
+    If cbMap Is Nothing Then Exit Sub
+    Dim key As String
+    key = CStr(rowIndex) & ":" & CStr(colIndex)
+    If Not cbMap.Exists(key) Then Exit Sub
+    If turnOn Then
+        cbMap(key).Value = xlOn
+    Else
+        cbMap(key).Value = xlOff
+    End If
 End Sub
 
 ' ===== 別紙Ⅲ E49:I49～E52:I52 産業廃棄物処理施設選択 =====

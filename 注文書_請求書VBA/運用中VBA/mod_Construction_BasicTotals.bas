@@ -148,7 +148,11 @@ Public Sub RefreshBasicInfoConstructionTotalsCore(Optional ByVal changedVendorIn
     Next i
 
     ' 各ブロックの34/35行目(消費税・税込み金額)を追従更新する
-    RefreshVendorBlockTaxRows wsInfo
+    If fullRefresh Then
+        RefreshVendorBlockTaxRows wsInfo
+    Else
+        RefreshVendorBlockTaxRows wsInfo, changedVendorIndex
+    End If
     LogCIElapsed "RefreshBasicInfoConstructionTotalsCore full=" & fullRefresh & " vendor=" & changedVendorIndex, totalsT0
     Exit Sub
 
@@ -162,7 +166,8 @@ End Sub
 '  ラベル列(値列の左)にはB34:B35(消費税(10%)：/税込み金額：)のデータ・罫線をコピーし、
 '  値列34行目=33行目(契約金額税抜)×税率(B34のカッコ内、C34と同じ切り捨て)、
 '  35行目=33行目+34行目。書式は33行目を模倣。F9の会社数増減にも追従する。
-Public Sub RefreshVendorBlockTaxRows(Optional ByVal wsInfo As Worksheet)
+Public Sub RefreshVendorBlockTaxRows(Optional ByVal wsInfo As Worksheet, _
+                                     Optional ByVal changedVendorIndex As Long = 0)
     If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet(ThisWorkbook)
     If wsInfo Is Nothing Then Exit Sub
 
@@ -174,8 +179,18 @@ Public Sub RefreshVendorBlockTaxRows(Optional ByVal wsInfo As Worksheet)
     Dim vendorCount As Long
     vendorCount = GetBasicInfoVendorBlockCount(wsInfo)
 
+    Dim loopStart As Long
+    Dim loopEnd As Long
+    If changedVendorIndex > 0 Then
+        loopStart = changedVendorIndex
+        loopEnd = changedVendorIndex
+    Else
+        loopStart = 1
+        loopEnd = BASIC_INFO_VENDOR_MAX_BLOCKS
+    End If
+
     Dim i As Long
-    For i = 1 To BASIC_INFO_VENDOR_MAX_BLOCKS
+    For i = loopStart To loopEnd
         Dim valueColumn As Long
         Dim labelColumn As Long
         valueColumn = BasicInfoVendorColumn(i)

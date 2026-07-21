@@ -94,13 +94,22 @@ Public Sub RunScheduledVendorSheetGeneration()
     mPendingVendorIndexes.RemoveAll
 
     Dim prevEnableEvents As Boolean
+    Dim prevScreenUpdating As Boolean
+    Dim prevCalculation As XlCalculation
     prevEnableEvents = Application.EnableEvents
+    prevScreenUpdating = Application.ScreenUpdating
+    prevCalculation = Application.Calculation
     Application.EnableEvents = False
+    Application.ScreenUpdating = False
+    Application.Calculation = xlCalculationManual
 
     Dim i As Long
+    Dim lastVendorIndex As Long
+    lastVendorIndex = 0
     For i = LBound(pendingKeys) To UBound(pendingKeys)
         Dim vendorIndex As Long
         vendorIndex = CLng(pendingKeys(i))
+        lastVendorIndex = vendorIndex
         Dim oneT0 As Double
         oneT0 = mod_Construction_Import_Shared.LogCIStart()
         If RefreshExistingVendorOrderSheetsIfPresent(wsInfo, vendorIndex) Then
@@ -111,8 +120,19 @@ Public Sub RunScheduledVendorSheetGeneration()
         End If
     Next i
 
-    mod_Construction_Order_Import.RefreshBasicInfoConstructionTotals
+    On Error Resume Next
+    Application.Calculate
+    On Error GoTo 0
 
+    ' Single vendor: partial totals (works/purchase totals unchanged by name edit)
+    If UBound(pendingKeys) = LBound(pendingKeys) Then
+        mod_Construction_Order_Import.RefreshBasicInfoConstructionTotals lastVendorIndex
+    Else
+        mod_Construction_Order_Import.RefreshBasicInfoConstructionTotals
+    End If
+
+    Application.Calculation = prevCalculation
+    Application.ScreenUpdating = prevScreenUpdating
     Application.EnableEvents = prevEnableEvents
     mod_Construction_Import_Shared.LogCIElapsed "RunScheduledVendorSheetGeneration total", runT0
 End Sub
@@ -163,7 +183,7 @@ Private Function RefreshExistingVendorOrderSheetsIfPresent(ByVal wsInfo As Works
     mod_OrderTpl_Shared.OrderTplLog "in-place refresh alias=" & aliasText
     Dim stepT0 As Double
     stepT0 = mod_Construction_Import_Shared.LogCIStart()
-    mod_OrderTpl_Header.ApplyVendorSheetHeaders wsInfo, vendorIndex, aliasText
+    mod_OrderTpl_Header.ApplyVendorSheetHeaders wsInfo, vendorIndex, aliasText, True
     mod_Construction_Import_Shared.LogCIElapsed "in-place: ApplyVendorSheetHeaders", stepT0
 
     stepT0 = mod_Construction_Import_Shared.LogCIStart()
@@ -309,7 +329,7 @@ Public Sub GenerateVendorOrderSheets(ByVal wsInfo As Worksheet, ByVal vendorInde
             mod_OrderTpl_Shared.OrderTplBaseNameConditionText(), aliasText)
         mod_OrderTpl_Shared.OrderTplLog "step: condition sheet " & wsCondition.Name & " from " & condTemplateSheet.Name
         mod_OrderTpl_Header.ApplyConditionSheetHeader wsInfo, wsCondition, vendorIndex
-        mod_OrderTpl_Header.SetupConditionCheckboxExclusivity wsCondition
+        ' checkbox exclusivity: ApplyVendorSheetHeaders
     Else
         mod_OrderTpl_Shared.OrderTplLog "condition template not found for workType=[" & workTypeText & "]"
     End If
@@ -333,10 +353,7 @@ Public Sub GenerateVendorOrderSheets(ByVal wsInfo As Worksheet, ByVal vendorInde
     Dim condSheetNameFinal As String
     condSheetNameFinal = mod_OrderTpl_Shared.OrderTplBuildSheetName( _
         mod_OrderTpl_Shared.OrderTplBaseNameConditionText(), aliasText)
-    If mod_OrderTpl_Shared.OrderTplSheetExists(condSheetNameFinal) Then
-        mod_OrderTpl_Header.SetupConditionCheckboxExclusivity _
-            ThisWorkbook.Worksheets(condSheetNameFinal)
-    End If
+    ' checkbox exclusivity already set in ApplyVendorSheetHeaders
 
     mod_OrderTpl_Shared.OrderTplLog "GenerateVendorOrderSheets done alias=" & aliasText
     mod_Construction_Import_Shared.LogCIElapsed "GenerateVendorOrderSheets done alias=" & aliasText, genT0

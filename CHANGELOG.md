@@ -5,6 +5,18 @@
 
 ---
 
+## 性能改善 in-place更新の残りボトルネック削減（2026-07-21）
+
+### #1 ApplyVendorSheetHeaders / 集計フッター / 合計更新
+- 現象: L11変更の in-place 更新で `ApplyVendorSheetHeaders` 約5.5秒、`BuildSummaryBlock` 約1.25秒、合計再計算 full 約1.4秒（合計約9秒）。
+- 改善（機能は同一）:
+  - `RunScheduledVendorSheetGeneration`: `ScreenUpdating=False` / `Calculation=Manual`、終了前に1回 `Calculate`。1社のみなら部分合計更新。
+  - in-place 時は `ApplyVendorSheetHeaders(..., lightRefresh:=True)` で PageSetup・条件書/別紙IIIチェックボックス再設定を省略（値転記は実施）。
+  - 出張所長ブロックの M:V 結合が済みなら UnMerge/Merge をスキップ。
+  - 内訳明細の集計フッター（値引〜合計）は削除→再Insertせず、既存行をその場更新。
+  - `FindSubtotalRow` は A列を配列一括読取。別紙III正規化はチェックボックスMap化。
+  - `RefreshVendorBlockTaxRows` は部分更新時に対象社のみ。
+
 ## 性能改善 L11施工会社名変更時の全社ヘッダー再転記を抑制（2026-07-21）
 
 ### #1 ログ上の約43秒空白の解消

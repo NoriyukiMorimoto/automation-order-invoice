@@ -204,10 +204,7 @@ Private Sub ResetDetailArea(ByVal wsBreakdown As Worksheet, ByRef subtotalRow As
     subtotalRow = FindSubtotalRow(wsBreakdown)
     If subtotalRow = 0 Then Exit Sub
 
-    ' ?øΩ»ëO?øΩ…êÔøΩ?øΩ?øΩ?øΩ?øΩ?øΩ?øΩ?øΩW?øΩv?øΩu?øΩ?øΩ?øΩb?øΩN(?øΩl?øΩ?øΩ/?øΩv/?øΩ?øΩ?øΩ?øΩ?øΩ/?øΩ?øΩ?øΩv/?øΩr?øΩ?øΩ?øΩp?øΩ?íçs)?øΩ?øΩ?øΩÌèúÔøΩ?øΩ?øΩ?øΩ
-    If IsSummaryLabelRow(wsBreakdown, subtotalRow + 1, DiscountLabelText()) Then
-        wsBreakdown.Rows((subtotalRow + 1) & ":" & (subtotalRow + SUMMARY_EXTRA_ROWS)).Delete
-    End If
+    ' Keep existing summary rows; BuildSummaryBlock updates in place
 
     Dim defaultLastRow As Long
     defaultLastRow = ORDER_TPL_DETAIL_START_ROW + ORDER_TPL_DETAIL_DEFAULT_ROWS - 1
@@ -238,14 +235,22 @@ Private Function FindSubtotalRow(ByVal wsBreakdown As Worksheet) As Long
     Dim subtotalText As String
     subtotalText = mod_OrderTpl_Shared.OrderTplSubtotalLabelText()
 
-    Dim r As Long
-    For r = ORDER_TPL_DETAIL_START_ROW To ORDER_TPL_DETAIL_START_ROW + 2000
-        If StrComp(CommonRemoveAllSpaces(CommonNormalizeText(CommonNzText(wsBreakdown.Cells(r, 1).value))), _
+    Dim startRow As Long
+    Dim endRow As Long
+    startRow = ORDER_TPL_DETAIL_START_ROW
+    endRow = startRow + 2000
+
+    Dim colA As Variant
+    colA = wsBreakdown.Range(wsBreakdown.Cells(startRow, 1), wsBreakdown.Cells(endRow, 1)).Value
+
+    Dim i As Long
+    For i = 1 To UBound(colA, 1)
+        If StrComp(CommonRemoveAllSpaces(CommonNormalizeText(CommonNzText(colA(i, 1)))), _
                    subtotalText, vbTextCompare) = 0 Then
-            FindSubtotalRow = r
+            FindSubtotalRow = startRow + i - 1
             Exit Function
         End If
-    Next r
+    Next i
 End Function
 
 ' ÂΩìË©≤Ê•≠ËÄ?„ÅÆÂÜ?Ë®≥ÊòéÁ¥∞„Ç∑„Éº„Éà„?Æ„ÄåË®à„ÄçË°?(Â∞èË®?+2)„ÅÆQÂàóÂÄ§„ÇíËøî„Åô„ÄÇÂ≠òÂú®„Åó„Å™„Åë„Çå„Å∞ Empty„Ä?
@@ -318,8 +323,12 @@ Private Sub BuildSummaryBlock(ByVal wsBreakdown As Worksheet, _
     lastDataRow = subtotalRow - 1
 
     ' ?øΩ?øΩ?øΩv?øΩs?øΩÃâÔøΩ?øΩ?øΩ4?øΩs(?øΩl?øΩ?øΩ/?øΩv/?øΩ?øΩ?øΩ?øΩ?øΩ/?øΩ?øΩ?øΩv)+?øΩr?øΩ?øΩ?øΩp?øΩ?íçs?øΩ?øΩ}?øΩ?øΩ?øΩ?øΩ?øΩ?øΩ
-    wsBreakdown.Rows((subtotalRow + 1) & ":" & (subtotalRow + SUMMARY_EXTRA_ROWS)).Insert _
-        Shift:=xlDown, CopyOrigin:=xlFormatFromLeftOrAbove
+    Dim summaryExists As Boolean
+    summaryExists = IsSummaryLabelRow(wsBreakdown, subtotalRow + 1, DiscountLabelText())
+    If Not summaryExists Then
+        wsBreakdown.Rows((subtotalRow + 1) & ":" & (subtotalRow + SUMMARY_EXTRA_ROWS)).Insert _
+            Shift:=xlDown, CopyOrigin:=xlFormatFromLeftOrAbove
+    End If
 
     ' ?øΩ?øΩ?øΩ?øΩ≈óÔøΩ(?øΩ?øΩ{?øΩ?øΩ?øΩB34?øΩu?øΩ?øΩ?øΩ?øΩ?øΩ(10%)?øΩF?øΩv?øΩÃÉJ?øΩb?øΩR?øΩ?øΩ)?øΩ?øΩ?øΩÊìæ?øΩ?øΩ?øΩ?øΩ
     Dim taxRateText As String
