@@ -433,10 +433,39 @@ Public Function VendorRailConstructionText() As String
 End Function
 
 Public Function VendorUnitPriceDayColumnByValueColumn(ByVal valueColumn As Long) As Long
-    Dim vendorIndex As Long
-    vendorIndex = GetVendorIndexFromValueColumn(valueColumn)
-    If vendorIndex < 1 Then vendorIndex = 1
-    VendorUnitPriceDayColumnByValueColumn = VENDOR_UNIT_PRICE_FIRST_DAY_COL + ((vendorIndex - 1) * 2)
+    ' 軌道工事の該当ブロックだけを連番(軌道順)で詰めて単価列を割り当てる。
+    ' 非軌道(溶接/足場)ブロックは列を確保しないため、間に空列が生じない。
+    Dim thisIndex As Long
+    thisIndex = GetVendorIndexFromValueColumn(valueColumn)
+    If thisIndex < 1 Then thisIndex = 1
+
+    Dim wsInfo As Worksheet
+    Set wsInfo = mod_common.CommonGetBasicInfoWorksheet()
+    If wsInfo Is Nothing Then
+        ' フォールバック: 従来どおりブロック通し番号で割り当てる
+        VendorUnitPriceDayColumnByValueColumn = VENDOR_UNIT_PRICE_FIRST_DAY_COL + ((thisIndex - 1) * 2)
+        Exit Function
+    End If
+
+    Dim vendorCount As Long
+    vendorCount = mod_VendorBlockLayout.GetVendorBlockCount(wsInfo)
+
+    Dim rank As Long
+    Dim i As Long
+    Dim vc As Long
+    rank = 0
+    For i = 1 To thisIndex
+        If i > vendorCount Then Exit For
+        vc = mod_VendorBlockLayout.VendorValueColumnByIndex(i)
+        If ShouldApplyVendorUnitPriceBlock(wsInfo, vc) Then rank = rank + 1
+    Next i
+
+    If ShouldApplyVendorUnitPriceBlock(wsInfo, valueColumn) And rank >= 1 Then
+        VendorUnitPriceDayColumnByValueColumn = VENDOR_UNIT_PRICE_FIRST_DAY_COL + ((rank - 1) * 2)
+    Else
+        ' 非該当ブロックは書き込みに使わない。末尾の予備スロットを返し衝突を避ける。
+        VendorUnitPriceDayColumnByValueColumn = VENDOR_UNIT_PRICE_FIRST_DAY_COL + ((MAX_VENDOR_BLOCK_COUNT - 1) * 2)
+    End If
 End Function
 
 Public Function VendorUnitPriceDayLabelText() As String
@@ -1456,29 +1485,27 @@ Public Sub RefreshVendorUnitPriceBlocksOnSheet(ByVal wsUnitPrice As Worksheet, _
         usePreloadedArrays = True
     End If
 
+    ' 軌道工事の該当ブロックだけを先頭から詰めて展開する
     Dim i As Long
+    Dim valueColumn As Long
+    Dim usedSlots As Long
+    usedSlots = 0
     For i = 1 To vendorCount
-        Dim valueColumn As Long
-        Dim dayCol As Long
-        Dim nightCol As Long
         valueColumn = mod_VendorBlockLayout.VendorValueColumnByIndex(i)
-        dayCol = VendorUnitPriceDayColumnByValueColumn(valueColumn)
-        nightCol = dayCol + 1
-
         If ShouldApplyVendorUnitPriceBlock(wsInfo, valueColumn) Then
             ApplyVendorUnitPriceBlockToSheet wsUnitPrice, wsInfo, valueColumn, vendorUnitPriceNameMap, _
                 sheetLastRow, usePreloadedArrays, preloadedDaySrcArr, preloadedNightSrcArr, preloadedWorkArr
-        Else
-            ClearVendorUnitPriceBlockOnSheet wsUnitPrice, dayCol, nightCol, sheetLastRow
+            usedSlots = usedSlots + 1
         End If
     Next i
 
-    For i = vendorCount + 1 To MAX_VENDOR_BLOCK_COUNT
-        valueColumn = mod_VendorBlockLayout.VendorValueColumnByIndex(i)
-        dayCol = VendorUnitPriceDayColumnByValueColumn(valueColumn)
-        nightCol = dayCol + 1
-        ClearVendorUnitPriceBlockOnSheet wsUnitPrice, dayCol, nightCol, sheetLastRow
-    Next i
+    ' 使用スロットより右側(旧位置の残骸を含む)を全てクリアして詰めた状態にする
+    Dim slot As Long
+    Dim dayCol As Long
+    For slot = usedSlots To MAX_VENDOR_BLOCK_COUNT - 1
+        dayCol = VENDOR_UNIT_PRICE_FIRST_DAY_COL + (slot * 2)
+        ClearVendorUnitPriceBlockOnSheet wsUnitPrice, dayCol, dayCol + 1, sheetLastRow
+    Next slot
 End Sub
 
 Public Sub RefreshVendorUnitPriceBordersForSheet(ByVal wsUnitPrice As Worksheet, _
@@ -1501,41 +1528,11 @@ End Sub
 Public Sub RefreshVendorUnitPriceForValueColumn(ByVal wsInfo As Worksheet, ByVal valueColumn As Long)
     If wsInfo Is Nothing Then Exit Sub
 
-    Dim targetBook As Workbook
-    Set targetBook = wsInfo.Parent
-
-    Dim dayCol As Long
-    Dim nightCol As Long
-    dayCol = VendorUnitPriceDayColumnByValueColumn(valueColumn)
-    nightCol = dayCol + 1
-
-    Dim vendorUnitPriceNameMap As Object
-    Set vendorUnitPriceNameMap = BuildVendorUnitPriceNameMap(wsInfo)
-
-    Dim wsUnitPrice As Worksheet
-    For Each wsUnitPrice In targetBook.worksheets
-        If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) And mod_MaterialPriceImport.IsCurrentImportBatchUnitPriceSheet(wsUnitPrice) Then
-            If ShouldApplyVendorUnitPriceBlock(wsInfo, valueColumn) Then
-                If IsVendorUnitPriceBlockAlreadyBuilt(wsUnitPrice, dayCol, nightCol) Then
-                    ' 既構築ブロックは名称見出し・外注ヘッダー・外注比率表示のみ更新する。
-                    ' 単価数式は比率セルの絶対参照で業者名に依存せず、数式行/グレー行の判定も
-                    ' 単価シート行属性依存のため、業者名変更では全再構築は不要(結果は等価)。
-                    ApplyVendorUnitPriceMergedHeader wsUnitPrice, dayCol, nightCol, BuildVendorUnitPriceHeaderText(wsInfo)
-                    ApplyVendorUnitPriceMergedVendorName wsUnitPrice, dayCol, nightCol, _
-                        ResolveVendorUnitPriceName(vendorUnitPriceNameMap, _
-                                                   CStr(wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, valueColumn).value))
-                    ApplyVendorUnitPriceOutsourceRatioRow wsUnitPrice, wsInfo, valueColumn, dayCol, nightCol
-                Else
-                    ApplyVendorUnitPriceBlockToSheet wsUnitPrice, wsInfo, valueColumn, vendorUnitPriceNameMap
-                End If
-            ElseIf IsRailConstructionVendorBlock(wsInfo, valueColumn) And _
-                   HasVendorName(wsInfo, valueColumn) Then
-                ' 11行目のみ入力済み。29行目入力待ちの間は既存列を消さない
-            Else
-                ClearVendorUnitPriceBlockOnSheet wsUnitPrice, dayCol, nightCol
-            End If
-        End If
-    Next wsUnitPrice
+    ' 軌道会社の詰め込み割当は他ブロックの状態に依存し、1列の変更でも後続の軌道列位置が
+    ' 動くため、単価シートをまるごと再レイアウトして詰め直す。valueColumn は未使用。
+    Dim vendorCount As Long
+    vendorCount = mod_VendorBlockLayout.GetVendorBlockCount(wsInfo)
+    SyncVendorUnitPriceBlocksAfterCountChange wsInfo, vendorCount, 0, False
 End Sub
 
 ' 外注比率(29行目)のみが変わった場合の軽量更新。
@@ -1549,39 +1546,11 @@ End Sub
 Public Sub RefreshVendorUnitPriceOutsourceRatioOnlyForValueColumn(ByVal wsInfo As Worksheet, ByVal valueColumn As Long)
     If wsInfo Is Nothing Then Exit Sub
 
-    Dim targetBook As Workbook
-    Set targetBook = wsInfo.Parent
-
-    Dim dayCol As Long
-    Dim nightCol As Long
-    dayCol = VendorUnitPriceDayColumnByValueColumn(valueColumn)
-    nightCol = dayCol + 1
-
-    Dim vendorUnitPriceNameMap As Object
-    Dim nameMapLoaded As Boolean
-    nameMapLoaded = False
-
-    Dim wsUnitPrice As Worksheet
-    For Each wsUnitPrice In targetBook.worksheets
-        If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) And mod_MaterialPriceImport.IsCurrentImportBatchUnitPriceSheet(wsUnitPrice) Then
-            If ShouldApplyVendorUnitPriceBlock(wsInfo, valueColumn) Then
-                If IsVendorUnitPriceBlockAlreadyBuilt(wsUnitPrice, dayCol, nightCol) Then
-                    ApplyVendorUnitPriceOutsourceRatioRow wsUnitPrice, wsInfo, valueColumn, dayCol, nightCol
-                Else
-                    If Not nameMapLoaded Then
-                        Set vendorUnitPriceNameMap = BuildVendorUnitPriceNameMap(wsInfo)
-                        nameMapLoaded = True
-                    End If
-                    ApplyVendorUnitPriceBlockToSheet wsUnitPrice, wsInfo, valueColumn, vendorUnitPriceNameMap
-                End If
-            ElseIf IsRailConstructionVendorBlock(wsInfo, valueColumn) And _
-                   HasVendorName(wsInfo, valueColumn) Then
-                ' 11行目のみ入力済み。29行目入力待ちの間は既存列を消さない
-            Else
-                ClearVendorUnitPriceBlockOnSheet wsUnitPrice, dayCol, nightCol
-            End If
-        End If
-    Next wsUnitPrice
+    ' 外注比率の入力有無で該当/非該当が変わり列の詰め位置も変化しうるため、
+    ' 軽量更新はせず単価シートをまるごと再レイアウトする。valueColumn は未使用。
+    Dim vendorCount As Long
+    vendorCount = mod_VendorBlockLayout.GetVendorBlockCount(wsInfo)
+    SyncVendorUnitPriceBlocksAfterCountChange wsInfo, vendorCount, 0, False
 End Sub
 
 ' 単価シート側に指定列の業者ブロック(見出し結合セル)が既に構築済みかどうかを判定する。
@@ -1640,6 +1609,8 @@ Public Sub SyncVendorUnitPriceBlocksAfterCountChange(ByVal wsInfo As Worksheet, 
                                                       ByVal deferCalculation As Boolean)
     If wsInfo Is Nothing Then Exit Sub
 
+    ' 軌道会社の詰め込み割当は全ブロックの並びに依存するため、増減にかかわらず
+    ' 各単価シートを毎回まるごと再レイアウトして正確に詰め直す。previousCount は未使用。
     Dim targetBook As Workbook
     Dim vendorUnitPriceNameMap As Object
     Dim wsUnitPrice As Worksheet
@@ -1650,38 +1621,19 @@ Public Sub SyncVendorUnitPriceBlocksAfterCountChange(ByVal wsInfo As Worksheet, 
     On Error GoTo SyncCleanup
     g.Suspend DisableEvents:=False
 
-    If previousCount <= 0 Or vendorCount = previousCount Then
-        Set vendorUnitPriceNameMap = BuildVendorUnitPriceNameMap(wsInfo)
-
-        For Each wsUnitPrice In targetBook.worksheets
-            If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) And mod_MaterialPriceImport.IsCurrentImportBatchUnitPriceSheet(wsUnitPrice) Then
-                RefreshVendorUnitPriceSheetForSyncSafely wsUnitPrice, wsInfo, vendorCount, vendorUnitPriceNameMap
-            End If
-        Next wsUnitPrice
-
-        If Not deferCalculation Then
-            On Error Resume Next
-            Application.Calculate
-            On Error GoTo 0
-        End If
-        GoTo SyncCleanup
-    End If
-
-    If vendorCount > previousCount Then
-        Set vendorUnitPriceNameMap = BuildVendorUnitPriceNameMap(wsInfo)
-        For Each wsUnitPrice In targetBook.worksheets
-            If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) And mod_MaterialPriceImport.IsCurrentImportBatchUnitPriceSheet(wsUnitPrice) Then
-                ApplyVendorUnitPriceAddedBlocksToSheetSafely wsUnitPrice, wsInfo, previousCount, vendorCount, vendorUnitPriceNameMap
-            End If
-        Next wsUnitPrice
-        GoTo SyncCleanup
-    End If
+    Set vendorUnitPriceNameMap = BuildVendorUnitPriceNameMap(wsInfo)
 
     For Each wsUnitPrice In targetBook.worksheets
         If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) And mod_MaterialPriceImport.IsCurrentImportBatchUnitPriceSheet(wsUnitPrice) Then
-            ClearVendorUnitPriceRemovedBlocksOnSheetSafely wsUnitPrice, previousCount, vendorCount
+            RefreshVendorUnitPriceSheetForSyncSafely wsUnitPrice, wsInfo, vendorCount, vendorUnitPriceNameMap
         End If
     Next wsUnitPrice
+
+    If Not deferCalculation Then
+        On Error Resume Next
+        Application.Calculate
+        On Error GoTo 0
+    End If
 
 SyncCleanup:
     If Err.Number <> 0 Then
