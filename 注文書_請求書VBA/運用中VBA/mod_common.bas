@@ -35,6 +35,12 @@ End Function
 ' クラウド(URL)で開かれている場合はファイル名で照合する。
 ' 同じファイル名で別パスのブックが開いているときは nameConflict=True を返す
 ' (その状態で Workbooks.Open すると失敗するか、別のブックを取り違えるため)。
+' 外注比率セルを数式で参照するときの式。上限は100%なので、1を超える値(80 と入力・貼付けされた等)は
+' パーセント表記の入力ミスとみなして÷100する。正しい値(0～1)の結果は変わらない。
+Public Function CommonRatioFormulaExpr(ByVal ratioAddress As String) As String
+    CommonRatioFormulaExpr = "IF(" & ratioAddress & ">1," & ratioAddress & "/100," & ratioAddress & ")"
+End Function
+
 Public Function CommonFindOpenWorkbook(ByVal filePath As String, ByRef nameConflict As Boolean) As Workbook
     nameConflict = False
     Dim targetPath As String

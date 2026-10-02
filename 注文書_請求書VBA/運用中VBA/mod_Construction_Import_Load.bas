@@ -60,7 +60,7 @@ Public Sub ImportConstructionDocumentCore()
 
     ' 施工指示書取込は線区単価シートの書式を触らないが、保存前 Optimize 等で
     ' 装飾が崩れる場合に備え、現行バッチの工事単価シートへ罫線・塗り・桁区切りを再適用する。
-    mod_VendorMaster.RefreshAllConstructionUnitPriceSheetDataDecorations
+    mod_VendorUnitPrice.RefreshAllConstructionUnitPriceSheetDataDecorations , True
 
     NormalizeManagedImportSheetOrder
 

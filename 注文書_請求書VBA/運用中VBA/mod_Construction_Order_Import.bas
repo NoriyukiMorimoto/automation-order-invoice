@@ -8,8 +8,9 @@ Public Sub ImportConstructionDocument()
 End Sub
 
 Public Sub RefreshSubcontractorPriceColumns(ByVal ws As Worksheet, _
-                                            Optional ByVal changedRows As Collection = Nothing)
-    mod_Construction_SubconPrice.RefreshSubcontractorPriceColumnsCore ws, changedRows
+                                            Optional ByVal changedRows As Collection = Nothing, _
+                                            Optional ByVal deferBasicTotals As Boolean = False)
+    mod_Construction_SubconPrice.RefreshSubcontractorPriceColumnsCore ws, changedRows, deferBasicTotals
 End Sub
 
 Public Sub RefreshBasicInfoConstructionTotals(Optional ByVal changedVendorIndex As Long = 0)

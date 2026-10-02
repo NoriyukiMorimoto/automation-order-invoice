@@ -518,9 +518,9 @@ Public Sub SelectSubcontractorForSelection()
 
     mCurrentStep = "RefreshPrices"
     If ws.AutoFilterMode Then
-        mod_Construction_Order_Import.RefreshSubcontractorPriceColumns ws
+        mod_Construction_Order_Import.RefreshSubcontractorPriceColumns ws, Nothing, True
     Else
-        mod_Construction_Order_Import.RefreshSubcontractorPriceColumns ws, targetRows
+        mod_Construction_Order_Import.RefreshSubcontractorPriceColumns ws, targetRows, True
     End If
     SubconLog "Select refresh done filter=" & CStr(ws.AutoFilterMode)
 

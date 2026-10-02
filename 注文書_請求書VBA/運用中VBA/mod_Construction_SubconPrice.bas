@@ -4,7 +4,8 @@ Option Explicit
 ' mod_Construction_SubconPrice (split from mod_Construction_Order_Import)
 
 Public Sub RefreshSubcontractorPriceColumnsCore(ByVal ws As Worksheet, _
-                                            Optional ByVal changedRows As Collection = Nothing)
+                                            Optional ByVal changedRows As Collection = Nothing, _
+                                            Optional ByVal deferBasicTotals As Boolean = False)
     If ws Is Nothing Then Exit Sub
     If Not mod_Construction_OutputLayout.IsConstructionVendorOutputSheet(ws) Then Exit Sub
     If mod_Construction_BasicTotals.FindHeaderColumn(ws, "整理番号") = 0 Then Exit Sub
@@ -101,7 +102,7 @@ Public Sub RefreshSubcontractorPriceColumnsCore(ByVal ws As Worksheet, _
             WriteOutputTotalRows ws, emptyVendors, 0, 0
             RefreshOutputSheetVendorColumnColors ws, lastRow
         End If
-        mod_Construction_BasicTotals.RefreshBasicInfoConstructionTotalsCore
+        If Not deferBasicTotals Then mod_Construction_BasicTotals.RefreshBasicInfoConstructionTotalsCore
         GoTo RefreshExit
     End If
 
@@ -118,7 +119,7 @@ Public Sub RefreshSubcontractorPriceColumnsCore(ByVal ws As Worksheet, _
         If Err.Number <> 0 Then GoTo RefreshSetupError
         If lastRow < 2 Then
             On Error GoTo RefreshError
-            mod_Construction_BasicTotals.RefreshBasicInfoConstructionTotalsCore
+            If Not deferBasicTotals Then mod_Construction_BasicTotals.RefreshBasicInfoConstructionTotalsCore
             GoTo RefreshExit
         End If
 
@@ -268,7 +269,7 @@ Public Sub RefreshSubcontractorPriceColumnsCore(ByVal ws As Worksheet, _
 
     On Error GoTo RefreshError
     refreshStep = "BasicInfoTotals"
-    mod_Construction_BasicTotals.RefreshBasicInfoConstructionTotalsCore
+    If Not deferBasicTotals Then mod_Construction_BasicTotals.RefreshBasicInfoConstructionTotalsCore
 
     refreshStep = "Log"
     LogCI "施工会社別単価列: 会社数=" & vendorNames.Count & _
@@ -627,8 +628,11 @@ Public Sub RefreshSubcontractorColumnInteriors(ByVal ws As Worksheet, _
 
     ' 産廃行: 連続区間ごとに全幅を一括塗り
     runStart = 0
+    Dim isSanpaiHere As Boolean
     For r = 2 To lastRow + 1
-        If r <= lastRow And sanpaiFlags(r) Then
+        isSanpaiHere = False
+        If r <= lastRow Then isSanpaiHere = sanpaiFlags(r)
+        If isSanpaiHere Then
             If runStart = 0 Then runStart = r
         ElseIf runStart > 0 Then
             ws.Range(ws.Cells(runStart, firstColumn), ws.Cells(r - 1, lastColumn)).Interior.Color = sanpaiFillColor
@@ -686,17 +690,91 @@ Public Sub RefreshOutputSheetVendorColumnColors(ByVal ws As Worksheet, ByVal las
     Dim vendorColumns As Collection
     Set vendorColumns = mod_Construction_OutputLayout.OutputSheetVendorColumnsCore(ws)
 
-    Dim r As Long
-    Dim vendorCol As Variant
-    For r = 2 To lastRow
-        If mod_Construction_BasicTotals.IsSanpaiRow(ws, r) Then GoTo NextColorRow
+    ' 以前は行ごとに産廃判定(検索)、セルごとに業者照合(基本情報10社分の読み直し)をしていた。
+    ' 列ごとに値を一括で読み、業者名→ブロック番号は名前ごとに1回だけ解決し、同じ色の連続行をまとめて塗る。
+    ' 産廃行は従来どおり触らない。
+    Dim sanpaiFlags As Variant
+    sanpaiFlags = mod_Construction_BasicTotals.BuildSanpaiRowFlags(ws, lastRow)
 
-        For Each vendorCol In vendorColumns
-            mod_VendorInfoColors.ApplyOutputSheetVendorCellColor _
-                ws, r, CLng(vendorCol), ResolveVendorColumnWorkTypeKeyword(ws, CLng(vendorCol))
-        Next vendorCol
-NextColorRow:
-    Next r
+    Dim indexCache As Object
+    Set indexCache = CreateObject("Scripting.Dictionary")
+
+    Dim vendorCol As Variant
+    For Each vendorCol In vendorColumns
+        Dim colIndex As Long
+        colIndex = CLng(vendorCol)
+        Dim workTypeKeyword As String
+        workTypeKeyword = ResolveVendorColumnWorkTypeKeyword(ws, colIndex)
+
+        Dim nameValues As Variant
+        nameValues = ws.Range(ws.Cells(2, colIndex), ws.Cells(lastRow, colIndex)).value
+        If Not IsArray(nameValues) Then
+            Dim singleName As Variant
+            singleName = nameValues
+            ReDim nameValues(1 To 1, 1 To 1)
+            nameValues(1, 1) = singleName
+        End If
+
+        Dim runStart As Long
+        Dim runIndex As Long
+        Dim r As Long
+        Dim cellIndex As Long
+        runStart = 0
+        runIndex = 0
+        For r = 2 To lastRow + 1
+            If r > lastRow Then
+                cellIndex = -2
+            ElseIf sanpaiFlags(r) Then
+                cellIndex = -2
+            Else
+                Dim vendorName As String
+                vendorName = Trim$(CommonNzText(nameValues(r - 1, 1)))
+                If vendorName = "" Then
+                    cellIndex = 0
+                Else
+                    Dim cacheKey As String
+                    cacheKey = workTypeKeyword & "|" & vendorName
+                    If indexCache.Exists(cacheKey) Then
+                        cellIndex = indexCache(cacheKey)
+                    Else
+                        cellIndex = mod_Construction_Order_Import.ResolveBasicInfoVendorInfoIndex(vendorName, workTypeKeyword)
+                        If cellIndex < 0 Then cellIndex = 0
+                        indexCache.Add cacheKey, cellIndex
+                    End If
+                End If
+            End If
+
+            If runStart = 0 Then
+                If cellIndex <> -2 Then
+                    runStart = r
+                    runIndex = cellIndex
+                End If
+            ElseIf cellIndex <> runIndex Then
+                ApplyVendorColorRun ws, runStart, r - 1, colIndex, runIndex
+                If cellIndex = -2 Then
+                    runStart = 0
+                Else
+                    runStart = r
+                    runIndex = cellIndex
+                End If
+            End If
+        Next r
+    Next vendorCol
+End Sub
+
+' 業者列の連続行へ色を付ける(vendorIndex<=0 は既定色に戻す)。
+Private Sub ApplyVendorColorRun(ByVal ws As Worksheet, ByVal firstRow As Long, ByVal lastRow As Long, _
+                                ByVal colIndex As Long, ByVal vendorIndex As Long)
+    With ws.Range(ws.Cells(firstRow, colIndex), ws.Cells(lastRow, colIndex))
+        If vendorIndex <= 0 Then
+            .Interior.Pattern = xlNone
+            .Interior.ColorIndex = xlColorIndexNone
+            .Font.ColorIndex = xlAutomatic
+        Else
+            .Interior.Color = mod_VendorInfoColors.GetVendorInfoColorBackground(vendorIndex)
+            .Font.Color = mod_VendorInfoColors.GetVendorInfoColorForeground(vendorIndex)
+        End If
+    End With
 End Sub
 
 Public Function ResolveVendorColumnWorkTypeKeyword(ByVal ws As Worksheet, _

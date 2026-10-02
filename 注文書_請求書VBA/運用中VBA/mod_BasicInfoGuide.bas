@@ -225,7 +225,51 @@ Private Sub ApplyRailPatternValidation(ByVal targetCell As Range)
     On Error GoTo 0
 End Sub
 
+' 外注比率セル(29/31行)に 0%～100% の入力規則を付ける(既に付いていれば何もしない)。
+' %書式のセルに「80」と打つと通常は 80% になるが、自動パーセント入力が無効な環境では 80 のまま入るため。
+Private Sub EnsureOutsourceRatioValidation(ByVal targetCell As Range)
+    On Error Resume Next
+    Dim area As Range
+    Set area = targetCell.MergeArea
+    Dim currentType As Long
+    currentType = -1
+    currentType = area.Validation.Type
+    Err.Clear
+    If currentType = xlValidateDecimal Then Exit Sub
+    If currentType <> -1 And currentType <> xlValidateInputOnly Then Exit Sub   ' 他の入力規則は上書きしない
+
+    area.Validation.Delete
+    area.Validation.Add Type:=xlValidateDecimal, AlertStyle:=xlValidAlertStop, _
+                        Operator:=xlBetween, Formula1:="0", Formula2:="1"
+    area.Validation.IgnoreBlank = True
+    area.Validation.ErrorTitle = OutsourceRatioValidationTitleText()
+    area.Validation.ErrorMessage = OutsourceRatioValidationMessageText()
+    area.Validation.ShowError = True
+    On Error GoTo 0
+End Sub
+
+Private Function OutsourceRatioValidationTitleText() As String
+    Static cached As String
+    If Len(cached) = 0 Then
+        cached = ChrW$(&H5916) & ChrW$(&H6CE8) & ChrW$(&H6BD4) & ChrW$(&H7387)
+    End If
+    OutsourceRatioValidationTitleText = cached
+End Function
+
+Private Function OutsourceRatioValidationMessageText() As String
+    Static cached As String
+    If Len(cached) = 0 Then
+        cached = ChrW$(&H5916) & ChrW$(&H6CE8) & ChrW$(&H6BD4) & ChrW$(&H7387) & ChrW$(&H306F) & "0%" & _
+        ChrW$(&HFF5E) & "100%" & ChrW$(&H3067) & ChrW$(&H5165) & ChrW$(&H529B) & ChrW$(&H3057) & _
+        ChrW$(&H3066) & ChrW$(&H304F) & ChrW$(&H3060) & ChrW$(&H3055) & ChrW$(&H3044) & ChrW$(&H3002) & _
+        "(" & ChrW$(&H4F8B) & ": 80%)"
+    End If
+    OutsourceRatioValidationMessageText = cached
+End Function
+
 Private Sub ApplyRow29And31(ByVal ws As Worksheet, ByVal colNum As Long, ByVal constructionType As String)
+    EnsureOutsourceRatioValidation GuideWritableCell(ws, 29, colNum)
+    EnsureOutsourceRatioValidation GuideWritableCell(ws, 31, colNum)
     If IsConstructionTypeUndetermined(constructionType) Then
         ApplyGuideCellByRowCol ws, 29, colNum, mod_BasicInfoGuideTexts.GetF29CommentText(), IsEmpty_Cell(ws.Cells(29, colNum))
         ApplyRow31UndeterminedState ws, colNum

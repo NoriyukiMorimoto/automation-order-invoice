@@ -87,6 +87,7 @@ Private Function BuildPackSumFormula(ByVal wsWelding As Worksheet, _
     If maxComp > comps.Count Then maxComp = comps.Count
 
     Dim terms As String
+    Dim refs As String
     Dim i As Long
     For i = 1 To maxComp
         Dim comp As Variant
@@ -99,14 +100,17 @@ Private Function BuildPackSumFormula(ByVal wsWelding As Worksheet, _
             Dim cellRef As String
             cellRef = wsWelding.Cells(compRow, col).Address(False, False)
             If Len(terms) > 0 Then terms = terms & "+"
-            terms = terms & cellRef & "*" & RatioLiteralText(CDbl(comp(1)))
+            terms = terms & "N(" & cellRef & ")*" & RatioLiteralText(CDbl(comp(1)))
+            If Len(refs) > 0 Then refs = refs & ","
+            refs = refs & cellRef
         End If
     Next i
 
     If Len(terms) = 0 Then
         BuildPackSumFormula = ""
     Else
-        BuildPackSumFormula = "=" & terms
+        ' 構成工種がすべて空なら空欄、1つでも数値があれば合計(空は0扱い)
+        BuildPackSumFormula = "=IF(COUNT(" & refs & ")=0," & Chr$(34) & Chr$(34) & "," & terms & ")"
     End If
 End Function
 
@@ -129,7 +133,7 @@ Private Function BuildRailMarkupFormula(ByVal wsWelding As Worksheet, _
 
     ' --- 物価指数適用 ---
     Dim coreBukka As String
-    coreBukka = "(" & jrRef & "*" & WUP_RAIL_JR_FACTOR & "*" & lit & ")*" & ratioAddress
+    coreBukka = "(" & jrRef & "*" & WUP_RAIL_JR_FACTOR & "*" & lit & ")*(" & CommonRatioFormulaExpr(ratioAddress) & ")"
     Dim txBukka As String
     txBukka = "TEXT((" & coreBukka & "),0)"
     Dim exprBukka As String
@@ -139,7 +143,7 @@ Private Function BuildRailMarkupFormula(ByVal wsWelding As Worksheet, _
 
     ' --- 外注比率適用 ---  Y=lit×R, v=Y×jr
     Dim prodGaibu As String
-    prodGaibu = "(" & lit & "*" & ratioAddress & ")*" & jrRef
+    prodGaibu = "(" & lit & "*(" & CommonRatioFormulaExpr(ratioAddress) & "))*" & jrRef
     Dim txGaibu As String
     txGaibu = "TEXT(" & prodGaibu & "," & q & "#" & q & ")"
     Dim exprGaibu As String
@@ -362,7 +366,7 @@ Private Function BuildWeldingVendorFormula(ByVal wsWelding As Worksheet, _
     End If
 
     Dim exprText As String
-    exprText = unitCellRef & "*" & factorText & "*(" & ratioAddress & ")"
+    exprText = unitCellRef & "*" & factorText & "*(" & CommonRatioFormulaExpr(ratioAddress) & ")"
 
     BuildWeldingVendorFormula = "=IFERROR(ROUND(" & exprText & _
                                 ",-INT(LOG10(" & exprText & "))+2),0)"
@@ -870,7 +874,7 @@ Private Sub ApplyRailMarkupRatioRow(ByVal wsWelding As Worksheet, _
     ' 夜列1行目: 基本情報の当社列31行目への参照(例 ='基本情報'!$F$31)
     With wsWelding.Cells(WUP_RATIO_ROW, nightCol)
         If Len(ratioAddress) > 0 Then
-            .Formula = "=" & ratioAddress
+            .Formula = "=" & CommonRatioFormulaExpr(ratioAddress)
         Else
             .ClearContents
         End If

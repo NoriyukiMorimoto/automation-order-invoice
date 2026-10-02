@@ -167,9 +167,9 @@ UnitPriceCleanup:
     Set priceHit = Application.Intersect(Target, GetPriceLookupColumns(Sh))
     If Not priceHit Is Nothing Then
         If Sh.AutoFilterMode Then
-            mod_Construction_Order_Import.RefreshSubcontractorPriceColumns Sh
+            mod_Construction_Order_Import.RefreshSubcontractorPriceColumns Sh, Nothing, True
         Else
-            mod_Construction_Order_Import.RefreshSubcontractorPriceColumns Sh, CollectMonitorChangeRows(Sh, priceHit)
+            mod_Construction_Order_Import.RefreshSubcontractorPriceColumns Sh, CollectMonitorChangeRows(Sh, priceHit), True
         End If
     End If
 
@@ -179,6 +179,7 @@ UnitPriceCleanup:
     End If
 
     ' 施工会社列・明細データ列(整理番号～管理室)の変更を各社の内訳明細へ自動反映(遅延予約)
+    ' 基本情報の合計もこの再転記の中で出し直す(上の単価列更新では省略している)
     mod_OrderTpl_Generate.ScheduleOrderDetailRefresh
 
 Cleanup:

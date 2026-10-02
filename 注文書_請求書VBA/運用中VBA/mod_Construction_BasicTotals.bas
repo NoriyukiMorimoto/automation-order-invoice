@@ -1099,6 +1099,14 @@ Public Function ResolveVendorMasterPath() As String
     Dim fso As Object
     Set fso = CreateObject("Scripting.FileSystemObject")
 
+    ' 共有フォルダ(ドキュメント\マスタデータ)を最優先にする(業者情報・別名マップと同じファイルを読むため)
+    Dim sharedMasterPath As String
+    sharedMasterPath = mod_OrderTpl_Shared.OrderTplMasterDataFilePath(VENDOR_MASTER_FILE)
+    If Len(sharedMasterPath) > 0 Then
+        ResolveVendorMasterPath = sharedMasterPath
+        Exit Function
+    End If
+
     Dim candidates As Collection
     Set candidates = New Collection
 

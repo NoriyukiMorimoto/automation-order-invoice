@@ -7,8 +7,29 @@ Option Explicit
 ' ClearProjectLineNameAliasCache(施工指示書取込・参照単価再読込の開始時)で破棄する。
 Private mProjectMasterLinePairsCache As Collection
 Private mProjectMasterLinePairsLoaded As Boolean
+' BuildConstructionLineSheetMap の結果キャッシュ(キー=ブック内の全シート名)
+Private mLineSheetMapCache As Object
+Private mLineSheetMapCacheKey As String
 
 Public Function BuildConstructionLineSheetMap() As Object
+    Dim sheetKey As String
+    Dim ws As Worksheet
+    For Each ws In ThisWorkbook.Worksheets
+        sheetKey = sheetKey & ws.Name & Chr$(31)
+    Next ws
+    If Not mLineSheetMapCache Is Nothing Then
+        If mLineSheetMapCacheKey = sheetKey Then
+            Set BuildConstructionLineSheetMap = mLineSheetMapCache
+            Exit Function
+        End If
+    End If
+
+    Set mLineSheetMapCache = BuildConstructionLineSheetMapCore()
+    mLineSheetMapCacheKey = sheetKey
+    Set BuildConstructionLineSheetMap = mLineSheetMapCache
+End Function
+
+Private Function BuildConstructionLineSheetMapCore() As Object
     Dim result As Object
     Set result = CreateObject("Scripting.Dictionary")
     result.CompareMode = vbTextCompare
@@ -24,7 +45,7 @@ Public Function BuildConstructionLineSheetMap() As Object
     Set lineNamePairs = LoadProjectMasterLineNamePairs()
     If lineNamePairs Is Nothing Then
         LogCI "工事件名別マスタ未検出 -> 単価シート名の直接照合のみ"
-        Set BuildConstructionLineSheetMap = result
+        Set BuildConstructionLineSheetMapCore = result
         Exit Function
     End If
 
@@ -50,7 +71,7 @@ Public Function BuildConstructionLineSheetMap() As Object
     Next pairItem
 
     LogCI "線区名→単価シート対応数=" & result.Count
-    Set BuildConstructionLineSheetMap = result
+    Set BuildConstructionLineSheetMapCore = result
 End Function
 
 Public Sub AddLineSheetAliases(ByVal lineSheetMap As Object, _
@@ -105,6 +126,8 @@ Public Sub ClearProjectLineNameAliasCache()
     Set mProjectMasterLineOrderRankMap = Nothing
     Set mProjectMasterLinePairsCache = Nothing
     mProjectMasterLinePairsLoaded = False
+    Set mLineSheetMapCache = Nothing
+    mLineSheetMapCacheKey = ""
 End Sub
 
 ' ============================================================

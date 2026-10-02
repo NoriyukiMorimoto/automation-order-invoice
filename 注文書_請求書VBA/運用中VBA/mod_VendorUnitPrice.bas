@@ -42,8 +42,8 @@ Public Function BuildVendorUnitPriceFormula(ByVal wsUnitPrice As Worksheet, _
     Dim unitCellRef As String
     unitCellRef = wsUnitPrice.Cells(rowIndex, sourceCol).Address(False, False)
 
-    BuildVendorUnitPriceFormula = "=IFERROR(ROUND(" & unitCellRef & "*(" & ratioAddress & ")," & _
-                                  "-INT(LOG10(" & unitCellRef & "*(" & ratioAddress & ")))+2),0)"
+    BuildVendorUnitPriceFormula = "=IFERROR(ROUND(" & unitCellRef & "*(" & CommonRatioFormulaExpr(ratioAddress) & ")," & _
+                                  "-INT(LOG10(" & unitCellRef & "*(" & CommonRatioFormulaExpr(ratioAddress) & ")))+2),0)"
 End Function
 
 Public Function BuildVendorUnitPriceFormulaR1C1(ByVal isDayColumn As Boolean, _
@@ -59,8 +59,8 @@ Public Function BuildVendorUnitPriceFormulaR1C1(ByVal isDayColumn As Boolean, _
     Dim sourceOffset As Long
     sourceOffset = sourceCol - targetCol
 
-    BuildVendorUnitPriceFormulaR1C1 = "=IFERROR(ROUND(RC[" & sourceOffset & "]*(" & ratioAddress & ")," & _
-        "-INT(LOG10(RC[" & sourceOffset & "]*(" & ratioAddress & ")))+2),0)"
+    BuildVendorUnitPriceFormulaR1C1 = "=IFERROR(ROUND(RC[" & sourceOffset & "]*(" & CommonRatioFormulaExpr(ratioAddress) & ")," & _
+        "-INT(LOG10(RC[" & sourceOffset & "]*(" & CommonRatioFormulaExpr(ratioAddress) & ")))+2),0)"
 End Function
 
 Public Function BuildVendorUnitPriceHeaderText(ByVal wsInfo As Worksheet) As String
@@ -265,7 +265,7 @@ Public Function GetVendorOutsourceRatioPercentValue(ByVal wsInfo As Worksheet, B
 
     Dim normalizedValue As Double
     normalizedValue = CDbl(ratioValue)
-    If normalizedValue > 1# And normalizedValue <= 100# Then normalizedValue = normalizedValue / 100#
+    If normalizedValue > 1# Then normalizedValue = normalizedValue / 100#
     GetVendorOutsourceRatioPercentValue = normalizedValue
 End Function
 
@@ -1899,14 +1899,15 @@ ExitHandler:
     Application.EnableEvents = prevEvents
 End Sub
 
-Public Sub RefreshAllConstructionUnitPriceSheetDataDecorations(Optional ByVal wsInfo As Worksheet)
+Public Sub RefreshAllConstructionUnitPriceSheetDataDecorations(Optional ByVal wsInfo As Worksheet, _
+                                                               Optional ByVal skipVendorColumnRefresh As Boolean = False)
     If wsInfo Is Nothing Then Set wsInfo = CommonGetBasicInfoWorksheet()
     If wsInfo Is Nothing Then Exit Sub
 
     Dim wsUnitPrice As Worksheet
     For Each wsUnitPrice In wsInfo.Parent.worksheets
         If mod_MaterialPriceImport.IsConstructionUnitPriceSheet(wsUnitPrice) And mod_MaterialPriceImport.IsCurrentImportBatchUnitPriceSheet(wsUnitPrice) Then
-            RefreshConstructionUnitPriceSheetDataDecorations wsUnitPrice, wsInfo
+            RefreshConstructionUnitPriceSheetDataDecorations wsUnitPrice, wsInfo, skipVendorColumnRefresh
         End If
     Next wsUnitPrice
 End Sub
