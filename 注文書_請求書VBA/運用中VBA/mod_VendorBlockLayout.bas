@@ -17,6 +17,8 @@ Private Const BASIC_INFO_VENDOR_SPACER_COL_WIDTH As Double = 0.92
 Private Const BASIC_INFO_VENDOR_COUNT_CELL As String = "F9"
 Private Const MAX_VENDOR_BLOCK_COUNT As Long = 10
 Private Const OTHER_INPUT_BASE_ROW_HEIGHT As Double = 24#
+' その他入力事項(37-42行)の雛形置き場。非表示列 AQ:AS のラベル列(AQ=43)
+Private Const OTHER_INPUT_TEMPLATE_LABEL_COL As Long = 43
 
 Private mLastVendorBlockCount As Long
 Private mSyncVendorBlocksInProgress As Boolean
@@ -183,8 +185,15 @@ Public Sub ClearOtherInputBlockColumns(ByVal wsInfo As Worksheet, ByVal vendorIn
     clearRange.Interior.Color = RGB(6, 17, 29)
     clearRange.Borders.LineStyle = xlNone
 
-    ' 未使用ブロックの左隣(直前ブロックの右端)に残る罫線が、未入力の38-42行に線として
-    ' 見えてしまうため除去する(例: 2社時の K38-K42 の左罫線 = 2社目スペーサ列の右罫線)
+    ClearOtherInputLeftEdge wsInfo, vendorIndex
+End Sub
+
+' 未使用ブロックの左隣(直前ブロックの右端)に残る罫線が、未入力の38-42行に線として
+' 見えてしまうため除去する(例: 2社時の K38-K42 の左罫線 = 2社目スペーサ列の右罫線)
+Private Sub ClearOtherInputLeftEdge(ByVal wsInfo As Worksheet, ByVal vendorIndex As Long)
+    If wsInfo Is Nothing Then Exit Sub
+    Dim labelCol As Long
+    labelCol = VendorLabelColumnByIndex(vendorIndex)
     If labelCol > VendorLabelColumnByIndex(1) Then
         wsInfo.Range(wsInfo.Cells(38, labelCol - 1), _
                      wsInfo.Cells(BASIC_INFO_OTHER_INPUT_BOTTOM_ROW, labelCol - 1)).Borders(xlEdgeRight).LineStyle = xlNone
@@ -330,44 +339,122 @@ End Sub
 Public Sub EnsureVendorBlockFromTemplate(ByVal wsInfo As Worksheet, ByVal destVendorIndex As Long)
     CopyVendorBlockFromTemplate wsInfo, destVendorIndex
     RestoreVendorBlockPresentationFromTemplate wsInfo, destVendorIndex
-    ' その他入力が未作成のときだけ値列を空にする(既存入力は保持)
-    EnsureOtherInputBlockFromTemplate wsInfo, destVendorIndex, OtherInputBlockNeedsRestore(wsInfo, destVendorIndex)
+    ' その他入力事項は施工会社名が選ばれているときだけ作る
+    RefreshOtherInputBlockVisibility wsInfo, destVendorIndex
 End Sub
 
-' その他入力事項(37-42行): 1社目を雛形にラベル・書式(罫線/塗色/フォント/折り返し等)をコピーする
-Public Function OtherInputBlockNeedsRestore(ByVal wsInfo As Worksheet, ByVal vendorIndex As Long) As Boolean
+' その他入力事項(37-42行)は施工会社名が選ばれたブロックだけ表示する。
+'   雛形は非表示列(AQ:AS)に1社目から一度だけ写して保持する(1社目を隠しても雛形が残るように)。
+'   施工会社名を消したブロックは未使用ブロックと同じ見た目に戻し、選択内容も消す
+'   (別の会社を選び直したときに初期値から入り直すため)。
+
+' ブロックが表示中か(37行目の見出しの有無で判定)
+Public Function IsOtherInputBlockShown(ByVal wsInfo As Worksheet, ByVal vendorIndex As Long) As Boolean
     If wsInfo Is Nothing Then Exit Function
-    If vendorIndex < 2 Then Exit Function
-    OtherInputBlockNeedsRestore = _
-        (Len(Trim$(CStr(wsInfo.Cells(BASIC_INFO_OTHER_INPUT_TOP_ROW, VendorLabelColumnByIndex(vendorIndex)).value))) = 0)
+    IsOtherInputBlockShown = _
+        (Len(Trim$(CStr(wsInfo.Cells(BASIC_INFO_OTHER_INPUT_TOP_ROW, VendorLabelColumnByIndex(vendorIndex)).value))) > 0)
 End Function
 
+Private Function HasOtherInputVendorName(ByVal wsInfo As Worksheet, ByVal vendorIndex As Long) As Boolean
+    If vendorIndex > GetVendorBlockCount(wsInfo) Then Exit Function
+    HasOtherInputVendorName = _
+        (Len(Trim$(CStr(wsInfo.Cells(BASIC_INFO_VENDOR_NAME_ROW, VendorValueColumnByIndex(vendorIndex)).value))) > 0)
+End Function
+
+Private Function OtherInputBlockRange(ByVal wsInfo As Worksheet, ByVal labelCol As Long) As Range
+    Set OtherInputBlockRange = wsInfo.Range(wsInfo.Cells(BASIC_INFO_OTHER_INPUT_TOP_ROW, labelCol), _
+                                            wsInfo.Cells(BASIC_INFO_OTHER_INPUT_BOTTOM_ROW, labelCol + 2))
+End Function
+
+' 雛形範囲を返す。未作成なら表示中の1社目から作る。作れないときは Nothing。
+Private Function OtherInputTemplateRange(ByVal wsInfo As Worksheet) As Range
+    If wsInfo Is Nothing Then Exit Function
+
+    Dim templateRange As Range
+    Set templateRange = OtherInputBlockRange(wsInfo, OTHER_INPUT_TEMPLATE_LABEL_COL)
+    If Len(Trim$(CStr(templateRange.Cells(1, 1).value))) > 0 Then
+        Set OtherInputTemplateRange = templateRange
+        Exit Function
+    End If
+
+    If Not IsOtherInputBlockShown(wsInfo, 1) Then Exit Function
+
+    Dim firstBlock As Range
+    Set firstBlock = OtherInputBlockRange(wsInfo, VendorLabelColumnByIndex(1))
+    CopyOtherInputBlockFormats firstBlock, templateRange
+
+    Dim rowOffset As Long
+    For rowOffset = 1 To firstBlock.Rows.Count
+        templateRange.Cells(rowOffset, 1).value = firstBlock.Cells(rowOffset, 1).value
+        templateRange.Cells(rowOffset, 2).ClearContents
+    Next rowOffset
+
+    On Error Resume Next
+    wsInfo.Range(wsInfo.Columns(OTHER_INPUT_TEMPLATE_LABEL_COL), _
+                 wsInfo.Columns(OTHER_INPUT_TEMPLATE_LABEL_COL + 2)).Hidden = True
+    On Error GoTo 0
+
+    Set OtherInputTemplateRange = templateRange
+End Function
+
+' 罫線・塗色・フォント・折り返し等の書式と結合を複製する
+Private Sub CopyOtherInputBlockFormats(ByVal sourceRange As Range, ByVal destRange As Range)
+    SafeUnmergeRange destRange
+
+    On Error Resume Next
+    sourceRange.Copy
+    destRange.PasteSpecial Paste:=xlPasteFormats
+    Application.CutCopyMode = False
+    On Error GoTo 0
+
+    CopyRangeBorders sourceRange, destRange
+
+    Dim colOffset As Long
+    Dim rowOffset As Long
+    colOffset = destRange.Column - sourceRange.Column
+    rowOffset = destRange.Row - sourceRange.Row
+
+    On Error Resume Next
+    Dim cell As Range
+    For Each cell In sourceRange.Cells
+        If cell.MergeCells Then
+            Dim mergeArea As Range
+            Set mergeArea = cell.MergeArea
+            If cell.Row = mergeArea.Row And cell.Column = mergeArea.Column Then
+                Dim destMerge As Range
+                Set destMerge = destRange.Worksheet.Range( _
+                    destRange.Worksheet.Cells(mergeArea.Row + rowOffset, mergeArea.Column + colOffset), _
+                    destRange.Worksheet.Cells(mergeArea.Row + rowOffset + mergeArea.Rows.Count - 1, _
+                                              mergeArea.Column + colOffset + mergeArea.Columns.Count - 1))
+                SafeUnmergeRange destMerge
+                destMerge.Merge
+            End If
+        End If
+    Next cell
+    On Error GoTo 0
+End Sub
+
+' 雛形からブロックを作り直す(1社目も可)。clearValues=False なら入力済みの値を保持する。
 Public Sub EnsureOtherInputBlockFromTemplate(ByVal wsInfo As Worksheet, _
                                               ByVal destVendorIndex As Long, _
                                               Optional ByVal clearValues As Boolean = True)
     If wsInfo Is Nothing Then Exit Sub
-    If destVendorIndex < 2 Then Exit Sub
-
-    Dim srcLabelCol As Long
-    Dim dstLabelCol As Long
-    Dim srcValueCol As Long
-    Dim dstValueCol As Long
-    Dim srcSpacerCol As Long
-    Dim dstSpacerCol As Long
-    srcLabelCol = VendorLabelColumnByIndex(1)
-    dstLabelCol = VendorLabelColumnByIndex(destVendorIndex)
-    srcValueCol = VendorValueColumnByIndex(1)
-    dstValueCol = VendorValueColumnByIndex(destVendorIndex)
-    srcSpacerCol = VendorSpacerColumnByIndex(1)
-    dstSpacerCol = VendorSpacerColumnByIndex(destVendorIndex)
+    If destVendorIndex < 1 Or destVendorIndex > MAX_VENDOR_BLOCK_COUNT Then Exit Sub
 
     Dim sourceRange As Range
+    Set sourceRange = OtherInputTemplateRange(wsInfo)
+    If sourceRange Is Nothing Then
+        ' 雛形が作れないとき(1社目が非表示で雛形も無い)は従来どおり1社目から複製する
+        If destVendorIndex < 2 Then Exit Sub
+        If Not IsOtherInputBlockShown(wsInfo, 1) Then Exit Sub
+        Set sourceRange = OtherInputBlockRange(wsInfo, VendorLabelColumnByIndex(1))
+    End If
+
     Dim destRange As Range
-    ' ラベル列～スペーサ列(3列)を対象に、罫線・塗色・フォント・折り返し等を含む書式を複製する
-    Set sourceRange = wsInfo.Range(wsInfo.Cells(BASIC_INFO_OTHER_INPUT_TOP_ROW, srcLabelCol), _
-                                   wsInfo.Cells(BASIC_INFO_OTHER_INPUT_BOTTOM_ROW, srcSpacerCol))
-    Set destRange = wsInfo.Range(wsInfo.Cells(BASIC_INFO_OTHER_INPUT_TOP_ROW, dstLabelCol), _
-                                 wsInfo.Cells(BASIC_INFO_OTHER_INPUT_BOTTOM_ROW, dstSpacerCol))
+    Set destRange = OtherInputBlockRange(wsInfo, VendorLabelColumnByIndex(destVendorIndex))
+
+    Dim dstValueCol As Long
+    dstValueCol = VendorValueColumnByIndex(destVendorIndex)
 
     ' 既存入力値を退避(書式再適用時に保持する)
     Dim savedValues(BASIC_INFO_OTHER_INPUT_TOP_ROW To BASIC_INFO_OTHER_INPUT_BOTTOM_ROW) As Variant
@@ -378,19 +465,11 @@ Public Sub EnsureOtherInputBlockFromTemplate(ByVal wsInfo As Worksheet, _
         Next rowIndex
     End If
 
-    SafeUnmergeRange destRange
-
-    On Error Resume Next
-    sourceRange.Copy
-    destRange.PasteSpecial Paste:=xlPasteFormats
-    Application.CutCopyMode = False
-    On Error GoTo 0
-
-    CopyRangeBorders sourceRange, destRange
-    CopyOtherInputMergeAreasFromTemplate wsInfo, destVendorIndex
+    CopyOtherInputBlockFormats sourceRange, destRange
 
     For rowIndex = BASIC_INFO_OTHER_INPUT_TOP_ROW To BASIC_INFO_OTHER_INPUT_BOTTOM_ROW
-        wsInfo.Cells(rowIndex, dstLabelCol).value = wsInfo.Cells(rowIndex, srcLabelCol).value
+        destRange.Cells(rowIndex - BASIC_INFO_OTHER_INPUT_TOP_ROW + 1, 1).value = _
+            sourceRange.Cells(rowIndex - BASIC_INFO_OTHER_INPUT_TOP_ROW + 1, 1).value
 
         If clearValues Then
             ' 値列は会社ごとに入力するため雛形の値はコピーしない(書式はPasteSpecialで維持)
@@ -401,55 +480,52 @@ Public Sub EnsureOtherInputBlockFromTemplate(ByVal wsInfo As Worksheet, _
     Next rowIndex
 End Sub
 
-' その他入力事項ブロックの結合セルを1社目から複製する
-Public Sub CopyOtherInputMergeAreasFromTemplate(ByVal wsInfo As Worksheet, ByVal destVendorIndex As Long)
+' 1ブロック分の表示/非表示を施工会社名に合わせる。
+'   reformatShown=True なら表示中のブロックも雛形の書式へ揃え直す(値は保持)。
+Public Sub RefreshOtherInputBlockVisibility(ByVal wsInfo As Worksheet, ByVal vendorIndex As Long, _
+                                            Optional ByVal reformatShown As Boolean = False)
     If wsInfo Is Nothing Then Exit Sub
-    If destVendorIndex < 2 Then Exit Sub
+    If vendorIndex < 1 Or vendorIndex > MAX_VENDOR_BLOCK_COUNT Then Exit Sub
 
-    Dim srcLabelCol As Long
-    Dim srcSpacerCol As Long
-    srcLabelCol = VendorLabelColumnByIndex(1)
-    srcSpacerCol = VendorSpacerColumnByIndex(1)
+    Dim prevEvents As Boolean
+    prevEvents = Application.EnableEvents
+    On Error GoTo ExitHandler
+    Application.EnableEvents = False
 
-    Dim srcRange As Range
-    Set srcRange = wsInfo.Range(wsInfo.Cells(BASIC_INFO_OTHER_INPUT_TOP_ROW, srcLabelCol), _
-                                wsInfo.Cells(BASIC_INFO_OTHER_INPUT_BOTTOM_ROW, srcSpacerCol))
+    ' 1社目を隠す/作り直す前に雛形を確保する。確保できないときは1社目に触らない。
+    If OtherInputTemplateRange(wsInfo) Is Nothing Then
+        If vendorIndex = 1 Then GoTo ExitHandler
+    End If
 
-    Dim colOffset As Long
-    colOffset = VendorLabelColumnByIndex(destVendorIndex) - VendorLabelColumnByIndex(1)
-
-    On Error Resume Next
-    Dim cell As Range
-    For Each cell In srcRange.Cells
-        If cell.MergeCells Then
-            Dim mergeArea As Range
-            Set mergeArea = cell.MergeArea
-            If cell.Row = mergeArea.Row And cell.Column = mergeArea.Column Then
-                Dim destMerge As Range
-                Set destMerge = wsInfo.Range( _
-                    wsInfo.Cells(mergeArea.Row, mergeArea.Column + colOffset), _
-                    wsInfo.Cells(mergeArea.Row + mergeArea.Rows.Count - 1, _
-                                 mergeArea.Column + colOffset + mergeArea.Columns.Count - 1))
-                SafeUnmergeRange destMerge
-                destMerge.Merge
-            End If
+    If HasOtherInputVendorName(wsInfo, vendorIndex) Then
+        If Not IsOtherInputBlockShown(wsInfo, vendorIndex) Then
+            EnsureOtherInputBlockFromTemplate wsInfo, vendorIndex, True
+        ElseIf reformatShown And vendorIndex >= 2 Then
+            EnsureOtherInputBlockFromTemplate wsInfo, vendorIndex, False
         End If
-    Next cell
-    On Error GoTo 0
+        ApplyOtherInputInitialValuesForBlock wsInfo, vendorIndex
+    ElseIf IsOtherInputBlockShown(wsInfo, vendorIndex) Then
+        ClearOtherInputBlockColumns wsInfo, vendorIndex
+    Else
+        ClearOtherInputLeftEdge wsInfo, vendorIndex
+    End If
+
+ExitHandler:
+    If Err.Number <> 0 Then
+        mod_DebugLog.Log "[VendorBlockLayout] RefreshOtherInputBlockVisibility(" & vendorIndex & ") Err " & _
+                         Err.Number & ": " & Err.Description
+        Err.Clear
+    End If
+    Application.EnableEvents = prevEvents
 End Sub
 
-Public Sub RefreshOtherInputBlocks(ByVal wsInfo As Worksheet, Optional ByVal vendorCount As Long = 0)
+Public Sub RefreshOtherInputBlocks(ByVal wsInfo As Worksheet, Optional ByVal vendorCount As Long = 0, _
+                                   Optional ByVal reformatShown As Boolean = True)
     If wsInfo Is Nothing Then Exit Sub
-    If vendorCount <= 0 Then vendorCount = GetVendorBlockCount(wsInfo)
 
     Dim i As Long
-    For i = 2 To vendorCount
-        ' 既存ブロックも書式を雛形へ揃える。値は未作成時のみクリア。
-        EnsureOtherInputBlockFromTemplate wsInfo, i, OtherInputBlockNeedsRestore(wsInfo, i)
-    Next i
-
-    For i = vendorCount + 1 To MAX_VENDOR_BLOCK_COUNT
-        ClearOtherInputBlockColumns wsInfo, i
+    For i = 1 To MAX_VENDOR_BLOCK_COUNT
+        RefreshOtherInputBlockVisibility wsInfo, i, reformatShown
     Next i
 End Sub
 
@@ -672,7 +748,7 @@ Public Sub SyncVendorBlocksFromCount(ByVal wsInfo As Worksheet)
 
     ClearUnusedVendorBlocks wsInfo, vendorCount + 1
 
-    ' その他入力事項(37-42行)を施工会社数分だけ用意/除去する
+    ' その他入力事項(37-42行)を施工会社名が選ばれたブロックだけ用意/除去する
     RefreshOtherInputBlocks wsInfo, vendorCount
 
     ' その他入力事項(38-42行)の初期入力(乙/甲/なし/なし/該当判定)を適用する
@@ -749,12 +825,16 @@ Public Sub ApplyOtherInputInitialValues(ByVal wsInfo As Worksheet, Optional ByVa
     If vendorCount <= 0 Then vendorCount = GetVendorBlockCount(wsInfo)
 
     Dim i As Long
-    Dim valueCol As Long
-    Dim isRail As Boolean
     For i = 1 To vendorCount
-        valueCol = VendorValueColumnByIndex(i)
-        isRail = mod_VendorUnitPrice.IsRailConstructionVendorBlock(wsInfo, valueCol)
-        mod_BasicInfoExclusiveChoice.ApplyInitialExclusiveChoices wsInfo, valueCol, isRail
-        mod_BasicInfoSupplyLoan.ApplyInitialSupplyLoan wsInfo, valueCol
+        ' 施工会社名が未選択のブロックは非表示のため初期値を入れない
+        If HasOtherInputVendorName(wsInfo, i) Then ApplyOtherInputInitialValuesForBlock wsInfo, i
     Next i
+End Sub
+
+Private Sub ApplyOtherInputInitialValuesForBlock(ByVal wsInfo As Worksheet, ByVal vendorIndex As Long)
+    Dim valueCol As Long
+    valueCol = VendorValueColumnByIndex(vendorIndex)
+    mod_BasicInfoExclusiveChoice.ApplyInitialExclusiveChoices wsInfo, valueCol, _
+        mod_VendorUnitPrice.IsRailConstructionVendorBlock(wsInfo, valueCol)
+    mod_BasicInfoSupplyLoan.ApplyInitialSupplyLoan wsInfo, valueCol
 End Sub

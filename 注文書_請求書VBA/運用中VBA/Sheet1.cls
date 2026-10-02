@@ -79,6 +79,8 @@ Private Sub Worksheet_Activate()
         mod_MaterialPriceImport.RefreshUnitPriceProjectNameValidation Me
         mod_Construction_Order_Import.RefreshBasicInfoConstructionTotals
         mod_BasicInfoGuide.InitBasicInfoGuide Me
+        ' 施工会社名が未選択のブロックのその他入力事項(37-42行)を隠す(既存ブックの整え直し)
+        mod_VendorBlockLayout.RefreshOtherInputBlocks Me, 0, False
         mBasicInfoActivateInitialized = True
     End If
 

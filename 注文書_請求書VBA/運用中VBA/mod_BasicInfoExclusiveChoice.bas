@@ -76,7 +76,8 @@ Private Function IsRowVendorTarget(ByVal wsInfo As Worksheet, ByVal target As Ra
     Dim i As Long
     For i = 1 To vendorCount
         If topLeft.Column = mod_Construction_BasicTotals.BasicInfoVendorColumn(i) Then
-            IsRowVendorTarget = True
+            ' 施工会社名が未選択でその他入力事項を表示していないブロックは対象外
+            IsRowVendorTarget = mod_VendorBlockLayout.IsOtherInputBlockShown(wsInfo, i)
             Exit Function
         End If
     Next i

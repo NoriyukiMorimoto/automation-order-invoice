@@ -764,6 +764,10 @@ Public Sub NotifyVendorBasicInfoBlockChanged(ByVal wsInfo As Worksheet, _
     If wsInfo Is Nothing Then Exit Sub
     If valueColumn <= 0 Then Exit Sub
 
+    ' その他入力事項(37-42行)は施工会社名が選ばれたブロックだけ表示する
+    mod_VendorBlockLayout.RefreshOtherInputBlockVisibility wsInfo, _
+        mod_VendorUnitPrice.GetVendorIndexFromValueColumn(valueColumn)
+
     On Error GoTo ErrorHandler
 
     If IsMissing(previousWorkType) Then
