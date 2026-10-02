@@ -241,6 +241,12 @@ Private Sub Worksheet_Change(ByVal target As Range)
     mod_OrderTpl_Header.HandleBasicInfoHeaderSourceChange Me, target
     mod_Construction_Import_Shared.LogCIElapsed "Sheet1 HandleBasicInfoHeaderSourceChange", postT0
 
+    ' 年度・出張所が変わったら工事番号選択(C9)の一覧を先読みし直す。
+    ' B6 単独の変更は直後に出張所を選び直すため対象外(C6 確定時に先読みする)。
+    If Not Intersect(target, Me.Range("B4,C6")) Is Nothing Then
+        mod_ProjectSelectionCache.ScheduleProjectListPrefetch
+    End If
+
     mod_DebugLog.Log "[Sheet1] needComboPrompt=" & needComboPrompt
     If needComboPrompt Then
         mod_DebugLog.Log "[Sheet1] PromptOfficeComboBox 呼び出し前 EnableEvents=" & Application.EnableEvents

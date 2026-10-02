@@ -7,6 +7,13 @@ Private mSubconSavedSel As Range
 ' 施工会社列の変更を行単位で部分更新する上限行数(超えたら一括更新)
 Private Const MONITOR_PARTIAL_ROW_LIMIT As Long = 200
 
+' 開いた直後に工事番号選択(C9)の一覧を先読みする(フォーム表示の待ち時間をなくす)
+Private Sub Workbook_Open()
+    On Error Resume Next
+    mod_ProjectSelectionCache.ScheduleProjectListPrefetch
+    On Error GoTo 0
+End Sub
+
 Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     On Error Resume Next
     mod_WorkbookOptimize.OptimizeWorkbookSilent ThisWorkbook
@@ -18,6 +25,7 @@ Private Sub Workbook_BeforeClose(Cancel As Boolean)
     mod_FillManagerName.CancelScheduledOfficeComboBoxPrompt
     mod_VendorMaster.CancelScheduledVendorListDropdown
     mod_BasicInfoCalendar.ClearProjectSelectionState
+    mod_ProjectSelectionCache.CancelScheduledProjectListPrefetch
     mod_OrderTpl_Generate.CancelScheduledOrderDetailRefresh
     mod_OrderTpl_Generate.CancelScheduledVendorSheetGeneration
     On Error GoTo 0

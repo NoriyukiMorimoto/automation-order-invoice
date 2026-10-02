@@ -323,7 +323,7 @@ Private Function GetBasicInfoProjectNameTargetCell(ByVal target As Range) As Ran
     If Not candidate Is Nothing Then Set GetBasicInfoProjectNameTargetCell = candidate.Cells(1, 1)
 End Function
 
-Private Function NormalizeProjectSelectionOfficeName(ByVal OfficeName As String) As String
+Public Function NormalizeProjectSelectionOfficeName(ByVal OfficeName As String) As String
     If StrComp(OfficeName, FukuchiyamaOfficeFullNameText(), vbTextCompare) = 0 Then
         NormalizeProjectSelectionOfficeName = FukuchiyamaOfficeSearchNameText()
     Else
