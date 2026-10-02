@@ -42,8 +42,8 @@ Public Function BuildVendorUnitPriceFormula(ByVal wsUnitPrice As Worksheet, _
     Dim unitCellRef As String
     unitCellRef = wsUnitPrice.Cells(rowIndex, sourceCol).Address(False, False)
 
-    BuildVendorUnitPriceFormula = "=ROUND(" & unitCellRef & "*(" & ratioAddress & ")," & _
-                                  "-INT(LOG10(" & unitCellRef & "*(" & ratioAddress & ")))+2)"
+    BuildVendorUnitPriceFormula = "=IFERROR(ROUND(" & unitCellRef & "*(" & ratioAddress & ")," & _
+                                  "-INT(LOG10(" & unitCellRef & "*(" & ratioAddress & ")))+2),0)"
 End Function
 
 Public Function BuildVendorUnitPriceFormulaR1C1(ByVal isDayColumn As Boolean, _
@@ -59,8 +59,8 @@ Public Function BuildVendorUnitPriceFormulaR1C1(ByVal isDayColumn As Boolean, _
     Dim sourceOffset As Long
     sourceOffset = sourceCol - targetCol
 
-    BuildVendorUnitPriceFormulaR1C1 = "=ROUND(RC[" & sourceOffset & "]*(" & ratioAddress & ")," & _
-        "-INT(LOG10(RC[" & sourceOffset & "]*(" & ratioAddress & ")))+2)"
+    BuildVendorUnitPriceFormulaR1C1 = "=IFERROR(ROUND(RC[" & sourceOffset & "]*(" & ratioAddress & ")," & _
+        "-INT(LOG10(RC[" & sourceOffset & "]*(" & ratioAddress & ")))+2),0)"
 End Function
 
 Public Function BuildVendorUnitPriceHeaderText(ByVal wsInfo As Worksheet) As String
@@ -504,21 +504,6 @@ Public Function VendorUnitPriceOutsourceRatioLabelText() As String
     VendorUnitPriceOutsourceRatioLabelText = cached
 End Function
 
-Public Function VendorUnitPriceRowNeedsFormulaForSource(ByVal wsUnitPrice As Worksheet, _
-                                                         ByVal rowIndex As Long, _
-                                                         ByVal sourceCol As Long, _
-                                                         ByVal wasteKeyword As String) As Boolean
-    If IsVendorUnitPriceSourceBlank(wsUnitPrice, rowIndex, sourceCol) Then Exit Function
-
-    Dim workTypeName As String
-    workTypeName = CommonNormalizeText(CStr(wsUnitPrice.Cells(rowIndex, VENDOR_UNIT_PRICE_WORK_TYPE_COL).value))
-    If workTypeName <> "" Then
-        If InStr(1, workTypeName, wasteKeyword, vbTextCompare) > 0 Then Exit Function
-    End If
-
-    VendorUnitPriceRowNeedsFormulaForSource = True
-End Function
-
 Public Function VendorWasteDisposalKeywordText() As String
     Static cached As String
     If cached = "" Then cached = ChrW$(&H7523) & ChrW$(&H5EC3) & ChrW$(&H51E6) & ChrW$(&H7406)
@@ -604,34 +589,6 @@ Public Sub ApplyConstructionUnitPriceImportedRowDecorationsFast(ByVal wsUnitPric
 End Sub
 
 ' 工事単価シートのデータ行(7行目以降)へ罫線・塗りつぶし・桁区切りを一括適用する。
-
-Public Sub ApplyVendorUnitPriceAddedBlocksToSheetSafely(ByVal wsUnitPrice As Worksheet, _
-                                                         ByVal wsInfo As Worksheet, _
-                                                         ByVal previousCount As Long, _
-                                                         ByVal vendorCount As Long, _
-                                                         ByVal vendorUnitPriceNameMap As Object)
-    On Error GoTo ErrorHandler
-
-    Dim i As Long
-    Dim valueColumn As Long
-    Dim dayCol As Long
-    Dim nightCol As Long
-    For i = previousCount + 1 To vendorCount
-        valueColumn = mod_VendorBlockLayout.VendorValueColumnByIndex(i)
-        dayCol = VendorUnitPriceDayColumnByValueColumn(valueColumn)
-        nightCol = dayCol + 1
-        If ShouldApplyVendorUnitPriceBlock(wsInfo, valueColumn) Then
-            ApplyVendorUnitPriceBlockToSheet wsUnitPrice, wsInfo, valueColumn, vendorUnitPriceNameMap
-        Else
-            ClearVendorUnitPriceBlockOnSheet wsUnitPrice, dayCol, nightCol
-        End If
-    Next i
-    Exit Sub
-
-ErrorHandler:
-    mod_DebugLog.Log "[VendorMaster] ApplyVendorUnitPriceAddedBlocksToSheetSafely failed sheet=[" & _
-                     wsUnitPrice.Name & "] Err " & Err.Number & ": " & Err.Description
-End Sub
 
 ' F9減少時: 不要になった業者ブロックを1シートからクリアする。エラーはログして続行。
 
@@ -1239,24 +1196,6 @@ Public Sub ApplyVendorUnitPriceSourceGreyFill(ByVal sourceCell As Range)
                                     VENDOR_UNIT_PRICE_FILL_COLOR_B)
 End Sub
 
-Public Sub ApplyVendorUnitPriceSourceRowIfNeeded(ByVal wsUnitPrice As Worksheet, _
-                                                  ByVal wsInfo As Worksheet, _
-                                                  ByVal rowIndex As Long, _
-                                                  ByVal sourceCol As Long, _
-                                                  ByVal isDayColumn As Boolean)
-    Dim sourceCell As Range
-    Set sourceCell = wsUnitPrice.Cells(rowIndex, sourceCol)
-
-    If HasNumericVendorUnitPriceSource(sourceCell) Then
-        sourceCell.Interior.ColorIndex = xlColorIndexNone
-        sourceCell.NumberFormat = VENDOR_UNIT_PRICE_NUMBER_FORMAT
-        ApplyVendorUnitPriceCellsForSourceRow wsUnitPrice, wsInfo, rowIndex, isDayColumn
-    ElseIf IsVendorUnitPriceSourceCellBlank(sourceCell) Then
-        ApplyVendorUnitPriceSourceGreyFill sourceCell
-        ApplyVendorUnitPriceCellsForSourceRow wsUnitPrice, wsInfo, rowIndex, isDayColumn
-    End If
-End Sub
-
 Public Sub ApplyVendorUnitPriceSourceRowIfNeededFromValue(ByVal wsUnitPrice As Worksheet, _
                                                            ByVal wsInfo As Worksheet, _
                                                            ByVal rowIndex As Long, _
@@ -1355,30 +1294,6 @@ Public Sub ClearVendorUnitPriceOutsourceRatioRow(ByVal wsUnitPrice As Worksheet,
         .NumberFormat = "General"
         .HorizontalAlignment = xlGeneral
     End With
-End Sub
-
-Public Sub ClearVendorUnitPriceRemovedBlocksOnSheetSafely(ByVal wsUnitPrice As Worksheet, _
-                                                           ByVal previousCount As Long, _
-                                                           ByVal vendorCount As Long)
-    On Error GoTo ErrorHandler
-
-    Dim clearLastIndex As Long
-    clearLastIndex = previousCount
-    If clearLastIndex > MAX_VENDOR_BLOCK_COUNT Then clearLastIndex = MAX_VENDOR_BLOCK_COUNT
-
-    Dim blockIndex As Long
-    Dim dayCol As Long
-    Dim nightCol As Long
-    For blockIndex = vendorCount + 1 To clearLastIndex
-        dayCol = VendorUnitPriceDayColumnByValueColumn(mod_VendorBlockLayout.VendorValueColumnByIndex(blockIndex))
-        nightCol = dayCol + 1
-        ClearVendorUnitPriceBlockOnSheet wsUnitPrice, dayCol, nightCol
-    Next blockIndex
-    Exit Sub
-
-ErrorHandler:
-    mod_DebugLog.Log "[VendorMaster] ClearVendorUnitPriceRemovedBlocksOnSheetSafely failed sheet=[" & _
-                     wsUnitPrice.Name & "] Err " & Err.Number & ": " & Err.Description
 End Sub
 
 Public Sub EnsureApplicationCalculationAutomatic()
@@ -1894,6 +1809,13 @@ Public Sub HandleConstructionUnitPriceSheetChange(ByVal wsUnitPrice As Worksheet
     If wsInfo Is Nothing Then Exit Sub
 
     EnsureApplicationCalculationAutomatic
+
+    ' 使用範囲より下は書き換える対象が無いので除外する(列全体の削除・貼付けで100万セルを回さない)
+    Dim usedLastRow As Long
+    usedLastRow = wsUnitPrice.UsedRange.Row + wsUnitPrice.UsedRange.Rows.Count - 1
+    If usedLastRow < 1 Then Exit Sub
+    Set changedRange = Intersect(changedRange, wsUnitPrice.Rows("1:" & usedLastRow))
+    If changedRange Is Nothing Then Exit Sub
 
     Dim changedB As Range
     Dim changedE As Range

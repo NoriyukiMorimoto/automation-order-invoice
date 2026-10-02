@@ -21,6 +21,40 @@ Private mBasicInfoActivateInitialized As Boolean
 ' 対象セル集合は従来と同じ(基本情報固定セル+施工会社ブロック10社×6行)。Activateのたびに再構築する。
 Private mStaticGateRangeCache As Range
 
+' B6(支店)/C6(出張所)の直前値。値が実際に変わったときだけ基本情報をクリアするために保持する。
+Private mLastB6Text As String
+Private mLastC6Text As String
+Private mBranchOfficeSnapshotReady As Boolean
+
+Private Function BranchOfficeCellText(ByVal cell As Range) As String
+    Dim v As Variant
+    v = cell.Cells(1, 1).value
+    If IsError(v) Then
+        BranchOfficeCellText = "#ERR"
+    Else
+        BranchOfficeCellText = Trim$(CStr(v))
+    End If
+End Function
+
+Private Sub CaptureBranchOfficeSnapshot()
+    On Error Resume Next
+    mLastB6Text = BranchOfficeCellText(Me.Range("B6"))
+    mLastC6Text = BranchOfficeCellText(Me.Range("C6"))
+    mBranchOfficeSnapshotReady = (Err.Number = 0)
+    On Error GoTo 0
+End Sub
+
+' 直前値が不明(VBA リセット直後など)のときは従来どおり「変わった」とみなす。
+Private Function HasBranchOfficeChanged() As Boolean
+    If Not mBranchOfficeSnapshotReady Then
+        HasBranchOfficeChanged = True
+        Exit Function
+    End If
+    HasBranchOfficeChanged = _
+        (StrComp(BranchOfficeCellText(Me.Range("B6")), mLastB6Text, vbBinaryCompare) <> 0) Or _
+        (StrComp(BranchOfficeCellText(Me.Range("C6")), mLastC6Text, vbBinaryCompare) <> 0)
+End Function
+
 Private Sub Worksheet_Activate()
     Dim g As New clsPerfGuard
     g.Suspend
@@ -34,7 +68,6 @@ Private Sub Worksheet_Activate()
     mod_VendorMaster.EnsureVendorCountInputValidation Me
     mod_OrderTpl_Shared.OrderTplRepairAllGeneratedPlaceholderFormulas
     mod_VendorMaster.InitVendorBlockCountFromSheet Me
-    mod_BasicInfoGuide.InitBasicInfoGuide Me
 
     ' 重い再構築(ガイド再構築・レガシー検証の整理・検証再計算)はセッション中で最初の1回だけ行う。
     ' 2回目以降の切替では省略する(内容は変わらないため、変更イベント/選択変更などで最新に維持される)。
@@ -45,10 +78,12 @@ Private Sub Worksheet_Activate()
         mod_VendorMaster.RefreshVendorListForBasicInfo Me
         mod_MaterialPriceImport.RefreshUnitPriceProjectNameValidation Me
         mod_Construction_Order_Import.RefreshBasicInfoConstructionTotals
+        mod_BasicInfoGuide.InitBasicInfoGuide Me
         mBasicInfoActivateInitialized = True
     End If
 
 ExitHandler:
+    CaptureBranchOfficeSnapshot
     g.Restore
 End Sub
 
@@ -88,6 +123,11 @@ Private Sub Worksheet_Change(ByVal target As Range)
     Dim needComboPrompt As Boolean
     needComboPrompt = False
 
+    Dim branchOfficeTouched As Boolean
+    Dim branchOfficeChanged As Boolean
+    branchOfficeTouched = Not Intersect(target, Me.Range("B6,C6")) Is Nothing
+    If branchOfficeTouched Then branchOfficeChanged = HasBranchOfficeChanged()
+
     If Not Intersect(target, Me.Range("B4,B6")) Is Nothing Then
         mod_DebugLog.Log "[Sheet1] B4/B6変更 -> RefreshBranchOfficeValidation(False) 呼び出し"
         needComboPrompt = mod_FillManagerName.RefreshBranchOfficeValidation(False)
@@ -109,7 +149,11 @@ Private Sub Worksheet_Change(ByVal target As Range)
 
     If Not Intersect(target, Me.Range("B6,C6")) Is Nothing Then
         mod_DebugLog.Log "[Sheet1] B6/C6変更 IsSuppressing=" & mod_FillManagerName.IsSuppressingC6Change()
-        If Not mod_FillManagerName.IsSuppressingC6Change() Then
+        If mod_FillManagerName.IsSuppressingC6Change() Then
+            ' コード側からの書込み(抑止中)はクリアしない
+        ElseIf Not branchOfficeChanged Then
+            mod_DebugLog.Log "[Sheet1] B6/C6 unchanged -> skip SilentClearBasicInfo"
+        Else
             mod_DebugLog.Log "[Sheet1] SilentClearBasicInfo 呼び出し"
             mod_BasicInfoUpdate.SilentClearBasicInfo Me
             mod_DebugLog.Log "[Sheet1] SilentClearBasicInfo 完了"
@@ -205,6 +249,7 @@ Private Sub Worksheet_Change(ByVal target As Range)
     End If
 
 ExitHandler:
+    If branchOfficeTouched Then CaptureBranchOfficeSnapshot
     mod_DebugLog.Log "[Sheet1] Worksheet_Change done EnableEvents=" & Application.EnableEvents
     g.Restore
 End Sub
@@ -306,7 +351,8 @@ Private Function IsUnitPriceImportDoubleClickTarget(ByVal target As Range) As Bo
 End Function
 
 Private Sub Worksheet_SelectionChange(ByVal target As Range)
-    mod_DebugLog.Log "[Sheet1] SelectionChange: " & target.Address & " IsPromptingOffice=" & mod_FillManagerName.IsPromptingOfficeComboBox() & " CellDropdownOpen=" & mod_BasicInfoCellDropdown.IsCellDropdownSessionOpen(Me)
+    mod_DebugLog.Log "[Sheet1] SelectionChange: " & target.Address & " IsPromptingOffice=" & mod_FillManagerName.IsPromptingOfficeComboBox()
+    CaptureBranchOfficeSnapshot
     mod_BasicInfoCalendar.HandleBasicInfoSelectionChange target
 
     If Not mod_FillManagerName.IsPromptingOfficeComboBox() Then

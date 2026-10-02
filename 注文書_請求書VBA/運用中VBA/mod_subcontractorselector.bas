@@ -4,8 +4,6 @@ Private Const COL_VENDOR As Long = 1
 Private Const COL_SEIRI As Long = 2
 Private Const DATA_START_ROW As Long = 2
 
-Private Const SANPAI_KEYWORD As String = "ŽY”pˆ—"
-Private Const COL_TYPE As Long = 3
 
 Private Const WELD_COL_WELDING_VENDOR As Long = 1
 Private Const WELD_COL_TRACK_VENDOR As Long = 2
@@ -699,11 +697,3 @@ Private Function SeiriColumn(ByVal ws As Worksheet) As Long
     SeiriColumn = mod_Construction_Order_Import.OutputSheetSeiriColumn(ws)
 End Function
 
-Private Function TypeColumn(ByVal ws As Worksheet) As Long
-    TypeColumn = mod_Construction_Order_Import.OutputSheetCol(ws, COL_TYPE)
-End Function
-
-Private Function IsSanpaiRow(ByVal ws As Worksheet, ByVal rowIndex As Long) As Boolean
-    IsSanpaiRow = (InStr(1, CommonRemoveAllSpaces(CommonNzText(ws.Cells(rowIndex, TypeColumn(ws)).value)), _
-                         SANPAI_KEYWORD, vbTextCompare) > 0)
-End Function

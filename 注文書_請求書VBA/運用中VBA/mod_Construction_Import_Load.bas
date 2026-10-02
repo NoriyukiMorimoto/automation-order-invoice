@@ -3,6 +3,13 @@ Option Explicit
 ' ????: CHANGELOG.md ??
 ' mod_Construction_Import_Load (split from mod_Construction_Order_Import)
 
+' 複数ファイル取込時は購入充当行をファイルをまたいで貯め、最後に1回だけシートを作る
+' (購入充当シート名は固定のため、ファイルごとに作り直すと前のファイル分が消えていた)。
+Private mDeferPurchaseSheets As Boolean
+Private mPendingPurchaseRows As Object   ' Scripting.Dictionary: docType -> Collection
+Private mPendingPurchaseKeys As Object   ' Scripting.Dictionary: 重複行の判定用
+Private mLastOpenNameConflict As Boolean
+
 Public Sub ImportConstructionDocumentCore()
     Dim scrn As Boolean, evt As Boolean, alerts As Boolean
 
@@ -36,6 +43,9 @@ Public Sub ImportConstructionDocumentCore()
     Dim fileIndex As Long
 
     mSuppressOverwritePrompt = True
+    mDeferPurchaseSheets = True
+    Set mPendingPurchaseRows = CreateObject("Scripting.Dictionary")
+    Set mPendingPurchaseKeys = CreateObject("Scripting.Dictionary")
     Dim srcPathVar As Variant
     For Each srcPathVar In srcPaths
         fileIndex = fileIndex + 1
@@ -43,6 +53,8 @@ Public Sub ImportConstructionDocumentCore()
         ImportOneConstructionDocument CStr(srcPathVar), tWorks, tWeld, tPurch, lastSheet
     Next srcPathVar
     mSuppressOverwritePrompt = False
+    mDeferPurchaseSheets = False
+    FlushPendingPurchaseSheets lastSheet
 
     mod_Construction_BasicTotals.RefreshBasicInfoConstructionTotalsCore
 
@@ -68,6 +80,9 @@ Public Sub ImportConstructionDocumentCore()
 
 Cleanup:
     mSuppressOverwritePrompt = False
+    mDeferPurchaseSheets = False
+    Set mPendingPurchaseRows = Nothing
+    Set mPendingPurchaseKeys = Nothing
     Set mLastCreatedImportSheet = Nothing
     Application.screenUpdating = scrn
     RestoreAutomaticCalculation
@@ -108,7 +123,7 @@ Public Sub ImportOneConstructionDocument(ByVal srcPath As String, _
 
     Set srcWb = OpenWorkbookReadOnly(srcPath, srcOpenedHere)
     If srcWb Is Nothing Then
-        MsgBox "取込対象ブックを開けませんでした。" & vbCrLf & srcPath, vbExclamation
+        If Not mLastOpenNameConflict Then MsgBox "取込対象ブックを開けませんでした。" & vbCrLf & srcPath, vbExclamation
         GoTo Cleanup
     End If
 
@@ -312,29 +327,13 @@ Public Sub ImportOneConstructionDocument(ByVal srcPath As String, _
     End If
 
     If purchRows.Count > 0 Then
-        Dim purchName As String
-        If docType = DOC_ORDER Then
-            purchName = CommonPurchaseOrderOutputSheetName()
+        If mDeferPurchaseSheets Then
+            AppendPendingPurchaseRows docType, purchRows
         Else
-            purchName = CommonPurchaseNoticeOutputSheetName()
-        End If
-        Set wsPurch = CreateOrReplaceSheet(purchName)
-        If Not wsPurch Is Nothing Then
-            wsPurch.Tab.Color = RGB(233, 241, 123)   ' #E9F17B
-            WriteRecordsToSheet wsPurch, purchRows
-            ApplyPurchaseNoticeLayout wsPurch
-            SortPurchaseSheet wsPurch, PURCHASE_NOTICE_SEIRI_COL, PURCHASE_NOTICE_KIND_COL
-            WritePurchaseNoticeAdditionalHeaders wsPurch
-            FillPurchaseUnitPrices wsPurch
-            FormatPurchaseNoticeSheet wsPurch
-            ApplyPurchaseNoticeColumnExclusions wsPurch
-            WritePurchaseNoticeJrTotalRow wsPurch
-            ApplyOutputSheetHeaderAutoFilter wsPurch, _
-                PURCHASE_NOTICE_SEIRI_COL, PURCHASE_NOTICE_KIND_COL, _
-                PURCHASE_NOTICE_AUTO_AMOUNT_COL, PURCHASE_NOTICE_PRICE_COMPARE_COL, _
-                PURCHASE_NOTICE_PRICE_GUIDANCE_COL
-            ApplyOutputSheetHeaderFreezePanes wsPurch
-            If wsActivate Is Nothing Then Set wsActivate = wsPurch
+            Set wsPurch = BuildPurchaseOutputSheet(docType, purchRows)
+            If Not wsPurch Is Nothing Then
+                If wsActivate Is Nothing Then Set wsActivate = wsPurch
+            End If
         End If
     End If
 
@@ -361,6 +360,97 @@ Cleanup:
                "Err " & errNo & ": " & errDesc, vbExclamation
     End If
 End Sub
+
+Private Function BuildPurchaseOutputSheet(ByVal docType As Long, ByVal purchRows As Collection) As Worksheet
+    Dim purchName As String
+    If docType = DOC_ORDER Then
+        purchName = CommonPurchaseOrderOutputSheetName()
+    Else
+        purchName = CommonPurchaseNoticeOutputSheetName()
+    End If
+
+    Dim wsPurch As Worksheet
+    Set wsPurch = CreateOrReplaceSheet(purchName)
+    If wsPurch Is Nothing Then Exit Function
+
+    wsPurch.Tab.Color = RGB(233, 241, 123)   ' #E9F17B
+    WriteRecordsToSheet wsPurch, purchRows
+    ApplyPurchaseNoticeLayout wsPurch
+    SortPurchaseSheet wsPurch, PURCHASE_NOTICE_SEIRI_COL, PURCHASE_NOTICE_KIND_COL
+    WritePurchaseNoticeAdditionalHeaders wsPurch
+    FillPurchaseUnitPrices wsPurch
+    FormatPurchaseNoticeSheet wsPurch
+    ApplyPurchaseNoticeColumnExclusions wsPurch
+    WritePurchaseNoticeJrTotalRow wsPurch
+    ApplyOutputSheetHeaderAutoFilter wsPurch, _
+        PURCHASE_NOTICE_SEIRI_COL, PURCHASE_NOTICE_KIND_COL, _
+        PURCHASE_NOTICE_AUTO_AMOUNT_COL, PURCHASE_NOTICE_PRICE_COMPARE_COL, _
+        PURCHASE_NOTICE_PRICE_GUIDANCE_COL
+    ApplyOutputSheetHeaderFreezePanes wsPurch
+    Set BuildPurchaseOutputSheet = wsPurch
+End Function
+
+' 購入充当行を文書種別ごとに貯める。同じファイルを2回選んだ場合などの完全一致行は1行にまとめる。
+Private Sub AppendPendingPurchaseRows(ByVal docType As Long, ByVal purchRows As Collection)
+    If mPendingPurchaseRows Is Nothing Then Set mPendingPurchaseRows = CreateObject("Scripting.Dictionary")
+    If mPendingPurchaseKeys Is Nothing Then Set mPendingPurchaseKeys = CreateObject("Scripting.Dictionary")
+
+    Dim bucket As Collection
+    If mPendingPurchaseRows.Exists(docType) Then
+        Set bucket = mPendingPurchaseRows(docType)
+    Else
+        Set bucket = New Collection
+        mPendingPurchaseRows.Add docType, bucket
+    End If
+
+    Dim rowArr As Variant
+    For Each rowArr In purchRows
+        Dim rowKey As String
+        rowKey = CStr(docType)
+        Dim k As Long
+        For k = LBound(rowArr) To UBound(rowArr)
+            rowKey = rowKey & Chr$(31) & CommonNzText(rowArr(k))
+        Next k
+        If Not mPendingPurchaseKeys.Exists(rowKey) Then
+            mPendingPurchaseKeys.Add rowKey, True
+            bucket.Add rowArr
+        End If
+    Next rowArr
+End Sub
+
+Private Sub FlushPendingPurchaseSheets(ByRef lastSheet As Worksheet)
+    If mPendingPurchaseRows Is Nothing Then Exit Sub
+
+    Dim docKey As Variant
+    For Each docKey In mPendingPurchaseRows.Keys
+        Dim bucket As Collection
+        Set bucket = mPendingPurchaseRows(docKey)
+        If bucket.Count > 0 Then
+            LogCI "purchase sheet flush docType=" & CStr(docKey) & " rows=" & bucket.Count
+            Set mLastCreatedImportSheet = GetImportSheetAnchorSheet()
+            Dim wsPurch As Worksheet
+            Set wsPurch = BuildPurchaseOutputSheet(CLng(docKey), bucket)
+            If lastSheet Is Nothing And Not wsPurch Is Nothing Then Set lastSheet = wsPurch
+        End If
+    Next docKey
+
+    Set mPendingPurchaseRows = Nothing
+    Set mPendingPurchaseKeys = Nothing
+End Sub
+
+Private Function SameNameWorkbookOpenText() As String
+    Static cached As String
+    If Len(cached) = 0 Then
+        cached = ChrW$(&H540C) & ChrW$(&H3058) & ChrW$(&H540D) & ChrW$(&H524D) & ChrW$(&H306E) & ChrW$(&H5225) & _
+        ChrW$(&H306E) & ChrW$(&H30D6) & ChrW$(&H30C3) & ChrW$(&H30AF) & ChrW$(&H304C) & ChrW$(&H958B) & _
+        ChrW$(&H3044) & ChrW$(&H3066) & ChrW$(&H3044) & ChrW$(&H307E) & ChrW$(&H3059) & ChrW$(&H3002) & _
+        ChrW$(&H305D) & ChrW$(&H306E) & ChrW$(&H30D6) & ChrW$(&H30C3) & ChrW$(&H30AF) & ChrW$(&H3092) & _
+        ChrW$(&H9589) & ChrW$(&H3058) & ChrW$(&H3066) & ChrW$(&H304B) & ChrW$(&H3089) & ChrW$(&H53D6) & _
+        ChrW$(&H308A) & ChrW$(&H8FBC) & ChrW$(&H3093) & ChrW$(&H3067) & ChrW$(&H304F) & ChrW$(&H3060) & _
+        ChrW$(&H3055) & ChrW$(&H3044) & ChrW$(&H3002)
+    End If
+    SameNameWorkbookOpenText = cached
+End Function
 
 Public Function BuildConstructionOutputSheet(ByVal sheetName As String, _
                                               ByVal rows As Collection, _
@@ -417,7 +507,15 @@ Public Function BuildConstructionOutputSheet(ByVal sheetName As String, _
         ApplyWeldingOutputSheetColumnAlignment ws
     End If
 
-    If isWelding Then
+    ' 外注単価・外注金額の2列を削除した後なので、列は「単価比較」見出しから求める
+    ' (工種分類=-4, 自動金額=-1, 案内=+1)。見つからなければ従来の定数で設定する。
+    Dim filterCompareColumn As Long
+    filterCompareColumn = mod_Construction_BasicTotals.FindHeaderColumn(ws, mod_Construction_OutputFormat.ConstructionPriceCompareHeaderText())
+    If filterCompareColumn >= 5 Then
+        ApplyOutputSheetHeaderAutoFilter ws, _
+            mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_SEIRI), filterCompareColumn - 4, _
+            filterCompareColumn - 1, filterCompareColumn, filterCompareColumn + 1
+    ElseIf isWelding Then
         ApplyOutputSheetHeaderAutoFilter ws, _
             mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_SEIRI), mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_KIND), _
             mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_AUTO_AMOUNT), mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_PRICE_COMPARE), _
@@ -567,25 +665,6 @@ Public Function PickSourceFiles() As Collection
     End With
 End Function
 
-Public Function PickSourceFile() As String
-    Dim fd As FileDialog
-    Set fd = Application.FileDialog(msoFileDialogFilePicker)
-    With fd
-        .Title = "施工指示書・施工通知書ブックを選択してください"
-        .AllowMultiSelect = False
-        .Filters.Clear
-        .Filters.Add "Excel ブック", "*.xlsx; *.xlsm; *.xls"
-        Dim root As String
-        root = GetImportRootFolder()
-        If root <> "" Then .InitialFileName = root & "\"
-        If .Show = -1 Then
-            PickSourceFile = .SelectedItems(1)
-        Else
-            PickSourceFile = ""
-        End If
-    End With
-End Function
-
 Public Function GetImportRootFolder() As String
     Dim fso As Object
     Set fso = CreateObject("Scripting.FileSystemObject")
@@ -605,7 +684,6 @@ Public Function GetImportRootFolder() As String
     If Len(Trim$(up)) > 0 Then
         candidates.Add up & "\" & CommonCompanyNameText() & "\" & docFolder & "\" & subPath
     End If
-    candidates.Add "C:\Users\n-morimoto\" & CommonCompanyNameText() & "\" & docFolder & "\" & subPath
 
     Dim p As Variant
     For Each p In candidates
@@ -783,17 +861,23 @@ End Function
 Public Function OpenWorkbookReadOnly(ByVal filePath As String, _
                                       ByRef openedHere As Boolean) As Workbook
     openedHere = False
+    mLastOpenNameConflict = False
 
-    Dim nm As String
-    nm = Mid$(filePath, InStrRev(filePath, "\") + 1)
-
+    ' 開いているブックはフルパスで照合する(以前はファイル名だけで照合しており、
+    ' 別フォルダにある同名ブックを取り込んでしまうことがあった)。
+    Dim nameConflict As Boolean
     Dim wb As Workbook
-    For Each wb In Application.Workbooks
-        If StrComp(wb.Name, nm, vbTextCompare) = 0 Then
-            Set OpenWorkbookReadOnly = wb
-            Exit Function
-        End If
-    Next wb
+    Set wb = CommonFindOpenWorkbook(filePath, nameConflict)
+    If Not wb Is Nothing Then
+        Set OpenWorkbookReadOnly = wb
+        Exit Function
+    End If
+    If nameConflict Then
+        mLastOpenNameConflict = True
+        LogCI "same-name workbook is already open: " & filePath
+        MsgBox SameNameWorkbookOpenText() & vbCrLf & filePath, vbExclamation
+        Exit Function
+    End If
 
     On Error Resume Next
     Set wb = Application.Workbooks.Open(fileName:=filePath, ReadOnly:=True, UpdateLinks:=0)

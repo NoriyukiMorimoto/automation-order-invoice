@@ -434,10 +434,6 @@ Private Function IsConditionDxExclusiveRow(ByVal rowIndex As Long) As Boolean
     IsConditionDxExclusiveRow = (rowIndex = 10) Or (rowIndex >= 18 And rowIndex <= 33) Or (rowIndex = 38)
 End Function
 
-Private Function IsConditionEVerticalPairRow(ByVal rowIndex As Long) As Boolean
-    IsConditionEVerticalPairRow = (rowIndex = 34) Or (rowIndex = 35)
-End Function
-
 Private Function IsConditionDxLeftSideColumn(ByVal colIndex As Long) As Boolean
     IsConditionDxLeftSideColumn = (colIndex > 0 And colIndex <= CONDITION_CHECKBOX_LEFT_MAX_COL And _
                                    colIndex <> CONDITION_CHECKBOX_E_COL)
@@ -515,11 +511,6 @@ Private Function IsConditionExclusiveCheckbox(ByVal cb As Object, ByVal ws As Wo
         ' Row-38 controls may anchor to rows 37-39.
         IsConditionExclusiveCheckbox = True
     End If
-End Function
-
-' Exclusive target rows (D/X: 10,18-33,38 / E vertical pair: 34,35)
-Private Function IsConditionExclusiveRow(ByVal r As Long) As Boolean
-    IsConditionExclusiveRow = IsConditionDxExclusiveRow(r) Or IsConditionEVerticalPairRow(r)
 End Function
 
 ' Assign exclusive-click macro to condition-sheet checkboxes
@@ -688,6 +679,8 @@ Private Sub NormalizeConditionCheckboxPairs(ByVal ws As Worksheet)
     Set processed = CreateObject("Scripting.Dictionary")
     processed.CompareMode = vbTextCompare
 
+    Dim prevEnableEvents As Boolean
+    prevEnableEvents = Application.EnableEvents
     Application.EnableEvents = False
     Dim cb As Object
     For Each cb In ws.CheckBoxes
@@ -713,7 +706,7 @@ Private Sub NormalizeConditionCheckboxPairs(ByVal ws As Worksheet)
             End If
         End If
     Next cb
-    Application.EnableEvents = True
+    Application.EnableEvents = prevEnableEvents
     On Error GoTo 0
 End Sub
 
@@ -738,13 +731,15 @@ Private Sub FixConditionE34E35Pair(ByVal ws As Worksheet)
     cb35.OnAction = "'" & ThisWorkbook.Name & "'!ConditionCheckboxExclusiveClick"
     On Error GoTo 0
 
+    Dim prevEnableEvents As Boolean
+    prevEnableEvents = Application.EnableEvents
     Application.EnableEvents = False
     If cb34.Value = xlOn And cb35.Value = xlOn Then
         cb35.Value = xlOff
     ElseIf cb34.Value <> xlOn And cb35.Value <> xlOn Then
         cb34.Value = xlOn
     End If
-    Application.EnableEvents = True
+    Application.EnableEvents = prevEnableEvents
 End Sub
 
 ' 受注者用シートへのヘッダー転記。共通項目(S1/Q2/行20-34など)は
@@ -927,9 +922,9 @@ Private Sub WriteHeaderValueRight(ByVal target As Range, ByVal value As Variant)
     Dim writeCell As Range
     Set writeCell = target.MergeArea.Cells(1, 1)
     If IsError(value) Then
-        writeCell.ClearContents
+        writeCell.MergeArea.ClearContents
     ElseIf Len(Trim$(CStr(value))) = 0 Then
-        writeCell.ClearContents
+        writeCell.MergeArea.ClearContents
     Else
         writeCell.value = value
     End If
@@ -943,9 +938,9 @@ Private Sub WriteHeaderValueLeft(ByVal target As Range, ByVal value As Variant)
     Dim writeCell As Range
     Set writeCell = target.MergeArea.Cells(1, 1)
     If IsError(value) Then
-        writeCell.ClearContents
+        writeCell.MergeArea.ClearContents
     ElseIf Len(Trim$(CStr(value))) = 0 Then
-        writeCell.ClearContents
+        writeCell.MergeArea.ClearContents
     Else
         writeCell.value = value
     End If
@@ -960,9 +955,9 @@ Private Sub WriteHeaderValueBottom(ByVal target As Range, ByVal value As Variant
     Set writeCell = target.MergeArea.Cells(1, 1)
 
     If IsError(value) Then
-        writeCell.ClearContents
+        writeCell.MergeArea.ClearContents
     ElseIf Len(Trim$(CStr(value))) = 0 Then
-        writeCell.ClearContents
+        writeCell.MergeArea.ClearContents
     Else
         writeCell.value = value
     End If
@@ -976,9 +971,9 @@ Private Sub WriteHeaderDateGregorian(ByVal target As Range, ByVal value As Varia
     Dim writeCell As Range
     Set writeCell = target.MergeArea.Cells(1, 1)
     If IsError(value) Then
-        writeCell.ClearContents
+        writeCell.MergeArea.ClearContents
     ElseIf Len(Trim$(CStr(value))) = 0 Then
-        writeCell.ClearContents
+        writeCell.MergeArea.ClearContents
     Else
         writeCell.value = value
         If IsDate(value) Then
@@ -1120,7 +1115,7 @@ Private Sub WriteAttachment3VendorName(ByVal target As Range, ByVal vendorName A
 
     writeCell.NumberFormat = "@"
     If Len(Trim$(vendorName)) = 0 Then
-        writeCell.ClearContents
+        writeCell.MergeArea.ClearContents
     Else
         writeCell.value = vendorName
     End If
@@ -1552,9 +1547,9 @@ Private Sub WriteHeaderValue(ByVal target As Range, ByVal value As Variant, ByVa
     Set writeCell = target.MergeArea.Cells(1, 1)
 
     If IsError(value) Then
-        writeCell.ClearContents
+        writeCell.MergeArea.ClearContents
     ElseIf Len(Trim$(CStr(value))) = 0 Then
-        writeCell.ClearContents
+        writeCell.MergeArea.ClearContents
     Else
         writeCell.value = value
     End If
@@ -1569,7 +1564,7 @@ Private Sub WriteHeaderText(ByVal target As Range, ByVal textValue As String, By
 
     writeCell.NumberFormat = "@"
     If Len(Trim$(textValue)) = 0 Then
-        writeCell.ClearContents
+        writeCell.MergeArea.ClearContents
     Else
         writeCell.value = textValue
     End If
@@ -1583,9 +1578,9 @@ Private Sub WriteHeaderDate(ByVal target As Range, ByVal value As Variant)
     Set writeCell = target.MergeArea.Cells(1, 1)
 
     If IsError(value) Then
-        writeCell.ClearContents
+        writeCell.MergeArea.ClearContents
     ElseIf Len(Trim$(CStr(value))) = 0 Then
-        writeCell.ClearContents
+        writeCell.MergeArea.ClearContents
     Else
         writeCell.value = value
         If IsDate(value) Then

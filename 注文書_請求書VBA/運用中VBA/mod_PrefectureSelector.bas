@@ -91,6 +91,8 @@ Public Sub SelectPrefectureForBasicInfo()
     On Error GoTo CleanExit
 
     mod_BasicInfoGuide.OnCellChanged wsInfo, wsInfo.Range(PREF_CELL)
+    ' イベント停止中に書き込むため、生成済み注文書のヘッダー(施工場所)へ明示的に反映する
+    mod_OrderTpl_Header.HandleBasicInfoHeaderSourceChange wsInfo, wsInfo.Range(PREF_CELL)
 
 CleanExit:
     Application.EnableEvents = prevEvents

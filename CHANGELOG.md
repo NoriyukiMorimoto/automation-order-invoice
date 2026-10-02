@@ -5,6 +5,48 @@
 
 ---
 
+## コードレビューに基づく不具合修正・高速化・整理（2026-10-02）
+
+全モジュールのレビュー結果（不具合・高速化・冗長・未使用）のうち、優先度の高いものを反映。
+
+### 不具合（データ消失・誤書込み）
+- `Sheet1`: B6/C6 に同じ値を入れ直しただけ（F2+Enter、同じ項目の再選択）で `SilentClearBasicInfo` が走り、基本情報と生成済みシートが消えていた。直前値を保持し、値が変わったときだけクリアする。
+- `mod_VendorMaster.ClearVendorList`: 業者マスタが読めない（OneDrive 未同期・オフライン）だけで全業者ブロックを消去していた。業者一覧と入力規則の片付けのみにする。
+- `mod_MaterialPriceImport`: 単価取込で線区選択をキャンセル・中断すると前回の単価シートが消えたままだった。既存単価シートのクリアを線区選択の確定後へ移動。溶接単価だけ失敗しても単価表の取込は確定させ、実行時エラーはメッセージを出す。
+- `mod_Construction_Import_Load`: 施工指示書を複数ファイル同時に取り込むと、購入充当シートがファイルごとに作り直され最後のファイル分しか残らなかった。購入充当行をファイルをまたいで貯め、最後に1回だけ作成する。
+- `OpenWorkbookReadOnly`: 開いているブックをファイル名だけで照合しており、別フォルダの同名ブックを取り込んでいた。フルパスで照合し、同名の別ブックが開いているときは中止して案内する（`mod_common.CommonFindOpenWorkbook` / `CommonOpenWorkbookReadOnly` を追加）。
+- `mod_Construction_OutputFormat.FillReferenceUnitPrices`: 既存シートの参照単価再読込で列を固定定数で決めていたため、施工会社が1社以外のシートでは「単価比較」列や他社の金額列に書き込んでいた。「単価比較」見出しから列を求める。取込時のオートフィルタ範囲も同様。
+- `mod_OrderTpl_Header`: 結合セルの左上1セルだけを `ClearContents` して 1004 になり、空欄にした項目以降のヘッダー転記が止まっていた。`MergeArea.ClearContents` に変更（`mod_OrderTpl_Shared` も同様）。
+- `mod_Construction_LineMapping`: 「貨物線」除外の「貨」が `ChrW$(&H8CA)`（別文字）になっていた。`&H8CA8` に修正。
+- `mod_OrderTpl_Detail`: 取込シートのデータが1行だけのとき単価列が配列にならず型不一致で内訳明細が空になっていた。
+- `mod_common.CommonNzText`: セルのエラー値（#N/A 等）で型不一致になり各処理が止まっていた。空文字として扱う。
+- `mod_MaterialPriceImport`: 購入充当シートの照合に部分一致が残っており、キー "01" が "101" 等にも一致して単価行が重複していた。部分一致を廃止。
+- 工事番号選択・都道府県選択はイベント停止中に書き込むため、生成済み注文書のヘッダーへ反映されていなかった。`HandleBasicInfoHeaderSourceChange` を明示的に呼ぶ。
+- 工事番号選択フォーム: Show 前に一覧データを消していたため検索の絞り込みが効かなかった。
+- `mod_VendorUnitPrice`: 外注単価の数式を `IFERROR(...,0)` で包む（単価元0・比率0で #NUM! になり集計まで壊れていた）。
+- 単価ブック・業者マスタ・テンプレートの読込で、ユーザーが開いているブックを保存せずに閉じていた。自分で開いたものだけ閉じる。テンプレート生成がエラーで止まったときもテンプレートブックを閉じる。
+
+### イベント停止・手動計算のまま残る
+- `mod_VendorBlockLayout.SyncVendorBlocksFromCount`: 途中の `On Error GoTo 0` で ExitHandler が外れ、同期中フラグが残って全シートの変更イベントが無視されていた。
+- `mod_OrderTpl_Header`（チェックボックス正規化2か所）/ `mod_OrderTpl_Detail`（Quiet 節）: 元の値を保存せずに `EnableEvents = True` にしていた。
+- `mod_OrderTpl_Generate.RunScheduledVendorSheetGeneration`: エラー処理が無かった。`clsPerfGuard` とエラーハンドラで必ず復元。
+- `mod_Construction_SubconPrice.RefreshSubcontractorPriceColumnsCore` / 工事番号選択フォーム: 途中の `On Error GoTo 0` でエラー時の復元処理を通らなかった。
+
+### 高速化
+- 工事件名別マスタの線区名ペアをキャッシュ（取込・参照単価再読込の開始時に破棄）。
+- 溶接単価シート名の解決（単価マスタへの ADO 接続）を支店|出張所ごとに120秒キャッシュ。行ごとの接続を解消。
+- C21 選択時の工事件名リスト読込を線区区分ごとに5分キャッシュ。
+- `GetLastDataRow`: オートフィルタ付きシートで最大100万セルを1つずつ読んでいたループを削除。
+- 列全体の削除・貼付けで約100万セルを処理していた2か所（施工会社列・工事単価シート）を使用範囲に限定。施工会社列は200行超なら一括更新。
+- 基本情報シートのガイド再構築を、シートを開くたびではなく初回のみに。選択時ログのためだけの OLEObjects 検索を削除。
+- 基本情報クリアのたびに `ClearBasicInfo_diag.log` をブックのフォルダへ追記していた診断コードを削除。
+
+### 整理
+- 呼び出し元の無いプロシージャ31件、未使用の `Public SharedMasterData`（2か所）、同名の Public 定数を隠していた Private 定数2件を削除。
+- `mod_common.bas` のコメントの文字化けを修正。
+
+---
+
 ## 性能改善 in-place更新の残りボトルネック削減（2026-07-21）
 
 ### #1 ApplyVendorSheetHeaders / 集計フッター / 合計更新

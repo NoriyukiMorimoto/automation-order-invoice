@@ -29,10 +29,6 @@ Private mLastComboListIndex As Long
 Private mDropdownInteracted As Boolean
 Private mInCellDropdownPrompt As Boolean
 
-Public Function IsPromptingCellDropdown() As Boolean
-    IsPromptingCellDropdown = mInCellDropdownPrompt
-End Function
-
 Public Function IsCellDropdownSessionOpen(ByVal wsInfo As Worksheet) As Boolean
     If wsInfo Is Nothing Then Exit Function
     If Len(mCellDropdownTargetAddress) > 0 Then

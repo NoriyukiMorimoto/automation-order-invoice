@@ -4,6 +4,9 @@ Private Const SUBCON_DATA_START_ROW As Long = 2
 
 Private mSubconSavedSel As Range
 
+' 施工会社列の変更を行単位で部分更新する上限行数(超えたら一括更新)
+Private Const MONITOR_PARTIAL_ROW_LIMIT As Long = 200
+
 Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     On Error Resume Next
     mod_WorkbookOptimize.OptimizeWorkbookSilent ThisWorkbook
@@ -214,6 +217,24 @@ Private Function CollectMonitorChangeRows(ByVal ws As Worksheet, ByVal hitRange 
     Dim result As New Collection
     If hitRange Is Nothing Then
         Set CollectMonitorChangeRows = result
+        Exit Function
+    End If
+
+    ' 使用範囲より下の行は対象外(列全体の操作で100万行を回さない)
+    Dim usedLastRow As Long
+    usedLastRow = ws.UsedRange.Row + ws.UsedRange.Rows.Count - 1
+    If usedLastRow < SUBCON_DATA_START_ROW Then
+        Set CollectMonitorChangeRows = result
+        Exit Function
+    End If
+    Set hitRange = Application.Intersect(hitRange, ws.Rows(SUBCON_DATA_START_ROW & ":" & usedLastRow))
+    If hitRange Is Nothing Then
+        Set CollectMonitorChangeRows = result
+        Exit Function
+    End If
+    ' 変更行が多いときは部分更新より一括更新が速いので Nothing を返す(呼び出し側で全行処理)
+    If hitRange.Rows.CountLarge > MONITOR_PARTIAL_ROW_LIMIT Then
+        Set CollectMonitorChangeRows = Nothing
         Exit Function
     End If
 

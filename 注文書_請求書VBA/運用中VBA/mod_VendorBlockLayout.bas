@@ -704,7 +704,7 @@ Public Sub SyncVendorBlocksFromCount(ByVal wsInfo As Worksheet)
     If vendorCount <> previousCount Then
         On Error Resume Next
         mod_Construction_Order_Import.RefreshBasicInfoConstructionTotals
-        On Error GoTo 0
+        On Error GoTo ExitHandler
     End If
 
     If vendorBlocksEnsured Or vendorCount > previousCount Then

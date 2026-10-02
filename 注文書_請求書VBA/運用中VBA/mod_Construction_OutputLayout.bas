@@ -3,6 +3,12 @@ Option Explicit
 ' ????: CHANGELOG.md ??
 ' mod_Construction_OutputLayout (split from mod_Construction_Order_Import)
 
+' ResolveWeldingPriceSheetName ‚ÌŒ‹‰ÊƒLƒƒƒbƒVƒ…(Žx“X|o’£Š‚²‚ÆAWELD_NAME_CACHE_SECONDS •b—LŒø)
+Private Const WELD_NAME_CACHE_SECONDS As Double = 120
+Private mWeldNameCacheKey As String
+Private mWeldNameCacheValue As String
+Private mWeldNameCacheTime As Double
+
 Public Function IsManagedConstructionImportOutputSheetCore(ByVal ws As Worksheet) As Boolean
     IsManagedConstructionImportOutputSheetCore = mod_Construction_Import_Load.IsManagedImportOutputSheet(ws)
 End Function
@@ -314,6 +320,15 @@ Public Function ResolveWeldingPriceSheetName() As String
     officeName = CommonRemoveAllSpaces(CommonNzText(wsInfo.Range(BASIC_INFO_OFFICE_CELL).value))
     If BranchName = "" Or officeName = "" Then Exit Function
 
+    Dim cacheKey As String
+    cacheKey = BranchName & "|" & officeName
+    If Len(mWeldNameCacheKey) > 0 And mWeldNameCacheKey = cacheKey Then
+        If Abs(Timer - mWeldNameCacheTime) < WELD_NAME_CACHE_SECONDS Then
+            ResolveWeldingPriceSheetName = mWeldNameCacheValue
+            Exit Function
+        End If
+    End If
+
     Dim masterPath As String
     Dim connection As Object
     Set connection = OpenUnitPriceMasterAdoConnection(masterPath)
@@ -355,6 +370,9 @@ Cleanup:
     End If
     CommonCloseAdoRecordset recordset
     CommonCloseAdoConnection connection
+    mWeldNameCacheKey = cacheKey
+    mWeldNameCacheValue = resultName
+    mWeldNameCacheTime = Timer
     ResolveWeldingPriceSheetName = resultName
 End Function
 

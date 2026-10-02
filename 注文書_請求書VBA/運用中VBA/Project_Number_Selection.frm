@@ -3,13 +3,6 @@ Option Explicit
 Public SelectionConfirmed As Boolean
 Private SharedMasterData As Variant
 
-Public Sub ClearSharedMasterData()
-    If IsArray(SharedMasterData) Then
-        Erase SharedMasterData
-    End If
-    SharedMasterData = Empty
-End Sub
-
 Private Sub UserForm_Initialize()
     SelectionConfirmed = False
     SetupListView
@@ -312,13 +305,13 @@ Private Sub SetBasicInfoProjectSelection(ByVal projectNo As String, ByVal projec
     Dim targetWs As Worksheet
     On Error Resume Next
     Set targetWs = ThisWorkbook.worksheets(ProjectSelectionTargetSheetName)
-    On Error GoTo 0
+    On Error GoTo ErrorHandler
     If targetWs Is Nothing Then Set targetWs = ActiveCell.Worksheet
 
     Dim targetCell As Range
     On Error Resume Next
     Set targetCell = targetWs.Range(ProjectSelectionTargetAddress)
-    On Error GoTo 0
+    On Error GoTo ErrorHandler
     If targetCell Is Nothing Then Set targetCell = targetWs.Range("C9")
 
     Dim projectDetail As String
@@ -348,7 +341,7 @@ Private Sub SetBasicInfoProjectSelection(ByVal projectNo As String, ByVal projec
             End If
         End If
         Err.Clear
-        On Error GoTo 0
+        On Error GoTo ErrorHandler
     End If
 
     Application.EnableEvents = False
@@ -364,6 +357,7 @@ Private Sub SetBasicInfoProjectSelection(ByVal projectNo As String, ByVal projec
     ' ????(C9)??EnableEvents=False???????Change???????
     ' ???(???????)???????????????????
     mod_BasicInfoGuide.OnCellChanged targetWs, targetWs.Range("C9")
+    mod_OrderTpl_Header.HandleBasicInfoHeaderSourceChange targetWs, targetWs.Range("C9:C16")
     Application.EnableEvents = previousEnableEvents
 
     SelectionConfirmed = True
@@ -686,12 +680,3 @@ Private Function ProjectStatusDetailYearHintText() As String
     ProjectStatusDetailYearHintText = cached
 End Function
 
-Private Function ProjectStatusDetailFolderNotFoundText() As String
-    Static cached As String
-    If cached = "" Then
-        cached = ChrW$(&H30DE) & ChrW$(&H30B9) & ChrW$(&H30BF) & ChrW$(&H30C7) & ChrW$(&H30FC) & ChrW$(&H30BF) & _
-                 "\" & ChrW$(&H3010) & ChrW$(&H5404) & ChrW$(&H652F) & ChrW$(&H5E97) & ChrW$(&H5DE5) & ChrW$(&H4E8B) & _
-                 ChrW$(&H756A) & ChrW$(&H53F7) & ChrW$(&H30C7) & ChrW$(&H30FC) & ChrW$(&H30BF) & ChrW$(&H3011)
-    End If
-    ProjectStatusDetailFolderNotFoundText = cached
-End Function

@@ -1,6 +1,5 @@
 Option Explicit
 
-Public SharedMasterData As Variant
 Private mClearingImportedLineNames As Boolean
 Private mImportingUnitPriceData As Boolean
 ' 直近の単価表取込1回分を識別するID。取込開始時に採番し、生成した各シートの
@@ -111,11 +110,6 @@ Private Sub LogUP(ByVal msg As String)
     mod_DebugLog.Log "[UnitPrice] " & msg
     On Error GoTo 0
 End Sub
-
-Private Function LogUPB(ByVal msg As String, ByVal returnValue As Boolean) As Boolean
-    LogUP msg
-    LogUPB = returnValue
-End Function
 
 Public Function GetMasterFilePath() As String
     Dim fso As Object
@@ -308,7 +302,7 @@ Public Sub RefreshUnitPriceProjectNameValidation(Optional ByVal wsInfo As Worksh
     Dim lineType As String
     lineType = CommonNormalizeText(CStr(wsInfo.Range(BASIC_INFO_LINE_TYPE_CELL).value))
     Dim projectNames As Collection
-    Set projectNames = LoadUnitPriceProjectNamesForBasicInfo(GetMasterFilePath(), lineType)
+    Set projectNames = GetCachedUnitPriceProjectNames(lineType)
     If projectNames Is Nothing Then
         ClearUnitPriceProjectNameValidation wsInfo, True
         Exit Sub
@@ -325,6 +319,24 @@ Public Sub RefreshUnitPriceProjectNameValidation(Optional ByVal wsInfo As Worksh
 ErrorHandler:
     ClearUnitPriceProjectNameValidation wsInfo, True
 End Sub
+
+' 単価用の工事件名リストを線区区分ごとに短時間キャッシュする(C21 の選択のたびにマスタを読まない)。
+Private Function GetCachedUnitPriceProjectNames(ByVal lineType As String) As Collection
+    Static cacheKey As String
+    Static cacheValue As Collection
+    Static cacheTime As Double
+    If Not cacheValue Is Nothing Then
+        If cacheKey = lineType And Abs(Timer - cacheTime) < 300 Then
+            Set GetCachedUnitPriceProjectNames = cacheValue
+            Exit Function
+        End If
+    End If
+
+    Set cacheValue = LoadUnitPriceProjectNamesForBasicInfo(GetMasterFilePath(), lineType)
+    cacheKey = lineType
+    cacheTime = Timer
+    Set GetCachedUnitPriceProjectNames = cacheValue
+End Function
 
 Public Sub ImportConstructionUnitPriceForBasicInfo()
     LogUP "ImportConstructionUnitPriceForBasicInfo 開始"
@@ -345,13 +357,8 @@ Public Sub ClearAndImportUnitPriceForBasicInfo(ByVal ws As Worksheet)
     mImportingUnitPriceData = True
     On Error GoTo FinallyExit
 
-    ' 既存の単価表/購入充当単価/レール溶接単価シートを残したまま新規取込みすると、
-    ' シートが積み上がって書式(セルスタイル)数がExcelの上限に近づき、
-    ' 新しいシートの.Copyが失敗する原因になる。運用上も参照は常に最後に
-    ' 取り込んだ単価シートからのみ行うため、取込み前に必ずクリアする。
-    LogUP "ClearAndImportUnitPriceForBasicInfo: 既存単価シートをクリア"
-    SilentClearUnitPriceForBasicInfo ws
-
+    ' 既存単価シートのクリアは ImportUnitPriceData 内で線区選択が確定した後に行う
+    ' (マスタ未検出・選択キャンセルで中断したときに前回の単価シートを残すため)。
     ImportUnitPriceData ws
 FinallyExit:
     mImportingUnitPriceData = False
@@ -438,6 +445,14 @@ Private Sub ImportUnitPriceData(ByVal wsInfo As Worksheet)
     LogUP "PromptLineNameSelection: 選択件数=" & CStr(selectedSheetNames.Count) & _
           " 選択=[" & JoinCollectionText(selectedSheetNames, "|") & "]"
 
+    ' 既存の単価表/購入充当単価/レール溶接単価シートを残したまま新規取込みすると、
+    ' シートが積み上がって書式(セルスタイル)数がExcelの上限に近づき、
+    ' 新しいシートの.Copyが失敗する原因になる。運用上も参照は常に最後に
+    ' 取り込んだ単価シートからのみ行うため、取込み前に必ずクリアする。
+    ' (線区選択の確定後に行う。キャンセル・中断時は前回の単価シートを残す)
+    LogUP "ImportUnitPriceData: clear existing unit price sheets"
+    SilentClearUnitPriceForBasicInfo wsInfo
+
     Dim previousScreenUpdating As Boolean
     Dim previousCalculation As XlCalculation
     Dim previousEnableEvents As Boolean
@@ -468,8 +483,8 @@ Private Sub ImportUnitPriceData(ByVal wsInfo As Worksheet)
     Dim weldingSheetName As String
     LogUP "ImportWeldingUnitPriceSheetsIfRequired 呼び出し"
     If Not ImportWeldingUnitPriceSheetsIfRequired(wsInfo, masterRow, priceFolderPath, sectionFolderPath, selectedSheetNames, wsInfo.Parent, weldingSheetName) Then
-        LogUP "ImportWeldingUnitPriceSheetsIfRequired -> False 中断"
-        GoTo ImportHeavyCleanup
+        LogUP "ImportWeldingUnitPriceSheetsIfRequired -> False (continue without welding sheet)"
+        weldingSheetName = ""
     End If
     LogUP "ImportWeldingUnitPriceSheetsIfRequired -> True createdSheet=[" & weldingSheetName & "]"
 
@@ -500,9 +515,17 @@ Private Sub ImportUnitPriceData(ByVal wsInfo As Worksheet)
     MsgBox BuildImportCompleteMessage(selectedSheetNames, JoinCollectionText(sourceFilePaths, vbCrLf), purchaseSheetName, weldingSheetName), vbInformation, UiMsgImportCompleteTitleText()
 
 ImportHeavyCleanup:
+    Dim importErrNo As Long
+    Dim importErrDesc As String
+    importErrNo = Err.Number
+    importErrDesc = Err.Description
     Application.screenUpdating = previousScreenUpdating
     Application.Calculation = previousCalculation
     Application.EnableEvents = previousEnableEvents
+    If importErrNo <> 0 Then
+        LogUP "ImportUnitPriceData Err " & importErrNo & ": " & importErrDesc
+        MsgBox UiMsgUnitPriceImportFailedText() & vbCrLf & importErrDesc, vbExclamation
+    End If
 End Sub
 
 Private Function TryReadUnitPriceRequest(ByVal wsInfo As Worksheet, ByRef request As UnitPriceRequest) As Boolean
@@ -682,7 +705,8 @@ Private Function TryLoadUnitPriceMasterRowFromWorkbook(ByVal sourceFilePath As S
     Application.screenUpdating = False
     Application.Calculation = xlCalculationManual
 
-    Set sourceBook = Workbooks.Open(fileName:=sourceFilePath, ReadOnly:=True, UpdateLinks:=False, AddToMru:=False)
+    Dim bookOpenedHere As Boolean
+    Set sourceBook = OpenUnitPriceSourceBook(sourceFilePath, bookOpenedHere)
     Set sourceSheet = FindWorksheetByName(sourceBook, MASTER_SHEET_NAME)
     If sourceSheet Is Nothing Then GoTo Cleanup
 
@@ -721,7 +745,7 @@ Private Function TryLoadUnitPriceMasterRowFromWorkbook(ByVal sourceFilePath As S
 
 Cleanup:
     On Error Resume Next
-    If Not sourceBook Is Nothing Then sourceBook.Close SaveChanges:=False
+    If bookOpenedHere And Not sourceBook Is Nothing Then sourceBook.Close SaveChanges:=False
     Application.DisplayAlerts = previousDisplayAlerts
     Application.screenUpdating = previousScreenUpdating
     Application.Calculation = previousCalculation
@@ -983,6 +1007,19 @@ Private Function FindOpenWorkbookByPath(ByVal sourceFilePath As String) As Workb
     Next wb
 End Function
 
+' 既に開いていればそれを返し openedHere=False。呼び出し側は openedHere のときだけ閉じる
+' (ユーザーが開いている単価ブックを保存せずに閉じてしまうのを防ぐ)。
+Private Function OpenUnitPriceSourceBook(ByVal sourceFilePath As String, ByRef openedHere As Boolean) As Workbook
+    openedHere = False
+    Dim wb As Workbook
+    Set wb = FindOpenWorkbookByPath(sourceFilePath)
+    If wb Is Nothing Then
+        Set wb = Workbooks.Open(fileName:=sourceFilePath, ReadOnly:=True, UpdateLinks:=False, AddToMru:=False)
+        openedHere = Not wb Is Nothing
+    End If
+    Set OpenUnitPriceSourceBook = wb
+End Function
+
 Private Function LoadWorksheetNamesFromWorkbookByAdo(ByVal sourceFilePath As String) As Collection
     Dim cn As Object
 
@@ -1158,6 +1195,9 @@ Private Function ImportSelectedUnitPriceSheets(ByVal selectedSheetNames As Colle
     Set targetSheetNames = New Collection
     Set openedSourceBooks = CreateObject("Scripting.Dictionary")
     openedSourceBooks.CompareMode = vbTextCompare
+    Dim booksToClose As Object
+    Set booksToClose = CreateObject("Scripting.Dictionary")
+    booksToClose.CompareMode = vbTextCompare
 
     On Error GoTo ErrorHandler
     previousDisplayAlerts = Application.DisplayAlerts
@@ -1182,8 +1222,10 @@ Private Function ImportSelectedUnitPriceSheets(ByVal selectedSheetNames As Colle
         If openedSourceBooks.Exists(sourceFilePath) Then
             Set sourceBook = openedSourceBooks(sourceFilePath)
         Else
-            Set sourceBook = Workbooks.Open(fileName:=sourceFilePath, ReadOnly:=True, UpdateLinks:=False, AddToMru:=False)
+            Dim sourceOpenedHere As Boolean
+            Set sourceBook = OpenUnitPriceSourceBook(sourceFilePath, sourceOpenedHere)
             openedSourceBooks.Add sourceFilePath, sourceBook
+            If sourceOpenedHere Then booksToClose.Add sourceFilePath, sourceBook
         End If
 
         sourceBook.worksheets(sourceSheetName).Copy After:=targetBook.worksheets(targetBook.worksheets.Count)
@@ -1215,8 +1257,8 @@ Private Function ImportSelectedUnitPriceSheets(ByVal selectedSheetNames As Colle
 Cleanup:
     On Error Resume Next
     Dim openedKey As Variant
-    For Each openedKey In openedSourceBooks.Keys
-        openedSourceBooks(openedKey).Close SaveChanges:=False
+    For Each openedKey In booksToClose.Keys
+        booksToClose(openedKey).Close SaveChanges:=False
     Next openedKey
     Set sourceBook = Nothing
     If Not ImportSelectedUnitPriceSheets Then DeleteStagedWorksheets stagedSheets
@@ -1250,7 +1292,8 @@ Private Function ImportAndMergePurchaseUnitPriceSheets(ByVal sourceFilePath As S
     Application.screenUpdating = False
     Application.Calculation = xlCalculationManual
 
-    Set sourceBook = Workbooks.Open(fileName:=sourceFilePath, ReadOnly:=True, UpdateLinks:=False, AddToMru:=False)
+    Dim bookOpenedHere As Boolean
+    Set sourceBook = OpenUnitPriceSourceBook(sourceFilePath, bookOpenedHere)
 
     Dim isFirst As Boolean
     isFirst = True
@@ -1283,7 +1326,7 @@ Private Function ImportAndMergePurchaseUnitPriceSheets(ByVal sourceFilePath As S
 
 Cleanup:
     On Error Resume Next
-    If Not sourceBook Is Nothing Then sourceBook.Close SaveChanges:=False
+    If bookOpenedHere And Not sourceBook Is Nothing Then sourceBook.Close SaveChanges:=False
     If Not ImportAndMergePurchaseUnitPriceSheets Then
         If Not newSheet Is Nothing Then newSheet.Delete
     End If
@@ -1317,7 +1360,8 @@ Private Function ImportAndMergeWeldingUnitPriceSheets(ByVal sourceFilePath As St
     Application.screenUpdating = False
     Application.Calculation = xlCalculationManual
 
-    Set sourceBook = Workbooks.Open(fileName:=sourceFilePath, ReadOnly:=True, UpdateLinks:=False, AddToMru:=False)
+    Dim bookOpenedHere As Boolean
+    Set sourceBook = OpenUnitPriceSourceBook(sourceFilePath, bookOpenedHere)
 
     Dim isFirst As Boolean
     isFirst = True
@@ -1351,7 +1395,7 @@ Private Function ImportAndMergeWeldingUnitPriceSheets(ByVal sourceFilePath As St
 
 Cleanup:
     On Error Resume Next
-    If Not sourceBook Is Nothing Then sourceBook.Close SaveChanges:=False
+    If bookOpenedHere And Not sourceBook Is Nothing Then sourceBook.Close SaveChanges:=False
     If Not ImportAndMergeWeldingUnitPriceSheets Then
         If Not newSheet Is Nothing Then newSheet.Delete
     End If
@@ -1644,8 +1688,7 @@ Private Function PurchaseSheetNameMatchesReferenceKey(ByVal sheetName As String,
     If a = "" Or b = "" Then Exit Function
     PurchaseSheetNameMatchesReferenceKey = (a = b Or _
                                             Left$(a, Len(b) + 1) = b & "-" Or _
-                                            Left$(a, Len(b) + 1) = b & "_" Or _
-                                            InStr(1, a, b, vbTextCompare) > 0)
+                                            Left$(a, Len(b) + 1) = b & "_")
 End Function
 
 Private Function BuildPurchaseReferenceKey(ByVal sectionFolderPath As String) As String
@@ -1909,11 +1952,6 @@ Public Sub SilentClearUnitPriceForBasicInfo(ByVal wsInfo As Worksheet)
     FormatImportedLineNamesCell wsInfo
 End Sub
 
-'  HandleImportedLineNamesCellChange
-Public Function IsClearingImportedLineNames() As Boolean
-    IsClearingImportedLineNames = mClearingImportedLineNames
-End Function
-
 Public Sub HandleImportedLineNamesCellChange(ByVal wsInfo As Worksheet, ByVal changedRange As Range)
     If wsInfo Is Nothing Or changedRange Is Nothing Then Exit Sub
     If mClearingImportedLineNames Then Exit Sub
@@ -2084,20 +2122,6 @@ Private Function IsImportedUnitPriceSheetByMarker(ByVal targetSheet As Worksheet
         (CStr(targetSheet.Range(IMPORTED_SHEET_MARKER_ADDRESS).value) = IMPORTED_SHEET_MARKER_VALUE) Or _
         (CStr(targetSheet.Range(IMPORTED_SHEET_LEGACY_MARKER_ADDRESS).value) = IMPORTED_SHEET_MARKER_VALUE)
     On Error GoTo 0
-End Function
-
-Private Function IsImportedUnitPriceSheetByTabColor(ByVal targetSheet As Worksheet) As Boolean
-    On Error Resume Next
-    If targetSheet.Tab.ColorIndex = xlColorIndexNone Then Exit Function
-    On Error GoTo 0
-
-    Dim tabColor As Long
-    tabColor = targetSheet.Tab.Color
-
-    IsImportedUnitPriceSheetByTabColor = _
-        (tabColor = RGB(UNIT_PRICE_SHEET_TAB_R, UNIT_PRICE_SHEET_TAB_G, UNIT_PRICE_SHEET_TAB_B)) Or _
-        (tabColor = RGB(PURCHASE_SHEET_TAB_R, PURCHASE_SHEET_TAB_G, PURCHASE_SHEET_TAB_B)) Or _
-        (tabColor = RGB(WELDING_SHEET_TAB_R, WELDING_SHEET_TAB_G, WELDING_SHEET_TAB_B))
 End Function
 
 Private Sub MarkImportedUnitPriceSheet(ByVal targetSheet As Worksheet)

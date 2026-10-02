@@ -522,10 +522,9 @@ Private Function LoadManagerListRowsFromWorkbook(ByVal sourceFilePath As String)
     On Error GoTo ErrorHandler
     Application.DisplayAlerts = False
 
-    Set sourceBook = Application.Workbooks.Open(fileName:=sourceFilePath, _
-                                                UpdateLinks:=False, _
-                                                ReadOnly:=True, _
-                                                AddToMru:=False)
+    Dim bookOpenedHere As Boolean
+    Set sourceBook = CommonOpenWorkbookReadOnly(sourceFilePath, bookOpenedHere)
+    If sourceBook Is Nothing Then Err.Raise 91
 
     Dim sourceSheet As Worksheet
     Set sourceSheet = sourceBook.worksheets(1)
@@ -546,7 +545,7 @@ Private Function LoadManagerListRowsFromWorkbook(ByVal sourceFilePath As String)
     Set LoadManagerListRowsFromWorkbook = rows
 
 Cleanup:
-    If Not sourceBook Is Nothing Then sourceBook.Close SaveChanges:=False
+    If bookOpenedHere And Not sourceBook Is Nothing Then sourceBook.Close SaveChanges:=False
     Application.DisplayAlerts = previousDisplayAlerts
     Exit Function
 
@@ -863,8 +862,9 @@ Private Function LoadOfficeChiefRowsFromWorkbook(ByVal sourceFilePath As String)
     On Error GoTo ErrorHandler
     Application.DisplayAlerts = False
 
-    Set sourceBook = Application.Workbooks.Open(fileName:=sourceFilePath, _
-                                                UpdateLinks:=False, ReadOnly:=True, AddToMru:=False)
+    Dim bookOpenedHere As Boolean
+    Set sourceBook = CommonOpenWorkbookReadOnly(sourceFilePath, bookOpenedHere)
+    If sourceBook Is Nothing Then Err.Raise 91
     Dim ws As Worksheet
     Set ws = sourceBook.Worksheets(1)
 
@@ -887,7 +887,7 @@ Private Function LoadOfficeChiefRowsFromWorkbook(ByVal sourceFilePath As String)
     Set LoadOfficeChiefRowsFromWorkbook = rows
 
 Cleanup:
-    If Not sourceBook Is Nothing Then sourceBook.Close SaveChanges:=False
+    If bookOpenedHere And Not sourceBook Is Nothing Then sourceBook.Close SaveChanges:=False
     Application.DisplayAlerts = previousDisplayAlerts
     Exit Function
 

@@ -41,47 +41,6 @@ Public Sub SafeSetRangeNumberFormatLocal(ByVal target As Range, ByVal formatText
     On Error GoTo 0
 End Sub
 
-Public Sub ApplySanpaiRowRestrictionsCore(ByVal ws As Worksheet)
-    If ws Is Nothing Then Exit Sub
-
-    Dim lastRow As Long
-    lastRow = mod_Construction_LineMapping.GetLastDataRow(ws)
-    If lastRow < 2 Then Exit Sub
-
-    Dim fillColor As Long
-    fillColor = mod_Construction_BasicTotals.GetSanpaiFillColor()
-
-    Dim restrictedCount As Long
-    Dim r As Long
-    Dim vendorCol As Variant
-    Dim vendorColumns As Collection
-    Set vendorColumns = mod_Construction_OutputLayout.OutputSheetVendorColumnsCore(ws)
-    For r = 2 To lastRow
-        If mod_Construction_BasicTotals.IsSanpaiRow(ws, r) Then
-            For Each vendorCol In vendorColumns
-                With ws.Cells(r, CLng(vendorCol))
-                    .ClearContents
-                    .Interior.Color = fillColor
-                    With .Validation
-                        .Delete
-                        .Add Type:=xlValidateCustom, AlertStyle:=xlValidAlertStop, _
-                             Formula1:="=FALSE"
-                        .IgnoreBlank = True
-                        .InCellDropdown = False
-                        .ShowInput = False
-                        .ErrorTitle = "“ü—Í•s‰Â"
-                        .ErrorMessage = "ŽY”pˆ—‚Ìs‚ÍŽ{H‰ïŽÐ‚ð“ü—Í‚Å‚«‚Ü‚¹‚ñB"
-                        .ShowError = True
-                    End With
-                End With
-            Next vendorCol
-            restrictedCount = restrictedCount + 1
-        End If
-    Next r
-
-    LogCI "ŽY”ps§ŒÀ: A—ñ“h‚è‚Â‚Ô‚µE“ü—Í•s‰Â=" & restrictedCount & " s"
-End Sub
-
 ' ŽY”ps(Ž{H‰ïŽÐ—ñ‚ª“–‰‘I‘ð‚Å‚«‚È‚©‚Á‚½s)‚ÌA—ñ(Ž{H‰ïŽÐ—ñ)‚ðF•ª‚¯•\Ž¦‚·‚éB
 ' “ü—ÍE‘I‘ð‚Ì§ŒÀ‚Ís‚í‚È‚¢(‘I‘ð‰Â”Û‚Ì§Œä”pŽ~‚É”º‚¢AŽ‹Šo“I‚È‹æ•Ê‚Ì‚Ý‚ðs‚¤)B
 ' “h‚è‚Â‚Ô‚µ=808080A•¶ŽšF=”’B
@@ -298,6 +257,19 @@ Public Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
     autoPriceColumn = mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_AUTO_PRICE)
     autoAmountColumn = mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_AUTO_AMOUNT)
     compareColumn = mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_PRICE_COMPARE)
+    ' ŽæžŒã‚ÍŠO’’P‰¿EŠO’‹àŠz‚Ì2—ñíœ‚ÆŽ{H‰ïŽÐ—ñ(2~ŽÐ”)‚Ì‘}“ü‚ÅˆÊ’u‚ª•Ï‚í‚é‚½‚ßA
+    ' Œ©o‚µu’P‰¿”äŠrv‚ªŒ©‚Â‚©‚ê‚Î‚»‚ê‚ðŠî€‚É‚·‚é(Ž©“®’P‰¿=-2, Ž©“®‹àŠz=-1, ˆÄ“à=+1)B
+    Dim headerCompareColumn As Long
+    headerCompareColumn = mod_Construction_BasicTotals.FindHeaderColumn(ws, ConstructionPriceCompareHeaderText())
+    If headerCompareColumn >= 3 Then
+        compareColumn = headerCompareColumn
+        autoPriceColumn = compareColumn - 2
+        autoAmountColumn = compareColumn - 1
+    End If
+    Dim guidanceColumn As Long
+    Dim jrPriceColumn As Long
+    guidanceColumn = compareColumn + 1
+    jrPriceColumn = mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_JR_PRICE)
 
     Dim typeColumn As Long
     Dim unitColumn As Long
@@ -389,7 +361,8 @@ Public Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
         Else
             ws.Cells(r, autoPriceColumn).value = referencePrice
         End If
-        WritePriceComparison ws, r, unitPriceSheetName, True, guidanceDocumentName
+        mod_Construction_LineMapping.WritePriceComparisonAtColumns _
+            ws, r, unitPriceSheetName, autoPriceColumn, jrPriceColumn, compareColumn, guidanceColumn, True
     Next r
 
     ' ®—”Ô†‚ª’P‰¿ƒ}ƒXƒ^‚É–³‚©‚Á‚½•ª‚ðA‘ÎÛü‹æƒV[ƒg‚ÌÅ‰º•”‚Ö“o˜^‚·‚é
@@ -412,6 +385,13 @@ Public Sub FillReferenceUnitPrices(ByVal ws As Worksheet, _
           " / ®—”Ô†–¢ˆê’v=" & missingRecordCount
 End Sub
 
+' "’P‰¿”äŠr"(o—ÍƒV[ƒg‚ÌŒ©o‚µ)
+Public Function ConstructionPriceCompareHeaderText() As String
+    Static cached As String
+    If Len(cached) = 0 Then cached = ChrW$(&H5358) & ChrW$(&H4FA1) & ChrW$(&H6BD4) & ChrW$(&H8F03)
+    ConstructionPriceCompareHeaderText = cached
+End Function
+
 Public Sub RefreshConstructionReferenceUnitPricesOnExistingSheetsCore()
     Dim g As New clsPerfGuard
     mod_Construction_LineMapping.ClearProjectLineNameAliasCache
@@ -426,11 +406,10 @@ Public Sub RefreshConstructionReferenceUnitPricesOnExistingSheetsCore()
             Dim guidanceDocumentName As String
             guidanceDocumentName = mod_Construction_LineMapping.ResolveGuidanceDocumentNameFromOutputSheet(ws)
             FillReferenceUnitPrices ws, guidanceDocumentName
-            If mod_Construction_OutputLayout.IsWeldingOutputSheetCore(ws) Then
-                ApplyPriceGuidanceColumnLayoutAtColumns _
-                    ws, mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_PRICE_COMPARE), mod_Construction_OutputLayout.OutputSheetColCore(ws, COL_PRICE_GUIDANCE)
-            Else
-                ApplyPriceGuidanceColumnLayout ws
+            Dim existingCompareColumn As Long
+            existingCompareColumn = mod_Construction_BasicTotals.FindHeaderColumn(ws, ConstructionPriceCompareHeaderText())
+            If existingCompareColumn > 0 Then
+                ApplyPriceGuidanceColumnLayoutAtColumns ws, existingCompareColumn, existingCompareColumn + 1
             End If
             refreshedCount = refreshedCount + 1
         End If

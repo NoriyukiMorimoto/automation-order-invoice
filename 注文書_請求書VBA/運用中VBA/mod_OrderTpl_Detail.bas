@@ -498,6 +498,13 @@ Private Function CollectSourceSections(ByVal wsSource As Worksheet, _
     If vendorPriceColumn > 0 Then
         vendorPriceValues = wsSource.Range(wsSource.Cells(2, vendorPriceColumn), _
                                            wsSource.Cells(lastRow, vendorPriceColumn)).value
+        ' データ1行(lastRow=2)のときは単一値になるため 1x1 配列にそろえる
+        If Not IsArray(vendorPriceValues) Then
+            Dim singlePriceValue As Variant
+            singlePriceValue = vendorPriceValues
+            ReDim vendorPriceValues(1 To 1, 1 To 1)
+            vendorPriceValues(1, 1) = singlePriceValue
+        End If
     End If
 
     Dim sectionKeys As Collection
@@ -923,7 +930,9 @@ Public Sub HandleBreakdownQuantityCellChange(ByVal sh As Object, ByVal target As
     If hitRange Is Nothing Then Exit Sub
 
     Dim prevEnableEvents As Boolean
+    Dim eventsSaved As Boolean
     prevEnableEvents = Application.EnableEvents
+    eventsSaved = True
     Application.EnableEvents = False
 
     Dim changedCell As Range
@@ -947,7 +956,7 @@ Public Sub HandleBreakdownQuantityCellChange(ByVal sh As Object, ByVal target As
     Exit Sub
 
 Quiet:
-    Application.EnableEvents = True
+    If eventsSaved Then Application.EnableEvents = prevEnableEvents
     Err.Clear
 End Sub
 

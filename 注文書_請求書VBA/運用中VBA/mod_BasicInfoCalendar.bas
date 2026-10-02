@@ -7,7 +7,6 @@ Private Const CALENDAR_TARGET_ADDRESS_NAME As String = "__BasicInfoCalendarTarge
 Private Const CALENDAR_MONTH_NAME As String = "__BasicInfoCalendarMonth"
 Private Const BASIC_INFO_DATE_CELLS As String = "C11,C15,C16,C2,F2,F3"
 
-Public SharedMasterData As Variant
 Public ProjectSelectionBasicInfoMode As Boolean
 Public ProjectSelectionTargetSheetName As String
 Public ProjectSelectionTargetAddress As String
@@ -50,10 +49,6 @@ Private Sub ShowBasicInfoProjectNameSelection(ByVal wsInfo As Worksheet, ByVal t
     ProjectSelectionYear = Val(CommonExtractYear4Digits(CStr(wsInfo.Range("B4").value)))
     ProjectSelectionBranchName = Trim$(CStr(wsInfo.Range("B6").value))
     ProjectSelectionOfficeName = NormalizeProjectSelectionOfficeName(Trim$(CStr(wsInfo.Range("C6").value)))
-
-    On Error Resume Next
-    Project_Number_Selection.ClearSharedMasterData
-    On Error GoTo 0
 
     Project_Number_Selection.Show vbModal
     ClearProjectSelectionState

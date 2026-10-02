@@ -539,12 +539,6 @@ Cleanup:
     CommonCloseAdoConnection cn
 End Function
 
-Private Function MiddleDotText() As String
-    Static cached As String
-    If cached = "" Then cached = ChrW$(&H30FB)
-    MiddleDotText = cached
-End Function
-
 Private Function NightKeywordText() As String
     Static cached As String
     If cached = "" Then cached = ChrW$(&H591C)
@@ -752,14 +746,6 @@ Private Function WeldingUnitPriceFontNameText() As String
     WeldingUnitPriceFontNameText = cached
 End Function
 
-Private Function WeldingWorkPresentKeywordText() As String
-    Static cached As String
-    If cached = "" Then
-        cached = WeldingWorkTypeText() & ChrW$(&H3042) & ChrW$(&H308A)   ' 溶接工事 + あり
-    End If
-    WeldingWorkPresentKeywordText = cached
-End Function
-
 Private Function WeldingWorkTypeText() As String
     Static cached As String
     If cached = "" Then
@@ -795,14 +781,6 @@ End Sub
 '   2) ThisWorkbook の親フォルダ\マスタデータ\
 '   3) ThisWorkbook と同階層\マスタデータ\
 ' ファイル名は「レール溶接_軌道会社外注費率一覧*.xlsx」でワイルドカード検索(末尾の空白等を許容)
-
-Private Sub ApplyGreyFill(ByVal targetCell As Range)
-    With targetCell
-        .ClearContents
-        .NumberFormat = "General"
-        .Interior.Color = RGB(WUP_FILL_COLOR_R, WUP_FILL_COLOR_G, WUP_FILL_COLOR_B)
-    End With
-End Sub
 
 Private Sub ApplyMergedCell(ByVal wsWelding As Worksheet, _
                             ByVal rowIndex As Long, _
@@ -866,32 +844,6 @@ End Sub
 ' 書式・罫線・クリア(mod_VendorMaster の単価シート作成ロジックと同一仕様)
 
 ' 構成工種の同列セル×数量 の合計式。溶接=全構成、軌道=先頭1工種(J/K)のみ。
-
-Private Sub ApplyRailMarkupCell(ByVal targetCell As Range, _
-                                ByVal wsWelding As Worksheet, _
-                                ByVal rowIndex As Long, _
-                                ByVal sourceCol As Long, _
-                                ByVal temotoRatio As Variant, _
-                                ByVal ratioAddress As String, _
-                                ByVal patternAddress As String)
-    With targetCell
-        .ShrinkToFit = False
-        .Interior.ColorIndex = xlColorIndexNone
-    End With
-
-    If Len(Trim$(CStr(wsWelding.Cells(rowIndex, sourceCol).Value))) = 0 Then
-        ApplyGreyFill targetCell
-        Exit Sub
-    End If
-    If Not IsNumeric(temotoRatio) Then
-        ApplyGreyFill targetCell
-        Exit Sub
-    End If
-
-    targetCell.Formula = BuildRailMarkupFormula(wsWelding, rowIndex, sourceCol, _
-                                                CDbl(temotoRatio), ratioAddress, patternAddress)
-    targetCell.NumberFormat = WUP_NUMBER_FORMAT
-End Sub
 
 ' 軌道会社単価の数式。溶接単価シート3行目(会社列左側のパターン右列)の値で計算方式を切替える。
 '   共通: jr=JR単価(E/F) / lit=手元割合(マスタ昼E/夜F リテラル) / R=軌道外注比率(基本情報31行)
@@ -1244,32 +1196,6 @@ Private Sub RestoreWeldingVendorHeaderMergesAllSections(ByVal wsWelding As Works
         RestoreWeldingVendorHeaderBlockMerges wsWelding, rowIndex, rightmostNightCol
 NextMergeRow:
     Next rowIndex
-End Sub
-
-Private Sub ApplyWeldingVendorCell(ByVal targetCell As Range, _
-                                   ByVal wsWelding As Worksheet, _
-                                   ByVal rowIndex As Long, _
-                                   ByVal sourceCol As Long, _
-                                   ByVal temotoRatio As Variant, _
-                                   ByVal ratioAddress As String, _
-                                   ByVal isWeldingVendor As Boolean)
-    With targetCell
-        .ShrinkToFit = False
-        .Interior.ColorIndex = xlColorIndexNone
-    End With
-
-    If Len(Trim$(CStr(wsWelding.Cells(rowIndex, sourceCol).Value))) = 0 Then
-        ApplyGreyFill targetCell
-        Exit Sub
-    End If
-    If Not IsNumeric(temotoRatio) Then
-        ApplyGreyFill targetCell
-        Exit Sub
-    End If
-
-    targetCell.Formula = BuildWeldingVendorFormula(wsWelding, rowIndex, sourceCol, _
-                                                   CDbl(temotoRatio), ratioAddress, isWeldingVendor)
-    targetCell.NumberFormat = WUP_NUMBER_FORMAT
 End Sub
 
 ' 数式組み立て:

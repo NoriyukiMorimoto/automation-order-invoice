@@ -748,7 +748,7 @@ Private Sub OrderTplClearFormulaCell(ByVal cell As Range)
     Set writeCell = cell.MergeArea.Cells(1, 1)
     If writeCell Is Nothing Then Set writeCell = cell
     On Error Resume Next
-    writeCell.ClearContents
+    writeCell.MergeArea.ClearContents
     On Error GoTo 0
 End Sub
 

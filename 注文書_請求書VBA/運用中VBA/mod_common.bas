@@ -21,11 +21,59 @@ Public Function CommonRemoveAllSpaces(ByVal value As String) As String
 End Function
 
 Public Function CommonNzText(ByVal value As Variant) As String
-    If IsNull(value) Or IsEmpty(value) Then
+    ' セルのエラー値(#N/A 等)は CStr で型不一致になるため空文字として扱う
+    If IsError(value) Then
+        CommonNzText = ""
+    ElseIf IsNull(value) Or IsEmpty(value) Then
         CommonNzText = ""
     Else
         CommonNzText = CStr(value)
     End If
+End Function
+
+' 開いているブックを探す。FullName がローカルパスならフルパスの完全一致で、
+' クラウド(URL)で開かれている場合はファイル名で照合する。
+' 同じファイル名で別パスのブックが開いているときは nameConflict=True を返す
+' (その状態で Workbooks.Open すると失敗するか、別のブックを取り違えるため)。
+Public Function CommonFindOpenWorkbook(ByVal filePath As String, ByRef nameConflict As Boolean) As Workbook
+    nameConflict = False
+    Dim targetPath As String
+    targetPath = LCase$(Replace$(Trim$(filePath), "/", "\"))
+    If Len(targetPath) = 0 Then Exit Function
+    Dim targetName As String
+    targetName = Mid$(targetPath, InStrRev(targetPath, "\") + 1)
+
+    Dim wb As Workbook
+    For Each wb In Application.Workbooks
+        If StrComp(wb.Name, targetName, vbTextCompare) = 0 Then
+            Dim openedPath As String
+            openedPath = LCase$(Replace$(wb.FullName, "/", "\"))
+            If openedPath = targetPath Or Left$(openedPath, 4) = "http" Then
+                Set CommonFindOpenWorkbook = wb
+                Exit Function
+            End If
+            nameConflict = True
+        End If
+    Next wb
+End Function
+
+' 読み取り専用でブックを開く。既に開いていればそれを返し openedHere=False。
+' 呼び出し側は openedHere=True のときだけ Close すること(ユーザーが開いているブックを閉じないため)。
+' 同名の別ブックが開いているときは Nothing を返す。
+Public Function CommonOpenWorkbookReadOnly(ByVal filePath As String, ByRef openedHere As Boolean) As Workbook
+    openedHere = False
+    Dim nameConflict As Boolean
+    Dim wb As Workbook
+    Set wb = CommonFindOpenWorkbook(filePath, nameConflict)
+    If Not wb Is Nothing Then
+        Set CommonOpenWorkbookReadOnly = wb
+        Exit Function
+    End If
+    If nameConflict Then Exit Function
+
+    Set wb = Application.Workbooks.Open(fileName:=filePath, UpdateLinks:=0, ReadOnly:=True, AddToMru:=False)
+    If Not wb Is Nothing Then openedHere = True
+    Set CommonOpenWorkbookReadOnly = wb
 End Function
 
 Public Function CommonExtractYear4Digits(ByVal sourceText As String) As String
@@ -125,24 +173,6 @@ Public Function CommonCompanyNameText() As String
                  ChrW$(&H682A) & ChrW$(&H5F0F) & ChrW$(&H4F1A) & ChrW$(&H793E)
     End If
     CommonCompanyNameText = cached
-End Function
-
-Public Function CommonBranchSuffixText() As String
-    Static cached As String
-    If cached = "" Then
-        cached = ChrW$(&H652F) & ChrW$(&H5E97)
-    End If
-    CommonBranchSuffixText = cached
-End Function
-
-Public Function CommonUnitPriceProjectNameMasterSheetNameText() As String
-    Static cached As String
-    If cached = "" Then
-        cached = ChrW$(&H5358) & ChrW$(&H4FA1) & ChrW$(&H9069) & ChrW$(&H7528) & _
-                 ChrW$(&H5DE5) & ChrW$(&H4E8B) & ChrW$(&H4EF6) & ChrW$(&H540D) & _
-                 ChrW$(&H30DE) & ChrW$(&H30B9) & ChrW$(&H30BF)
-    End If
-    CommonUnitPriceProjectNameMasterSheetNameText = cached
 End Function
 
 Public Function CommonGetBasicInfoWorksheet(Optional ByVal wb As Workbook = Nothing) As Worksheet

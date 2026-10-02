@@ -95,13 +95,6 @@ Private Sub ResetRangeFormats(ByVal target As Range)
     On Error GoTo 0
 End Sub
 
-' UsedRange ‚Ì––”ös(‘®‚Ì‚İ‚ÌƒZƒ‹‚àŠÜ‚Ş)
-Private Function GetSheetUsedLastRow(ByVal ws As Worksheet) As Long
-    On Error Resume Next
-    GetSheetUsedLastRow = ws.UsedRange.Row + ws.UsedRange.rows.Count - 1
-    On Error GoTo 0
-End Function
-
 ' UsedRange ‚Ì––”ö—ñ(‘®‚Ì‚İ‚ÌƒZƒ‹‚àŠÜ‚Ş)
 Private Function GetSheetUsedLastCol(ByVal ws As Worksheet) As Long
     On Error Resume Next

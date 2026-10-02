@@ -93,15 +93,9 @@ Public Sub RunScheduledVendorSheetGeneration()
     pendingKeys = mPendingVendorIndexes.Keys
     mPendingVendorIndexes.RemoveAll
 
-    Dim prevEnableEvents As Boolean
-    Dim prevScreenUpdating As Boolean
-    Dim prevCalculation As XlCalculation
-    prevEnableEvents = Application.EnableEvents
-    prevScreenUpdating = Application.ScreenUpdating
-    prevCalculation = Application.Calculation
-    Application.EnableEvents = False
-    Application.ScreenUpdating = False
-    Application.Calculation = xlCalculationManual
+    Dim g As New clsPerfGuard
+    g.Suspend
+    On Error GoTo RunFailed
 
     Dim i As Long
     Dim lastVendorIndex As Long
@@ -122,7 +116,7 @@ Public Sub RunScheduledVendorSheetGeneration()
 
     On Error Resume Next
     Application.Calculate
-    On Error GoTo 0
+    On Error GoTo RunFailed
 
     ' Single vendor: partial totals (works/purchase totals unchanged by name edit)
     If UBound(pendingKeys) = LBound(pendingKeys) Then
@@ -131,10 +125,13 @@ Public Sub RunScheduledVendorSheetGeneration()
         mod_Construction_Order_Import.RefreshBasicInfoConstructionTotals
     End If
 
-    Application.Calculation = prevCalculation
-    Application.ScreenUpdating = prevScreenUpdating
-    Application.EnableEvents = prevEnableEvents
+    g.Restore
     mod_Construction_Import_Shared.LogCIElapsed "RunScheduledVendorSheetGeneration total", runT0
+    Exit Sub
+
+RunFailed:
+    mod_Construction_Import_Shared.LogCI "RunScheduledVendorSheetGeneration Err " & Err.Number & ": " & Err.Description
+    g.Restore
 End Sub
 
 ' 対象エイリアスの内訳明細が既にある場合はテンプレ再コピーせず見出し/明細のみ更新する。
@@ -335,6 +332,8 @@ Public Sub GenerateVendorOrderSheets(ByVal wsInfo As Worksheet, ByVal vendorInde
     End If
 
     If openedHere Then templateWorkbook.Close SaveChanges:=False
+    openedHere = False
+    Set templateWorkbook = Nothing
     Application.DisplayAlerts = prevDisplayAlerts
 
     Dim wsBreakdown As Worksheet
@@ -360,6 +359,7 @@ Public Sub GenerateVendorOrderSheets(ByVal wsInfo As Worksheet, ByVal vendorInde
 
 Cleanup:
     On Error Resume Next
+    If openedHere And Not templateWorkbook Is Nothing Then templateWorkbook.Close SaveChanges:=False
     If Not previousActiveSheet Is Nothing Then
         If Not previousActiveSheet Is wsInfo Then previousActiveSheet.Activate
     End If
@@ -474,36 +474,6 @@ ErrorHandler:
     If showCompletionMessage Then
         MsgBox RefreshErrorText() & vbCrLf & Err.Description, vbExclamation
     End If
-End Sub
-
-' 施行指示書・施行通知書シートの施工会社列(工事:A列/溶接:A・B列)変更時に、
-' 遅延実行で全社再転記を予約する(ThisWorkbook.Workbook_SheetChange から呼ばれる)
-Public Sub HandleSourceSheetVendorCellChange(ByVal sh As Object, ByVal target As Range)
-    If mGenerating Then Exit Sub
-    If TypeName(sh) <> "Worksheet" Then Exit Sub
-    If target Is Nothing Then Exit Sub
-
-    On Error GoTo Quiet
-
-    Dim ws As Worksheet
-    Set ws = sh
-
-    If Not mod_Construction_Import_Load.IsManagedImportOutputSheet(ws) Then Exit Sub
-    If mod_Construction_BasicTotals.IsPurchaseOutputSheet(ws) Then Exit Sub
-
-    Dim vendorColumns As Range
-    If mod_Construction_OutputLayout.IsWeldingOutputSheetCore(ws) Then
-        Set vendorColumns = ws.Range(ws.Cells(2, 1), ws.Cells(ws.Rows.Count, 2))
-    Else
-        Set vendorColumns = ws.Range(ws.Cells(2, 1), ws.Cells(ws.Rows.Count, 1))
-    End If
-    If Intersect(target, vendorColumns) Is Nothing Then Exit Sub
-
-    ScheduleOrderDetailRefresh
-    Exit Sub
-
-Quiet:
-    Err.Clear
 End Sub
 
 ' 全社再転記の遅延実行を予約する(連続変更を1回にまとめる)

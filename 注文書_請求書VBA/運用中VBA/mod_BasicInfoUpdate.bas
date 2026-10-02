@@ -520,12 +520,5 @@ End Sub
 Private Sub LogClearStep(ByVal msg As String)
     On Error Resume Next
     mod_DebugLog.Log "[ClearBI] " & msg
-
-    If Len(ThisWorkbook.Path) = 0 Then Exit Sub
-    Dim fileNo As Integer
-    fileNo = FreeFile
-    Open ThisWorkbook.Path & "\ClearBasicInfo_diag.log" For Append Access Write As #fileNo
-    Print #fileNo, Format$(Now, "yyyy-mm-dd hh:mm:ss") & "  " & msg
-    Close #fileNo
     On Error GoTo 0
 End Sub

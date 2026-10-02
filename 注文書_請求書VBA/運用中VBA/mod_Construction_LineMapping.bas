@@ -3,6 +3,11 @@ Option Explicit
 ' ????: CHANGELOG.md ??
 ' mod_Construction_LineMapping (split from mod_Construction_Order_Import)
 
+' 工事件名別マスタの線区名ペア(LoadProjectMasterLineNamePairs の結果)のキャッシュ。
+' ClearProjectLineNameAliasCache(施工指示書取込・参照単価再読込の開始時)で破棄する。
+Private mProjectMasterLinePairsCache As Collection
+Private mProjectMasterLinePairsLoaded As Boolean
+
 Public Function BuildConstructionLineSheetMap() As Object
     Dim result As Object
     Set result = CreateObject("Scripting.Dictionary")
@@ -98,6 +103,8 @@ Public Sub ClearProjectLineNameAliasCache()
     Set mProjectLineNameReverseAliasWelding = Nothing
     Set mProjectLineNameReverseAliasConstruction = Nothing
     Set mProjectMasterLineOrderRankMap = Nothing
+    Set mProjectMasterLinePairsCache = Nothing
+    mProjectMasterLinePairsLoaded = False
 End Sub
 
 ' ============================================================
@@ -179,6 +186,11 @@ End Function
 ' 工事件名別マスタ F列(積算線区)・G列(施工指示書記載線区名) のペアを返す。
 ' C21 で指定された1ファイルだけでなく、C20 フォルダ内の全 .xlsx(①軌道整備他 等)を走査する。
 Public Function LoadProjectMasterLineNamePairs() As Collection
+    If mProjectMasterLinePairsLoaded Then
+        Set LoadProjectMasterLineNamePairs = mProjectMasterLinePairsCache
+        Exit Function
+    End If
+
     Dim result As Collection
     Set result = New Collection
 
@@ -196,6 +208,8 @@ Public Function LoadProjectMasterLineNamePairs() As Collection
 
     LogCI "工事件名別マスタ 線区名ペア数=" & result.Count & _
           " 読込ファイル数=" & loadedFileCount & "/" & masterFiles.Count
+    Set mProjectMasterLinePairsCache = result
+    mProjectMasterLinePairsLoaded = True
     Set LoadProjectMasterLineNamePairs = result
 End Function
 
@@ -680,7 +694,7 @@ Public Function SynthesizeConstructionLineNameVariants(ByVal unitPriceLineName A
                 If Len(segmentText) > 1 Then
                     If Right$(segmentText, 1) = ChrW$(&H7DDA) Then
                         If InStr(1, segmentText, ChrW$(&H9023) & ChrW$(&H7D61) & ChrW$(&H7DDA), vbTextCompare) = 0 And _
-                           InStr(1, segmentText, ChrW$(&H8CA) & ChrW$(&H7269) & ChrW$(&H7DDA), vbTextCompare) = 0 Then
+                           InStr(1, segmentText, ChrW$(&H8CA8) & ChrW$(&H7269) & ChrW$(&H7DDA), vbTextCompare) = 0 Then
                             segments(segmentIndex) = Left$(segmentText, Len(segmentText) - 1)
                             changed = True
                         End If
@@ -836,13 +850,6 @@ Public Function RemoveTrailingParenGroup(ByVal sourceText As String) As String
     If openPos <= 1 Then Exit Function
 
     RemoveTrailingParenGroup = Trim$(Left$(t, openPos - 1))
-End Function
-
-' 線区テキストに(軌道)マーカーが含まれるか
-Public Function LineTextHasTrackDesignation(ByVal lineText As String) As Boolean
-    Dim normalized As String
-    normalized = CommonNormalizeText(lineText)
-    LineTextHasTrackDesignation = (RemoveTrackDesignationMarker(normalized) <> normalized)
 End Function
 
 ' 整理番号が単価マスタに未登録の行を、線区シート別に収集する(同一整理番号は1件のみ)
@@ -1720,7 +1727,7 @@ Public Function GetLastDataRow(ByVal ws As Worksheet, _
     Dim scanHigh As Long
     scanHigh = 2
     If Not ws.UsedRange Is Nothing Then
-        scanHigh = ws.UsedRange.Row + ws.UsedRange.Rows.Count - 1 + 50000
+        scanHigh = ws.UsedRange.Row + ws.UsedRange.Rows.Count - 1
     End If
     If scanHigh > ws.Rows.Count Then scanHigh = ws.Rows.Count
     If scanHigh < 2 Then
@@ -1744,15 +1751,7 @@ Public Function GetLastDataRow(ByVal ws As Worksheet, _
         Exit Function
     End If
 
-    If scanHigh < ws.Rows.Count Then
-        For rowIndex = ws.Rows.Count To scanHigh + 1 Step -1
-            If Trim$(CommonNzText(ws.Cells(rowIndex, dataKeyColumn).value)) <> "" Then
-                GetLastDataRow = rowIndex
-                Exit Function
-            End If
-        Next rowIndex
-    End If
-
+    ' UsedRange より下は必ず空なので、それ以上は走査しない
     GetLastDataRow = 1
 End Function
 

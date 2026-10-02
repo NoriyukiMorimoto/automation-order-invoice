@@ -20,18 +20,10 @@ Public Sub ClearVendorAliasMapCache()
     mod_Construction_BasicTotals.ClearVendorAliasMapCacheCore
 End Sub
 
-Public Sub UpdateBasicInfoTaxTotals(Optional ByVal wsInfo As Worksheet)
-    mod_Construction_BasicTotals.UpdateBasicInfoTaxTotalsCore wsInfo
-End Sub
-
 Public Function ResolveBasicInfoVendorInfoIndex(ByVal vendorDisplayName As String, _
                                                 Optional ByVal workTypeKeyword As String = "") As Long
     ResolveBasicInfoVendorInfoIndex = mod_Construction_BasicTotals.ResolveBasicInfoVendorInfoIndexCore(vendorDisplayName, workTypeKeyword)
 End Function
-
-Public Sub ApplySanpaiRowRestrictions(ByVal ws As Worksheet)
-    mod_Construction_OutputFormat.ApplySanpaiRowRestrictionsCore ws
-End Sub
 
 Public Sub RefreshConstructionReferenceUnitPricesOnExistingSheets()
     mod_Construction_OutputFormat.RefreshConstructionReferenceUnitPricesOnExistingSheetsCore
@@ -45,10 +37,6 @@ End Sub
 Public Function GetProjectMasterLineOrderRank(ByVal lineName As String) As Long
     GetProjectMasterLineOrderRank = mod_Construction_LineMapping.GetProjectMasterLineOrderRankCore(lineName)
 End Function
-
-Public Sub ClearProjectMasterLineOrderCache()
-    mod_Construction_LineMapping.ClearProjectMasterLineOrderCacheCore
-End Sub
 
 Public Function IsManagedConstructionImportOutputSheet(ByVal ws As Worksheet) As Boolean
     IsManagedConstructionImportOutputSheet = mod_Construction_OutputLayout.IsManagedConstructionImportOutputSheetCore(ws)
@@ -70,10 +58,3 @@ Public Function OutputSheetSeiriColumn(ByVal ws As Worksheet) As Long
     OutputSheetSeiriColumn = mod_Construction_OutputLayout.OutputSheetSeiriColumnCore(ws)
 End Function
 
-Public Function OutputSheetSubconPriceFirstCol(ByVal ws As Worksheet) As Long
-    OutputSheetSubconPriceFirstCol = mod_Construction_OutputLayout.OutputSheetSubconPriceFirstColCore(ws)
-End Function
-
-Public Function OutputSheetVendorColumns(ByVal ws As Worksheet) As Collection
-    Set OutputSheetVendorColumns = mod_Construction_OutputLayout.OutputSheetVendorColumnsCore(ws)
-End Function

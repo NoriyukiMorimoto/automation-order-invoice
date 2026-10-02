@@ -92,7 +92,7 @@ Public Sub RefreshSubcontractorPriceColumnsCore(ByVal ws As Worksheet, _
         End If
         Err.Clear
     End If
-    On Error GoTo 0
+    On Error GoTo RefreshError
 
     If vendorNames.Count = 0 Or lastRow < 2 Then
         lastRow = mod_Construction_LineMapping.GetLastDataRow(ws)
@@ -117,7 +117,7 @@ Public Sub RefreshSubcontractorPriceColumnsCore(ByVal ws As Worksheet, _
         lastRow = mod_Construction_LineMapping.GetLastDataRow(ws)
         If Err.Number <> 0 Then GoTo RefreshSetupError
         If lastRow < 2 Then
-            On Error GoTo 0
+            On Error GoTo RefreshError
             mod_Construction_BasicTotals.RefreshBasicInfoConstructionTotalsCore
             GoTo RefreshExit
         End If
@@ -137,7 +137,7 @@ Public Sub RefreshSubcontractorPriceColumnsCore(ByVal ws As Worksheet, _
         kindColumn = mod_Construction_BasicTotals.FindHeaderColumn(ws, "工種分類")
         If Err.Number <> 0 Then GoTo RefreshSetupError
         Err.Clear
-        On Error GoTo 0
+        On Error GoTo RefreshError
     End If
 
     If kindColumn > subconFirstCol Then
@@ -172,7 +172,7 @@ Public Sub RefreshSubcontractorPriceColumnsCore(ByVal ws As Worksheet, _
     If ws.AutoFilterMode Then partialUpdate = False
     If Err.Number <> 0 Then GoTo RefreshSetupError
     Err.Clear
-    On Error GoTo 0
+    On Error GoTo RefreshError
 
     '  以降は段階毎にエラーを捕捉し、どの段階で失敗したかを refreshStep として
     '  LogCI に記録する。単価適用以外の装飾・合計行描画は、失敗しても処理全体を
@@ -214,7 +214,7 @@ Public Sub RefreshSubcontractorPriceColumnsCore(ByVal ws As Worksheet, _
             lineSheetMap, vendorPriceCaches, seiriColumn, dayNightColumn, lineColumn, _
             qtyColumn, isWeldingSheet, matchedCount
     End If
-    On Error GoTo 0
+    On Error GoTo RefreshError
 
     refreshStep = "AmountFormulas"
     On Error Resume Next
@@ -224,7 +224,7 @@ Public Sub RefreshSubcontractorPriceColumnsCore(ByVal ws As Worksheet, _
         LogCI "RefreshSubcontractorPriceColumnsCore step=" & refreshStep & " Err " & Err.Number & ": " & Err.Description
         Err.Clear
     End If
-    On Error GoTo 0
+    On Error GoTo RefreshError
 
     refreshStep = "ColumnInteriors"
     On Error Resume Next
@@ -233,7 +233,7 @@ Public Sub RefreshSubcontractorPriceColumnsCore(ByVal ws As Worksheet, _
         LogCI "RefreshSubcontractorPriceColumnsCore step=" & refreshStep & " Err " & Err.Number & ": " & Err.Description
         Err.Clear
     End If
-    On Error GoTo 0
+    On Error GoTo RefreshError
 
     refreshStep = "VendorColumnColors"
     On Error Resume Next
@@ -243,7 +243,7 @@ Public Sub RefreshSubcontractorPriceColumnsCore(ByVal ws As Worksheet, _
         LogCI "RefreshSubcontractorPriceColumnsCore step=" & refreshStep & " Err " & Err.Number & ": " & Err.Description
         Err.Clear
     End If
-    On Error GoTo 0
+    On Error GoTo RefreshError
 
     If Not layoutMatches Then
         refreshStep = "FormatColumns"
@@ -254,7 +254,7 @@ Public Sub RefreshSubcontractorPriceColumnsCore(ByVal ws As Worksheet, _
             LogCI "RefreshSubcontractorPriceColumnsCore step=" & refreshStep & " Err " & Err.Number & ": " & Err.Description
             Err.Clear
         End If
-        On Error GoTo 0
+        On Error GoTo RefreshError
     End If
 
     refreshStep = "WriteTotals"
@@ -264,7 +264,7 @@ Public Sub RefreshSubcontractorPriceColumnsCore(ByVal ws As Worksheet, _
         LogCI "RefreshSubcontractorPriceColumnsCore step=" & refreshStep & " Err " & Err.Number & ": " & Err.Description
         Err.Clear
     End If
-    On Error GoTo 0
+    On Error GoTo RefreshError
 
     On Error GoTo RefreshError
     refreshStep = "BasicInfoTotals"

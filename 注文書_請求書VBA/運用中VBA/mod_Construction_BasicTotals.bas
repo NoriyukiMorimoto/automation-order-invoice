@@ -412,20 +412,6 @@ Private Function SumSanpaiJrAmountOnSheet(ByVal ws As Worksheet) As Double
     SumSanpaiJrAmountOnSheet = subtotal
 End Function
 
-Public Function SumVendorAmountOnSheet(ByVal ws As Worksheet, _
-                                        ByVal vendorName As String, _
-                                        ByVal aliasMap As Object) As Double
-    Dim vendorKey As String
-    vendorKey = ResolveVendorCanonicalKey(vendorName, aliasMap)
-    If vendorKey = "" Then Exit Function
-
-    Dim columnMap As Object
-    Set columnMap = BuildSheetVendorAmountColumnMap(ws, aliasMap)
-    If columnMap.Exists(vendorKey) Then
-        SumVendorAmountOnSheet = SumVendorAmountByColumn(ws, CLng(columnMap(vendorKey)))
-    End If
-End Function
-
 ' 施行指示書(工事)/施行通知書(工事)シートのA列(施工会社)に、指定業者が選択されているかを調べる。
 ' (別紙Ⅲ等でJR金額集計を「工事シートに紐付く施工会社」のみ対象とする判定に利用。未選択時は False)
 Public Function IsVendorSelectedOnWorksSheet(ByVal branchName As String, _

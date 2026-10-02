@@ -415,16 +415,6 @@ Private Sub ApplyVendorRowToBasicInfo(ByVal targetCell As Range, ByVal rowData A
     mod_VendorUnitPrice.RefreshVendorUnitPriceForValueColumn targetCell.Worksheet, targetCell.Column
 End Sub
 
-Private Sub ClearAllVendorInfoBlocks(ByVal wsInfo As Worksheet)
-    Dim vendorCells As Range
-    Set vendorCells = GetVendorNameRange(wsInfo)
-
-    Dim vendorCell As Range
-    For Each vendorCell In vendorCells.Cells
-        ClearVendorInfoBlock vendorCell
-    Next vendorCell
-End Sub
-
 Public Sub ClearVendorInfoBlock(ByVal targetCell As Range)
     With targetCell.Worksheet
         VendorWritableValueCell(targetCell.Worksheet, BASIC_INFO_VENDOR_BLOCK_TOP_ROW, targetCell.Column).ClearContents
@@ -435,12 +425,13 @@ Public Sub ClearVendorInfoBlock(ByVal targetCell As Range)
     End With
 End Sub
 
+' 業者一覧(AJ列)と入力規則だけを片付ける。入力済みの業者ブロックは消さない
+' (業者マスタが一時的に読めない(OneDrive 未同期・オフライン)だけで全社分が消えていたため)。
 Private Sub ClearVendorList(ByVal wsInfo As Worksheet)
     On Error Resume Next
     wsInfo.Columns(VENDOR_LIST_COL & ":" & VENDOR_LIST_COL).Hidden = False
     wsInfo.Range(VENDOR_LIST_COL & ":" & VENDOR_LIST_COL).ClearContents
     GetVendorNameRange(wsInfo).Validation.Delete
-    ClearAllVendorInfoBlocks wsInfo
     wsInfo.Columns(VENDOR_LIST_COL & ":" & VENDOR_LIST_COL).Hidden = True
     On Error GoTo 0
 End Sub
@@ -855,6 +846,7 @@ Public Sub RefreshVendorListForBasicInfo(Optional ByVal wsInfo As Worksheet)
     Exit Sub
 
 ErrorHandler:
+    mod_DebugLog.Log "[VendorMaster] RefreshVendorListForBasicInfo Err " & Err.Number & ": " & Err.Description
     ClearVendorList wsInfo
 End Sub
 
